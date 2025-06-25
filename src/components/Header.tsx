@@ -28,8 +28,7 @@ const Header = () => {
     userType: 'data-seller'
   });
 
-  const navItems = [
-    { name: 'Home', path: '/', icon: Database },
+  const baseNavItems = [
     { name: 'Research', path: '/research', icon: Shield },
     { name: 'Governance', path: '/governance', icon: Settings },
   ];
@@ -76,13 +75,16 @@ const Header = () => {
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
   };
 
-  // Show dashboard in nav only if wallet is connected
+  // Show different nav items based on wallet connection
   const currentNavItems = wallet.isConnected 
     ? [
         { name: 'Dashboard', path: '/dashboard', icon: Users },
-        ...navItems
+        ...baseNavItems
       ]
-    : navItems;
+    : [
+        { name: 'Home', path: '/', icon: Database },
+        ...baseNavItems
+      ];
 
   return (
     <header className="bg-white/80 backdrop-blur-lg border-b border-gray-200 sticky top-0 z-50">

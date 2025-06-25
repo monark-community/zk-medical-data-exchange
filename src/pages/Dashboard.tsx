@@ -15,7 +15,9 @@ import {
   CheckCircle, 
   Clock,
   TrendingUp,
-  Users
+  Users,
+  Building2,
+  Pill
 } from 'lucide-react';
 
 const Dashboard = () => {
@@ -36,11 +38,69 @@ const Dashboard = () => {
   ];
 
   const dataVault = [
-    { name: 'Health Records', type: 'EHR', size: '2.4 MB', lastUpdate: '2 days ago', encrypted: true },
-    { name: 'Fitness Tracker Data', type: 'Wearable', size: '8.7 MB', lastUpdate: '1 hour ago', encrypted: true },
-    { name: 'Lab Results', type: 'Medical', size: '1.2 MB', lastUpdate: '1 week ago', encrypted: true },
-    { name: 'Genomic Data', type: 'DNA', size: '450 MB', lastUpdate: '1 month ago', encrypted: true }
+    { 
+      name: 'Health Records', 
+      type: 'EHR', 
+      size: '2.4 MB', 
+      lastUpdate: '2 days ago', 
+      encrypted: true,
+      institution: 'City General Hospital',
+      institutionType: 'hospital'
+    },
+    { 
+      name: 'Fitness Tracker Data', 
+      type: 'Wearable', 
+      size: '8.7 MB', 
+      lastUpdate: '1 hour ago', 
+      encrypted: true,
+      institution: 'Self-Collected',
+      institutionType: 'self'
+    },
+    { 
+      name: 'Lab Results', 
+      type: 'Medical', 
+      size: '1.2 MB', 
+      lastUpdate: '1 week ago', 
+      encrypted: true,
+      institution: 'LabCorp',
+      institutionType: 'laboratory'
+    },
+    { 
+      name: 'Prescription History', 
+      type: 'Pharmacy', 
+      size: '450 KB', 
+      lastUpdate: '3 days ago', 
+      encrypted: true,
+      institution: 'CVS Pharmacy',
+      institutionType: 'pharmacy'
+    }
   ];
+
+  const getInstitutionIcon = (type: string) => {
+    switch (type) {
+      case 'hospital':
+        return <Building2 className="w-4 h-4 text-blue-600" />;
+      case 'pharmacy':
+        return <Pill className="w-4 h-4 text-green-600" />;
+      case 'laboratory':
+        return <Activity className="w-4 h-4 text-purple-600" />;
+      default:
+        return <Database className="w-4 h-4 text-gray-600" />;
+    }
+  };
+
+  const getInstitutionBadgeColor = (type: string) => {
+    switch (type) {
+      case 'hospital':
+        return 'bg-blue-100 text-blue-700';
+      case 'pharmacy':
+        return 'bg-green-100 text-green-700';
+      case 'laboratory':
+        return 'bg-purple-100 text-purple-700';
+      default:
+        return 'bg-gray-100 text-gray-700';
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
@@ -200,9 +260,17 @@ const Dashboard = () => {
                         <div className="w-12 h-12 bg-gradient-to-br from-blue-100 to-teal-100 rounded-lg flex items-center justify-center">
                           <Database className="w-6 h-6 text-blue-600" />
                         </div>
-                        <div>
-                          <div className="font-medium text-gray-900">{item.name}</div>
-                          <div className="text-sm text-gray-500">{item.type} • {item.size} • Updated {item.lastUpdate}</div>
+                        <div className="flex-1">
+                          <div className="font-medium text-gray-900 mb-1">{item.name}</div>
+                          <div className="text-sm text-gray-500 mb-2">{item.type} • {item.size} • Updated {item.lastUpdate}</div>
+                          <div className="flex items-center space-x-2">
+                            <Badge className={`text-xs ${getInstitutionBadgeColor(item.institutionType)}`}>
+                              <div className="flex items-center space-x-1">
+                                {getInstitutionIcon(item.institutionType)}
+                                <span>{item.institution}</span>
+                              </div>
+                            </Badge>
+                          </div>
                         </div>
                       </div>
                       <div className="flex items-center space-x-2">
