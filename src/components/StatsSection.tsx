@@ -40,28 +40,28 @@ const StatsSection = () => {
       title: 'AI Drug Discovery',
       description: 'Identified 847 potential compounds for rare disease treatment using our anonymized patient data.',
       impact: '3x faster discovery',
-      color: 'text-indigo-600'
+      gradient: 'from-indigo-500 to-indigo-600'
     },
     {
       icon: Microscope,
       title: 'Pattern Recognition',
       description: 'ML models detected early cancer biomarkers with 94.2% accuracy across diverse populations.',
       impact: '15 months earlier detection',
-      color: 'text-red-600'
+      gradient: 'from-red-500 to-red-600'
     },
     {
       icon: Zap,
       title: 'Treatment Optimization',
       description: 'AI algorithms personalized therapy plans, reducing adverse reactions by 68%.',
       impact: '2.4x better outcomes',
-      color: 'text-yellow-600'
+      gradient: 'from-yellow-500 to-yellow-600'
     },
     {
       icon: Award,
       title: 'Population Health Insights',
       description: 'Discovered 23 novel genetic correlations leading to breakthrough preventive protocols.',
       impact: '40% risk reduction',
-      color: 'text-emerald-600'
+      gradient: 'from-emerald-500 to-emerald-600'
     }
   ];
 
@@ -110,14 +110,14 @@ const StatsSection = () => {
             return (
               <div key={index} className="bg-white rounded-xl p-8 shadow-lg hover:shadow-xl transition-all duration-300">
                 <div className="flex items-start space-x-4">
-                  <div className={`w-12 h-12 rounded-lg bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center flex-shrink-0`}>
-                    <Icon className={`w-6 h-6 ${breakthrough.color}`} />
+                  <div className={`w-12 h-12 rounded-lg bg-gradient-to-r ${breakthrough.gradient} flex items-center justify-center flex-shrink-0`}>
+                    <Icon className="w-6 h-6 text-white" />
                   </div>
                   <div className="flex-1">
                     <h4 className="text-xl font-semibold text-gray-900 mb-2">{breakthrough.title}</h4>
                     <p className="text-gray-600 mb-3">{breakthrough.description}</p>
-                    <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${breakthrough.color} bg-opacity-10`} style={{backgroundColor: `${breakthrough.color.replace('text-', '').replace('-600', '')}`}}>
-                      <span className={breakthrough.color}>{breakthrough.impact}</span>
+                    <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gradient-to-r ${breakthrough.gradient} text-white`}>
+                      <span>{breakthrough.impact}</span>
                     </div>
                   </div>
                 </div>
