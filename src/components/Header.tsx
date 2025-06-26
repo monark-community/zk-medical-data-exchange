@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Shield, Database, Users, Settings, User, LogOut, Wallet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -9,61 +9,26 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-
-interface WalletState {
-  isConnected: boolean;
-  address: string;
-  alias: string;
-  userType: 'data-seller' | 'researcher';
-}
+import { useWallet } from '@/contexts/WalletContext';
 
 const Header = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  
-  const [wallet, setWallet] = useState<WalletState>({
-    isConnected: false,
-    address: '',
-    alias: '',
-    userType: 'data-seller'
-  });
+  const { wallet, handleConnectWallet, handleDisconnect, handleSwitchUserType } = useWallet();
 
   const baseNavItems = [
     { name: 'Research', path: '/research', icon: Shield },
     { name: 'Governance', path: '/governance', icon: Settings },
   ];
 
-  const handleConnectWallet = async () => {
-    // Simulate wallet connection
-    const mockAddress = '0x1234567890abcdef1234567890abcdef12345678';
-    const mockAlias = 'HealthUser123';
-    
-    setWallet({
-      isConnected: true,
-      address: mockAddress,
-      alias: mockAlias,
-      userType: 'data-seller'
-    });
-
-    // Navigate to dashboard after connecting
+  const connectWallet = async () => {
+    handleConnectWallet();
     navigate('/dashboard');
   };
 
-  const handleDisconnect = () => {
-    setWallet({
-      isConnected: false,
-      address: '',
-      alias: '',
-      userType: 'data-seller'
-    });
+  const disconnect = () => {
+    handleDisconnect();
     navigate('/');
-  };
-
-  const handleSwitchUserType = () => {
-    setWallet(prev => ({
-      ...prev,
-      userType: prev.userType === 'data-seller' ? 'researcher' : 'data-seller'
-    }));
   };
 
   const handleProfileClick = () => {
@@ -81,10 +46,7 @@ const Header = () => {
         { name: 'Dashboard', path: '/dashboard', icon: Users },
         ...baseNavItems
       ]
-    : [
-        { name: 'Home', path: '/', icon: Database },
-        ...baseNavItems
-      ];
+    : baseNavItems;
 
   return (
     <header className="bg-white/80 backdrop-blur-lg border-b border-gray-200 sticky top-0 z-50">
@@ -123,7 +85,7 @@ const Header = () => {
           <div className="flex items-center space-x-4">
             {!wallet.isConnected ? (
               <>
-                <Button variant="outline" size="sm" onClick={handleConnectWallet}>
+                <Button variant="outline" size="sm" onClick={connectWallet}>
                   Connect Wallet
                 </Button>
                 <Button size="sm" className="bg-gradient-to-r from-blue-600 to-teal-600">
@@ -171,7 +133,7 @@ const Header = () => {
                     <Button
                       variant="ghost"
                       className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
-                      onClick={handleDisconnect}
+                      onClick={disconnect}
                     >
                       <LogOut className="w-4 h-4 mr-2" />
                       Disconnect

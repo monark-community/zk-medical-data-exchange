@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useWallet } from '@/contexts/WalletContext';
 import { 
   Shield, 
   Database, 
@@ -32,6 +33,7 @@ const mockWallet = {
 };
 
 const Dashboard = () => {
+  const { wallet } = useWallet();
   const [activeTab, setActiveTab] = useState('overview');
 
   // Data Seller Stats
@@ -178,7 +180,7 @@ const Dashboard = () => {
   };
 
   // Determine if user is a researcher
-  const isResearcher = mockWallet.userType === 'researcher';
+  const isResearcher = wallet.userType === 'researcher';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
