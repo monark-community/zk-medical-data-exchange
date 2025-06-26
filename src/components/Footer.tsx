@@ -2,26 +2,32 @@
 import React from 'react';
 import { Shield, Twitter, Github, MessageCircle, Mail } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useWallet } from '@/contexts/WalletContext';
+import { useLocalization } from '@/contexts/LocalizationContext';
+import LanguagePicker from './LanguagePicker';
 
 const Footer = () => {
+  const { wallet } = useWallet();
+  const { t } = useLocalization();
+
   const links = {
     platform: [
-      { name: 'How it Works', href: '/how-it-works' },
-      { name: 'Privacy Policy', href: '#' },
-      { name: 'Terms of Service', href: '#' },
-      { name: 'Security', href: '#' }
+      { name: t('footer.howItWorks'), href: '/how-it-works' },
+      { name: t('footer.privacyPolicy'), href: '#' },
+      { name: t('footer.termsOfService'), href: '#' },
+      { name: t('footer.security'), href: '#' }
     ],
     research: [
-      { name: 'For Researchers', href: '#' },
-      { name: 'Data Catalog', href: '#' },
-      { name: 'API Documentation', href: '#' },
-      { name: 'Ethics Guidelines', href: '#' }
+      { name: t('footer.forResearchers'), href: '#' },
+      { name: t('footer.dataCatalog'), href: '#' },
+      { name: t('footer.apiDocumentation'), href: '#' },
+      { name: t('footer.ethicsGuidelines'), href: '#' }
     ],
     community: [
-      { name: 'DAO Governance', href: '#' },
-      { name: 'Forum', href: '#' },
-      { name: 'Blog', href: '#' },
-      { name: 'Support', href: '#' }
+      { name: t('footer.daoGovernance'), href: '#' },
+      { name: t('footer.forum'), href: '#' },
+      { name: t('footer.blog'), href: '#' },
+      { name: t('footer.support'), href: '#' }
     ]
   };
 
@@ -48,7 +54,7 @@ const Footer = () => {
               <span className="text-2xl font-bold">Cura</span>
             </div>
             <p className="text-gray-300 mb-6 leading-relaxed">
-              Empowering individuals to securely share medical data for research while maintaining complete privacy and control.
+              {t('footer.description')}
             </p>
             <div className="flex space-x-4">
               {socialLinks.map((social, index) => {
@@ -68,7 +74,7 @@ const Footer = () => {
           </div>
 
           <div>
-            <h3 className="font-semibold mb-6">Platform</h3>
+            <h3 className="font-semibold mb-6">{t('footer.platform')}</h3>
             <ul className="space-y-3">
               {links.platform.map((link, index) => (
                 <li key={index}>
@@ -91,7 +97,7 @@ const Footer = () => {
           </div>
 
           <div>
-            <h3 className="font-semibold mb-6">Research</h3>
+            <h3 className="font-semibold mb-6">{t('footer.research')}</h3>
             <ul className="space-y-3">
               {links.research.map((link, index) => (
                 <li key={index}>
@@ -104,7 +110,7 @@ const Footer = () => {
           </div>
 
           <div>
-            <h3 className="font-semibold mb-6">Community</h3>
+            <h3 className="font-semibold mb-6">{t('footer.community')}</h3>
             <ul className="space-y-3">
               {links.community.map((link, index) => (
                 <li key={index}>
@@ -120,16 +126,19 @@ const Footer = () => {
         <div className="border-t border-gray-800 pt-8">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <p className="text-gray-400 text-sm">
-              © 2024 Cura. All rights reserved. Built with privacy by design.
+              {t('footer.copyright')}
             </p>
             <div className="flex items-center space-x-6 mt-4 md:mt-0">
-              <span className="text-gray-400 text-sm">Powered by</span>
-              <div className="flex items-center space-x-4 text-sm">
-                <span className="text-gray-300">Midnight Network</span>
-                <span className="text-gray-500">•</span>
-                <span className="text-gray-300">The Graph</span>
-                <span className="text-gray-500">•</span>
-                <span className="text-gray-300">IPFS</span>
+              {!wallet.isConnected && <LanguagePicker variant="footer" />}
+              <div className="flex items-center space-x-4">
+                <span className="text-gray-400 text-sm">{t('footer.poweredBy')}</span>
+                <div className="flex items-center space-x-4 text-sm">
+                  <span className="text-gray-300">Midnight Network</span>
+                  <span className="text-gray-500">•</span>
+                  <span className="text-gray-300">The Graph</span>
+                  <span className="text-gray-500">•</span>
+                  <span className="text-gray-300">IPFS</span>
+                </div>
               </div>
             </div>
           </div>
