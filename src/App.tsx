@@ -13,6 +13,7 @@ import Dashboard from "./pages/Dashboard";
 import Research from "./pages/Research";
 import Governance from "./pages/Governance";
 import Profile from "./pages/Profile";
+import Breakthroughs from "./pages/Breakthroughs";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -34,6 +35,7 @@ const App = () => (
                 <Route path="/research" element={<Research />} />
                 <Route path="/governance" element={<Governance />} />
                 <Route path="/profile" element={<Profile />} />
+                <Route path="/breakthroughs" element={<Breakthroughs />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </main>

@@ -1,6 +1,8 @@
+
 import React from 'react';
 import { TrendingUp, Users, Database, Shield, Brain, Microscope, Zap, Award, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Link } from 'react-router-dom';
 
 const StatsSection = () => {
   const stats = [
@@ -127,9 +129,11 @@ const StatsSection = () => {
         </div>
 
         <div className="text-center">
-          <Button size="lg" className="bg-gradient-to-r from-blue-600 to-teal-600 hover:from-blue-700 hover:to-teal-700 text-white px-8 py-3">
-            Explore More Breakthroughs
-            <ArrowRight className="w-5 h-5 ml-2" />
+          <Button size="lg" className="bg-gradient-to-r from-blue-600 to-teal-600 hover:from-blue-700 hover:to-teal-700 text-white px-8 py-3" asChild>
+            <Link to="/breakthroughs">
+              Explore More Breakthroughs
+              <ArrowRight className="w-5 h-5 ml-2" />
+            </Link>
           </Button>
         </div>
       </div>
