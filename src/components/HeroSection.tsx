@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Shield, Database, Users, Zap, ArrowRight, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -6,10 +5,10 @@ import { Card, CardContent } from '@/components/ui/card';
 
 const HeroSection = () => {
   const features = [
-    'Zero-knowledge privacy protection',
-    'Decentralized data ownership',
-    'Transparent compensation',
-    'DAO governance'
+    'Complete anonymity guaranteed',
+    'Fair compensation for your data',
+    'Full transparency in research impact',
+    'Equal voice in platform decisions'
   ];
 
   const stats = [
