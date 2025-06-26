@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Shield, Database, Users, Settings, User, LogOut, Wallet } from 'lucide-react';
@@ -52,14 +51,14 @@ const Header = () => {
     <header className="bg-white/80 backdrop-blur-lg border-b border-gray-200 sticky top-0 z-50">
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
+          <Link to="/" className="flex items-center space-x-2">
             <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-teal-600 rounded-lg flex items-center justify-center">
               <Shield className="w-5 h-5 text-white" />
             </div>
             <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-teal-600 bg-clip-text text-transparent">
               Cura
             </span>
-          </div>
+          </Link>
 
           <nav className="hidden md:flex items-center space-x-6">
             {currentNavItems.map((item) => {

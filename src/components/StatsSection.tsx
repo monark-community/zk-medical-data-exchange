@@ -1,6 +1,6 @@
-
 import React from 'react';
-import { TrendingUp, Users, Database, Shield, Brain, Microscope, Zap, Award } from 'lucide-react';
+import { TrendingUp, Users, Database, Shield, Brain, Microscope, Zap, Award, ArrowRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 const StatsSection = () => {
   const stats = [
@@ -104,7 +104,7 @@ const StatsSection = () => {
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-8">
+        <div className="grid md:grid-cols-2 gap-8 mb-12">
           {breakthroughs.map((breakthrough, index) => {
             const Icon = breakthrough.icon;
             return (
@@ -124,6 +124,13 @@ const StatsSection = () => {
               </div>
             );
           })}
+        </div>
+
+        <div className="text-center">
+          <Button size="lg" className="bg-gradient-to-r from-blue-600 to-teal-600 hover:from-blue-700 hover:to-teal-700 text-white px-8 py-3">
+            Explore More Breakthroughs
+            <ArrowRight className="w-5 h-5 ml-2" />
+          </Button>
         </div>
       </div>
     </section>
