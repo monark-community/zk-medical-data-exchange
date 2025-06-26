@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Shield, Users, Settings, User, LogOut, Wallet, Microscope, Zap, Home } from 'lucide-react';
@@ -19,18 +18,18 @@ const Header = () => {
   const connectWallet = async () => {
     handleConnectWallet();
     navigate('/dashboard');
-    window.scrollTo(0, 0);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const disconnect = () => {
     handleDisconnect();
     navigate('/');
-    window.scrollTo(0, 0);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleProfileClick = () => {
     navigate('/profile');
-    window.scrollTo(0, 0);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const formatAddress = (address: string) => {
@@ -44,11 +43,11 @@ const Header = () => {
     } else {
       navigate('/');
     }
-    window.scrollTo(0, 0);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleNavClick = () => {
-    window.scrollTo(0, 0);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // Navigation items for non-connected users
@@ -109,7 +108,7 @@ const Header = () => {
                   size="sm" 
                   onClick={() => {
                     navigate('/how-it-works');
-                    window.scrollTo(0, 0);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
                   }}
                 >
                   Get Started

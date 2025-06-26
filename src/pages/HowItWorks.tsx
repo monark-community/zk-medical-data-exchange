@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Shield, Users, Lock, Zap, Database, Globe, CheckCircle, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -12,7 +13,7 @@ const HowItWorks = () => {
   const handleConnectWalletClick = () => {
     handleConnectWallet();
     navigate('/dashboard');
-    window.scrollTo(0, 0);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const features = [
@@ -237,7 +238,7 @@ const HowItWorks = () => {
               className="bg-white text-blue-600 hover:bg-blue-50"
               onClick={() => {
                 navigate('/research');
-                window.scrollTo(0, 0);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
               }}
             >
               Explore Research
