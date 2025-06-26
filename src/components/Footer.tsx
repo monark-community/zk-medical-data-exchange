@@ -1,11 +1,12 @@
 
 import React from 'react';
 import { Shield, Twitter, Github, MessageCircle, Mail } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const Footer = () => {
   const links = {
     platform: [
-      { name: 'How it Works', href: '#' },
+      { name: 'How it Works', href: '/how-it-works' },
       { name: 'Privacy Policy', href: '#' },
       { name: 'Terms of Service', href: '#' },
       { name: 'Security', href: '#' }
@@ -30,6 +31,10 @@ const Footer = () => {
     { icon: MessageCircle, href: '#', label: 'Discord' },
     { icon: Mail, href: '#', label: 'Email' }
   ];
+
+  const handleLinkClick = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   return (
     <footer className="bg-gray-900 text-white">
@@ -67,9 +72,19 @@ const Footer = () => {
             <ul className="space-y-3">
               {links.platform.map((link, index) => (
                 <li key={index}>
-                  <a href={link.href} className="text-gray-300 hover:text-white transition-colors">
-                    {link.name}
-                  </a>
+                  {link.href.startsWith('/') ? (
+                    <Link 
+                      to={link.href} 
+                      className="text-gray-300 hover:text-white transition-colors"
+                      onClick={handleLinkClick}
+                    >
+                      {link.name}
+                    </Link>
+                  ) : (
+                    <a href={link.href} className="text-gray-300 hover:text-white transition-colors">
+                      {link.name}
+                    </a>
+                  )}
                 </li>
               ))}
             </ul>

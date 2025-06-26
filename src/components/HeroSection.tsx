@@ -1,9 +1,26 @@
+
 import React from 'react';
 import { Shield, Database, Users, Zap, ArrowRight, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { useNavigate } from 'react-router-dom';
+import { useWallet } from '@/contexts/WalletContext';
 
 const HeroSection = () => {
+  const navigate = useNavigate();
+  const { handleConnectWallet } = useWallet();
+
+  const handleConnectData = () => {
+    handleConnectWallet();
+    navigate('/dashboard');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleHowItWorks = () => {
+    navigate('/how-it-works');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const features = [
     'Complete anonymity guaranteed',
     'Fair compensation for your data',
@@ -45,12 +62,12 @@ const HeroSection = () => {
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-            <Button size="lg" className="bg-gradient-to-r from-blue-600 to-teal-600 hover:from-blue-700 hover:to-teal-700 text-white px-8 py-3">
-              Start Contributing
+            <Button size="lg" className="bg-gradient-to-r from-blue-600 to-teal-600 hover:from-blue-700 hover:to-teal-700 text-white px-8 py-3" onClick={handleConnectData}>
+              Connect my Data
               <ArrowRight className="w-5 h-5 ml-2" />
             </Button>
-            <Button size="lg" variant="outline" className="border-2 border-gray-300 hover:border-blue-500 px-8 py-3">
-              For Researchers
+            <Button size="lg" variant="outline" className="border-2 border-gray-300 hover:border-blue-500 px-8 py-3" onClick={handleHowItWorks}>
+              How it Works
             </Button>
           </div>
 

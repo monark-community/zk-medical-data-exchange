@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Shield, Users, Settings, User, LogOut, Wallet, Microscope, Zap, Home } from 'lucide-react';
@@ -111,7 +112,7 @@ const Header = () => {
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                   }}
                 >
-                  Get Started
+                  How it Works
                 </Button>
                 <Button size="sm" className="bg-gradient-to-r from-blue-600 to-teal-600" onClick={connectWallet}>
                   Connect Wallet
