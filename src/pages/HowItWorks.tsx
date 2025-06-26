@@ -1,12 +1,19 @@
-
 import React from 'react';
 import { Shield, Users, Lock, Zap, Database, Globe, CheckCircle, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
+import { useWallet } from '@/contexts/WalletContext';
 
 const HowItWorks = () => {
   const navigate = useNavigate();
+  const { handleConnectWallet } = useWallet();
+
+  const handleConnectWalletClick = () => {
+    handleConnectWallet();
+    navigate('/dashboard');
+    window.scrollTo(0, 0);
+  };
 
   const features = [
     {
@@ -228,7 +235,10 @@ const HowItWorks = () => {
               size="lg" 
               variant="outline" 
               className="bg-white text-blue-600 hover:bg-blue-50"
-              onClick={() => navigate('/research')}
+              onClick={() => {
+                navigate('/research');
+                window.scrollTo(0, 0);
+              }}
             >
               Explore Research
               <ArrowRight className="w-4 h-4 ml-2" />
@@ -236,7 +246,7 @@ const HowItWorks = () => {
             <Button 
               size="lg" 
               className="bg-blue-700 hover:bg-blue-800 text-white"
-              onClick={() => navigate('/')}
+              onClick={handleConnectWalletClick}
             >
               Connect Your Wallet
               <ArrowRight className="w-4 h-4 ml-2" />

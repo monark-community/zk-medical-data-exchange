@@ -19,15 +19,18 @@ const Header = () => {
   const connectWallet = async () => {
     handleConnectWallet();
     navigate('/dashboard');
+    window.scrollTo(0, 0);
   };
 
   const disconnect = () => {
     handleDisconnect();
     navigate('/');
+    window.scrollTo(0, 0);
   };
 
   const handleProfileClick = () => {
     navigate('/profile');
+    window.scrollTo(0, 0);
   };
 
   const formatAddress = (address: string) => {
@@ -41,6 +44,11 @@ const Header = () => {
     } else {
       navigate('/');
     }
+    window.scrollTo(0, 0);
+  };
+
+  const handleNavClick = () => {
+    window.scrollTo(0, 0);
   };
 
   // Navigation items for non-connected users
@@ -79,6 +87,7 @@ const Header = () => {
                 <Link
                   key={item.name}
                   to={item.path}
+                  onClick={handleNavClick}
                   className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-all duration-200 ${
                     isActive
                       ? 'bg-blue-50 text-blue-600 font-medium'
@@ -95,7 +104,14 @@ const Header = () => {
           <div className="flex items-center space-x-4">
             {!wallet.isConnected ? (
               <>
-                <Button variant="outline" size="sm" onClick={() => navigate('/how-it-works')}>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => {
+                    navigate('/how-it-works');
+                    window.scrollTo(0, 0);
+                  }}
+                >
                   Get Started
                 </Button>
                 <Button size="sm" className="bg-gradient-to-r from-blue-600 to-teal-600" onClick={connectWallet}>
