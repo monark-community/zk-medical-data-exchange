@@ -5,12 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
 import { useWallet } from '@/contexts/WalletContext';
-import { useLocalization } from '@/contexts/LocalizationContext';
 
 const HeroSection = () => {
   const navigate = useNavigate();
   const { handleConnectWallet } = useWallet();
-  const { t } = useLocalization();
 
   const handleConnectData = () => {
     handleConnectWallet();
@@ -24,17 +22,17 @@ const HeroSection = () => {
   };
 
   const features = [
-    t('hero.feature1'),
-    t('hero.feature2'),
-    t('hero.feature3'),
-    t('hero.feature4')
+    'Complete anonymity guaranteed',
+    'Fair compensation for your data',
+    'Full transparency in research impact',
+    'Equal voice in platform decisions'
   ];
 
   const stats = [
-    { value: '10K+', label: t('hero.stats.contributors') },
-    { value: '500+', label: t('hero.stats.projects') },
-    { value: '$2M+', label: t('hero.stats.rewards') },
-    { value: '99.9%', label: t('hero.stats.privacy') }
+    { value: '10K+', label: 'Data Contributors' },
+    { value: '500+', label: 'Research Projects' },
+    { value: '$2M+', label: 'Distributed Rewards' },
+    { value: '99.9%', label: 'Privacy Guaranteed' }
   ];
 
   return (
@@ -48,27 +46,28 @@ const HeroSection = () => {
         <div className="max-w-4xl mx-auto text-center">
           <div className="inline-flex items-center px-4 py-2 rounded-full bg-blue-100 text-blue-700 text-sm font-medium mb-6">
             <Shield className="w-4 h-4 mr-2" />
-            {t('hero.badge')}
+            Powered by Zero-Knowledge Proofs & Midnight Network
           </div>
           
           <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6 leading-tight">
-            {t('hero.title')}
+            Your Medical Data,
             <span className="bg-gradient-to-r from-blue-600 to-teal-600 bg-clip-text text-transparent">
-              {t('hero.titleHighlight')}
+              {' '}Your Control
             </span>
           </h1>
           
           <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto leading-relaxed">
-            {t('hero.description')}
+            Securely share, sell, or donate your anonymized medical data for research and AI development. 
+            Earn rewards while advancing medical science — all with complete privacy protection.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
             <Button size="lg" className="bg-gradient-to-r from-blue-600 to-teal-600 hover:from-blue-700 hover:to-teal-700 text-white px-8 py-3" onClick={handleConnectData}>
-              {t('hero.connectData')}
+              Connect my Data
               <ArrowRight className="w-5 h-5 ml-2" />
             </Button>
             <Button size="lg" variant="outline" className="border-2 border-gray-300 hover:border-blue-500 px-8 py-3" onClick={handleHowItWorks}>
-              {t('hero.howItWorks')}
+              How it Works
             </Button>
           </div>
 

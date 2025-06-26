@@ -5,7 +5,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { WalletProvider } from "./contexts/WalletContext";
-import { LocalizationProvider } from "./contexts/LocalizationContext";
 import MonarkBannerWrapper from "./components/MonarkDemoWrapper";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
@@ -23,32 +22,30 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <LocalizationProvider>
-        <WalletProvider>
-          <Toaster />
-          <Sonner />
-          <MonarkBannerWrapper>
-          <BrowserRouter>
-            <div className="min-h-screen flex flex-col w-full">
-              <Header />
-              <main className="flex-1">
-                <Routes>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/dashboard" element={<Dashboard />} />
-                  <Route path="/research" element={<Research />} />
-                  <Route path="/governance" element={<Governance />} />
-                  <Route path="/profile" element={<Profile />} />
-                  <Route path="/breakthroughs" element={<Breakthroughs />} />
-                  <Route path="/how-it-works" element={<HowItWorks />} />
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </main>
-              <Footer />
-            </div>
-          </BrowserRouter>
-          </MonarkBannerWrapper>
-        </WalletProvider>
-      </LocalizationProvider>
+      <WalletProvider>
+        <Toaster />
+        <Sonner />
+        <MonarkBannerWrapper>
+        <BrowserRouter>
+          <div className="min-h-screen flex flex-col">
+            <Header />
+            <main className="flex-1">
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/research" element={<Research />} />
+                <Route path="/governance" element={<Governance />} />
+                <Route path="/profile" element={<Profile />} />
+                <Route path="/breakthroughs" element={<Breakthroughs />} />
+                <Route path="/how-it-works" element={<HowItWorks />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </main>
+            <Footer />
+          </div>
+        </BrowserRouter>
+        </MonarkBannerWrapper>
+      </WalletProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );

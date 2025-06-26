@@ -10,13 +10,11 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { useWallet } from '@/contexts/WalletContext';
-import { useLocalization } from '@/contexts/LocalizationContext';
 
 const Header = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { wallet, handleConnectWallet, handleDisconnect, handleSwitchUserType } = useWallet();
-  const { t } = useLocalization();
 
   const connectWallet = async () => {
     handleConnectWallet();
@@ -55,15 +53,15 @@ const Header = () => {
 
   // Navigation items for non-connected users
   const publicNavItems = [
-    { name: t('nav.home'), path: '/', icon: Home },
-    { name: t('nav.research'), path: '/research', icon: Microscope },
-    { name: t('nav.breakthroughs'), path: '/breakthroughs', icon: Zap },
+    { name: 'Home', path: '/', icon: Home },
+    { name: 'Research', path: '/research', icon: Microscope },
+    { name: 'Breakthroughs', path: '/breakthroughs', icon: Zap },
   ];
 
   // Navigation items for connected users
   const privateNavItems = [
-    { name: t('nav.dashboard'), path: '/dashboard', icon: Users },
-    { name: t('nav.governance'), path: '/governance', icon: Settings },
+    { name: 'Dashboard', path: '/dashboard', icon: Users },
+    { name: 'Governance', path: '/governance', icon: Settings },
   ];
 
   const currentNavItems = wallet.isConnected ? privateNavItems : publicNavItems;
@@ -114,10 +112,10 @@ const Header = () => {
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                   }}
                 >
-                  {t('nav.howItWorks')}
+                  How it Works
                 </Button>
                 <Button size="sm" className="bg-gradient-to-r from-blue-600 to-teal-600" onClick={connectWallet}>
-                  {t('nav.connectWallet')}
+                  Connect Wallet
                 </Button>
               </>
             ) : (
@@ -139,7 +137,7 @@ const Header = () => {
                 <PopoverContent className="w-56" align="end">
                   <div className="space-y-2">
                     <div className="px-2 py-1.5 text-sm text-gray-500">
-                      Current view: {wallet.userType === 'data-seller' ? t('nav.dataSeller') : t('nav.researcher')}
+                      Current view: {wallet.userType === 'data-seller' ? 'Data Seller' : 'Researcher'}
                     </div>
                     <Button
                       variant="ghost"
@@ -147,7 +145,7 @@ const Header = () => {
                       onClick={handleProfileClick}
                     >
                       <User className="w-4 h-4 mr-2" />
-                      {t('nav.profile')}
+                      Profile
                     </Button>
                     <Button
                       variant="ghost"
@@ -155,7 +153,7 @@ const Header = () => {
                       onClick={handleSwitchUserType}
                     >
                       <Wallet className="w-4 h-4 mr-2" />
-                      {t('nav.switchTo')} {wallet.userType === 'data-seller' ? t('nav.researcher') : t('nav.dataSeller')}
+                      Switch to {wallet.userType === 'data-seller' ? 'Researcher' : 'Data Seller'}
                     </Button>
                     <hr className="my-1" />
                     <Button
@@ -164,7 +162,7 @@ const Header = () => {
                       onClick={disconnect}
                     >
                       <LogOut className="w-4 h-4 mr-2" />
-                      {t('nav.disconnect')}
+                      Disconnect
                     </Button>
                   </div>
                 </PopoverContent>
