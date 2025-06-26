@@ -53,7 +53,7 @@ const Header = () => {
   // Navigation items for non-connected users
   const publicNavItems = [
     { name: 'Home', path: '/', icon: Home },
-    { name: 'Active Research', path: '/research', icon: Microscope },
+    { name: 'Research', path: '/research', icon: Microscope },
     { name: 'Breakthroughs', path: '/breakthroughs', icon: Zap },
   ];
 
