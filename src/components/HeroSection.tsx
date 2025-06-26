@@ -54,11 +54,11 @@ const HeroSection = () => {
             </Button>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-16">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-16 max-w-2xl mx-auto">
             {features.map((feature, index) => (
-              <div key={index} className="flex items-center justify-center space-x-2 text-gray-700">
+              <div key={index} className="flex items-center space-x-3 text-gray-700">
                 <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
-                <span className="text-sm font-medium">{feature}</span>
+                <span className="text-sm font-medium text-left">{feature}</span>
               </div>
             ))}
           </div>
