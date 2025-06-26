@@ -1,6 +1,7 @@
+
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Shield, Database, Users, Settings, User, LogOut, Wallet } from 'lucide-react';
+import { Shield, Users, Settings, User, LogOut, Wallet, Microscope, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -14,11 +15,6 @@ const Header = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { wallet, handleConnectWallet, handleDisconnect, handleSwitchUserType } = useWallet();
-
-  const baseNavItems = [
-    { name: 'Research', path: '/research', icon: Shield },
-    { name: 'Governance', path: '/governance', icon: Settings },
-  ];
 
   const connectWallet = async () => {
     handleConnectWallet();
@@ -39,26 +35,40 @@ const Header = () => {
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
   };
 
-  // Show different nav items based on wallet connection
-  const currentNavItems = wallet.isConnected 
-    ? [
-        { name: 'Dashboard', path: '/dashboard', icon: Users },
-        ...baseNavItems
-      ]
-    : baseNavItems;
+  const handleLogoClick = () => {
+    if (wallet.isConnected) {
+      navigate('/dashboard');
+    } else {
+      navigate('/');
+    }
+  };
+
+  // Navigation items for non-connected users
+  const publicNavItems = [
+    { name: 'Active Research', path: '/research', icon: Microscope },
+    { name: 'Breakthroughs', path: '/breakthroughs', icon: Zap },
+  ];
+
+  // Navigation items for connected users
+  const privateNavItems = [
+    { name: 'Dashboard', path: '/dashboard', icon: Users },
+    { name: 'Governance', path: '/governance', icon: Settings },
+  ];
+
+  const currentNavItems = wallet.isConnected ? privateNavItems : publicNavItems;
 
   return (
     <header className="bg-white/80 backdrop-blur-lg border-b border-gray-200 sticky top-0 z-50">
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
-          <Link to="/" className="flex items-center space-x-2">
+          <button onClick={handleLogoClick} className="flex items-center space-x-2">
             <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-teal-600 rounded-lg flex items-center justify-center">
               <Shield className="w-5 h-5 text-white" />
             </div>
             <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-teal-600 bg-clip-text text-transparent">
               Cura
             </span>
-          </Link>
+          </button>
 
           <nav className="hidden md:flex items-center space-x-6">
             {currentNavItems.map((item) => {
