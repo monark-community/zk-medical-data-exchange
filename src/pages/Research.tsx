@@ -11,7 +11,6 @@ import {
   Calendar, 
   Coins, 
   Shield, 
-  Database,
   Clock,
   Star,
   Building
@@ -83,14 +82,20 @@ const Research = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Research Studies</h1>
-          <p className="text-gray-600">Contribute to medical research and earn rewards while maintaining complete privacy</p>
+      <div className="container mx-auto px-4 py-20">
+        {/* Header Section - Similar to Breakthroughs */}
+        <div className="text-center mb-16">
+          <h1 className="text-5xl font-bold text-gray-900 mb-6">
+            Research Studies
+          </h1>
+          <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+            Contribute to groundbreaking medical research and earn rewards while maintaining complete privacy. 
+            Join studies that are shaping the future of healthcare.
+          </p>
         </div>
 
         {/* Search and Filter */}
-        <div className="flex flex-col md:flex-row gap-4 mb-8">
+        <div className="flex flex-col md:flex-row gap-4 mb-12">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
             <Input
@@ -104,38 +109,6 @@ const Research = () => {
             <Filter className="w-4 h-4" />
             <span>Filter</span>
           </Button>
-        </div>
-
-        {/* Quick Stats */}
-        <div className="grid md:grid-cols-4 gap-6 mb-8">
-          <Card className="bg-gradient-to-br from-blue-50 to-blue-100">
-            <CardContent className="p-6 text-center">
-              <Database className="w-8 h-8 text-blue-600 mx-auto mb-2" />
-              <div className="text-2xl font-bold text-gray-900">127</div>
-              <div className="text-sm text-gray-600">Active Studies</div>
-            </CardContent>
-          </Card>
-          <Card className="bg-gradient-to-br from-teal-50 to-teal-100">
-            <CardContent className="p-6 text-center">
-              <Users className="w-8 h-8 text-teal-600 mx-auto mb-2" />
-              <div className="text-2xl font-bold text-gray-900">45K+</div>
-              <div className="text-sm text-gray-600">Participants</div>
-            </CardContent>
-          </Card>
-          <Card className="bg-gradient-to-br from-green-50 to-green-100">
-            <CardContent className="p-6 text-center">
-              <Coins className="w-8 h-8 text-green-600 mx-auto mb-2" />
-              <div className="text-2xl font-bold text-gray-900">$2.1M</div>
-              <div className="text-sm text-gray-600">Total Rewards</div>
-            </CardContent>
-          </Card>
-          <Card className="bg-gradient-to-br from-purple-50 to-purple-100">
-            <CardContent className="p-6 text-center">
-              <Shield className="w-8 h-8 text-purple-600 mx-auto mb-2" />
-              <div className="text-2xl font-bold text-gray-900">100%</div>
-              <div className="text-sm text-gray-600">Privacy Protected</div>
-            </CardContent>
-          </Card>
         </div>
 
         {/* Research Studies */}
