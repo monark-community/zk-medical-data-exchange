@@ -14,6 +14,7 @@ import Research from "./pages/Research";
 import Governance from "./pages/Governance";
 import Profile from "./pages/Profile";
 import Breakthroughs from "./pages/Breakthroughs";
+import HowItWorks from "./pages/HowItWorks";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -36,6 +37,7 @@ const App = () => (
                 <Route path="/governance" element={<Governance />} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/breakthroughs" element={<Breakthroughs />} />
+                <Route path="/how-it-works" element={<HowItWorks />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </main>

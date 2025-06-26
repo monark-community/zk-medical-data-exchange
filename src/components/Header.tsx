@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Shield, Users, Settings, User, LogOut, Wallet, Microscope, Zap } from 'lucide-react';
+import { Shield, Users, Settings, User, LogOut, Wallet, Microscope, Zap, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -45,6 +45,7 @@ const Header = () => {
 
   // Navigation items for non-connected users
   const publicNavItems = [
+    { name: 'Home', path: '/', icon: Home },
     { name: 'Active Research', path: '/research', icon: Microscope },
     { name: 'Breakthroughs', path: '/breakthroughs', icon: Zap },
   ];
@@ -94,11 +95,11 @@ const Header = () => {
           <div className="flex items-center space-x-4">
             {!wallet.isConnected ? (
               <>
-                <Button variant="outline" size="sm" onClick={connectWallet}>
-                  Connect Wallet
-                </Button>
-                <Button size="sm" className="bg-gradient-to-r from-blue-600 to-teal-600">
+                <Button variant="outline" size="sm" onClick={() => navigate('/how-it-works')}>
                   Get Started
+                </Button>
+                <Button size="sm" className="bg-gradient-to-r from-blue-600 to-teal-600" onClick={connectWallet}>
+                  Connect Wallet
                 </Button>
               </>
             ) : (
