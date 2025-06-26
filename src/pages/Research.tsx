@@ -94,20 +94,20 @@ const Research = () => {
           </p>
         </div>
 
-        {/* Search and Filter */}
-        <div className="flex flex-col md:flex-row gap-4 mb-12">
+        {/* Search and Filter - Matching Breakthroughs styling */}
+        <div className="flex flex-col md:flex-row gap-4 mb-8">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
             <Input
-              placeholder="Search research studies..."
+              placeholder="Search research studies, organizations, or keywords..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
+              className="pl-10 h-12"
             />
           </div>
-          <Button variant="outline" className="flex items-center space-x-2">
+          <Button variant="outline" className="w-full md:w-auto h-12 flex items-center space-x-2">
             <Filter className="w-4 h-4" />
-            <span>Filter</span>
+            <span>Filter Studies</span>
           </Button>
         </div>
 
