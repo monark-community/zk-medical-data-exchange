@@ -39,18 +39,6 @@ jobs:
             docker.io/${{ secrets.DOCKERHUB_USERNAME }}/cura-web:latest
             docker.io/${{ secrets.DOCKERHUB_USERNAME }}/cura-web:${{ github.event.release.tag_name || github.sha }}
 
-  deploy-api-to-railway:
-    needs: build-and-push-images
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install Railway CLI
-        run: npm install -g @railway/cli
-      - name: Deploy to Railway
-        run: railway up --service api -- --image docker.io/${{ secrets.DOCKERHUB_USERNAME }}/cura-api:${{ github.event.release.tag_name || github.sha }} --detach
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-
   # deploy-web-to-vercel:
   #   needs: build-and-push-images
   #   runs-on: ubuntu-latest
