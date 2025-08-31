@@ -1,0 +1,38 @@
+{
+  "name": "zk-medical-data-exchange",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "infra": "docker compose -f infra/docker-compose.yaml up -d",
+    "dev:web": "bun run --cwd apps/web dev",
+    "dev:api": "bun run --cwd apps/api dev",
+    "lint": "eslint . --ext .ts,.tsx,.js,.jsx",
+    "lint:web": "bun run --cwd apps/web lint",
+    "lint:api": "bun run --cwd apps/api lint",
+    "test:contracts": "bun run --cwd packages/smart-contracts test",
+    "test:contracts:solidity": "bun run --cwd packages/smart-contracts test:solidity",
+    "test:contracts:nodejs": "bun run --cwd packages/smart-contracts test:nodejs",
+    "deploy:contracts:local": "bun run --cwd packages/smart-contracts deploy:local",
+    "deploy:contracts:sepolia": "bun run --cwd packages/smart-contracts deploy:sepolia"
+  },
+  "workspaces": [
+    "apps/api",
+    "apps/web",
+    "packages/*"
+  ],
+  "devDependencies": {
+    "@eslint/js": "^9.34.0",
+    "@types/bun": "latest",
+    "@typescript-eslint/eslint-plugin": "^8.41.0",
+    "@typescript-eslint/parser": "^8.41.0",
+    "eslint": "^9.34.0",
+    "eslint-config-next": "^15.5.2",
+    "eslint-config-prettier": "^10.1.8"
+  },
+  "peerDependencies": {
+    "typescript": "^5.9.2"
+  },
+  "dependencies": {
+    "typescript-eslint": "^8.41.0"
+  }
+}
