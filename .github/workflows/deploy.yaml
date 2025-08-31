@@ -47,7 +47,7 @@ jobs:
       - name: Install Railway CLI
         run: npm install -g @railway/cli
       - name: Deploy to Railway
-        run: railway up --service api --image docker.io/${{ secrets.DOCKERHUB_USERNAME }}/cura-api:${{ github.event.release.tag_name || github.sha }} --detach
+        run: railway up --service api -- --image docker.io/${{ secrets.DOCKERHUB_USERNAME }}/cura-api:${{ github.event.release.tag_name || github.sha }} --detach
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
 
