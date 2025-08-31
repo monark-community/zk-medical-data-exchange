@@ -2,12 +2,11 @@ FROM oven/bun:latest
 
 WORKDIR /api
 
-COPY apps/api/package.json ./
-COPY bun.lock ./
+COPY package.json ./
 
 RUN bun install
 
-COPY apps/api/ ./
+COPY . ./
 
 RUN bun run build
 
