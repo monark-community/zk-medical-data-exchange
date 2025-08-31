@@ -15,12 +15,11 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Log in to GHCR
+      - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build and push API Docker image
         uses: docker/build-push-action@v6
@@ -28,8 +27,8 @@ jobs:
           context: ./apps/api
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/cura/api:latest
-            ghcr.io/${{ github.repository_owner }}/cura/api:${{ github.event.release.tag_name || github.sha }}
+            docker.io/${{ secrets.DOCKERHUB_USERNAME }}/cura-api:latest
+            docker.io/${{ secrets.DOCKERHUB_USERNAME }}/cura-api:${{ github.event.release.tag_name || github.sha }}
 
       - name: Build and push Web Docker image
         uses: docker/build-push-action@v6
@@ -37,8 +36,8 @@ jobs:
           context: ./apps/web
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/cura/web:latest
-            ghcr.io/${{ github.repository_owner }}/cura/web:${{ github.event.release.tag_name || github.sha }}
+            docker.io/${{ secrets.DOCKERHUB_USERNAME }}/cura-web:latest
+            docker.io/${{ secrets.DOCKERHUB_USERNAME }}/cura-web:${{ github.event.release.tag_name || github.sha }}
 
   deploy-api-to-railway:
     needs: build-and-push-images
@@ -48,7 +47,7 @@ jobs:
       - name: Install Railway CLI
         run: npm install -g @railway/cli
       - name: Deploy to Railway
-        run: railway up --service api --image ghcr.io/${{ github.repository_owner }}/cura/api:${{ github.event.release.tag_name }} --detach
+        run: railway up --service api --image docker.io/${{ secrets.DOCKERHUB_USERNAME }}/cura-api:${{ github.event.release.tag_name }} --detach
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
 
