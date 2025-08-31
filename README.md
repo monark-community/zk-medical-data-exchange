@@ -18,22 +18,6 @@ bun install
 #### Node version
 #### v22.7.1
 
-
-## 📦 Project Structure
-
-zk-medical-data-exchange/
-├── apps/
-│ ├── demo/ # Base website design
-│ ├── web/ # Next.js frontend (shadcn-ui, TailwindCSS)
-│ └── api/ # Express backend
-├── packages/
-│ ├── smart-contracts/ # Solidity contracts + deployment scripts
-│ └── subgraph/ # TheGraph
-├── infra/ # Dockerized infra (Postgres, ClickHouse, Adminer)
-└── README.md # You are here
-
----
-
 ## 🚀 Scripts
 
 These scripts are available from the **root** of the repository.
@@ -56,7 +40,5 @@ bun run lint:api       # Lint api only
 bun run test:contracts             # Run all contract tests
 bun run test:contracts:solidity    # Run Solidity tests only
 bun run test:contracts:nodejs      # Run Node.js integration tests only
-
-bun run infra # Start postgres, clickhouse, adminer
 ```
 
