@@ -1,14 +1,14 @@
-name: Backend CI
+name: Backend Api CI
 
 on:
   push:
     branches: [dev, main]
     paths:
-      - "api/**"
+      - "apps/api/**"
   pull_request:
     branches: [dev]
     paths:
-      - "api/**"
+      - "apps/api/**"
 
 jobs:
   build-and-test:
@@ -26,12 +26,12 @@ jobs:
         run: bun install
 
       - name: Lint
-        run: bun run --filter api lint
+        run: bun run --filter apps/api lint
 
       - name: Test
-        run: bun run --filter api test
+        run: bun run --filter apps/api test
 
       - name: Build
-        run: bun run --filter api build
+        run: bun run --filter apps/api build
     outputs:
       sha: ${{ github.sha }}
