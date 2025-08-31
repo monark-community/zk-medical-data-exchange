@@ -3,22 +3,22 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "infra": "docker compose -f infra/docker-compose.yaml up -d",
     "dev:web": "bun run --cwd apps/web dev",
     "dev:api": "bun run --cwd apps/api dev",
+    "infra": "docker compose -f infra/docker-compose.yaml up -d",
+    "deploy:contracts:local": "bun run --cwd packages/smart-contracts deploy:local",
+    "deploy:contracts:sepolia": "bun run --cwd packages/smart-contracts deploy:sepolia",
     "lint": "eslint . --ext .ts,.tsx,.js,.jsx",
     "lint:web": "bun run --cwd apps/web lint",
     "lint:api": "bun run --cwd apps/api lint",
     "test:contracts": "bun run --cwd packages/smart-contracts test",
     "test:contracts:solidity": "bun run --cwd packages/smart-contracts test:solidity",
-    "test:contracts:nodejs": "bun run --cwd packages/smart-contracts test:nodejs",
-    "deploy:contracts:local": "bun run --cwd packages/smart-contracts deploy:local",
-    "deploy:contracts:sepolia": "bun run --cwd packages/smart-contracts deploy:sepolia"
+    "test:contracts:nodejs": "bun run --cwd packages/smart-contracts test:nodejs"
   },
   "workspaces": [
     "apps/api",
     "apps/web",
-    "packages/*"
+    "packages/smart-contracts"
   ],
   "devDependencies": {
     "@eslint/js": "^9.34.0",
