@@ -27,7 +27,7 @@ jobs:
           context: ./apps/api
           push: true
           tags: |
-            # docker.io/${{ secrets.DOCKERHUB_USERNAME }}/cura-api:latest
+            docker.io/${{ secrets.DOCKERHUB_USERNAME }}/cura-api:latest
             docker.io/${{ secrets.DOCKERHUB_USERNAME }}/cura-api:${{ github.event.release.tag_name || github.sha }}
 
       - name: Build and push Web Docker image
