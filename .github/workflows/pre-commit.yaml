@@ -1,0 +1,33 @@
+# TODO: [LT] Probably not needed as we should use husky for pre-commit checks
+
+# name: Pre-commit checks
+
+# on:
+#   pull_request:
+#     branches: [dev]
+#   push:
+#     branches: [dev, main]
+
+# jobs:
+#   pre-commit:
+#     runs-on: ubuntu-latest
+#     steps:
+#       - name: Checkout source
+#         uses: actions/checkout@v4
+
+#       - name: Setup Bun
+#         uses: oven-sh/setup-bun@v1
+#         with:
+#           bun-version: latest
+
+#       - name: Install dependencies
+#         run: bun install --frozen-lockfile
+
+#       - name: Prettier check
+#         run: bunx prettier --write .
+
+#       - name: ESLint
+#         run: bunx eslint . --ext .ts --fix
+
+#       - name: TypeScript check
+#         run: bunx tsc --noEmit

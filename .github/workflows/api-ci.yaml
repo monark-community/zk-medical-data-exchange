@@ -1,0 +1,37 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [dev, main]
+    paths:
+      - "api/**"
+  pull_request:
+    branches: [dev]
+    paths:
+      - "api/**"
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Lint
+        run: bun run --filter api lint
+
+      - name: Test
+        run: bun run --filter api test
+
+      - name: Build
+        run: bun run --filter api build
+    outputs:
+      sha: ${{ github.sha }}
