@@ -13,6 +13,7 @@
   "devDependencies": {
     "@nomicfoundation/hardhat-ignition": "^3.0.1",
     "@nomicfoundation/hardhat-toolbox-viem": "^5.0.0",
+    "@openzeppelin/contracts": "^5.4.0",
     "@types/bun": "latest",
     "@types/node": "^22.18.0",
     "forge-std": "github:foundry-rs/forge-std#v1.9.4",
