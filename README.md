@@ -4,7 +4,7 @@ A collaborative Web3 project that empowers patients to control their medical dat
 
 ---
 
-## How to install
+## Requirements
 
 If not done yet, instal bun
 https://bun.sh/
@@ -14,6 +14,10 @@ To install dependencies:
 ```bash
 bun install
 ```
+
+#### Node version
+#### v22.7.1
+
 
 ## 📦 Project Structure
 
@@ -39,6 +43,7 @@ These scripts are available from the **root** of the repository.
 ```bash
 bun run dev:web          # Start Next.js frontend
 bun run dev:api          # Start backend API
+# Requires env variables set (POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB)
 bun run infra            # Start local infrastructure (DB, clickhouse, adminer)
 
 bun run deploy:contracts:local     # Deploy contracts to local chain
