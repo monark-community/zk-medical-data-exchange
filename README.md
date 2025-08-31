@@ -30,8 +30,13 @@ bun run dev:api          # Start backend API
 # Requires env variables set (POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB)
 bun run infra            # Start local infrastructure (DB, clickhouse, adminer)
 
-bun run deploy:contracts:local     # Deploy contracts to local chain
-bun run deploy:contracts:sepolia   # Deploy contracts to Sepolia testnet
+# Deploy a contract to local chain
+bun run deploy:contracts:local -- <contract>
+# Example use : bun run deploy:contracts:local -- ignition/modules/Counter.ts
+
+# Deploy a contract to Sepolia testnet
+bun run deploy:contracts:sepolia -- <contract>
+# Example use : bun run deploy:contracts:sepolia -- ignition/modules/Counter.ts
 
 bun run lint           # Lint entire monorepo
 bun run lint:web       # Lint frontend only
