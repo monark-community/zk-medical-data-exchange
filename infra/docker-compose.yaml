@@ -1,0 +1,54 @@
+name: cura-stack
+services:
+  postgres:
+    image: postgres:15
+    container_name: postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: cura
+      POSTGRES_PASSWORD: test123
+      POSTGRES_DB: cura_db
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cura"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # PostgreSQL Adminer
+  adminer:
+    image: adminer:4
+    container_name: adminer
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.8
+    container_name: clickhouse
+    restart: unless-stopped
+    environment:
+      CLICKHOUSE_DB: ${CLICKHOUSE_DB:-analytics}
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-default}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-}
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: "1"
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+    volumes:
+      - ./db-data/clickhouse:/var/lib/clickhouse
+      - ./db-init/clickhouse:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8123/ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  postgres_data:
