@@ -1,0 +1,26 @@
+{
+  "name": "smart-contracts",
+  "module": "index.ts",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "bunx hardhat test",
+    "test:solidity": "bunx hardhat test solidity",
+    "test:nodejs": "bunx hardhat test nodejs",
+    "deploy:local": "bunx hardhat ignition deploy",
+    "deploy:sepolia": "bunx hardhat ignition deploy --network sepolia"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-ignition": "^3.0.1",
+    "@nomicfoundation/hardhat-toolbox-viem": "^5.0.0",
+    "@types/bun": "latest",
+    "@types/node": "^22.18.0",
+    "forge-std": "github:foundry-rs/forge-std#v1.9.4",
+    "hardhat": "^3.0.3",
+    "typescript": "~5.8.0",
+    "viem": "^2.36.0"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  }
+}
