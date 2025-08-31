@@ -37,3 +37,5 @@ Thumbs.db
 dist/
 build/
 coverage/
+
+infra/db-data/**/*
