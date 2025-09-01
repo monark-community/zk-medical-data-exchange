@@ -3,9 +3,6 @@ name: Deploy Web and API on Release
 on:
   release:
     types: [published]
-    # TODO: [LT] REMOVE, temporary for testing deployment
-  push:
-    branches: [chore/ci-cd-backend-initial-setup]
 
 jobs:
   build-and-push-images:

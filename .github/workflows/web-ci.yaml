@@ -2,7 +2,7 @@ name: Web Frontend CI
 
 on:
   push:
-    branches: [dev, main]
+    branches: [dev, main, chore/ci-cd-backend-initial-setup]
     paths:
       - "apps/web/**"
   pull_request:
