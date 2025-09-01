@@ -23,7 +23,7 @@ jobs:
           bun-version: latest
 
       - name: Install dependencies
-        run: bun install
+        run: bun install --filter apps/web
 
       - name: Lint
         run: bun run --filter apps/web lint
