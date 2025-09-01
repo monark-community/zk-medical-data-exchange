@@ -39,17 +39,12 @@ jobs:
             docker.io/${{ secrets.DOCKERHUB_USERNAME }}/cura-web:latest
             docker.io/${{ secrets.DOCKERHUB_USERNAME }}/cura-web:${{ github.event.release.tag_name || github.sha }}
 
-  # deploy-web-to-vercel:
-  #   needs: build-and-push-images
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Trigger Vercel deployment
-  #       run: |
-  #         curl -X POST "https://api.vercel.com/v1/projects/${{ secrets.VERCEL_PROJECT_ID }}/deployments" \
-  #           -H "Authorization: Bearer ${{ secrets.VERCEL_TOKEN }}" \
-  #           -H "Content-Type: application/json" \
-  #           --data '{
-  #             "name": "web",
-  #             "target": "production",
-  #             "image": "ghcr.io/${{ github.repository_owner }}/web:${{ github.event.release.tag_name }}"
-  #           }'
+  trigger-render-redeploys:
+    needs: build-and-push-images
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger API Render Redeploy
+        run: curl -X POST ${{ secrets.API_REDEPLOY_WEBHOOK_URL }}
+
+      - name: Trigger Web Render Redeploy
+        run: curl -X POST ${{ secrets.WEB_REDEPLOY_WEBHOOK_URL }}
