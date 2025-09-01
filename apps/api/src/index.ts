@@ -22,10 +22,7 @@ const swaggerOptions = {
       description: "API documentation",
     },
   },
-  apis: [
-    join(__dirname, "routes/**/*.ts"),
-    join(__dirname, "../dist/routes/**/*.js"),
-  ],
+  apis: [join(__dirname, "routes/**/*.ts"), join(__dirname, "../dist/routes/**/*.js")],
 };
 
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
