@@ -12,7 +12,7 @@ const router = Router();
  *         description: Test response
  */
 router.get("/test", (req, res) => {
-  res.json({ message: "Test!!!" });
+  res.json({ message: "Test!!" });
 });
 
 export default router;

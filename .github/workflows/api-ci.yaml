@@ -23,15 +23,15 @@ jobs:
           bun-version: latest
 
       - name: Install dependencies
-        run: bun install --filter apps/api
+        run: bun install
 
       - name: Lint
-        run: bun run --filter apps/api lint
+        run: bun run lint
 
       - name: Test
-        run: bun run --filter apps/api test
+        run: bun run test
 
       - name: Build
-        run: bun run --filter apps/api build
+        run: bun run build
     outputs:
       sha: ${{ github.sha }}

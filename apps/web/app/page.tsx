@@ -8,7 +8,7 @@ export default function Home() {
       <Link href={"https://example.com"}>
         <Button variant={"default"}>Example link</Button>
       </Link>
-      <p className="mt-4 text-lg">This is a simple Next.js application...</p>
+      <p className="mt-4 text-lg">This is a simple Next.js application.</p>
     </main>
   );
 }
