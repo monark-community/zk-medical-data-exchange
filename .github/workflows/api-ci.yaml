@@ -6,7 +6,7 @@ on:
     paths:
       - "apps/api/**"
   pull_request:
-    branches: [dev]
+    branches: [dev, main]
     paths:
       - "apps/api/**"
 
