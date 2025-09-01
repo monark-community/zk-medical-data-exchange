@@ -2,7 +2,7 @@ name: Backend Api CI
 
 on:
   push:
-    branches: [dev, main, chore/ci-cd-backend-initial-setup]
+    branches: [dev, main]
     paths:
       - "apps/api/**"
   pull_request:
