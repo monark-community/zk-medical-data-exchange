@@ -4,6 +4,9 @@ on:
   release:
     types: [published]
 
+  push:
+    branches: [chore/ci-cd-backend-initial-setup]
+
 jobs:
   build-and-push-images:
     runs-on: ubuntu-latest

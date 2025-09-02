@@ -12,4 +12,4 @@ RUN bun run build
 
 EXPOSE 8000
 
-CMD ["node", "dist/index.js"]
+CMD ["bun", "dist/index.js"]
