@@ -1,6 +1,5 @@
-// apps/api/src/index.ts
 import express from "express";
-import mainRouter from "./routes/index.js"; // include .js if using ESM path resolution
+import mainRouter from "./routes";
 import swaggerJsdoc from "swagger-jsdoc";
 import swaggerUi from "swagger-ui-express";
 import { fileURLToPath } from "url";
@@ -12,7 +11,6 @@ const __dirname = dirname(__filename);
 const app = express();
 const port = 3001;
 
-// Build absolute globs so moving folders doesn’t break docs
 const swaggerOptions = {
   definition: {
     openapi: "3.0.0",
@@ -22,15 +20,12 @@ const swaggerOptions = {
       description: "API documentation",
     },
   },
-  apis: [
-    join(__dirname, "routes/**/*.ts"),
-    join(__dirname, "../dist/routes/**/*.js"),
-  ],
+  apis: [join(__dirname, "routes/**/*.ts"), join(__dirname, "../dist/routes/**/*.js")],
 };
 
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
 
-app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec)); // you can add { explorer: true } as 3rd arg
+app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use(express.json());
 app.use("/", mainRouter);
 

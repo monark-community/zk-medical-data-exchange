@@ -6,12 +6,12 @@ const router = Router();
  * @swagger
  * /test:
  *   get:
- *     summary: Get test 
+ *     summary: Get test
  *     responses:
  *       200:
  *         description: Test response
  */
-router.get("/", (req, res) => {
+router.get("/test", (req, res) => {
   res.json({ message: "Test!" });
 });
 

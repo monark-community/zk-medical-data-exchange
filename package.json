@@ -11,6 +11,8 @@
     "lint": "eslint . --ext .ts,.tsx,.js,.jsx",
     "lint:web": "bun run --cwd apps/web lint",
     "lint:api": "bun run --cwd apps/api lint",
+    "test:web": "bun run --cwd apps/web test",
+    "test:api": "bun run --cwd apps/api test",
     "test:contracts": "bun run --cwd packages/smart-contracts test",
     "test:contracts:solidity": "bun run --cwd packages/smart-contracts test:solidity",
     "test:contracts:nodejs": "bun run --cwd packages/smart-contracts test:nodejs"
