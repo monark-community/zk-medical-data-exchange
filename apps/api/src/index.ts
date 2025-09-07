@@ -33,3 +33,5 @@ app.listen(port, () => {
   console.log(`API listening on http://localhost:${port}`);
   console.log(`Docs at http://localhost:${port}/docs`);
 });
+
+export default app;
