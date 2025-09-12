@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.3",
+    "@supabase/ssr": "^0.7.0",
     "@web3auth/modal": "^10.3.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
