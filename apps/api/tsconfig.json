@@ -1,5 +1,8 @@
 {
   "compilerOptions": {
+    "paths": {
+      "@contracts/*": ["../../packages/smart-contracts/*"]
+    },
     // Environment setup & latest features
     "lib": ["ESNext"],
     "target": "ESNext",

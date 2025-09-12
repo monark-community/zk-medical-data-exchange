@@ -8,11 +8,13 @@
     "lint": "eslint .",
     "build": "tsc",
     "start": "node dist/index.js",
-    "test": "echo \"No tests yet\""
+    "test": "bun test"
   },
   "devDependencies": {
     "@types/bun": "latest",
     "@types/node": "^24.3.0",
+    "@types/supertest": "^6.0.3",
+    "supertest": "^7.1.4",
     "tsx": "^4.20.5"
   },
   "peerDependencies": {

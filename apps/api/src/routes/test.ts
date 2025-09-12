@@ -11,7 +11,7 @@ const router = Router();
  *       200:
  *         description: Test response
  */
-router.get("/test", (req, res) => {
+router.get("/", (req, res) => {
   res.json({ message: "Test!" });
 });
 
