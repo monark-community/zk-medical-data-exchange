@@ -47,3 +47,6 @@ bun run test:contracts:solidity    # Run Solidity tests only
 bun run test:contracts:nodejs      # Run Node.js integration tests only
 ```
 
+### Deployment
+
+TODO: Describe how to deploy the dockerized infrastructure to Render.
