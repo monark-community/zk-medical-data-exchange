@@ -6,7 +6,7 @@ A collaborative Web3 project that empowers patients to control their medical dat
 
 ## Requirements
 
-If not done yet, instal bun
+If not done yet, install bun
 https://bun.sh/
 
 To install dependencies:
