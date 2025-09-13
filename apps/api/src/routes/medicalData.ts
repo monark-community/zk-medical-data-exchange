@@ -1,8 +1,7 @@
 import { Router } from "express";
-import { uploadData } from "../controllers/medicalDataController";
+import { uploadCID } from "../controllers/medicalDataController";
 
 const router = Router();
-
 /**
  * @swagger
  * /medical-data:
@@ -15,16 +14,16 @@ const router = Router();
  *           schema:
  *             type: object
  *             properties:
- *               name:
+ *               wallet_address:
  *                 type: string
- *               location:
+ *               encrypted_cid:
  *                 type: string
- *               dataType:
+ *               record_type:
  *                 type: string
  *     responses:
  *       201:
  *         description: Data created
  */
-router.post("/", uploadData);
+router.post("/", uploadCID);
 
 export default router;
