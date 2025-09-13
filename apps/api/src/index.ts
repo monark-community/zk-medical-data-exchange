@@ -4,6 +4,7 @@ import swaggerJsdoc from "swagger-jsdoc";
 import swaggerUi from "swagger-ui-express";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
+import { supabaseMiddleware } from "./middleware/supabaseMiddleware";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -27,6 +28,7 @@ const swaggerSpec = swaggerJsdoc(swaggerOptions);
 
 app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use(express.json());
+app.use(supabaseMiddleware);
 app.use("/", mainRouter);
 
 app.listen(port, () => {
