@@ -12,7 +12,7 @@ const IV_LEN = 12;
  */
 export const encryptWithKey = (text: string, key: string): string => {
   const aesKey = crypto.createHash("sha256").update(key).digest();
- 
+
   const iv = crypto.randomBytes(IV_LEN);
   const cipher = crypto.createCipheriv(ALGO, aesKey, iv);
 

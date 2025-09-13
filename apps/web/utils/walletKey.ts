@@ -1,6 +1,20 @@
 import { BrowserProvider } from "ethers";
 import crypto from "crypto";
 
+// This is needed to access the Ethereum provider injected by MetaMask without TypeScript errors
+declare global {
+  // eslint-disable-next-line no-unused-vars
+  interface Window {
+    ethereum?: {
+      isMetaMask?: boolean;
+      // eslint-disable-next-line no-unused-vars
+      request: (...args: any[]) => Promise<any>;
+      // eslint-disable-next-line no-unused-vars
+      on: (...args: any[]) => void;
+    };
+  }
+}
+
 /**
  * Derive a symmetric AES key from a wallet signature.
  * This key will always be the same for the same wallet.
