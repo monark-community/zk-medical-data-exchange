@@ -29,6 +29,8 @@ jobs:
         run: bun run lint:web
 
       - name: Test
+        env:
+          NEXT_PUBLIC_LIGHTHOUSE_API_KEY: ${{ secrets.NEXT_PUBLIC_LIGHTHOUSE_API_KEY }}
         run: bun run test:web
 
       - name: Build
