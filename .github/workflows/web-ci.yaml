@@ -32,4 +32,6 @@ jobs:
         run: bun run test:web
 
       - name: Build
+        env:
+          NEXT_PUBLIC_LIGHTHOUSE_API_KEY: ${{ secrets.NEXT_PUBLIC_LIGHTHOUSE_API_KEY }}
         run: bun run --cwd apps/web build
