@@ -1,10 +1,13 @@
 import express from "express";
+import cors from "cors";
 import mainRouter from "./routes";
 import swaggerJsdoc from "swagger-jsdoc";
 import swaggerUi from "swagger-ui-express";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import { supabaseMiddleware } from "./middleware/supabaseMiddleware";
+import { apiKeyMiddleware } from "./middleware/apiKeyMiddleware";
+import { IS_IN_TESTING_MODE } from "./config/isInTestingMode";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -26,8 +29,19 @@ const swaggerOptions = {
 
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
 
+app.use(
+  cors({
+    origin: "*",
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "x-api-key"], // restrict headers
+  })
+);
+
 app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use(express.json());
+if (!IS_IN_TESTING_MODE) {
+  app.use(apiKeyMiddleware);
+}
 app.use(supabaseMiddleware);
 app.use("/", mainRouter);
 
