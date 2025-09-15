@@ -24,6 +24,7 @@
     "@types/express": "^5.0.3",
     "@types/swagger-jsdoc": "^6.0.4",
     "@types/swagger-ui-express": "^4.1.8",
+    "dotenv": "^17.2.2",
     "express": "^5.1.0",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1"
