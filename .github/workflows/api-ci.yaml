@@ -9,10 +9,15 @@ on:
     branches: [dev, main]
     paths:
       - "apps/api/**"
-
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+    env:
+      SUPABASE_URL: "https://example.supabase.co"
+      SUPABASE_ANON_KEY: "testkey"
+      IS_TESTING: "true"
+      APP_API_KEY: "testkey"
+
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
@@ -29,13 +34,7 @@ jobs:
         run: bun run lint:api
 
       - name: Test
-        env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
         run: bun run test:api
 
       - name: Build
-        env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
         run: bun run --cwd apps/api build
