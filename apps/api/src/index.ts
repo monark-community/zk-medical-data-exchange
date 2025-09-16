@@ -7,7 +7,7 @@ import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import { supabaseMiddleware } from "./middleware/supabaseMiddleware";
 import { apiKeyMiddleware } from "./middleware/apiKeyMiddleware";
-import { IS_IN_TESTING_MODE } from "./config/isInTestingMode";
+import { Config } from "./config/config";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -33,13 +33,13 @@ app.use(
   cors({
     origin: "*",
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "x-api-key"], // restrict headers
+    allowedHeaders: ["Content-Type", "Authorization", "x-api-key"],
   })
 );
 
 app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use(express.json());
-if (!IS_IN_TESTING_MODE) {
+if (!Config.IS_IN_TESTING_MODE) {
   app.use(apiKeyMiddleware);
 }
 app.use(supabaseMiddleware);

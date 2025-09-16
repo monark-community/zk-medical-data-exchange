@@ -1,9 +1,9 @@
 import type { Request, Response, NextFunction } from "express";
-import { API_KEY } from "../config/apiKey";
+import { Config } from "../config/config";
 
 export const apiKeyMiddleware = (req: Request, res: Response, next: NextFunction) => {
-  const apiKey = req.headers["x-api-key"];
-  if (!apiKey || apiKey !== API_KEY) {
+  const appApiKey = req.headers["x-api-key"];
+  if (!appApiKey || appApiKey !== Config.APP_API_KEY) {
     return res.status(401).json({ error: "Unauthorized" });
   }
   next();

@@ -3,8 +3,8 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ipfsDownload } from "@/services/ipfsService";
 import { deriveKeyFromWallet } from "@/utils/walletKey";
-import { decryptWithKey, encryptWithKey } from "@/utils/encryption";
-import { uploadMedicalData } from "@/services/api/dataVaultClient";
+import { decryptWithKey, encryptWithKey, generateAESKey } from "@/utils/encryption";
+import { uploadMedicalData } from "@/services/dataVaultService";
 
 export default function Home() {
   const [aesKey, setAesKey] = useState<string | null>(null);
@@ -15,7 +15,7 @@ export default function Home() {
   useEffect(() => {
     const initKey = async () => {
       try {
-        const key = (await deriveKeyFromWallet()).toString("hex");
+        const key = generateAESKey(await deriveKeyFromWallet());
         setAesKey(key);
         console.log("Derived AES Key:", key);
       } catch (err) {

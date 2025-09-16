@@ -1,8 +1,8 @@
 import type { Request, Response, NextFunction } from "express";
 import { createClient } from "@supabase/supabase-js";
-import { SUPABASE_KEY, SUPABASE_URL } from "../config/supabase";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { Config } from "../config/config";
 
 // This is made to add custom properties to the Express Request object
 declare global {
@@ -16,7 +16,7 @@ declare global {
 }
 
 export const supabaseMiddleware = (req: Request, _res: Response, next: NextFunction) => {
-  req.supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
+  req.supabase = createClient(Config.SUPABASE_URL, Config.SUPABASE_KEY, {
     auth: {
       persistSession: false,
     },

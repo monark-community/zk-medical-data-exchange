@@ -1,5 +1,5 @@
+import { Config } from "@/config/config";
 import lighthouse from "@lighthouse-web3/sdk";
-import { LIGHTHOUSE_API_KEY } from "../config/ipfs";
 
 /**
  * Uploads plain text content to IPFS using the Lighthouse service.
@@ -10,7 +10,7 @@ import { LIGHTHOUSE_API_KEY } from "../config/ipfs";
  */
 export const ipfsUpload = async (file_content: string): Promise<string> => {
   try {
-    const response = await lighthouse.uploadText(file_content, LIGHTHOUSE_API_KEY);
+    const response = await lighthouse.uploadText(file_content, Config.LIGHTHOUSE_API_KEY!);
     return response.data.Hash;
   } catch (error) {
     console.error("Error uploading to IPFS:", error);
