@@ -14,7 +14,7 @@
         "dotenv": "^17.2.2",
         "pino": "^9.10.0",
         "typescript-eslint": "^8.41.0",
-        "wagmi": "^2.16.9",
+        "wagmi": "^2.16.9"
       },
       "devDependencies": {
         "@eslint/js": "^9.34.0",
@@ -24,11 +24,11 @@
         "@typescript-eslint/parser": "^8.41.0",
         "eslint": "^9.34.0",
         "eslint-config-next": "^15.5.2",
-        "eslint-config-prettier": "^10.1.8",
+        "eslint-config-prettier": "^10.1.8"
       },
       "peerDependencies": {
-        "typescript": "^5.9.2",
-      },
+        "typescript": "^5.9.2"
+      }
     },
     "apps/api": {
       "name": "api",
@@ -42,7 +42,7 @@
         "express": "^5.1.0",
         "pino-pretty": "^13.1.1",
         "swagger-jsdoc": "^6.2.8",
-        "swagger-ui-express": "^5.0.1",
+        "swagger-ui-express": "^5.0.1"
       },
       "devDependencies": {
         "@types/bun": "latest",
@@ -50,10 +50,10 @@
         "@types/node": "^24.3.0",
         "@types/supertest": "^6.0.3",
         "supertest": "^7.1.4",
-        "tsx": "^4.20.5",
+        "tsx": "^4.20.5"
       },
       "peerDependencies": {
-        "typescript": "^5.9.2",
+        "typescript": "^5.9.2"
       },
     },
     "apps/web": {
@@ -2577,6 +2577,8 @@
     "web/@types/node": ["@types/node@20.19.17", "", { "dependencies": { "undici-types": "~6.21.0" } }, "sha512-gfehUI8N1z92kygssiuWvLiwcbOB3IRktR6hTDgJlXMYh5OvkPSRmgfoBUmfZt+vhwJtX7v1Yw4KvvAf7c5QKQ=="],
 
     "webauthn-p256/@noble/curves": ["@noble/curves@1.9.7", "", { "dependencies": { "@noble/hashes": "1.8.0" } }, "sha512-gbKGcRUYIjA3/zCCNaWDciTMFI0dCkvou3TL8Zmy5Nc7sJ47a0jtOeZoTaMxkuqRo9cRhjOdZJXegxYE5FN/xw=="],
+
+    "web/@web3auth/modal": ["@web3auth/modal@10.3.0", "", { "dependencies": { "@hcaptcha/react-hcaptcha": "^1.12.1", "@toruslabs/base-controllers": "^8.6.1", "@toruslabs/http-helpers": "^8.1.1", "@web3auth/auth": "^10.5.0", "@web3auth/no-modal": "^10.3.0", "bowser": "^2.12.1", "classnames": "^2.5.1", "clsx": "^2.1.1", "color": "^5.0.0", "copy-to-clipboard": "^3.3.3", "deepmerge": "^4.3.1", "i18next": "^25.4.2", "react-i18next": "^15.7.2", "react-qrcode-logo": "^3.0.0", "tailwind-merge": "^3.3.1" }, "peerDependencies": { "@babel/runtime": "^7.x", "@coinbase/wallet-sdk": "^4.3.x", "@solana/web3.js": ">=1.98", "react": ">=18", "react-dom": ">=18", "viem": ">=2.23", "vue": ">=3.x" }, "optionalPeers": ["@coinbase/wallet-sdk", "viem", "vue"] }, "sha512-uyyietz9QwPVPoh5otcVYO8zKel9m9IxYMSV0XintkFxJO4+ci5bvy85uGE9nbH6EDmY0sGULo7/LrKDllpMPg=="],
 
     "xrpl-secret-numbers/ripple-keypairs": ["ripple-keypairs@2.0.0", "", { "dependencies": { "@noble/curves": "^1.0.0", "@xrplf/isomorphic": "^1.0.0", "ripple-address-codec": "^5.0.0" } }, "sha512-b5rfL2EZiffmklqZk1W+dvSy97v3V/C7936WxCCgDynaGPp7GE6R2XO7EU9O2LlM/z95rj870IylYnOQs+1Rag=="],
 
