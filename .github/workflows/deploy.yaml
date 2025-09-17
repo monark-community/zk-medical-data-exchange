@@ -42,6 +42,7 @@ jobs:
             NEXT_PUBLIC_APP_API_URL=${{ secrets.NEXT_PUBLIC_APP_API_URL }}
             NEXT_PUBLIC_APP_API_KEY=${{ secrets.NEXT_PUBLIC_APP_API_KEY }}
             NEXT_PUBLIC_LIGHTHOUSE_API_KEY=${{ secrets.NEXT_PUBLIC_LIGHTHOUSE_API_KEY }}
+            NEXT_PUBLIC_WEB3AUTH_CLIENT_ID=${{ secrets.NEXT_PUBLIC_WEB3AUTH_CLIENT_ID }}
 
   trigger-render-redeploys:
     needs: build-and-push-images
