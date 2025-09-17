@@ -6,10 +6,13 @@
       "dependencies": {
         "@lighthouse-web3/sdk": "^0.4.2",
         "@supabase/supabase-js": "^2.57.4",
+        "@tanstack/react-query": "^5.89.0",
+        "@web3auth/modal": "^10.3.1",
         "axios": "^1.12.2",
         "cors": "^2.8.5",
         "dotenv": "^17.2.2",
         "typescript-eslint": "^8.41.0",
+        "wagmi": "^2.16.9",
       },
       "devDependencies": {
         "@eslint/js": "^9.34.0",
@@ -624,9 +627,9 @@
 
     "@tailwindcss/postcss": ["@tailwindcss/postcss@4.1.12", "", { "dependencies": { "@alloc/quick-lru": "^5.2.0", "@tailwindcss/node": "4.1.12", "@tailwindcss/oxide": "4.1.12", "postcss": "^8.4.41", "tailwindcss": "4.1.12" } }, "sha512-5PpLYhCAwf9SJEeIsSmCDLgyVfdBhdBpzX1OJ87anT9IVR0Z9pjM0FNixCAUAHGnMBGB8K99SwAheXrT0Kh6QQ=="],
 
-    "@tanstack/query-core": ["@tanstack/query-core@5.85.6", "", {}, "sha512-hCj0TktzdCv2bCepIdfwqVwUVWb+GSHm1Jnn8w+40lfhQ3m7lCO7ADRUJy+2unxQ/nzjh2ipC6ye69NDW3l73g=="],
+    "@tanstack/query-core": ["@tanstack/query-core@5.89.0", "", {}, "sha512-joFV1MuPhSLsKfTzwjmPDrp8ENfZ9N23ymFu07nLfn3JCkSHy0CFgsyhHTJOmWaumC/WiNIKM0EJyduCF/Ih/Q=="],
 
-    "@tanstack/react-query": ["@tanstack/react-query@5.85.6", "", { "dependencies": { "@tanstack/query-core": "5.85.6" }, "peerDependencies": { "react": "^18 || ^19" } }, "sha512-VUAag4ERjh+qlmg0wNivQIVCZUrYndqYu3/wPCVZd4r0E+1IqotbeyGTc+ICroL/PqbpSaGZg02zSWYfcvxbdA=="],
+    "@tanstack/react-query": ["@tanstack/react-query@5.89.0", "", { "dependencies": { "@tanstack/query-core": "5.89.0" }, "peerDependencies": { "react": "^18 || ^19" } }, "sha512-SXbtWSTSRXyBOe80mszPxpEbaN4XPRUp/i0EfQK1uyj3KCk/c8FuPJNIRwzOVe/OU3rzxrYtiNabsAmk1l714A=="],
 
     "@toruslabs/base-controllers": ["@toruslabs/base-controllers@8.6.1", "", { "dependencies": { "@ethereumjs/util": "^9.1.0", "@toruslabs/broadcast-channel": "^12.0.0", "@toruslabs/http-helpers": "^8.1.1", "@web3auth/auth": "^10.5.0", "async-mutex": "^0.5.0", "bignumber.js": "^9.3.1", "bowser": "^2.11.0", "events": "^3.3.0", "jwt-decode": "^4.0.0", "loglevel": "^1.9.2" }, "peerDependencies": { "@babel/runtime": "7.x" } }, "sha512-6OcpyLkF7Ban99h5/1Hg7d6FO1xlefw4RO0/t2B1HFoQro4+lkq3mzUYE0YxCImSQvVp9U097CS8s5S4JX6lBQ=="],
 
@@ -844,9 +847,9 @@
 
     "@web3auth/auth": ["@web3auth/auth@10.5.0", "", { "dependencies": { "@ethereumjs/util": "^9.1.0", "@toruslabs/constants": "^15.0.0", "@toruslabs/customauth": "^21.3.1", "@toruslabs/ffjavascript": "^5.0.0", "@toruslabs/metadata-helpers": "^7.0.2", "@toruslabs/secure-pub-sub": "^3.0.2", "@toruslabs/session-manager": "^4.0.2", "@toruslabs/starkware-crypto": "^5.0.0", "@toruslabs/tweetnacl-js": "^1.0.4", "base64url": "^3.0.1", "bip39": "^3.1.0", "bn.js": "^5.2.2", "deepmerge": "^4.3.1", "enc-utils": "^3.0.0", "end-of-stream": "^1.4.4", "events": "^3.3.0", "json-stable-stringify": "^1.3.0", "loglevel": "^1.9.2", "once": "^1.4.0", "pump": "^3.0.2", "readable-stream": "^4.7.0", "ts-custom-error": "^3.3.1", "typed-emitter": "^2.1.0" }, "optionalDependencies": { "@nx/nx-linux-x64-gnu": "^21.1.1", "@rollup/rollup-linux-x64-gnu": "^4.41.0" }, "peerDependencies": { "@babel/runtime": "7.x", "color": "^5.x" } }, "sha512-a7yGAdFlGg4HbYBdAHtI7EKJKIUT83ucKqgsMwySZQhM2exLskBf8C4+6pL1pqrHQ1mc01q3WOXix80ZVjn5PQ=="],
 
-    "@web3auth/modal": ["@web3auth/modal@10.3.0", "", { "dependencies": { "@hcaptcha/react-hcaptcha": "^1.12.1", "@toruslabs/base-controllers": "^8.6.1", "@toruslabs/http-helpers": "^8.1.1", "@web3auth/auth": "^10.5.0", "@web3auth/no-modal": "^10.3.0", "bowser": "^2.12.1", "classnames": "^2.5.1", "clsx": "^2.1.1", "color": "^5.0.0", "copy-to-clipboard": "^3.3.3", "deepmerge": "^4.3.1", "i18next": "^25.4.2", "react-i18next": "^15.7.2", "react-qrcode-logo": "^3.0.0", "tailwind-merge": "^3.3.1" }, "peerDependencies": { "@babel/runtime": "^7.x", "@coinbase/wallet-sdk": "^4.3.x", "@solana/web3.js": ">=1.98", "react": ">=18", "react-dom": ">=18", "viem": ">=2.23", "vue": ">=3.x" }, "optionalPeers": ["@coinbase/wallet-sdk", "viem", "vue"] }, "sha512-uyyietz9QwPVPoh5otcVYO8zKel9m9IxYMSV0XintkFxJO4+ci5bvy85uGE9nbH6EDmY0sGULo7/LrKDllpMPg=="],
+    "@web3auth/modal": ["@web3auth/modal@10.3.1", "", { "dependencies": { "@hcaptcha/react-hcaptcha": "^1.12.1", "@toruslabs/base-controllers": "^8.6.1", "@toruslabs/http-helpers": "^8.1.1", "@web3auth/auth": "^10.5.0", "@web3auth/no-modal": "^10.3.1", "bowser": "^2.12.1", "classnames": "^2.5.1", "clsx": "^2.1.1", "color": "^5.0.0", "copy-to-clipboard": "^3.3.3", "deepmerge": "^4.3.1", "i18next": "^25.4.2", "react-i18next": "^15.7.2", "react-qrcode-logo": "^3.0.0", "tailwind-merge": "^3.3.1" }, "peerDependencies": { "@babel/runtime": "^7.x", "@coinbase/wallet-sdk": "^4.3.x", "@solana/web3.js": ">=1.98", "react": ">=18", "react-dom": ">=18", "viem": ">=2.23", "vue": ">=3.x" }, "optionalPeers": ["@coinbase/wallet-sdk", "viem", "vue"] }, "sha512-i91SCR/SXyr3s+2ZVMJIwcWDVHBWs0jm4dl6qkTw0VRmdDmYNHGzSSLNKVmJTzvgPorIbMGSq4fBjXR8PCDFOA=="],
 
-    "@web3auth/no-modal": ["@web3auth/no-modal@10.3.0", "", { "dependencies": { "@ethereumjs/util": "^9.1.0", "@metamask/sdk": "^0.33.0", "@segment/analytics-next": "^1.81.1", "@solana/wallet-standard-features": "^1.3.0", "@solana/web3.js": "^1.98.4", "@toruslabs/base-controllers": "^8.6.1", "@toruslabs/bs58": "^1.0.0", "@toruslabs/constants": "^15.0.0", "@toruslabs/eccrypto": "^6.1.0", "@toruslabs/ethereum-controllers": "^8.6.2", "@toruslabs/http-helpers": "^8.1.1", "@toruslabs/loglevel-sentry": "^8.1.0", "@toruslabs/secure-pub-sub": "3.0.2", "@toruslabs/tweetnacl-js": "^1.0.4", "@wallet-standard/app": "^1.1.0", "@wallet-standard/base": "^1.1.0", "@wallet-standard/features": "^1.1.0", "@walletconnect/sign-client": "^2.21.8", "@walletconnect/types": "^2.21.8", "@walletconnect/utils": "^2.21.8", "@web3auth/auth": "^10.5.0", "@web3auth/ws-embed": "^5.0.23", "assert": "^2.1.0", "bignumber.js": "~9.3.1", "bn.js": "^5.2.2", "bowser": "^2.12.1", "deepmerge": "^4.3.1", "ethers": "^6.15.0", "json-rpc-random-id": "^1.0.1", "jsonschema": "^1.5.0", "jwt-decode": "^4.0.0", "loglevel": "^1.9.2", "mipd": "^0.0.7", "permissionless": "^0.2.54", "ripple-keypairs": "^1.3.1", "ts-custom-error": "^3.3.1", "xrpl": "^2.14.0" }, "peerDependencies": { "@babel/runtime": "^7.x", "@coinbase/wallet-sdk": "^4.3.x", "react": ">=18", "viem": ">=2.29", "vue": "^3.x" }, "optionalPeers": ["@coinbase/wallet-sdk", "react", "viem", "vue"] }, "sha512-Lz5QafcHotA9TvS/Dmbrh2+13H/QwylK8hPCUTCUDrYQZv2pLnvUJUksQLXW6ZTVA5HJT1Fz+l9G5BZDIkROew=="],
+    "@web3auth/no-modal": ["@web3auth/no-modal@10.3.1", "", { "dependencies": { "@ethereumjs/util": "^9.1.0", "@metamask/sdk": "^0.33.0", "@segment/analytics-next": "^1.81.1", "@solana/wallet-standard-features": "^1.3.0", "@solana/web3.js": "^1.98.4", "@toruslabs/base-controllers": "^8.6.1", "@toruslabs/bs58": "^1.0.0", "@toruslabs/constants": "^15.0.0", "@toruslabs/eccrypto": "^6.1.0", "@toruslabs/ethereum-controllers": "^8.6.2", "@toruslabs/http-helpers": "^8.1.1", "@toruslabs/loglevel-sentry": "^8.1.0", "@toruslabs/secure-pub-sub": "3.0.2", "@toruslabs/tweetnacl-js": "^1.0.4", "@wallet-standard/app": "^1.1.0", "@wallet-standard/base": "^1.1.0", "@wallet-standard/features": "^1.1.0", "@walletconnect/sign-client": "^2.21.8", "@walletconnect/types": "^2.21.8", "@walletconnect/utils": "^2.21.8", "@web3auth/auth": "^10.5.0", "@web3auth/ws-embed": "^5.0.23", "assert": "^2.1.0", "bignumber.js": "~9.3.1", "bn.js": "^5.2.2", "bowser": "^2.12.1", "deepmerge": "^4.3.1", "ethers": "^6.15.0", "json-rpc-random-id": "^1.0.1", "jsonschema": "^1.5.0", "jwt-decode": "^4.0.0", "loglevel": "^1.9.2", "mipd": "^0.0.7", "permissionless": "^0.2.54", "ripple-keypairs": "^1.3.1", "ts-custom-error": "^3.3.1", "xrpl": "^2.14.0" }, "peerDependencies": { "@babel/runtime": "^7.x", "@coinbase/wallet-sdk": "^4.3.x", "react": ">=18", "viem": ">=2.29", "vue": "^3.x" }, "optionalPeers": ["@coinbase/wallet-sdk", "react", "viem", "vue"] }, "sha512-h5V4mrj1pw9gO/xzoDcsYClEC58T5SQgZeWkUzykxpHVLP7m0Rtw9JPEsaxHSISg6AABadk2OuEF+vfzA40bUw=="],
 
     "@web3auth/ws-embed": ["@web3auth/ws-embed@5.0.23", "", { "dependencies": { "@toruslabs/base-controllers": "^8.6.1", "@web3auth/auth": "^10.5.0", "fast-deep-equal": "^3.1.3", "loglevel": "^1.9.2", "pump": "^3.0.3", "readable-stream": "^4.7.0" }, "peerDependencies": { "@babel/runtime": "7.x" } }, "sha512-PyQZF0zL4FUhjiIPCNWAch6NxTv0aoOiGTJKUYYgurDn8qRWmO23EXuMS4PcVXHUjhiQVSxGUGokCv59yWKgHw=="],
 
@@ -2158,7 +2161,7 @@
 
     "zod": ["zod@3.25.76", "", {}, "sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ=="],
 
-    "zustand": ["zustand@5.0.3", "", { "peerDependencies": { "@types/react": ">=18.0.0", "immer": ">=9.0.6", "react": ">=18.0.0", "use-sync-external-store": ">=1.2.0" }, "optionalPeers": ["@types/react", "immer", "react", "use-sync-external-store"] }, "sha512-14fwWQtU3pH4dE0dOpdMiWjddcH+QzKIgk1cl8epwSE7yag43k/AD/m4L6+K7DytAOr9gGBe3/EXj9g7cdostg=="],
+    "zustand": ["zustand@5.0.0", "", { "peerDependencies": { "@types/react": ">=18.0.0", "immer": ">=9.0.6", "react": ">=18.0.0", "use-sync-external-store": ">=1.2.0" }, "optionalPeers": ["@types/react", "immer", "react", "use-sync-external-store"] }, "sha512-LE+VcmbartOPM+auOjCCLQOsQ05zUTp8RkgwRzefUk+2jISdMMFnxvyTjA4YNWr5ZGXYbVsEMZosttuxUBkojQ=="],
 
     "@actions/http-client/undici": ["undici@5.29.0", "", { "dependencies": { "@fastify/busboy": "^2.0.0" } }, "sha512-raqeBD6NQK4SkWhQzeYKd1KmIG6dllBOTt55Rmkt4HtI9mwdWtJljnrXjAFUBLTSN67HWrOIZ3EPF4kjUw80Bg=="],
 
@@ -2168,11 +2171,15 @@
 
     "@base-org/account/ox": ["ox@0.6.9", "", { "dependencies": { "@adraffy/ens-normalize": "^1.10.1", "@noble/curves": "^1.6.0", "@noble/hashes": "^1.5.0", "@scure/bip32": "^1.5.0", "@scure/bip39": "^1.4.0", "abitype": "^1.0.6", "eventemitter3": "5.0.1" }, "peerDependencies": { "typescript": ">=5.4.0" }, "optionalPeers": ["typescript"] }, "sha512-wi5ShvzE4eOcTwQVsIPdFr+8ycyX+5le/96iAJutaZAvCes1J0+RvpEPg5QDPDiaR0XQQAvZVl7AwqQcINuUug=="],
 
+    "@base-org/account/zustand": ["zustand@5.0.3", "", { "peerDependencies": { "@types/react": ">=18.0.0", "immer": ">=9.0.6", "react": ">=18.0.0", "use-sync-external-store": ">=1.2.0" }, "optionalPeers": ["@types/react", "immer", "react", "use-sync-external-store"] }, "sha512-14fwWQtU3pH4dE0dOpdMiWjddcH+QzKIgk1cl8epwSE7yag43k/AD/m4L6+K7DytAOr9gGBe3/EXj9g7cdostg=="],
+
     "@coinbase/wallet-sdk/@noble/hashes": ["@noble/hashes@1.4.0", "", {}, "sha512-V1JJ1WTRUqHHrOSh597hURcMqVKVGL/ea3kv0gSnEdsEZ0/+VyPghM1lMNGc00z7CIQorSvbKpuJkxvuHbvdbg=="],
 
     "@coinbase/wallet-sdk/clsx": ["clsx@1.2.1", "", {}, "sha512-EcR6r5a8bj6pu3ycsa/E/cKVGuTgZJZdsyUYHOksG/UHIiKfjxzRxYJpyVBwYaQeOvghal9fcc4PidlgzugAQg=="],
 
     "@coinbase/wallet-sdk/ox": ["ox@0.6.9", "", { "dependencies": { "@adraffy/ens-normalize": "^1.10.1", "@noble/curves": "^1.6.0", "@noble/hashes": "^1.5.0", "@scure/bip32": "^1.5.0", "@scure/bip39": "^1.4.0", "abitype": "^1.0.6", "eventemitter3": "5.0.1" }, "peerDependencies": { "typescript": ">=5.4.0" }, "optionalPeers": ["typescript"] }, "sha512-wi5ShvzE4eOcTwQVsIPdFr+8ycyX+5le/96iAJutaZAvCes1J0+RvpEPg5QDPDiaR0XQQAvZVl7AwqQcINuUug=="],
+
+    "@coinbase/wallet-sdk/zustand": ["zustand@5.0.3", "", { "peerDependencies": { "@types/react": ">=18.0.0", "immer": ">=9.0.6", "react": ">=18.0.0", "use-sync-external-store": ">=1.2.0" }, "optionalPeers": ["@types/react", "immer", "react", "use-sync-external-store"] }, "sha512-14fwWQtU3pH4dE0dOpdMiWjddcH+QzKIgk1cl8epwSE7yag43k/AD/m4L6+K7DytAOr9gGBe3/EXj9g7cdostg=="],
 
     "@eslint-community/eslint-utils/eslint-visitor-keys": ["eslint-visitor-keys@3.4.3", "", {}, "sha512-wpc+LXeiyiisxPlEkUzU6svyS1frIO3Mgxj1fdy7Pm8Ygzguax2N3Fa/D/ag1WqbOprdI+uY6wMUl8/a2G+iag=="],
 
@@ -2273,8 +2280,6 @@
     "@typescript-eslint/typescript-estree/minimatch": ["minimatch@9.0.5", "", { "dependencies": { "brace-expansion": "^2.0.1" } }, "sha512-G6T0ZX48xgozx7587koeX9Ys2NYy6Gmv//P89sEte9V9whIapMNF4idKxnW2QtCcLiTWlb/wfCabAtAFWhhBow=="],
 
     "@wagmi/connectors/@metamask/sdk": ["@metamask/sdk@0.32.0", "", { "dependencies": { "@babel/runtime": "^7.26.0", "@metamask/onboarding": "^1.0.1", "@metamask/providers": "16.1.0", "@metamask/sdk-communication-layer": "0.32.0", "@metamask/sdk-install-modal-web": "0.32.0", "@paulmillr/qr": "^0.2.1", "bowser": "^2.9.0", "cross-fetch": "^4.0.0", "debug": "^4.3.4", "eciesjs": "^0.4.11", "eth-rpc-errors": "^4.0.3", "eventemitter2": "^6.4.9", "obj-multiplex": "^1.0.0", "pump": "^3.0.0", "readable-stream": "^3.6.2", "socket.io-client": "^4.5.1", "tslib": "^2.6.0", "util": "^0.12.4", "uuid": "^8.3.2" } }, "sha512-WmGAlP1oBuD9hk4CsdlG1WJFuPtYJY+dnTHJMeCyohTWD2GgkcLMUUuvu9lO1/NVzuOoSi1OrnjbuY1O/1NZ1g=="],
-
-    "@wagmi/core/zustand": ["zustand@5.0.0", "", { "peerDependencies": { "@types/react": ">=18.0.0", "immer": ">=9.0.6", "react": ">=18.0.0", "use-sync-external-store": ">=1.2.0" }, "optionalPeers": ["@types/react", "immer", "react", "use-sync-external-store"] }, "sha512-LE+VcmbartOPM+auOjCCLQOsQ05zUTp8RkgwRzefUk+2jISdMMFnxvyTjA4YNWr5ZGXYbVsEMZosttuxUBkojQ=="],
 
     "@walletconnect/environment/tslib": ["tslib@1.14.1", "", {}, "sha512-Xni35NKzjgMrwevysHTCArtLDpPvye8zV/0E4EyYn43P7/7qvQwPh9BGkHewbMulVntbigmcT7rdX3BNo9wRJg=="],
 
@@ -2472,6 +2477,8 @@
 
     "web/@types/node": ["@types/node@20.19.11", "", { "dependencies": { "undici-types": "~6.21.0" } }, "sha512-uug3FEEGv0r+jrecvUUpbY8lLisvIjg6AAic6a2bSP5OEOLeJsDSnvhCDov7ipFFMXS3orMpzlmi0ZcuGkBbow=="],
 
+    "web/@web3auth/modal": ["@web3auth/modal@10.3.0", "", { "dependencies": { "@hcaptcha/react-hcaptcha": "^1.12.1", "@toruslabs/base-controllers": "^8.6.1", "@toruslabs/http-helpers": "^8.1.1", "@web3auth/auth": "^10.5.0", "@web3auth/no-modal": "^10.3.0", "bowser": "^2.12.1", "classnames": "^2.5.1", "clsx": "^2.1.1", "color": "^5.0.0", "copy-to-clipboard": "^3.3.3", "deepmerge": "^4.3.1", "i18next": "^25.4.2", "react-i18next": "^15.7.2", "react-qrcode-logo": "^3.0.0", "tailwind-merge": "^3.3.1" }, "peerDependencies": { "@babel/runtime": "^7.x", "@coinbase/wallet-sdk": "^4.3.x", "@solana/web3.js": ">=1.98", "react": ">=18", "react-dom": ">=18", "viem": ">=2.23", "vue": ">=3.x" }, "optionalPeers": ["@coinbase/wallet-sdk", "viem", "vue"] }, "sha512-uyyietz9QwPVPoh5otcVYO8zKel9m9IxYMSV0XintkFxJO4+ci5bvy85uGE9nbH6EDmY0sGULo7/LrKDllpMPg=="],
+
     "xrpl-secret-numbers/ripple-keypairs": ["ripple-keypairs@2.0.0", "", { "dependencies": { "@noble/curves": "^1.0.0", "@xrplf/isomorphic": "^1.0.0", "ripple-address-codec": "^5.0.0" } }, "sha512-b5rfL2EZiffmklqZk1W+dvSy97v3V/C7936WxCCgDynaGPp7GE6R2XO7EU9O2LlM/z95rj870IylYnOQs+1Rag=="],
 
     "yargs/find-up": ["find-up@4.1.0", "", { "dependencies": { "locate-path": "^5.0.0", "path-exists": "^4.0.0" } }, "sha512-PpOwAdQ/YlXQ2vj8a3h8IipDuYRi3wceVQQGYWxNINccq40Anw7BlsEXCMbt1Zt+OLA6Fq9suIpIWD0OsnISlw=="],
@@ -2609,6 +2616,8 @@
     "smart-contracts/@types/node/undici-types": ["undici-types@6.21.0", "", {}, "sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ=="],
 
     "web/@types/node/undici-types": ["undici-types@6.21.0", "", {}, "sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ=="],
+
+    "web/@web3auth/modal/@web3auth/no-modal": ["@web3auth/no-modal@10.3.0", "", { "dependencies": { "@ethereumjs/util": "^9.1.0", "@metamask/sdk": "^0.33.0", "@segment/analytics-next": "^1.81.1", "@solana/wallet-standard-features": "^1.3.0", "@solana/web3.js": "^1.98.4", "@toruslabs/base-controllers": "^8.6.1", "@toruslabs/bs58": "^1.0.0", "@toruslabs/constants": "^15.0.0", "@toruslabs/eccrypto": "^6.1.0", "@toruslabs/ethereum-controllers": "^8.6.2", "@toruslabs/http-helpers": "^8.1.1", "@toruslabs/loglevel-sentry": "^8.1.0", "@toruslabs/secure-pub-sub": "3.0.2", "@toruslabs/tweetnacl-js": "^1.0.4", "@wallet-standard/app": "^1.1.0", "@wallet-standard/base": "^1.1.0", "@wallet-standard/features": "^1.1.0", "@walletconnect/sign-client": "^2.21.8", "@walletconnect/types": "^2.21.8", "@walletconnect/utils": "^2.21.8", "@web3auth/auth": "^10.5.0", "@web3auth/ws-embed": "^5.0.23", "assert": "^2.1.0", "bignumber.js": "~9.3.1", "bn.js": "^5.2.2", "bowser": "^2.12.1", "deepmerge": "^4.3.1", "ethers": "^6.15.0", "json-rpc-random-id": "^1.0.1", "jsonschema": "^1.5.0", "jwt-decode": "^4.0.0", "loglevel": "^1.9.2", "mipd": "^0.0.7", "permissionless": "^0.2.54", "ripple-keypairs": "^1.3.1", "ts-custom-error": "^3.3.1", "xrpl": "^2.14.0" }, "peerDependencies": { "@babel/runtime": "^7.x", "@coinbase/wallet-sdk": "^4.3.x", "react": ">=18", "viem": ">=2.29", "vue": "^3.x" }, "optionalPeers": ["@coinbase/wallet-sdk", "react", "viem", "vue"] }, "sha512-Lz5QafcHotA9TvS/Dmbrh2+13H/QwylK8hPCUTCUDrYQZv2pLnvUJUksQLXW6ZTVA5HJT1Fz+l9G5BZDIkROew=="],
 
     "xrpl-secret-numbers/ripple-keypairs/ripple-address-codec": ["ripple-address-codec@5.0.0", "", { "dependencies": { "@scure/base": "^1.1.3", "@xrplf/isomorphic": "^1.0.0" } }, "sha512-de7osLRH/pt5HX2xw2TRJtbdLLWHu0RXirpQaEeCnWKY5DYHykh3ETSkofvm0aX0LJiV7kwkegJxQkmbO94gWw=="],
 
