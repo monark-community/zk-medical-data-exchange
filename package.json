@@ -37,6 +37,7 @@
   },
   "dependencies": {
     "@lighthouse-web3/sdk": "^0.4.2",
+    "@supabase/supabase-js": "^2.57.4",
     "axios": "^1.12.2",
     "cors": "^2.8.5",
     "dotenv": "^17.2.2",
