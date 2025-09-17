@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { addAESKeyToStore } from "@/services/aesKeyStore";
 import { ipfsDownload } from "@/services/ipfsService";
@@ -32,7 +32,6 @@ export default function Dashboard() {
   }, []);
 
   const handleDownload = async () => {
-    if (!aesKey) return;
     try {
       const content = await ipfsDownload("");
       const encrypted = encryptWithKey(content, aesKey);
@@ -43,6 +42,10 @@ export default function Dashboard() {
       setIpfsContent("Failed to load content.");
     }
   };
+
+  if (!isConnected) {
+    return null;
+  }
 
   if (!isConnected) {
     return null;
