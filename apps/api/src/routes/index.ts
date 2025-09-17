@@ -1,4 +1,5 @@
 import { Router } from "express";
+import authRoutes from "./authentication";
 import medicalDataRoutes from "./medicalData";
 import logger from '@/utils/logger';
 
@@ -18,6 +19,7 @@ router.get("/", (req, res) => {
   res.send("Hello World!");
 });
 
+router.use("/auth", authRoutes);
 router.use("/medical-data", medicalDataRoutes);
 
 export default router;
