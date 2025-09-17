@@ -39,7 +39,7 @@ app.use(
 
 app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use(express.json());
-if (!Config.IS_IN_TESTING_MODE) {
+if (!Config.IS_LOCAL_MODE) {
   app.use(apiKeyMiddleware);
 }
 app.use(supabaseMiddleware);
