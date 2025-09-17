@@ -4,6 +4,10 @@ on:
   release:
     types: [published]
 
+  push:
+    branches:
+      - chore/add-web-runtime-env
+
 jobs:
   build-and-push-images:
     runs-on: ubuntu-latest
@@ -35,6 +39,10 @@ jobs:
           tags: |
             docker.io/${{ secrets.DOCKERHUB_USERNAME }}/cura-web:latest
             docker.io/${{ secrets.DOCKERHUB_USERNAME }}/cura-web:${{ github.event.release.tag_name || github.sha }}
+          build-args: |
+            NEXT_PUBLIC_APP_API_URL=${{ secrets.NEXT_PUBLIC_APP_API_URL }}
+            NEXT_PUBLIC_APP_API_KEY=${{ secrets.NEXT_PUBLIC_APP_API_KEY }}
+            NEXT_PUBLIC_LIGHTHOUSE_API_KEY=${{ secrets.NEXT_PUBLIC_LIGHTHOUSE_API_KEY }}
 
   trigger-render-redeploys:
     needs: build-and-push-images
