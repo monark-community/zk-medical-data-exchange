@@ -54,6 +54,7 @@
       "name": "web",
       "version": "0.1.0",
       "dependencies": {
+        "@lighthouse-web3/sdk": "^0.4.2",
         "@radix-ui/react-slot": "^1.2.3",
         "@supabase/ssr": "^0.7.0",
         "@web3auth/modal": "^10.3.0",
