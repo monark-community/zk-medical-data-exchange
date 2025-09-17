@@ -4,9 +4,9 @@ import React from "react";
 import { useWeb3AuthConnect } from "@web3auth/modal/react";
 import { useAuthRedirect } from "@/hooks/useAuth";
 
-export default function LoginPage() {
-  const { connect } = useWeb3AuthConnect();
+export default function LandingPage() {
   const { isConnected } = useAuthRedirect();
+  const { connect } = useWeb3AuthConnect();
 
   if (isConnected) {
     return null;
