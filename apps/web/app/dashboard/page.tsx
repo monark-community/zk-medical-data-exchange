@@ -1,37 +1,31 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ipfsDownload } from "@/services/ipfsService";
 import { deriveKeyFromWallet } from "@/utils/walletKey";
 import { decryptWithKey, encryptWithKey, generateAESKey } from "@/utils/encryption";
 import { uploadMedicalData } from "@/services/dataVaultService";
+import { useProtectedRoute } from "@/hooks/useAuth";
+import { useWeb3AuthDisconnect } from "@web3auth/modal/react";
+import { useAccount } from "wagmi";
 
 export default function Dashboard() {
-  const [aesKey, setAesKey] = useState<string | null>(null);
+  const { isConnected } = useProtectedRoute();
+
+  const { disconnect } = useWeb3AuthDisconnect();
+  const { address } = useAccount();
   const [ipfsContent, setIpfsContent] = useState<string | null>(null);
   const cid = "bafkreig4456mrnmpmqr56d4mrmkb43clx5r4iu6woblwwglkixqupiwkoe";
 
-  // Derive wallet key on app start
-  useEffect(() => {
-    const initKey = async () => {
-      try {
-        const key = generateAESKey(await deriveKeyFromWallet());
-        setAesKey(key);
-        console.log("Derived AES Key:", key);
-      } catch (err) {
-        console.error("Failed to derive AES key:", err);
-      }
-    };
-    initKey();
-  }, []);
-
   const handleDownload = async () => {
-    if (!aesKey) return;
     try {
+      const key = generateAESKey(await deriveKeyFromWallet());
+      console.log("Derived AES Key:", key);
+      
       const content = await ipfsDownload(cid);
-      const encrypted = encryptWithKey(content, aesKey);
-      const decrypted = decryptWithKey(encrypted, aesKey);
+      const encrypted = encryptWithKey(content, key);
+      const decrypted = decryptWithKey(encrypted, key);
       setIpfsContent(decrypted);
     } catch (error) {
       console.error("Failed to fetch IPFS content:", error);
@@ -49,17 +43,52 @@ export default function Dashboard() {
     }
   };
 
+  if (!isConnected) {
+    return null;
+  }
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-10">
-      <Button onClick={handleDownload} disabled={!aesKey}>
-        Load IPFS Content
-      </Button>
-      <Button onClick={handleUploadMedicalData}>Upload medical data</Button>
-      {ipfsContent && (
-        <div className="mt-4 p-4 border rounded bg-gray-50 w-full max-w-lg">
-          <pre>{ipfsContent}</pre>
+    <div className="min-h-screen bg-gray-50">
+      <nav className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center">
+              <h1 className="text-xl font-semibold text-gray-900">Cura Dashboard</h1>
+            </div>
+            <div className="flex items-center space-x-4">
+              <span className="text-sm text-gray-600">
+                {address ? `${address.slice(0, 6)}...${address.slice(-4)}` : 'No wallet connected'}
+              </span>
+              <button
+                className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200"
+                onClick={() => disconnect()}
+              >
+                Disconnect
+              </button>
+            </div>
+          </div>
         </div>
-      )}
-    </main>
+      </nav>
+
+      <main className="flex min-h-screen flex-col items-center justify-center gap-10 px-4">
+        <div className="text-center space-y-4">
+          <h2 className="text-2xl font-bold text-gray-900">Medical Data Exchange</h2>
+          <p className="text-gray-600">Manage your encrypted medical data securely</p>
+        </div>
+        
+        <div className="flex flex-col gap-4">
+          <Button onClick={handleDownload}>
+            Load IPFS Content
+          </Button>
+          <Button onClick={handleUploadMedicalData}>Upload medical data</Button>
+        </div>
+        
+        {ipfsContent && (
+          <div className="mt-4 p-4 border rounded bg-gray-50 w-full max-w-lg">
+            <pre>{ipfsContent}</pre>
+          </div>
+        )}
+      </main>
+    </div>
   );
 }
