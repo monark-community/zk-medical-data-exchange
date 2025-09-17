@@ -25,6 +25,7 @@
   "devDependencies": {
     "@eslint/js": "^9.34.0",
     "@types/bun": "latest",
+    "@types/cors": "^2.8.19",
     "@typescript-eslint/eslint-plugin": "^8.41.0",
     "@typescript-eslint/parser": "^8.41.0",
     "eslint": "^9.34.0",
@@ -35,6 +36,10 @@
     "typescript": "^5.9.2"
   },
   "dependencies": {
+    "@lighthouse-web3/sdk": "^0.4.2",
+    "axios": "^1.12.2",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.2",
     "typescript-eslint": "^8.41.0"
   }
 }
