@@ -4,10 +4,6 @@ on:
   release:
     types: [published]
 
-  push:
-    branches:
-      - chore/add-web-runtime-env
-
 jobs:
   build-and-push-images:
     runs-on: ubuntu-latest
