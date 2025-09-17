@@ -3,6 +3,9 @@ name: Deploy Web and API on Release
 on:
   release:
     types: [published]
+  push:
+    branches:
+      - chore/add-supabase-dependency
 
 jobs:
   build-and-push-images:
