@@ -71,11 +71,6 @@ export default function Dashboard() {
       </nav>
 
       <main className="flex min-h-screen flex-col items-center justify-center gap-10 px-4">
-        <div className="text-center space-y-4">
-          <h2 className="text-2xl font-bold text-gray-900">Medical Data Exchange</h2>
-          <p className="text-gray-600">Manage your encrypted medical data securely</p>
-        </div>
-        
         <div className="flex flex-col gap-4">
           <Button onClick={handleDownload}>
             Load IPFS Content
