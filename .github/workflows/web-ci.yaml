@@ -13,9 +13,6 @@ on:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
-    env:
-      NEXT_PUBLIC_LIGHTHOUSE_API_KEY: "testkey"
-      NEXT_PUBLIC_APP_API_KEY: "testkey"
     steps:
       - name: Checkout source
         uses: actions/checkout@v4

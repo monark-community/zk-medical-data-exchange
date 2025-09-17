@@ -13,10 +13,7 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
     env:
-      SUPABASE_URL: "https://example.supabase.co"
-      SUPABASE_ANON_KEY: "testkey"
-      IS_TESTING: "true"
-      APP_API_KEY: "testkey"
+      IS_CI: "true"
 
     steps:
       - name: Checkout source
