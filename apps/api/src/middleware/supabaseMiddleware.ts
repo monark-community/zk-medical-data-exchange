@@ -16,7 +16,7 @@ declare global {
 }
 
 export const supabaseMiddleware = (req: Request, _res: Response, next: NextFunction) => {
-  req.supabase = createClient(Config.SUPABASE_URL, Config.SUPABASE_KEY, {
+  req.supabase = createClient(Config.SUPABASE_URL!, Config.SUPABASE_KEY!, {
     auth: {
       persistSession: false,
     },
