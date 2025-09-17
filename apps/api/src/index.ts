@@ -39,10 +39,8 @@ app.use(
 
 app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use(express.json());
-if (!Config.IS_LOCAL_MODE) {
-  app.use(apiKeyMiddleware);
-}
-app.use(supabaseMiddleware);
+if (!Config.IS_LOCAL_MODE) app.use(apiKeyMiddleware);
+if (!Config.IS_CI) app.use(supabaseMiddleware);
 app.use("/", mainRouter);
 
 app.listen(port, () => {

@@ -14,6 +14,7 @@ function determineLocalMode(): boolean {
 }
 
 export const Config = {
+  IS_CI: process.env.IS_CI === "true",
   IS_LOCAL_MODE: determineLocalMode(),
   APP_API_KEY: requireEnv("APP_API_KEY"),
   // Supabase
