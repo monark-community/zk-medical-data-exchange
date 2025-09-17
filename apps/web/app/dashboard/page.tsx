@@ -12,7 +12,6 @@ import { useAccount } from "wagmi";
 
 export default function Dashboard() {
   const { isConnected } = useProtectedRoute();
-
   const { disconnect } = useWeb3AuthDisconnect();
   const { address } = useAccount();
   const [ipfsContent, setIpfsContent] = useState<string | null>(null);
