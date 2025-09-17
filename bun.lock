@@ -54,7 +54,7 @@
       },
       "peerDependencies": {
         "typescript": "^5.9.2"
-      },
+      }
     },
     "apps/web": {
       "name": "web",
@@ -75,7 +75,7 @@
         "react-dom": "19.1.0",
         "tailwind-merge": "^3.3.1",
         "viem": "^2.36.0",
-        "wagmi": "^2.16.9",
+        "wagmi": "^2.16.9"
       },
       "devDependencies": {
         "@tailwindcss/postcss": "^4",
@@ -84,8 +84,8 @@
         "@types/react-dom": "^19",
         "tailwindcss": "^4",
         "tw-animate-css": "^1.3.7",
-        "typescript": "^5",
-      },
+        "typescript": "^5"
+      }
     },
     "packages/smart-contracts": {
       "name": "smart-contracts",
@@ -98,12 +98,12 @@
         "forge-std": "github:foundry-rs/forge-std#v1.9.4",
         "hardhat": "^3.0.3",
         "typescript": "~5.8.0",
-        "viem": "^2.36.0",
+        "viem": "^2.36.0"
       },
       "peerDependencies": {
-        "typescript": "^5",
-      },
-    },
+        "typescript": "^5"
+      }
+    }
   },
   "packages": {
     "@actions/core": ["@actions/core@1.11.1", "", { "dependencies": { "@actions/exec": "^1.1.1", "@actions/http-client": "^2.0.1" } }, "sha512-hXJCSrkwfA46Vd9Z3q4cpEpHB1rL5NG04+/rbqW9d3+CSvtB1tYe8UTpAlixa1vj0m/ULglfEK2UKxMGxCxv5A=="],
