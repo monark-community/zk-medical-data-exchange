@@ -1,5 +1,5 @@
 import pino from 'pino';
-import { Config } from '../config/config';
+import { Config } from '@/config/config';
 
 const logger = pino({
   level: Config.LOG_LEVEL || 'info',

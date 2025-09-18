@@ -1,6 +1,6 @@
 import { Router } from "express";
 import medicalDataRoutes from "./medicalData";
-import logger from '../utils/logger';
+import logger from '@/utils/logger';
 
 const router = Router();
 

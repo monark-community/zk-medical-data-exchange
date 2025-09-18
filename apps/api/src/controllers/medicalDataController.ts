@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
-import { TABLES } from "../constants/db";
-import logger from '../utils/logger';
+import { TABLES } from "@/constants/db";
+import logger from '@/utils/logger';
 
 const { DATA_VAULT } = TABLES;
 
