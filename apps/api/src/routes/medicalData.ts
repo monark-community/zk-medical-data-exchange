@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { uploadCID } from "../controllers/medicalDataController";
+import { uploadCID } from "@/controllers/medicalDataController";
 
 const router = Router();
 /**
