@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { addAESKeyToStore } from "@/services/aesKeyStore";
 import { ipfsDownload } from "@/services/ipfsService";
@@ -31,7 +31,22 @@ export default function Dashboard() {
     initKey();
   }, []);
 
+  useEffect(() => {
+    const initKey = async () => {
+      try {
+        const key = generateAESKey(await deriveKeyFromWallet());
+        setAesKey(key);
+        console.log("Derived AES Key:", key);
+      } catch (err) {
+        console.error("Failed to derive AES key:", err);
+      }
+    };
+    initKey();
+  }, []);
+
+
   const handleDownload = async () => {
+    if (!aesKey) return;
     try {
       const content = await ipfsDownload("");
       const encrypted = encryptWithKey(content, aesKey);
