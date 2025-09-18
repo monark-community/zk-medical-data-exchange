@@ -36,6 +36,7 @@ export default function Dashboard() {
       try {
         const key = generateAESKey(await deriveKeyFromWallet());
         setAESKey(key);
+        addAESKeyToStore(key);
       } catch (err) {
         console.error("Failed to derive AES key:", err);
       }
@@ -43,9 +44,7 @@ export default function Dashboard() {
     initKey();
   }, []);
 
-
   const handleDownload = async () => {
-    const aesKey = getAESKey();
     if (!aesKey) return;
     try {
       const content = await ipfsDownload("");
@@ -71,7 +70,7 @@ export default function Dashboard() {
       <CustomNavbar />
       <main className="flex min-h-screen flex-col items-center justify-center gap-10 px-4">
         <div className="flex flex-col gap-4">
-          <Button onClick={handleDownload} disabled={!getAESKey()}>
+          <Button onClick={handleDownload} disabled={!aesKey}>
             Load IPFS Content
           </Button>
         </div>
