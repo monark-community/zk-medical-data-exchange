@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { setAESKey, getAESKey } from "@/services/aesKeyStore";
+import { addAESKeyToStore } from "@/services/aesKeyStore";
 import { ipfsDownload } from "@/services/ipfsService";
 import { deriveKeyFromWallet } from "@/utils/walletKey";
 import { decryptWithKey, encryptWithKey, generateAESKey } from "@/utils/encryption";
@@ -15,6 +15,7 @@ export default function Dashboard() {
   const { isConnected } = useProtectedRoute();
   const { disconnect } = useWeb3AuthDisconnect();
   const { address } = useAccount();
+  const [aesKey, setAESKey] = useState<string | null>(null);
   const [ipfsContent, setIpfsContent] = useState<string | null>(null);
   const cid = "bafkreig4456mrnmpmqr56d4mrmkb43clx5r4iu6woblwwglkixqupiwkoe";
 
@@ -23,6 +24,7 @@ export default function Dashboard() {
       try {
         const key = generateAESKey(await deriveKeyFromWallet());
         setAESKey(key);
+        addAESKeyToStore(key);
       } catch (err) {
         console.error("Failed to derive AES key:", err);
       }
@@ -30,9 +32,7 @@ export default function Dashboard() {
     initKey();
   }, []);
 
-
   const handleDownload = async () => {
-    const aesKey = getAESKey();
     if (!aesKey) return;
     try {
       const content = await ipfsDownload(cid);
@@ -84,7 +84,7 @@ export default function Dashboard() {
 
       <main className="flex min-h-screen flex-col items-center justify-center gap-10 px-4">
         <div className="flex flex-col gap-4">
-          <Button onClick={handleDownload} disabled={!getAESKey()}>
+          <Button onClick={handleDownload} disabled={!aesKey}>
             Load IPFS Content
           </Button>
           <Button onClick={handleUploadMedicalData}>Upload medical data</Button>

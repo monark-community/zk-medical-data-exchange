@@ -1,6 +1,6 @@
 let aesKey: string | null = null;
 
-export function setAESKey(key: string) {
+export function addAESKeyToStore(key: string) {
   aesKey = key;
 }
 
