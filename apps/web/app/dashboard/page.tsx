@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ipfsDownload } from "@/services/ipfsService";
 import { deriveKeyFromWallet } from "@/utils/walletKey";
@@ -14,17 +14,30 @@ export default function Dashboard() {
   const { isConnected } = useProtectedRoute();
   const { disconnect } = useWeb3AuthDisconnect();
   const { address } = useAccount();
+  const [aesKey, setAesKey] = useState<string | null>(null);
   const [ipfsContent, setIpfsContent] = useState<string | null>(null);
   const cid = "bafkreig4456mrnmpmqr56d4mrmkb43clx5r4iu6woblwwglkixqupiwkoe";
 
+  useEffect(() => {
+    const initKey = async () => {
+      try {
+        const key = generateAESKey(await deriveKeyFromWallet());
+        setAesKey(key);
+        console.log("Derived AES Key:", key);
+      } catch (err) {
+        console.error("Failed to derive AES key:", err);
+      }
+    };
+    initKey();
+  }, []);
+
+
   const handleDownload = async () => {
+    if (!aesKey) return;
     try {
-      const key = generateAESKey(await deriveKeyFromWallet());
-      console.log("Derived AES Key:", key);
-      
       const content = await ipfsDownload(cid);
-      const encrypted = encryptWithKey(content, key);
-      const decrypted = decryptWithKey(encrypted, key);
+      const encrypted = encryptWithKey(content, aesKey);
+      const decrypted = decryptWithKey(encrypted, aesKey);
       setIpfsContent(decrypted);
     } catch (error) {
       console.error("Failed to fetch IPFS content:", error);
@@ -71,7 +84,7 @@ export default function Dashboard() {
 
       <main className="flex min-h-screen flex-col items-center justify-center gap-10 px-4">
         <div className="flex flex-col gap-4">
-          <Button onClick={handleDownload}>
+          <Button onClick={handleDownload} disabled={!aesKey}>
             Load IPFS Content
           </Button>
           <Button onClick={handleUploadMedicalData}>Upload medical data</Button>
