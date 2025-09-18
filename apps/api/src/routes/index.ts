@@ -1,6 +1,7 @@
 import { Router } from "express";
+
+import authRoutes from "./authentication";
 import medicalDataRoutes from "./medicalData";
-import logger from '@/utils/logger';
 
 const router = Router();
 
@@ -14,10 +15,10 @@ const router = Router();
  *         description: Hello world response
  */
 router.get("/", (req, res) => {
-  logger.info({ method: req.method, url: req.url }, "Root route accessed");
   res.send("Hello World!");
 });
 
+router.use("/auth", authRoutes);
 router.use("/medical-data", medicalDataRoutes);
 
 export default router;

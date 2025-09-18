@@ -1,27 +1,45 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useWeb3AuthConnect } from "@web3auth/modal/react";
 import { useAuthRedirect } from "@/hooks/useAuth";
 import { createToken } from "@/services/authenticationService";
 import { useAccount } from "wagmi";
 
 export default function LandingPage() {
-  const [token, setToken] = useState<string | null>(null)
+  const [token, setToken] = useState<string | null>(null);
+  const [isCreatingToken, setIsCreatingToken] = useState(false);
 
   const { isConnected } = useAuthRedirect();
   const { connect } = useWeb3AuthConnect();
-  const { address } = useAccount();
+  const { address, isConnected: isWalletConnected } = useAccount();
+
+  useEffect(() => {
+    const handleTokenCreation = async () => {
+      if (isWalletConnected && address && !token && !isCreatingToken) {
+        setIsCreatingToken(true);
+        try {
+          const newToken = await createToken(address);
+          setToken(newToken);
+          localStorage.setItem('sb_token', newToken);
+        } catch (error) {
+          console.error("Failed to create token:", error);
+        } finally {
+          setIsCreatingToken(false);
+        }
+      }
+    };
+
+    handleTokenCreation();
+  }, [isWalletConnected, address, token, isCreatingToken]);
 
   const handleWalletConnection = async () => {
     try {
-      connect();
-      setToken(await createToken(address!));
-      localStorage.setItem('sb_token', token!);
+      await connect();
     } catch (error) {
       console.error("Failed to connect user:", error);
     }
-  }
+  };
 
   if (isConnected) {
     return null;
