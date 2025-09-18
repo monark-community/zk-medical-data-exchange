@@ -5,8 +5,9 @@ import { IWeb3AuthState, WEB3AUTH_NETWORK } from "@web3auth/modal";
 import { WagmiProvider } from "@web3auth/modal/react/wagmi";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import React from "react";
+import { Config } from "@/config/config";
 
-const clientId = process.env.NEXT_PUBLIC_WEB3AUTH_CLIENT_ID ?? (() => {
+const clientId = Config.WEB3AUTH_CLIENT_ID ?? (() => {
   throw new Error("NEXT_PUBLIC_WEB3AUTH_CLIENT_ID is not set in the environment variables.");
 })();
 
@@ -22,14 +23,17 @@ const web3AuthContextConfig: Web3AuthContextConfig = {
     }
   };
 
-export default function Provider({ children, web3authInitialState }: 
-  { children: React.ReactNode, web3authInitialState: IWeb3AuthState | undefined }) {
+export default function Provider({
+  children,
+  web3authInitialState,
+}: {
+  children: React.ReactNode;
+  web3authInitialState: IWeb3AuthState | undefined;
+}) {
   return (
     <Web3AuthProvider config={web3AuthContextConfig} initialState={web3authInitialState}>
       <QueryClientProvider client={queryClient}>
-        <WagmiProvider>
-        {children}
-        </WagmiProvider>
+        <WagmiProvider>{children}</WagmiProvider>
       </QueryClientProvider>
     </Web3AuthProvider>
   );
