@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from "express";
-import { Config } from "../config/config";
+import { Config } from "@/config/config";
 
 export const apiKeyMiddleware = (req: Request, res: Response, next: NextFunction) => {
   const appApiKey = req.headers["x-api-key"];

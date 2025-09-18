@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { addAESKeyToStore } from "@/services/aesKeyStore";
 import { ipfsDownload } from "@/services/ipfsService";
 import { deriveKeyFromWallet } from "@/utils/walletKey";
 import { decryptWithKey, encryptWithKey, generateAESKey } from "@/utils/encryption";
@@ -14,7 +15,7 @@ export default function Dashboard() {
   const { isConnected } = useProtectedRoute();
   const { disconnect } = useWeb3AuthDisconnect();
   const { address } = useAccount();
-  const [aesKey, setAesKey] = useState<string | null>(null);
+  const [aesKey, setAESKey] = useState<string | null>(null);
   const [ipfsContent, setIpfsContent] = useState<string | null>(null);
   const cid = "bafkreig4456mrnmpmqr56d4mrmkb43clx5r4iu6woblwwglkixqupiwkoe";
 
@@ -22,15 +23,14 @@ export default function Dashboard() {
     const initKey = async () => {
       try {
         const key = generateAESKey(await deriveKeyFromWallet());
-        setAesKey(key);
-        console.log("Derived AES Key:", key);
+        setAESKey(key);
+        addAESKeyToStore(key);
       } catch (err) {
         console.error("Failed to derive AES key:", err);
       }
     };
     initKey();
   }, []);
-
 
   const handleDownload = async () => {
     if (!aesKey) return;
