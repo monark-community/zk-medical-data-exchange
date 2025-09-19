@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { addAESKeyToStore } from "@/services/aesKeyStore";
-import { ipfsDownload } from "@/services/ipfsService";
+import { ipfsDownload, ipfsUpload } from "@/services/ipfsService";
 import { deriveKeyFromWallet } from "@/utils/walletKey";
 import { decryptWithKey, encryptWithKey, generateAESKey } from "@/utils/encryption";
 import { useProtectedRoute } from "@/hooks/useAuth";
@@ -78,6 +78,44 @@ export default function Dashboard() {
         {ipfsContent && (
           <div className="mt-4 p-4 border rounded bg-gray-50 w-full max-w-lg">
             <pre>{ipfsContent}</pre>
+          </div>
+        )}
+        {uploadedFileName && (
+          <div className="flex items-center gap-2 mt-2">
+            <span>{uploadedFileName}</span>
+            {checking ? <span>⏳</span> : isCompliant === true ? <span>FHIR ✔️</span> : isCompliant === false ? <span>❌</span> : null}
+            <button
+              className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-2 py-1 rounded text-xs"
+              onClick={() => {
+                setUploadedFileName(null);
+                setUploadedFile(null);
+                setIsCompliant(null);
+                setReadyToSend(false);
+              }}
+            >Remove</button>
+            {readyToSend && (
+              <button
+                className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-xs"
+                onClick={async () => {
+                  if (account.status !== "connected") return;
+                  if (!aesKey || !uploadedFile) return;
+                  const content = await uploadedFile.text();
+                  const encryptedContent = encryptWithKey(content, aesKey);
+                  const cid = await ipfsUpload(encryptedContent);
+                  const encryptedCid = encryptWithKey(cid, aesKey);
+                  const result = await uploadMedicalData(account.address, encryptedCid, RecordType.MEDICAL);
+
+                  if (result) {
+                    alert("Medical data uploaded successfully.");
+                  }
+          
+                  setUploadedFileName(null);
+                  setUploadedFile(null);
+                  setIsCompliant(null);
+                  setReadyToSend(false);
+                }}
+              >Confirm Send</button>
+            )}
           </div>
         )}
       </main>
