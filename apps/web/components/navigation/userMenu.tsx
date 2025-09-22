@@ -36,7 +36,7 @@ const UserMenu = () => {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56" align="end">
-        <DropdownMenuLabel>My Account</DropdownMenuLabel>
+        <DropdownMenuLabel>Data Seller view</DropdownMenuLabel>
         <DropdownMenuGroup>
           <DropdownMenuItem>
             <User />
