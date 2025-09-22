@@ -61,7 +61,6 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-gray-50">
       <CustomNavbar />
-
       <main className="flex min-h-screen flex-col items-center justify-center gap-10 px-4">
         <div className="flex flex-col gap-4">
           <Button onClick={handleDownload} disabled={!aesKey}>
