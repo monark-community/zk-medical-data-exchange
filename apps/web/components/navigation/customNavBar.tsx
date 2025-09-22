@@ -2,13 +2,11 @@
 import React from "react";
 import { Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useWeb3AuthDisconnect } from "@web3auth/modal/react";
-import { useAccount } from "wagmi";
-import { usePathname } from "next/navigation";
 
-export default function CustomNavbar() {
-  const { disconnect } = useWeb3AuthDisconnect();
-  const { address } = useAccount();
+import { usePathname } from "next/navigation";
+import UserMenu from "./userMenu";
+
+const CustomNavbar = () => {
   let isCurrentlyDashboard = usePathname() === "/dashboard";
   let isCurrentlyGovernance = usePathname() === "/governance";
   return (
@@ -34,19 +32,11 @@ export default function CustomNavbar() {
               Governance
             </Button>
           </div>
-          <div className="flex items-center space-x-4">
-            <span className="text-sm text-gray-600">
-              {address ? `${address.slice(0, 6)}...${address.slice(-4)}` : "No wallet connected"}
-            </span>
-            <button
-              className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200"
-              onClick={() => disconnect()}
-            >
-              Disconnect
-            </button>
-          </div>
+
+          <UserMenu />
         </div>
       </div>
     </nav>
   );
-}
+};
+export default CustomNavbar;
