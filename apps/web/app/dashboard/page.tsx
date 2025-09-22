@@ -9,11 +9,11 @@ import { decryptWithKey, encryptWithKey, generateAESKey } from "@/utils/encrypti
 import { uploadMedicalData } from "@/services/dataVaultService";
 import { useProtectedRoute } from "@/hooks/useAuth";
 
-import CustomNavbar from "@/components/ui/customNavBar";
+import CustomNavbar from "@/components/navigation/customNavBar";
 
 export default function Dashboard() {
   const { isConnected } = useProtectedRoute();
-  
+
   const [aesKey, setAESKey] = useState<string | null>(null);
   const [ipfsContent, setIpfsContent] = useState<string | null>(null);
   const cid = "bafkreig4456mrnmpmqr56d4mrmkb43clx5r4iu6woblwwglkixqupiwkoe";
@@ -69,7 +69,7 @@ export default function Dashboard() {
           </Button>
           <Button onClick={handleUploadMedicalData}>Upload medical data</Button>
         </div>
-        
+
         {ipfsContent && (
           <div className="mt-4 p-4 border rounded bg-gray-50 w-full max-w-lg">
             <pre>{ipfsContent}</pre>

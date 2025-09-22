@@ -18,7 +18,7 @@ export default function CustomNavbar() {
           <div className="flex items-center">
             <h1 className="text-xl font-semibold text-gray-900">Cura</h1>
           </div>
-          <div className="flex items-center justify-between min-w-[250]">
+          <div className="flex items-center justify-between min-w-[300]">
             <Button
               className="text-md"
               variant={isCurrentlyDashboard ? "outline" : "ghost"}
