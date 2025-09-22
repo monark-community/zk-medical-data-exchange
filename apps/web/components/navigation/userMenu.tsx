@@ -10,6 +10,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+
+import { LogOut, User, Settings } from "lucide-react";
+
 import { useAccount } from "wagmi";
 import { useWeb3AuthDisconnect } from "@web3auth/modal/react";
 const UserMenu = () => {
@@ -35,12 +38,21 @@ const UserMenu = () => {
       <DropdownMenuContent className="w-56" align="end">
         <DropdownMenuLabel>My Account</DropdownMenuLabel>
         <DropdownMenuGroup>
-          <DropdownMenuItem>Profile</DropdownMenuItem>
-          <DropdownMenuItem>Settings</DropdownMenuItem>
+          <DropdownMenuItem>
+            <User />
+            Profile
+          </DropdownMenuItem>
+          <DropdownMenuItem>
+            <Settings />
+            Settings
+          </DropdownMenuItem>
         </DropdownMenuGroup>
 
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => disconnect()}>Log out</DropdownMenuItem>
+        <DropdownMenuItem className="text-red-700" onClick={() => disconnect()}>
+          <LogOut className="text-red-700" />
+          Log out
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
