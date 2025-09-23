@@ -61,6 +61,14 @@ export default function Dashboard() {
     return null;
   }
 
+  const onRecordTypeChange = (value: RecordType) => {
+    if (compliance?.recordType !== value && value !== RecordType.OTHER) {
+      alert("Selected record type does not match file compliance. Please re-upload.");
+      return;
+    }
+    setRecordType(value);
+  };
+
   if (!isConnected) {
     return null;
   }
@@ -83,7 +91,13 @@ export default function Dashboard() {
         {uploadedFileName && (
           <div className="flex items-center gap-2 mt-2">
             <span>{uploadedFileName}</span>
-            {checking ? <span>⏳</span> : isCompliant === true ? <span>FHIR ✔️</span> : isCompliant === false ? <span>❌</span> : null}
+            {checking ? (
+              <span>⏳</span>
+            ) : isCompliant === true ? (
+              <span>FHIR ✔️</span>
+            ) : isCompliant === false ? (
+              <span>❌</span>
+            ) : null}
             <button
               className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-2 py-1 rounded text-xs"
               onClick={() => {
@@ -92,29 +106,40 @@ export default function Dashboard() {
                 setIsCompliant(null);
                 setReadyToSend(false);
               }}
-            >Remove</button>
+            >
+              Remove
+            </button>
             {readyToSend && (
-              <button
-                className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-xs"
-                onClick={async () => {
-                  if (account.status !== "connected") return;
-                  if (!aesKey || !uploadedFile) return;
-                  const content = await uploadedFile.text();
-                  const encryptedContent = encryptWithKey(content, aesKey);
-                  const cid = await ipfsUpload(encryptedContent);
-                  const encryptedCid = encryptWithKey(cid, aesKey);
-                  const result = await uploadMedicalData(account.address, encryptedCid, RecordType.MEDICAL);
+              <>
+                <button
+                  className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-xs"
+                  onClick={async () => {
+                    if (account.status !== "connected") return;
+                    if (!aesKey || !uploadedFile) return;
+                    const content = await uploadedFile.text();
+                    const encryptedContent = encryptWithKey(content, aesKey);
+                    const cid = await ipfsUpload(encryptedContent);
+                    const encryptedCid = encryptWithKey(cid, aesKey);
+                    const result = await uploadMedicalData(
+                      account.address,
+                      encryptedCid,
+                      recordType
+                    );
 
-                  if (result) {
-                    alert("Medical data uploaded successfully.");
-                  }
-          
-                  setUploadedFileName(null);
-                  setUploadedFile(null);
-                  setIsCompliant(null);
-                  setReadyToSend(false);
-                }}
-              >Confirm Send</button>
+                    if (result) {
+                      alert("Medical data uploaded successfully.");
+                    }
+
+                    setUploadedFileName(null);
+                    setUploadedFile(null);
+                    setIsCompliant(null);
+                    setReadyToSend(false);
+                  }}
+                >
+                  Confirm Send
+                </button>
+                <RecordTypeSelect onValueChange={onRecordTypeChange} selectedValue={recordType} />
+              </>
             )}
           </div>
         )}
