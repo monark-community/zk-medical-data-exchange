@@ -1,4 +1,5 @@
 import express from "express";
+import logger from "./utils/logger";
 import cors from "cors";
 import mainRouter from "./routes";
 import swaggerJsdoc from "swagger-jsdoc";
@@ -44,8 +45,16 @@ if (!Config.IS_CI) app.use(supabaseMiddleware);
 app.use("/", mainRouter);
 
 app.listen(port, () => {
-  console.log(`API listening on http://localhost:${port}`);
-  console.log(`Docs at http://localhost:${port}/docs`);
+  logger.info(`API listening on http://localhost:${port}`);
+  logger.info(`Docs at http://localhost:${port}/docs`);
+});
+
+process.on("uncaughtException", (err) => {
+  logger.error({ err }, "Uncaught Exception");
+});
+
+process.on("unhandledRejection", (reason, promise) => {
+  logger.error({ reason, promise }, "Unhandled Rejection");
 });
 
 export default app;

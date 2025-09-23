@@ -16,6 +16,8 @@ function determineLocalMode(): boolean {
 export const Config = {
   IS_CI: process.env.IS_CI === "true",
   IS_LOCAL_MODE: determineLocalMode(),
+  NODE_ENV: process.env.NODE_ENV || "development",
+  LOG_LEVEL: process.env.LOG_LEVEL || "info",
   APP_API_KEY: requireEnv("APP_API_KEY"),
   // Supabase
   SUPABASE_URL: requireEnv("SUPABASE_URL"),
