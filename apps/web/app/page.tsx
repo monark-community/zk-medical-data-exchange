@@ -1,55 +1,67 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useWeb3AuthConnect } from "@web3auth/modal/react";
-import { useAuthRedirect } from "@/hooks/useAuth";
-import { requestNonce } from "@/services/authService";
-import { useAccount } from "wagmi";
+import { requestNonce, verifySignature } from "@/services/authService";
 import { ethers } from "ethers";
+import { useRouter } from "next/navigation";
 
 export default function LandingPage() {
-  const { isConnected } = useAuthRedirect();
   const { connect } = useWeb3AuthConnect();
-  const { address } = useAccount();
-  const [shouldLogin, setShouldLogin] = useState(false);
-
-  useEffect(() => {
-    if (shouldLogin && address) {
-      handleLogin(address);
-      setShouldLogin(false);
-    }
-  }, [address, shouldLogin]);
-
-  const handleLogin = async (userAddress: string) => {
-    try {
-      const { nonce, message } = await requestNonce(userAddress);
-
-      const web3authProvider = await connect();
-      const provider = new ethers.BrowserProvider(web3authProvider!);
-      const signer = await provider.getSigner();
-      const signature = await signer.signMessage(message);
-
-      console.log("User signed message:", signature);
-
-    } catch (err) {
-      console.log("Failed to login user:", err);
-    }
-  };
+  const router = useRouter();
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
 
   const handleConnectionAttempt = async () => {
-    await connect();
-    setShouldLogin(true);
+    try {
+      setIsAuthenticating(true);
+      console.log("Starting authentication flow...");
+      
+      const web3authProvider = await connect();
+      
+      if (!web3authProvider) {
+        setIsAuthenticating(false);
+        return;
+      }
+
+      const provider = new ethers.BrowserProvider(web3authProvider);
+      const signer = await provider.getSigner();
+      const userAddress = await signer.getAddress();
+      
+      const { message } = await requestNonce(userAddress);
+      const signature = await signer.signMessage(message);
+
+      const verificationResult = await verifySignature(userAddress, signature, message);
+
+      if (verificationResult.success) {
+        console.log("Authentication successful! Redirecting to dashboard...");
+        router.push('/dashboard');
+      } else {
+        console.error("Authentication failed:", verificationResult.error);
+      }
+    } catch (err) {
+      console.log("Authentication failed:", err);
+    } finally {
+      setIsAuthenticating(false);
+    }
   };
 
-  if (isConnected) {
-    return null;
+  if (isAuthenticating) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Authenticating...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center">
       <button
-        className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-8 py-3 rounded-lg"
+        className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-8 py-3 rounded-lg disabled:opacity-50"
         onClick={handleConnectionAttempt}
+        disabled={isAuthenticating}
       >
         Connect Wallet
       </button>
