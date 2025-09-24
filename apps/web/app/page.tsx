@@ -59,7 +59,7 @@ export default function LandingPage() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center">
       <button
-        className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-8 py-3 rounded-lg disabled:opacity-50"
+        className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-8 py-3 rounded-lg disabled:opacity-50 cursor-pointer"
         onClick={handleConnectionAttempt}
         disabled={isAuthenticating}
       >
