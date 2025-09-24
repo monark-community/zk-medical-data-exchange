@@ -61,7 +61,7 @@ export default function Dashboard() {
     return null;
   }
 
-  const onRecordTypeChange = (value: RecordType) => {
+  const onRecordTypeChange = (value: RecordTypes) => {
     if (compliance?.recordType !== value && value !== RecordType.OTHER) {
       alert("Selected record type does not match file compliance. Please re-upload.");
       return;
