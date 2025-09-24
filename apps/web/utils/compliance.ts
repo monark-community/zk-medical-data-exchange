@@ -1,10 +1,10 @@
-import { ReportType } from "@/constants/reportType";
+import { ReportType, ReportTypes } from "@/constants/reportType";
 import { isFhirCompliant } from "./fhir";
-import { RecordType } from "@/constants/recordTypes";
+import { RecordType, RecordTypes } from "@/constants/recordTypes";
 
 export type ComplianceResult = {
-  recordType: RecordType;
-  reportType: ReportType;
+  recordType: RecordTypes;
+  reportType: ReportTypes;
 };
 
 export async function checkCompliance(file: File): Promise<ComplianceResult> {

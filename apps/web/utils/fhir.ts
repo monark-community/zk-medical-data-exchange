@@ -1,7 +1,7 @@
-import { FhirResourceTypes } from "@/constants/fhirResourceTypes";
-import { RecordType } from "@/constants/recordTypes";
+import { FhirResourceType } from "@/constants/fhirResourceTypes";
+import { RecordType, RecordTypes } from "@/constants/recordTypes";
 
-export async function isFhirCompliant(file: File): Promise<RecordType> {
+export async function isFhirCompliant(file: File): Promise<RecordTypes> {
   const content = await file.text();
   let json: any;
 
@@ -20,9 +20,9 @@ export async function isFhirCompliant(file: File): Promise<RecordType> {
 
   const resourceType = json.resourceType;
   if (
-    resourceType === FhirResourceTypes.Patient ||
-    resourceType === FhirResourceTypes.Observation ||
-    resourceType === FhirResourceTypes.Bundle
+    resourceType === FhirResourceType.PATIENT ||
+    resourceType === FhirResourceType.OBSERVATION ||
+    resourceType === FhirResourceType.BUNDLE
   ) {
     return RecordType.MEDICAL;
   }
