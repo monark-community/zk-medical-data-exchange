@@ -12,7 +12,7 @@ import { useProtectedRoute } from "@/hooks/useAuth";
 import CustomNavbar from "@/components/navigation/customNavBar";
 import { useAccount } from "wagmi";
 import { checkCompliance, ComplianceResult } from "@/utils/compliance";
-import { RecordType } from "@/constants/recordTypes";
+import { RecordType, RecordTypes } from "@/constants/recordTypes";
 import { ReportType } from "@/constants/reportType";
 import RecordTypeSelect from "@/components/recordTypeSelect";
 
@@ -26,7 +26,7 @@ export default function Dashboard() {
   const [checking, setChecking] = useState(false);
   const [isCompliant, setIsCompliant] = useState<boolean | null>(null);
   const [readyToSend, setReadyToSend] = useState(false);
-  const [recordType, setRecordType] = useState<RecordType>(RecordType.MEDICAL);
+  const [recordType, setRecordType] = useState<RecordTypes>(RecordType.MEDICAL);
   const cid = "bafkreig4456mrnmpmqr56d4mrmkb43clx5r4iu6woblwwglkixqupiwkoe";
   const [compliance, setCompliance] = useState<ComplianceResult>({
     recordType: RecordType.NOT_SUPPORTED,
@@ -89,9 +89,7 @@ export default function Dashboard() {
         setReadyToSend(isCompliant);
 
         if (!isCompliant) {
-          //TODO: Implement better UI feedback
-          alert("File is not compliant with supported standards.");
-          console.log("File is not compliant.");
+          //TODO: Implement UI feedback
         }
 
         console.log("Uploading file:", file.name);
@@ -102,7 +100,7 @@ export default function Dashboard() {
     }
   };
 
-  const onRecordTypeChange = (value: RecordType) => {
+  const onRecordTypeChange = (value: RecordTypes) => {
     if (compliance?.recordType !== value && value !== RecordType.OTHER) {
       alert("Selected record type does not match file compliance. Please re-upload.");
       return;

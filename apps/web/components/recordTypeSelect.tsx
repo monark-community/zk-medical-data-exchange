@@ -5,14 +5,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { RecordType } from "@/constants/recordTypes";
+import { RecordType, RecordTypes } from "@/constants/recordTypes";
 
 export default function RecordTypeSelect({
   onValueChange,
   selectedValue,
 }: {
-  onValueChange: (value: RecordType) => void;
-  selectedValue: RecordType;
+  // eslint-disable-next-line no-unused-vars
+  onValueChange: (value: RecordTypes) => void;
+  selectedValue: RecordTypes;
 }) {
   const recordTypeOptions = Object.values(RecordType);
   return (

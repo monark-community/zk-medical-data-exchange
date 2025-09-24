@@ -1,13 +1,15 @@
-export enum FhirResourceTypes {
-  Binary = "Binary",
-  Bundle = "Bundle",
-  CapabilityStatement = "CapabilityStatement",
-  CodeSystem = "CodeSystem",
-  Observation = "Observation",
-  OperationDefinition = "OperationDefinition",
-  OperationOutcome = "OperationOutcome",
-  Parameters = "Parameters",
-  Patient = "Patient",
-  StructureDefinition = "StructureDefinition",
-  ValueSet = "ValueSet",
-}
+export const FhirResourceType = {
+  BINARY: "Binary",
+  BUNDLE: "Bundle",
+  CAPABILITY_STATEMENT: "CapabilityStatement",
+  CODE_SYSTEM: "CodeSystem",
+  OBSERVATION: "Observation",
+  OPERATION_DEFINITION: "OperationDefinition",
+  OPERATION_OUTCOME: "OperationOutcome",
+  PARAMETERS: "Parameters",
+  PATIENT: "Patient",
+  STRUCTURE_DEFINITION: "StructureDefinition",
+  VALUE_SET: "ValueSet",
+} as const;
+
+export type FhirResourceTypes = (typeof FhirResourceType)[keyof typeof FhirResourceType];
