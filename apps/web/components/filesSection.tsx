@@ -78,6 +78,7 @@ export default function FilesSection({
         return;
       }
       await Promise.all([ipfsDelete(uid), deleteCID(walletAddress!, cid)]);
+      alert("File deleted successfully.");
     } catch (error) {
       console.error("Failed to fetch IPFS content:", error);
       alert("Failed to load content.");
