@@ -18,7 +18,7 @@ const router = Router();
  *                 type: string
  *               encrypted_cid:
  *                 type: string
- *               record_type:
+ *               resource_type:
  *                 type: string
  *     responses:
  *       201:
