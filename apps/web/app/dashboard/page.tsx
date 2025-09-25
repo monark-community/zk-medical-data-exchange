@@ -3,35 +3,20 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { addAESKeyToStore } from "@/services/aesKeyStore";
-import { ipfsDownload, ipfsUpload } from "@/services/ipfsService";
+import { ipfsDownload } from "@/services/ipfsService";
 import { deriveKeyFromWallet } from "@/utils/walletKey";
 import { decryptWithKey, encryptWithKey, generateAESKey } from "@/utils/encryption";
-import { uploadMedicalData } from "@/services/dataVaultService";
 import { useProtectedRoute } from "@/hooks/useAuth";
 
 import CustomNavbar from "@/components/navigation/customNavBar";
 import { useAccount } from "wagmi";
-import { checkCompliance, ComplianceResult } from "@/utils/compliance";
-import { ReportType } from "@/constants/reportType";
-import RecordTypeSelect from "@/components/recordTypeSelect";
-import { FhirResourceType, FhirResourceTypes } from "@/constants/fhirResourceTypes";
+import UploadSection from "@/components/uploadSection";
 
 export default function Dashboard() {
   const { isConnected } = useProtectedRoute();
   const account = useAccount();
   const [aesKey, setAESKey] = useState<string | null>(null);
   const [ipfsContent, setIpfsContent] = useState<string | null>(null);
-  const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  const [checking, setChecking] = useState(false);
-  const [isCompliant, setIsCompliant] = useState<boolean | null>(null);
-  const [readyToSend, setReadyToSend] = useState(false);
-  const [recordType, setRecordType] = useState<FhirResourceTypes>(FhirResourceType.NOT_SUPPORTED);
-  const cid = "bafkreig4456mrnmpmqr56d4mrmkb43clx5r4iu6woblwwglkixqupiwkoe";
-  const [compliance, setCompliance] = useState<ComplianceResult>({
-    resourceType: FhirResourceType.NOT_SUPPORTED,
-    reportType: ReportType.NOT_SUPPORTED,
-  });
 
   useEffect(() => {
     const initKey = async () => {
@@ -49,7 +34,7 @@ export default function Dashboard() {
   const handleDownload = async () => {
     if (!aesKey) return;
     try {
-      const content = await ipfsDownload(cid);
+      const content = await ipfsDownload("");
       const encrypted = encryptWithKey(content, aesKey);
       const decrypted = decryptWithKey(encrypted, aesKey);
       setIpfsContent(decrypted);
@@ -57,55 +42,6 @@ export default function Dashboard() {
       console.error("Failed to fetch IPFS content:", error);
       setIpfsContent("Failed to load content.");
     }
-  };
-
-  const handleUploadMedicalData = async () => {
-    if (account.status === "connected") {
-      if (!aesKey) return;
-      const input = document.createElement("input");
-      input.type = "file";
-      // TODO: Change this when we have more supported types
-      input.accept = ".json";
-      input.click();
-
-      try {
-        const fileSelected = await new Promise<boolean>((resolve) => {
-          input.onchange = () => resolve(!!input.files && input.files.length > 0);
-        });
-
-        if (!fileSelected || !input.files) return;
-        const file = input.files[0];
-        setUploadedFileName(file.name);
-        setUploadedFile(file);
-        setChecking(true);
-
-        const complianceResult = await checkCompliance(file);
-        setCompliance(complianceResult);
-        const isCompliant = complianceResult.reportType !== ReportType.NOT_SUPPORTED;
-
-        setRecordType(complianceResult.resourceType);
-        setIsCompliant(isCompliant);
-        setChecking(false);
-        setReadyToSend(isCompliant);
-
-        if (!isCompliant) {
-          //TODO: Implement UI feedback
-        }
-
-        console.log("Uploading file:", file.name);
-      } catch (error) {
-        console.error("Failed to upload medical data:", error);
-        alert("Failed to upload medical data.");
-      }
-    }
-  };
-
-  const onRecordTypeChange = (value: FhirResourceTypes) => {
-    if (compliance?.resourceType !== value) {
-      alert("Selected record type does not match file compliance. Please re-upload.");
-      return;
-    }
-    setRecordType(value);
   };
 
   if (!isConnected) {
@@ -120,67 +56,11 @@ export default function Dashboard() {
           <Button onClick={handleDownload} disabled={!aesKey}>
             Load IPFS Content
           </Button>
-          <Button onClick={handleUploadMedicalData}>Upload medical data</Button>
         </div>
-
+        <UploadSection account={account} aesKey={aesKey} />
         {ipfsContent && (
           <div className="mt-4 p-4 border rounded bg-gray-50 w-full max-w-lg">
             <pre>{ipfsContent}</pre>
-          </div>
-        )}
-        {uploadedFileName && (
-          <div className="flex items-center gap-2 mt-2">
-            <span>{uploadedFileName}</span>
-            {checking ? (
-              <span>⏳</span>
-            ) : isCompliant === true ? (
-              <span>FHIR ✔️</span>
-            ) : isCompliant === false ? (
-              <span>❌</span>
-            ) : null}
-            <button
-              className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-2 py-1 rounded text-xs"
-              onClick={() => {
-                setUploadedFileName(null);
-                setUploadedFile(null);
-                setIsCompliant(null);
-                setReadyToSend(false);
-              }}
-            >
-              Remove
-            </button>
-            {readyToSend && (
-              <>
-                <button
-                  className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-xs"
-                  onClick={async () => {
-                    if (account.status !== "connected") return;
-                    if (!aesKey || !uploadedFile) return;
-                    const content = await uploadedFile.text();
-                    const encryptedContent = encryptWithKey(content, aesKey);
-                    const cid = await ipfsUpload(encryptedContent);
-                    const encryptedCid = encryptWithKey(cid, aesKey);
-                    const result = await uploadMedicalData(
-                      account.address,
-                      encryptedCid,
-                      recordType
-                    );
-
-                    if (result) {
-                      alert("Medical data uploaded successfully.");
-                    }
-
-                    setUploadedFileName(null);
-                    setUploadedFile(null);
-                    setIsCompliant(null);
-                    setReadyToSend(false);
-                  }}
-                >
-                  Confirm Send
-                </button>
-                <RecordTypeSelect onValueChange={onRecordTypeChange} selectedValue={recordType} />
-              </>
-            )}
           </div>
         )}
       </main>
