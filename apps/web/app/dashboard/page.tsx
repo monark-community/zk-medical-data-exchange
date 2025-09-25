@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { addAESKeyToStore } from "@/services/aesKeyStore";
+import { addAESKeyToStore, getAESKey } from "@/services/aesKeyStore";
 import { deriveKeyFromWallet } from "@/utils/walletKey";
 import { generateAESKey } from "@/utils/encryption";
 import { useProtectedRoute } from "@/hooks/useAuth";
@@ -19,7 +19,7 @@ export default function Dashboard() {
   useEffect(() => {
     const initKey = async () => {
       try {
-        const key = generateAESKey(await deriveKeyFromWallet());
+        const key = getAESKey() || generateAESKey(await deriveKeyFromWallet());
         setAESKey(key);
         addAESKeyToStore(key);
       } catch (err) {

@@ -1,9 +1,10 @@
-let aesKey: string | null = null;
+// TODO: These are temporary implementations. Replace with secure storage in production.
+// let aesKey: string | null = null;
 
 export function addAESKeyToStore(key: string) {
-  aesKey = key;
+  localStorage.setItem("aesKey", key);
 }
 
 export function getAESKey(): string | null {
-  return aesKey;
+  return localStorage.getItem("aesKey");
 }
