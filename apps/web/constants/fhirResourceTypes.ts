@@ -10,6 +10,7 @@ export const FhirResourceType = {
   PATIENT: "Patient",
   STRUCTURE_DEFINITION: "StructureDefinition",
   VALUE_SET: "ValueSet",
+  NOT_SUPPORTED: "NotSupported",
 } as const;
 
 export type FhirResourceTypes = (typeof FhirResourceType)[keyof typeof FhirResourceType];
