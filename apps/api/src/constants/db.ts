@@ -20,7 +20,7 @@ export type TableDefinition = {
  *
  * @example
  * getColumns(TABLES.DATA_VAULT);
- * // "id, wallet_address, encrypted_cid, created_at, record_type"
+ * // "id, wallet_address, encrypted_cid, created_at, resource_type"
  *
  * @example
  * getColumns(TABLES.DATA_VAULT, ["id", "walletAddress"]);
@@ -45,7 +45,7 @@ export const TABLES: Record<string, TableDefinition> = {
       walletAddress: "wallet_address",
       encryptedCid: "encrypted_cid",
       createdAt: "created_at",
-      recordType: "record_type",
+      resourceType: "resource_type",
     },
   },
 };
