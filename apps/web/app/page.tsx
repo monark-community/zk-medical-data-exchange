@@ -34,6 +34,7 @@ export default function LandingPage() {
       }
     } catch (err) {
       console.log("Authentication failed:", err);
+      alert("Authentication failed. Please try again.");
     } finally {
       setIsAuthenticating(false);
     }
