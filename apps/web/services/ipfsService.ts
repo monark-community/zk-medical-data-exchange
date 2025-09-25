@@ -40,3 +40,18 @@ export const ipfsDownload = async (cid: string): Promise<string> => {
     throw error;
   }
 };
+
+/**
+ * Deletes a file from IPFS using the Lighthouse service.
+ * @param cid - The IPFS Content Identifier of the file to delete.
+ * @returns A Promise that resolves to true if deletion was successful, false otherwise.
+ */
+export const ipfsDelete = async (cid: string): Promise<boolean> => {
+  const response = await lighthouse.deleteFile(Config.LIGHTHOUSE_API_KEY!, cid);
+
+  if (response.data.message !== "File deleted successfully") {
+    return false;
+  }
+
+  return true;
+};
