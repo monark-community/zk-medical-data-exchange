@@ -1,7 +1,6 @@
-import { FhirResourceType } from "@/constants/fhirResourceTypes";
-import { RecordType, RecordTypes } from "@/constants/recordTypes";
+import { FhirResourceType, FhirResourceTypes } from "@/constants/fhirResourceTypes";
 
-export async function isFhirCompliant(file: File): Promise<RecordTypes> {
+export async function isFhirCompliant(file: File): Promise<FhirResourceTypes> {
   const content = await file.text();
   let json: any;
 
@@ -10,22 +9,18 @@ export async function isFhirCompliant(file: File): Promise<RecordTypes> {
   } catch (err) {
     console.error("Invalid JSON:", err);
     alert("The uploaded file is not a valid JSON.");
-    return RecordType.NOT_SUPPORTED;
+    return FhirResourceType.NOT_SUPPORTED;
   }
 
   if (!json || typeof json !== "object" || !("resourceType" in json)) {
     alert("The uploaded file does not appear to be a valid FHIR resource.");
-    return RecordType.NOT_SUPPORTED;
+    return FhirResourceType.NOT_SUPPORTED;
   }
 
   const resourceType = json.resourceType;
-  if (
-    resourceType === FhirResourceType.PATIENT ||
-    resourceType === FhirResourceType.OBSERVATION ||
-    resourceType === FhirResourceType.BUNDLE
-  ) {
-    return RecordType.MEDICAL;
+  if (Object.values(FhirResourceType).includes(resourceType)) {
+    return resourceType as FhirResourceTypes;
   }
 
-  return RecordType.OTHER;
+  return FhirResourceType.NOT_SUPPORTED;
 }

@@ -5,17 +5,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { RecordType, RecordTypes } from "@/constants/recordTypes";
+import { FhirResourceType, FhirResourceTypes } from "@/constants/fhirResourceTypes";
 
 export default function RecordTypeSelect({
   onValueChange,
   selectedValue,
 }: {
   // eslint-disable-next-line no-unused-vars
-  onValueChange: (value: RecordTypes) => void;
-  selectedValue: RecordTypes;
+  onValueChange: (value: FhirResourceTypes) => void;
+  selectedValue: FhirResourceTypes;
 }) {
-  const recordTypeOptions = Object.values(RecordType);
+  const recordTypeOptions = Object.values(FhirResourceType);
   return (
     <Select onValueChange={onValueChange} value={selectedValue}>
       <SelectTrigger className="w-[180px]">

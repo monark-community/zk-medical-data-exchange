@@ -12,9 +12,9 @@ import { useProtectedRoute } from "@/hooks/useAuth";
 import CustomNavbar from "@/components/navigation/customNavBar";
 import { useAccount } from "wagmi";
 import { checkCompliance, ComplianceResult } from "@/utils/compliance";
-import { RecordType, RecordTypes } from "@/constants/recordTypes";
 import { ReportType } from "@/constants/reportType";
 import RecordTypeSelect from "@/components/recordTypeSelect";
+import { FhirResourceType, FhirResourceTypes } from "@/constants/fhirResourceTypes";
 
 export default function Dashboard() {
   const { isConnected } = useProtectedRoute();
@@ -26,10 +26,10 @@ export default function Dashboard() {
   const [checking, setChecking] = useState(false);
   const [isCompliant, setIsCompliant] = useState<boolean | null>(null);
   const [readyToSend, setReadyToSend] = useState(false);
-  const [recordType, setRecordType] = useState<RecordTypes>(RecordType.MEDICAL);
+  const [recordType, setRecordType] = useState<FhirResourceTypes>(FhirResourceType.NOT_SUPPORTED);
   const cid = "bafkreig4456mrnmpmqr56d4mrmkb43clx5r4iu6woblwwglkixqupiwkoe";
   const [compliance, setCompliance] = useState<ComplianceResult>({
-    recordType: RecordType.NOT_SUPPORTED,
+    resourceType: FhirResourceType.NOT_SUPPORTED,
     reportType: ReportType.NOT_SUPPORTED,
   });
 
@@ -83,7 +83,7 @@ export default function Dashboard() {
         setCompliance(complianceResult);
         const isCompliant = complianceResult.reportType !== ReportType.NOT_SUPPORTED;
 
-        setRecordType(complianceResult.recordType);
+        setRecordType(complianceResult.resourceType);
         setIsCompliant(isCompliant);
         setChecking(false);
         setReadyToSend(isCompliant);
@@ -100,8 +100,8 @@ export default function Dashboard() {
     }
   };
 
-  const onRecordTypeChange = (value: RecordTypes) => {
-    if (compliance?.recordType !== value && value !== RecordType.OTHER) {
+  const onRecordTypeChange = (value: FhirResourceTypes) => {
+    if (compliance?.resourceType !== value) {
       alert("Selected record type does not match file compliance. Please re-upload.");
       return;
     }
