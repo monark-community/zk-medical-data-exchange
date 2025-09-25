@@ -7,7 +7,7 @@ import { ipfsDownload } from "@/services/ipfsService";
 import { decryptWithKey } from "@/utils/encryption";
 import { DataVault } from "@/constants/dataVault";
 
-export default function DownloadSection({
+export default function FilesSection({
   walletAddress,
   aesKey,
 }: {
