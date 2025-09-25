@@ -9,7 +9,7 @@ import { useProtectedRoute } from "@/hooks/useAuth";
 import CustomNavbar from "@/components/navigation/customNavBar";
 import { useAccount } from "wagmi";
 import UploadSection from "@/components/uploadSection";
-import DownloadSection from "@/components/downloadSection";
+import FilesSection from "@/components/filesSection";
 
 export default function Dashboard() {
   const { isConnected } = useProtectedRoute();
@@ -37,7 +37,7 @@ export default function Dashboard() {
     <div className="min-h-screen bg-gray-50">
       <CustomNavbar />
       <main className="flex min-h-screen flex-col items-center justify-center gap-10 px-4">
-        <DownloadSection aesKey={aesKey} walletAddress={account.address} />
+        <FilesSection aesKey={aesKey} walletAddress={account.address} />
         <UploadSection account={account} aesKey={aesKey} />
       </main>
     </div>
