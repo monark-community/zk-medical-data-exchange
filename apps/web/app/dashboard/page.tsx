@@ -61,8 +61,8 @@ export default function Dashboard() {
     return null;
   }
 
-  const onRecordTypeChange = (value: RecordTypes) => {
-    if (compliance?.recordType !== value && value !== RecordType.OTHER) {
+  const onRecordTypeChange = (value: FhirResourceTypes) => {
+    if (compliance?.resourceType !== value) {
       alert("Selected record type does not match file compliance. Please re-upload.");
       return;
     }
