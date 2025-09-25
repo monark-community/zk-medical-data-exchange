@@ -20,3 +20,10 @@ export const fetchCIDs = async (wallet_address: string): Promise<DataVault[]> =>
   });
   return response.data;
 };
+
+export const deleteCID = async (wallet_address: string, encrypted_cid: string) => {
+  const response = await apiClient.delete("/medical-data", {
+    data: { wallet_address, encrypted_cid },
+  });
+  return response.data;
+};

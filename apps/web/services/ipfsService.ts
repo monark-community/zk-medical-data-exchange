@@ -11,6 +11,7 @@ import lighthouse from "@lighthouse-web3/sdk";
 export const ipfsUpload = async (file_content: string): Promise<string> => {
   try {
     const response = await lighthouse.uploadText(file_content, Config.LIGHTHOUSE_API_KEY!);
+    console.log("File uploaded to IPFS:", response.data);
     return response.data.Hash;
   } catch (error) {
     console.error("Error uploading to IPFS:", error);
@@ -47,6 +48,7 @@ export const ipfsDownload = async (cid: string): Promise<string> => {
  * @returns A Promise that resolves to true if deletion was successful, false otherwise.
  */
 export const ipfsDelete = async (cid: string): Promise<boolean> => {
+  console.log("Deleting file with CID:", cid);
   const response = await lighthouse.deleteFile(Config.LIGHTHOUSE_API_KEY!, cid);
 
   if (response.data.message !== "File deleted successfully") {
@@ -54,4 +56,13 @@ export const ipfsDelete = async (cid: string): Promise<boolean> => {
   }
 
   return true;
+};
+
+/**
+ * Fetches a list of files uploaded to IPFS using the Lighthouse service.
+ * @returns A Promise that resolves to an array of uploaded file metadata.
+ */
+export const ipfsGetFiles = async () => {
+  const response = await lighthouse.getUploads(Config.LIGHTHOUSE_API_KEY!, null);
+  return response.data;
 };

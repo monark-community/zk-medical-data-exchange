@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { fetchCIDs } from "@/services/dataVaultService";
+import { deleteCID, fetchCIDs } from "@/services/dataVaultService";
 import { Button } from "./ui/button";
-import { ipfsDownload } from "@/services/ipfsService";
+import { ipfsDelete, ipfsDownload, ipfsGetFiles } from "@/services/ipfsService";
 import { decryptWithKey } from "@/utils/encryption";
 import { DataVault } from "@/constants/dataVault";
 
@@ -67,6 +67,22 @@ export default function FilesSection({
     window.open(url, "_blank");
   };
 
+  const deleteContent = async (cid: string) => {
+    if (!aesKey) return;
+    try {
+      const decryptedCid = decryptWithKey(cid, aesKey);
+      const files = await ipfsGetFiles();
+      const uid = files.fileList.find((file) => file.cid === decryptedCid)?.id;
+      if (!uid) {
+        alert("File not found on IPFS.");
+        return;
+      }
+      await Promise.all([ipfsDelete(uid), deleteCID(walletAddress!, cid)]);
+    } catch (error) {
+      console.error("Failed to fetch IPFS content:", error);
+      alert("Failed to load content.");
+    }
+  };
   if (!walletAddress) return <div>No wallet connected</div>;
 
   return (
@@ -99,6 +115,19 @@ export default function FilesSection({
                 </Button>
                 <Button onClick={() => downloadContent(data.encrypted_cid)} disabled={!aesKey}>
                   Download Content
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={async () => {
+                    if (!walletAddress) return;
+                    await deleteContent(data.encrypted_cid);
+                    setMedicalData((prev) =>
+                      prev.filter((item) => item.encrypted_cid !== data.encrypted_cid)
+                    );
+                  }}
+                  disabled={!aesKey}
+                >
+                  Delete Content
                 </Button>
               </div>
             ))}
