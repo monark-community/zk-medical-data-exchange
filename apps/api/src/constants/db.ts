@@ -45,7 +45,7 @@ export const TABLES: Record<string, TableDefinition> = {
       walletAddress: "wallet_address",
       encryptedCid: "encrypted_cid",
       createdAt: "created_at",
-      recordType: "record_type",
+      resourceType: "resource_type",
     },
   },
 };
