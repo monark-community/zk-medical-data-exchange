@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { uploadCID } from "../controllers/medicalDataController";
+import { uploadCID } from "@/controllers/medicalDataController";
 
 const router = Router();
 /**
@@ -18,7 +18,7 @@ const router = Router();
  *                 type: string
  *               encrypted_cid:
  *                 type: string
- *               record_type:
+ *               resource_type:
  *                 type: string
  *     responses:
  *       201:
