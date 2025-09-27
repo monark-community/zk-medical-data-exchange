@@ -37,8 +37,13 @@ export default function Dashboard() {
     <div className="min-h-screen bg-gray-50">
       <CustomNavbar />
       <main className="flex min-h-screen flex-col items-center justify-center gap-10 px-4">
-        <FilesSection aesKey={aesKey} walletAddress={account.address} />
-        <UploadSection account={account} aesKey={aesKey} />
+        <div className=" container mx-auto px-4 py-4 sm:px-6 lg:px-8">
+          <div className="title "></div>
+          <div className="summarySection "></div>
+          <div className="tabSection "></div>
+          <FilesSection aesKey={aesKey} walletAddress={account.address} />
+          <UploadSection account={account} aesKey={aesKey} />
+        </div>
       </main>
     </div>
   );
