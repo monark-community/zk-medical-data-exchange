@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { deleteCID, fetchCIDs } from "@/services/dataVaultService";
-import { Button } from "./ui/button";
+import { Button } from "@/components/ui/button";
 import { ipfsDelete, ipfsDownload, ipfsGetFiles } from "@/services/ipfsService";
 import { decryptWithKey } from "@/utils/encryption";
-import { DataVault } from "@/constants/dataVault";
+import { MedicalData } from "@/interfaces/medicalData";
 
 export default function FilesSection({
   walletAddress,
@@ -14,7 +14,7 @@ export default function FilesSection({
   walletAddress: `0x${string}` | undefined;
   aesKey: string | null;
 }) {
-  const [medicalData, setMedicalData] = useState<DataVault[]>([]);
+  const [medicalData, setMedicalData] = useState<MedicalData[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -102,28 +102,28 @@ export default function FilesSection({
               >
                 <div className="mb-2">
                   <p className="text-sm text-gray-600 break-all">
-                    <strong>CID:</strong> {data.encrypted_cid}
+                    <strong>CID:</strong> {data.encryptedCid}
                   </p>
                   <p className="text-sm text-gray-600">
-                    <strong>Type:</strong> {data.resource_type}
+                    <strong>Type:</strong> {data.resourceType}
                   </p>
                   <p className="text-sm text-gray-600">
-                    <strong>Uploaded:</strong> {new Date(data.created_at).toLocaleString()}
+                    <strong>Uploaded:</strong> {new Date(data.createdAt).toLocaleString()}
                   </p>
                 </div>
-                <Button onClick={() => displayContent(data.encrypted_cid)} disabled={!aesKey}>
+                <Button onClick={() => displayContent(data.encryptedCid)} disabled={!aesKey}>
                   View Content
                 </Button>
-                <Button onClick={() => downloadContent(data.encrypted_cid)} disabled={!aesKey}>
+                <Button onClick={() => downloadContent(data.encryptedCid)} disabled={!aesKey}>
                   Download Content
                 </Button>
                 <Button
                   variant="destructive"
                   onClick={async () => {
                     if (!walletAddress) return;
-                    await deleteContent(data.encrypted_cid);
+                    await deleteContent(data.encryptedCid);
                     setMedicalData((prev) =>
-                      prev.filter((item) => item.encrypted_cid !== data.encrypted_cid)
+                      prev.filter((item) => item.encryptedCid !== data.encryptedCid)
                     );
                   }}
                   disabled={!aesKey}
