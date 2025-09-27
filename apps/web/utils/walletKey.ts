@@ -29,18 +29,13 @@ export const deriveKeyFromWallet = async (): Promise<Buffer> => {
 
   const address = await signer.getAddress();
 
-   
-
-  const timestamp = Date.now();
   const message = `App: Cura
 
-Timestamp: ${timestamp}
 Wallet: ${address}
 
 Action: Derive AES key. This will not cost any gas.
 Note: This signature does not authorize any transactions.
 `;
-
 
   const signature = await signer.signMessage(message);
 
