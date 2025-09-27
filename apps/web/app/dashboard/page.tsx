@@ -7,9 +7,10 @@ import { generateAESKey } from "@/utils/encryption";
 import { useProtectedRoute } from "@/hooks/useAuth";
 
 import CustomNavbar from "@/components/navigation/customNavBar";
+import DashboardTabs from "./components/dashboardTabs";
+
 import { useAccount } from "wagmi";
 import UploadSection from "@/components/uploadSection";
-import FilesSection from "@/components/filesSection";
 
 export default function Dashboard() {
   const { isConnected } = useProtectedRoute();
@@ -40,8 +41,10 @@ export default function Dashboard() {
         <div className=" container mx-auto px-4 py-4 sm:px-6 lg:px-8">
           <div className="title "></div>
           <div className="summarySection "></div>
-          <div className="tabSection "></div>
-          <FilesSection aesKey={aesKey} walletAddress={account.address} />
+          <div className="tabSection ">
+            <DashboardTabs aesKey={aesKey} walletAddress={account.address} />
+          </div>
+          {/* <FilesSection aesKey={aesKey} walletAddress={account.address} /> */}
           <UploadSection account={account} aesKey={aesKey} />
         </div>
       </main>

@@ -1,8 +1,25 @@
 "use client";
-import React from "react";
+import { Database } from "lucide-react";
 
-const DataVaultSection = () => {
-  return <h1></h1>;
+import FilesSection from "@/components/filesSection";
+const DataVaultSection = ({
+  walletAddress,
+  aesKey,
+}: {
+  walletAddress: `0x${string}` | undefined;
+  aesKey: string | null;
+}) => {
+  return (
+    <div className="w-full">
+      <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
+        <div className="header space-y-1.5 p-6 flex flex-row items-center justify-between">
+          <h3 className="text-2xl font-semibold leading-none tracking-tight flex items-center space-x-2">
+            <Database /> <span>Your Data Vault</span>
+          </h3>
+        </div>
+        <FilesSection walletAddress={walletAddress} aesKey={aesKey} />
+      </div>
+    </div>
+  );
 };
-
 export default DataVaultSection;
