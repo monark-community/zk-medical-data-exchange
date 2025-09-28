@@ -5,6 +5,7 @@ import { addAESKeyToStore } from "@/services/aesKeyStore";
 import { deriveKeyFromWallet } from "@/utils/walletKey";
 import { generateAESKey } from "@/utils/encryption";
 import { useProtectedRoute } from "@/hooks/useAuth";
+import { Button } from "@/components/ui/button";
 
 import CustomNavbar from "@/components/navigation/customNavBar";
 import DashboardTabs from "./components/dashboardTabs";
@@ -25,7 +26,7 @@ export default function Dashboard() {
         setAESKey(key);
         addAESKeyToStore(key);
       } catch (err) {
-        console.error("Failed to derive AES key:", err);
+        console.error("Failed to derive AES key:", err); 
       }
     };
     initKey();

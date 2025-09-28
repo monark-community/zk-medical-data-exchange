@@ -1,0 +1,18 @@
+{
+  "name": "@zk-medical/shared",
+  "version": "1.0.0",
+  "description": "Shared types and utilities for ZK medical data exchange",
+  "main": "studyCriteria.ts",
+  "types": "studyCriteria.ts",
+  "exports": {
+    ".": "./studyCriteria.ts",
+    "./studyCriteria": "./studyCriteria.ts"
+  },
+  "scripts": {
+    "build": "tsc"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  }
+}

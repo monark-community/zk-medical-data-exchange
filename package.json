@@ -21,7 +21,8 @@
   "workspaces": [
     "apps/api",
     "apps/web",
-    "packages/smart-contracts"
+    "packages/smart-contracts",
+    "packages/shared"
   ],
   "devDependencies": {
     "@eslint/js": "^9.34.0",
