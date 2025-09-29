@@ -35,8 +35,8 @@ export default function FilesSection({
     try {
       const decryptedCid = decryptWithKey(cid, aesKey);
       const content = await ipfsDownload(decryptedCid);
-      const decrypted = decryptWithKey(content, aesKey);
-      return decrypted;
+      const decryptedContent = decryptWithKey(content, aesKey);
+      return decryptedContent;
     } catch (error) {
       console.error("Failed to fetch IPFS content:", error);
       alert("Failed to load content.");
