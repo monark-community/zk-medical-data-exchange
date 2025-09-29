@@ -3,9 +3,9 @@
  * Handles study discovery, details, and participation
  */
 
-import { apiClient } from "../core/apiClient";
+import { apiClient } from "@/services/core/apiClient";
 import { StudyCriteria } from "@zk-medical/shared";
-import { processFHIRForStudy } from "../fhir";
+import { processFHIRForStudy } from "@/services/fhir";
 
 // ========================================
 // TYPES

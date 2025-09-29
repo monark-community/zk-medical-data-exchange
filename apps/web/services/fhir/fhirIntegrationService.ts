@@ -4,7 +4,7 @@
  */
 
 import { StudyCriteria } from "@zk-medical/shared";
-import { extractZKValuesFromFHIR } from "./fhirToZkMappings";
+import { extractZKValuesFromFHIR } from "@/services/fhir/fhirToZkMappings";
 
 export interface FHIRDataBundle {
   resources: any[];

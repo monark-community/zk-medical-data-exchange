@@ -1,5 +1,5 @@
 import { StudyCriteria } from "@zk-medical/shared";
-import { apiClient } from "../core/apiClient";
+import { apiClient } from "@/services/core/apiClient";
 
 export interface CreateStudyRequest {
   title: string;

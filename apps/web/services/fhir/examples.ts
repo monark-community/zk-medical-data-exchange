@@ -3,7 +3,10 @@
  * This demonstrates how to process uploaded FHIR data and check study eligibility
  */
 
-import { processFHIRForStudy, getFHIRProcessingSummary } from "./fhirIntegrationService";
+import {
+  processFHIRForStudy,
+  getFHIRProcessingSummary,
+} from "@/services/fhir/fhirIntegrationService";
 import { StudyCriteria } from "@zk-medical/shared";
 
 // Example FHIR Bundle with Patient and Observations
