@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Button } from "./ui/button";
+import { Button } from "@/components/ui/button";
 import { checkCompliance, ComplianceResult } from "@/utils/compliance";
 import { FhirResourceType, FhirResourceTypes } from "@/constants/fhirResourceTypes";
 import { ReportType } from "@/constants/reportType";
@@ -7,7 +7,7 @@ import { Config, UseAccountReturnType } from "wagmi";
 import { encryptWithKey } from "@/utils/encryption";
 import { ipfsUpload } from "@/services/ipfsService";
 import { uploadMedicalData } from "@/services/dataVaultService";
-import RecordTypeSelect from "./recordTypeSelect";
+import RecordTypeSelect from "@/components/fileManagement/recordTypeSelect";
 
 export default function UploadSection({
   account,

@@ -10,7 +10,7 @@ import CustomNavbar from "@/components/navigation/customNavBar";
 import DashboardTabs from "./components/dashboardTabs";
 
 import { useAccount } from "wagmi";
-import UploadSection from "@/components/uploadSection";
+import UploadSection from "@/components/fileManagement/uploadSection";
 
 export default function Dashboard() {
   const { isConnected } = useProtectedRoute();

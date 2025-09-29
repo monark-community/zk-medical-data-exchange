@@ -1,7 +1,7 @@
 "use client";
 import { Database } from "lucide-react";
 
-import FilesSection from "@/components/filesSection";
+import FilesSection from "@/components/fileManagement/filesSection";
 const DataVaultSection = ({
   walletAddress,
   aesKey,
