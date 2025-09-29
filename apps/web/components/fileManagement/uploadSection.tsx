@@ -5,11 +5,11 @@ import { FhirResourceType, FhirResourceTypes } from "@/constants/fhirResourceTyp
 import { ReportType } from "@/constants/reportType";
 import { Config, UseAccountReturnType } from "wagmi";
 import { encryptWithKey } from "@/utils/encryption";
-import { ipfsUpload } from "@/services/ipfsService";
-import { uploadMedicalData } from "@/services/dataVaultService";
 import RecordTypeSelect from "@/components/fileManagement/recordTypeSelect";
 import { Upload } from "lucide-react";
 import eventBus from "@/lib/eventBus";
+import { ipfsUpload } from "@/services/storage";
+import { uploadMedicalData } from "@/services/api";
 export default function UploadSection({
   account,
   aesKey,

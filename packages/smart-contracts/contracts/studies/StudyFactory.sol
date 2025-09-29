@@ -13,7 +13,11 @@ contract StudyFactory {
     struct StudyRegistry {
         address studyContract;
         string title;
+        string description;
         address principalInvestigator;
+        uint256 maxParticipants;
+        uint256 startDate;
+        uint256 endDate;
         uint256 createdAt;
         bool active;
     }
@@ -87,21 +91,48 @@ contract StudyFactory {
      */
     function createStudy(
         string memory title,
-        string memory /* description */,
+        string memory description,
         uint256 maxParticipants,
-        uint256 /* startDate */,
-        uint256 /* endDate */,
+        uint256 startDate,
+        uint256 endDate,
         address principalInvestigator,
         address zkVerifierAddress,
         Study.StudyCriteria memory customCriteria
     ) external onlyAuthorizedCreator returns (uint256 studyId, address studyAddress) {
         require(bytes(title).length > 0, "Title cannot be empty");
         require(principalInvestigator != address(0), "Invalid PI address");
+        require(zkVerifierAddress != address(0), "Invalid ZK verifier address");
+        require(maxParticipants > 0, "Max participants must be > 0");
         
-        // Validate custom criteria ranges
-        require(customCriteria.minAge < customCriteria.maxAge, "Invalid age range");
-        require(customCriteria.minCholesterol < customCriteria.maxCholesterol, "Invalid cholesterol range");
-        require(customCriteria.minBMI < customCriteria.maxBMI, "Invalid BMI range");
+        // Validate dates if provided
+        if (startDate > 0 && endDate > 0) {
+            require(endDate > startDate, "End date must be after start date");
+            require(startDate >= block.timestamp, "Start date cannot be in the past");
+        }
+        
+        // Validate custom criteria ranges (only if enabled)
+        if (customCriteria.enableAge == 1) {
+            require(customCriteria.minAge < customCriteria.maxAge, "Invalid age range");
+            require(customCriteria.minAge >= 0 && customCriteria.maxAge <= 150, "Age out of valid range");
+        }
+        if (customCriteria.enableCholesterol == 1) {
+            require(customCriteria.minCholesterol < customCriteria.maxCholesterol, "Invalid cholesterol range");
+            require(customCriteria.minCholesterol >= 0 && customCriteria.maxCholesterol <= 1000, "Cholesterol out of valid range");
+        }
+        if (customCriteria.enableBMI == 1) {
+            require(customCriteria.minBMI < customCriteria.maxBMI, "Invalid BMI range");
+            require(customCriteria.minBMI >= 100 && customCriteria.maxBMI <= 800, "BMI out of valid range (10.0-80.0)");
+        }
+        if (customCriteria.enableBloodPressure == 1) {
+            require(customCriteria.minSystolic < customCriteria.maxSystolic, "Invalid systolic range");
+            require(customCriteria.minDiastolic < customCriteria.maxDiastolic, "Invalid diastolic range");
+            require(customCriteria.minSystolic >= 70 && customCriteria.maxSystolic <= 250, "Systolic out of valid range");
+            require(customCriteria.minDiastolic >= 40 && customCriteria.maxDiastolic <= 150, "Diastolic out of valid range");
+        }
+        if (customCriteria.enableHbA1c == 1) {
+            require(customCriteria.minHbA1c < customCriteria.maxHbA1c, "Invalid HbA1c range");
+            require(customCriteria.minHbA1c >= 40 && customCriteria.maxHbA1c <= 200, "HbA1c out of valid range (4.0%-20.0%)");
+        }
 
         // Deploy new Study contract with custom criteria
         Study newStudy = new Study(
@@ -110,6 +141,9 @@ contract StudyFactory {
             customCriteria,
             zkVerifierAddress
         );
+        
+        // Note: description, startDate, endDate are stored in the factory registry
+        // Individual Study contracts focus on eligibility verification and participation
 
         studyId = studyCount;
         studyAddress = address(newStudy);
@@ -118,7 +152,11 @@ contract StudyFactory {
         studies[studyId] = StudyRegistry({
             studyContract: studyAddress,
             title: title,
+            description: description,
             principalInvestigator: principalInvestigator,
+            maxParticipants: maxParticipants,
+            startDate: startDate,
+            endDate: endDate,
             createdAt: block.timestamp,
             active: true
         });

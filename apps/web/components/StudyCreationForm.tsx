@@ -1,11 +1,19 @@
 "use client";
+/* eslint-disable no-unused-vars */
 
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { createCriteria, validateCriteria, STUDY_TEMPLATES } from "@zk-medical/shared";
+import { useCreateStudy } from "@/services/api";
+import { useAccount } from "wagmi";
+import { Config } from "@/config/config";
 
 // Template selector component
-const TemplateSelector = ({ onTemplateSelect }: { onTemplateSelect: (template: any) => void }) => {
+const TemplateSelector = ({
+  onTemplateSelect,
+}: {
+  onTemplateSelect: (_template: any, _templateId: string) => void;
+}) => {
   const templates = [
     { id: "OPEN", name: "Open Study", description: "No restrictions - anyone can join" },
     { id: "AGE_ONLY", name: "Age Only", description: "Simple age-based eligibility (18-65)" },
@@ -41,7 +49,10 @@ const TemplateSelector = ({ onTemplateSelect }: { onTemplateSelect: (template: a
             key={template.id}
             className="p-4 border rounded-lg cursor-pointer hover:bg-blue-50 hover:border-blue-300"
             onClick={() =>
-              onTemplateSelect(STUDY_TEMPLATES[template.id as keyof typeof STUDY_TEMPLATES])
+              onTemplateSelect(
+                STUDY_TEMPLATES[template.id as keyof typeof STUDY_TEMPLATES],
+                template.id
+              )
             }
           >
             <h4 className="font-medium text-blue-700">{template.name}</h4>
@@ -62,7 +73,7 @@ const CriteriaField = ({
 }: {
   label: string;
   enabled: boolean;
-  onEnabledChange: (enabled: boolean) => void;
+  onEnabledChange: (_enabled: boolean) => void;
   children: React.ReactNode;
 }) => {
   return (
@@ -93,8 +104,8 @@ const RangeInput = ({
   label: string;
   minValue: number;
   maxValue: number;
-  onMinChange: (value: number) => void;
-  onMaxChange: (value: number) => void;
+  onMinChange: (_value: number) => void;
+  onMaxChange: (_value: number) => void;
   unit?: string;
 }) => {
   return (
@@ -140,15 +151,26 @@ const StudyCreationForm = () => {
   const [criteria, setCriteria] = useState(() => createCriteria());
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<string | undefined>();
 
-  const handleTemplateSelect = (templateCriteria: any) => {
+  // Wagmi wallet hook
+  const { address: walletAddress, isConnected } = useAccount();
+
+  // API hook
+  const { createStudy: createStudyApi } = useCreateStudy();
+
+  const handleTemplateSelect = (templateCriteria: any, templateId: string) => {
     setCriteria(templateCriteria);
+    setSelectedTemplate(templateId);
     setValidationErrors([]);
   };
 
   const updateCriteria = (updates: Partial<typeof criteria>) => {
     const newCriteria = { ...criteria, ...updates };
     setCriteria(newCriteria);
+
+    // Clear template selection since user is customizing
+    setSelectedTemplate(undefined);
 
     // Validate on change
     const validation = validateCriteria(newCriteria);
@@ -166,21 +188,71 @@ const StudyCreationForm = () => {
         return;
       }
 
-      // Here you would call the API to create the study
-      const studyData = {
-        ...studyInfo,
-        eligibilityCriteria: criteria,
-      };
+      console.log("Creating study via API...");
 
-      console.log("Creating study:", studyData);
+      // Check if wallet is connected
+      if (!isConnected || !walletAddress) {
+        alert("Please connect your wallet before creating a study.");
+        return;
+      }
 
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      // Step 1: Call the backend API to create study in database
+      const result = await createStudyApi(
+        studyInfo.title,
+        studyInfo.description,
+        studyInfo.maxParticipants,
+        studyInfo.durationDays,
+        criteria,
+        selectedTemplate,
+        walletAddress // Pass wallet address
+      );
 
-      alert("Study created successfully! 🎉");
+      console.log("Study created in database:", result);
+
+      // Step 2: Deploy to blockchain
+      console.log("Deploying study to blockchain...");
+
+      try {
+        const deployResponse = await fetch(
+          `${Config.APP_API_URL || "http://localhost:3001"}/studies/${result.study.id}/deploy`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-API-Key": Config.APP_API_KEY || "",
+            },
+          }
+        );
+
+        if (!deployResponse.ok) {
+          throw new Error(`Deployment failed: ${deployResponse.statusText}`);
+        }
+
+        const deployResult = await deployResponse.json();
+
+        console.log("Blockchain deployment successful:", deployResult);
+
+        alert(
+          `🎉 Study "${result.study.title}" created and deployed successfully!\n\n` +
+            `📊 Study Details:\n` +
+            `• Complexity: ${result.study.stats.complexity}\n` +
+            `• Enabled criteria: ${result.study.stats.enabledCriteriaCount}/12\n\n` +
+            `⛓️ Blockchain Details:\n` +
+            `• Contract: ${deployResult.deployment.contractAddress}\n` +
+            `• Gas used: ${deployResult.deployment.gasUsed}\n` +
+            `• View on Etherscan: ${deployResult.deployment.etherscanUrl}`
+        );
+      } catch (deployError) {
+        console.error("Blockchain deployment failed:", deployError);
+        alert(
+          `⚠️ Study "${result.study.title}" was created in database but blockchain deployment failed.\n\n` +
+            `Error: ${deployError instanceof Error ? deployError.message : "Unknown error"}\n\n` +
+            `You can retry deployment later from the study management page.`
+        );
+      }
     } catch (error) {
       console.error("Failed to create study:", error);
-      alert("Failed to create study. Please try again.");
+      alert(`Failed to create study: ${error instanceof Error ? error.message : "Unknown error"}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -625,6 +697,27 @@ const StudyCreationForm = () => {
         </div>
       )}
 
+      {/* Wallet Connection Section */}
+      <div className="bg-white p-6 rounded-lg shadow">
+        <div className="flex justify-between items-center">
+          <div>
+            <h3 className="font-medium">Wallet Connection</h3>
+            <p className="text-sm text-gray-600">
+              {isConnected && walletAddress
+                ? `Connected: ${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`
+                : "Connect your wallet using the wallet menu to create studies"}
+            </p>
+          </div>
+          {!isConnected ? (
+            <div className="text-amber-600 font-medium">⚠️ Please connect wallet to continue</div>
+          ) : (
+            <div className="text-green-600 font-medium">
+              ✅ Wallet Connected: {walletAddress?.slice(0, 6)}...{walletAddress?.slice(-4)}
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Submit Section */}
       <div className="bg-white p-6 rounded-lg shadow">
         <div className="flex justify-between items-center">
@@ -640,7 +733,9 @@ const StudyCreationForm = () => {
           </div>
           <Button
             onClick={handleSubmit}
-            disabled={isSubmitting || !studyInfo.title || validationErrors.length > 0}
+            disabled={
+              isSubmitting || !studyInfo.title || validationErrors.length > 0 || !isConnected
+            }
             className="bg-blue-600 hover:bg-blue-700 px-8"
           >
             {isSubmitting ? "Creating..." : "🚀 Create Study"}

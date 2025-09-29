@@ -7,9 +7,13 @@
     "test": "bunx hardhat test",
     "test:solidity": "bunx hardhat test solidity",
     "test:nodejs": "bunx hardhat test nodejs",
+    "test:verifier": "node test/test-verifier.js",
+    "test:integration": "node test/integration-test.js",
+    "test:simple-integration": "node test/simple-integration-test.js",
     "deploy:local": "bunx hardhat run scripts/deploy.ts",
     "deploy:sepolia": "bunx hardhat run scripts/deploy.ts --network sepolia",
-    "deploy:tenderly": "bunx hardhat run scripts/deploy.ts --network tenderly"
+    "deploy:tenderly": "bunx hardhat run scripts/deploy.ts --network tenderly",
+    "deploy:study-factory": "bunx hardhat run scripts/deployStudyFactory.ts --network sepolia"
   },
   "dependencies": {
     "@nomicfoundation/hardhat-ethers": "^4.0.1",

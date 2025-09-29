@@ -25,7 +25,17 @@ export const Config = {
   NODE_ENV: process.env.NODE_ENV || "development",
   LOG_LEVEL: process.env.LOG_LEVEL || "info",
   APP_API_KEY: requireEnv("APP_API_KEY"),
+
   // Supabase
   SUPABASE_URL: requireEnv("SUPABASE_URL"),
   SUPABASE_KEY: requireEnv("SUPABASE_ANON_KEY"),
+
+  // Blockchain Configuration
+  SEPOLIA_PRIVATE_KEY: requireEnv("SEPOLIA_PRIVATE_KEY"),
+  SEPOLIA_RPC_URL:
+    process.env.SEPOLIA_RPC_URL || "https://sepolia.infura.io/v3/1fc9dc00f527450ab8ec6ea9c0571e9e",
+
+  // Smart Contract Addresses
+  STUDY_FACTORY_ADDRESS: "0x46209a88c172e06dd2c3eae2d2bca161e3306aef" as const,
+  ZK_VERIFIER_ADDRESS: "0x3c973b7ed28c26efcd6e733e722b1a5d3d488046" as const,
 };

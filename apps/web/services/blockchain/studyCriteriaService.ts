@@ -1,13 +1,6 @@
 import { Contract, JsonRpcProvider } from "ethers";
 import { useState, useEffect } from "react";
-import {
-  StudyCriteria,
-  STUDY_TEMPLATES,
-  createCriteria,
-  validateCriteria,
-  countEnabledCriteria,
-  getStudyComplexity,
-} from "../../../packages/shared/studyCriteria";
+import { StudyCriteria } from "@zk-medical/shared";
 
 /**
  * Frontend service that maps study criteria to form fields
@@ -45,13 +38,13 @@ export interface StudyFormFields {
     smokingRequired: boolean;
     allowedSmoking?: "non-smoker" | "smoker" | "former" | "any";
     activityRequired: boolean;
-    activityRange?: [number, number];
+    activityRange?: [string, string]; // Changed to strings for human-readable activity levels
   };
   medical: {
     diabetesRequired: boolean;
-    allowedDiabetes?: "none" | "type1" | "type2" | "any";
+    allowedDiabetes?: string; // Now supports all diabetes types including pre-diabetes
     heartDiseaseRequired: boolean;
-    allowedHeartDisease?: "none" | "history" | "any";
+    allowedHeartDisease?: string; // Now supports all heart disease categories
   };
 }
 
@@ -81,6 +74,42 @@ const smokingMap: { [key: number]: "non-smoker" | "smoker" | "former" | "any" } 
   3: "any",
 };
 
+const regionMap: { [key: number]: string } = {
+  1: "North America",
+  2: "Europe",
+  3: "Asia",
+  4: "South America",
+  5: "Africa",
+  6: "Oceania",
+  7: "Middle East",
+  8: "Central America",
+};
+
+const diabetesMap: { [key: number]: string } = {
+  0: "No diabetes history",
+  1: "Type 1 diabetes only",
+  2: "Type 2 diabetes only",
+  3: "Any diabetes type",
+  4: "Pre-diabetes only",
+  5: "Any diabetes or pre-diabetes",
+};
+
+const heartDiseaseMap: { [key: number]: string } = {
+  0: "No heart disease history",
+  1: "Previous heart attack",
+  2: "Any cardiovascular condition",
+  3: "Family history only",
+  4: "Current heart condition",
+};
+
+const activityLevelMap: { [key: number]: string } = {
+  1: "Sedentary",
+  2: "Lightly Active",
+  3: "Moderately Active",
+  4: "Very Active",
+  5: "Extremely Active",
+};
+
 /**
  * Fetch study criteria from blockchain and convert to frontend form structure
  */
@@ -96,7 +125,7 @@ export const getStudyFormFields = async (
   const contract = new Contract(studyAddress, studyABI, provider);
   const criteria: StudyCriteria = await contract.getStudyCriteria();
 
-  // Convert blockchain data to frontend form structure - ALL criteria are optional now!
+  // Convert blockchain data to frontend form structure
   return {
     demographics: {
       ageRequired: criteria.enableAge === 1,
@@ -106,7 +135,7 @@ export const getStudyFormFields = async (
       locationRequired: criteria.enableLocation === 1,
       allowedRegions: criteria.allowedRegions
         .filter((region) => region > 0)
-        .map((region) => `Region ${region}`),
+        .map((region) => regionMap[region] || `Unknown Region ${region}`),
     },
     vitals: {
       cholesterolRequired: criteria.enableCholesterol === 1,
@@ -145,19 +174,24 @@ export const getStudyFormFields = async (
       activityRequired: criteria.enableActivity === 1,
       activityRange:
         criteria.enableActivity === 1
-          ? [criteria.minActivityLevel, criteria.maxActivityLevel]
+          ? [
+              activityLevelMap[criteria.minActivityLevel] || `Level ${criteria.minActivityLevel}`,
+              activityLevelMap[criteria.maxActivityLevel] || `Level ${criteria.maxActivityLevel}`,
+            ]
           : undefined,
     },
     medical: {
       diabetesRequired: criteria.enableDiabetes === 1,
       allowedDiabetes:
         criteria.enableDiabetes === 1
-          ? (["none", "type1", "type2", "any"][criteria.allowedDiabetes] as any)
+          ? diabetesMap[criteria.allowedDiabetes] ||
+            `Unknown diabetes type ${criteria.allowedDiabetes}`
           : undefined,
       heartDiseaseRequired: criteria.enableHeartDisease === 1,
       allowedHeartDisease:
         criteria.enableHeartDisease === 1
-          ? (["none", "history", "any"][criteria.allowedHeartDisease] as any)
+          ? heartDiseaseMap[criteria.allowedHeartDisease] ||
+            `Unknown heart condition ${criteria.allowedHeartDisease}`
           : undefined,
     },
   };

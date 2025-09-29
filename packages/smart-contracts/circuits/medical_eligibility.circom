@@ -3,102 +3,105 @@ pragma circom 2.0.0;
 include "circomlib/circuits/poseidon.circom";
 include "circomlib/circuits/comparators.circom";
 
-
 template MedicalEligibility() {
-    // Private inputs (never revealed!)
+    // ========================================
+    // PRIVATE INPUTS (Patient's Medical Data - Never Revealed!)
+    // ========================================
     signal input age;
     signal input gender;                 // 1=male, 2=female
-    signal input region;                 // Patient's region/state code
-    signal input cholesterol; 
-    signal input bmi;
+    signal input region;                 // Patient's region/state code  
+    signal input cholesterol;            // mg/dL
+    signal input bmi;                    // BMI * 10 (e.g., 25.4 = 254)
     signal input systolicBP;             // Systolic blood pressure
     signal input diastolicBP;            // Diastolic blood pressure
-    signal input bloodType;  
-    signal input hba1c;                  // HbA1c level * 10
+    signal input bloodType;              // Blood type code (1-8)
+    signal input hba1c;                  // HbA1c level * 10 (e.g., 6.5% = 65)
     signal input smokingStatus;          // 0=non-smoker, 1=smoker, 2=former
-    signal input activityLevel;          // 1-4 scale
+    signal input activityLevel;          // 1-4 scale (sedentary to vigorous)
     signal input diabetesStatus;         // 0=none, 1=type1, 2=type2, 3=pre-diabetic
     signal input heartDiseaseHistory;    // 0=no, 1=yes
-    signal input salt;                   // Random salt for commitment       
+    signal input salt;                   // Random salt for commitment security
     
-    // Public inputs (study criteria) - ALL criteria are optional with enable flags
-    // Basic demographics & health (all optional)
-    signal input enableAge;              // 0=disabled, 1=enabled
+    // ========================================
+    // STUDY CRITERIA (Private inputs - not revealed to blockchain)
+    // ========================================
+    // These are private inputs provided during proof generation
+    // The blockchain never sees these values - only the eligibility result
+    
+    signal input enableAge;
     signal input minAge;
     signal input maxAge;
-    signal input enableCholesterol;      // 0=disabled, 1=enabled
+    signal input enableCholesterol;
     signal input minCholesterol;
     signal input maxCholesterol;
-    signal input enableBMI;              // 0=disabled, 1=enabled
+    signal input enableBMI;
     signal input minBMI;
     signal input maxBMI;
-    signal input enableBloodType;        // 0=disabled, 1=enabled
-    signal input allowedBloodType1;      // Blood type codes
-    signal input allowedBloodType2;
-    signal input allowedBloodType3;
-    signal input allowedBloodType4;
-    signal input enableGender;           // 0=disabled, 1=enabled  
-    signal input allowedGender;          // 1=male, 2=female, 3=any
-    
-    // Location/Geographic
-    signal input enableLocation;         // 0=disabled, 1=enabled
-    signal input allowedRegion1;         // Region codes (1-50 for US states, etc.)
-    signal input allowedRegion2;
-    signal input allowedRegion3; 
-    signal input allowedRegion4;
-    signal input enableBloodPressure;   // 0=disabled, 1=enabled
-    signal input minSystolic;           // Systolic blood pressure
+    signal input enableBloodType;
+    signal input allowedBloodTypes[4];
+    signal input enableGender;
+    signal input allowedGender;
+    signal input enableLocation;
+    signal input allowedRegions[4];
+    signal input enableBloodPressure;
+    signal input minSystolic;
     signal input maxSystolic;
-    signal input minDiastolic;          // Diastolic blood pressure  
+    signal input minDiastolic;
     signal input maxDiastolic;
-    
-    // Blood work
-    signal input allowedBloodType1;
-    signal input allowedBloodType2;
-    signal input allowedBloodType3;
-    signal input allowedBloodType4;
-    signal input enableHbA1c;           // 0=disabled, 1=enabled (diabetes marker)
-    signal input minHbA1c;              // HbA1c percentage * 10 (e.g., 6.5% = 65)
+    signal input enableHbA1c;
+    signal input minHbA1c;
     signal input maxHbA1c;
-    
-    // Lifestyle factors
-    signal input enableSmoking;         // 0=disabled, 1=enabled
-    signal input allowedSmoking;        // 0=non-smoker, 1=smoker, 2=former, 3=any
-    signal input enableActivity;        // 0=disabled, 1=enabled  
-    signal input minActivityLevel;      // 1=sedentary, 2=light, 3=moderate, 4=vigorous
+    signal input enableSmoking;
+    signal input allowedSmoking;
+    signal input enableActivity;
+    signal input minActivityLevel;
     signal input maxActivityLevel;
+    signal input enableDiabetes;
+    signal input allowedDiabetes;
+    signal input enableHeartDisease;
+    signal input allowedHeartDisease;
     
-    // Medical history
-    signal input enableDiabetes;        // 0=disabled, 1=enabled
-    signal input allowedDiabetes;       // 0=no diabetes, 1=type 1, 2=type 2, 3=pre-diabetic, 4=any
-    signal input enableHeartDisease;    // 0=disabled, 1=enabled
-    signal input allowedHeartDisease;   // 0=no history, 1=history allowed, 2=any
+    // ========================================
+    // PUBLIC INPUTS (Only what goes to blockchain)  
+    // ========================================
     
-    // Commitment to all private data
+    // Data commitment - hash of patient's private medical data
     signal input dataCommitment;
     
-    // Output
+    // ========================================
+    // OUTPUT
+    // ========================================
     signal output eligible;
     
-    // Components for checking various criteria (all conditional now)
+    // ========================================
+    // COMPONENTS FOR ELIGIBILITY CHECKING
+    // ========================================
+    
+    // Conditional range check components
     component ageCheck = ConditionalRangeCheck(8);
     component cholesterolCheck = ConditionalRangeCheck(16);
     component bmiCheck = ConditionalRangeCheck(16);
-    component bloodTypeCheck = ConditionalMultiValueCheck();
-    component genderCheck = ConditionalSingleValueCheck();
-    component regionCheck = ConditionalMultiValueCheck();
-    component bloodPressureCheck = ConditionalRangeCheck(16);
+    component bloodPressureCheck = ConditionalDualRangeCheck(16);
     component hba1cCheck = ConditionalRangeCheck(16);
-    component smokingCheck = ConditionalSingleValueCheck();
     component activityCheck = ConditionalRangeCheck(8);
+    
+    // Conditional value check components
+    component bloodTypeCheck = ConditionalArrayCheck();
+    component genderCheck = ConditionalSingleValueCheck();
+    component regionCheck = ConditionalArrayCheck();
+    component smokingCheck = ConditionalSingleValueCheck();
     component diabetesCheck = ConditionalSingleValueCheck();
     component heartDiseaseCheck = ConditionalSingleValueCheck();
-    // Use hierarchical commitment for many fields
+    // ========================================
+    // DATA COMMITMENT VERIFICATION
+    // ========================================
+    
+    // Use hierarchical commitment for privacy and efficiency
     component commitment1 = Poseidon(7);
     component commitment2 = Poseidon(7); 
     component finalCommitment = Poseidon(3);
     
-    // First hash: demographics + basic health
+    // First hash: demographics + basic health metrics
     commitment1.inputs[0] <== age;
     commitment1.inputs[1] <== gender;
     commitment1.inputs[2] <== region;
@@ -107,7 +110,7 @@ template MedicalEligibility() {
     commitment1.inputs[5] <== bloodType;
     commitment1.inputs[6] <== salt;
     
-    // Second hash: detailed health metrics
+    // Second hash: detailed health metrics + lifestyle
     commitment2.inputs[0] <== systolicBP;
     commitment2.inputs[1] <== diastolicBP;
     commitment2.inputs[2] <== hba1c;
@@ -116,103 +119,143 @@ template MedicalEligibility() {
     commitment2.inputs[5] <== diabetesStatus;
     commitment2.inputs[6] <== heartDiseaseHistory;
     
-    // Final commitment combines both hashes
+    // Final commitment combines both hashes with additional salt
     finalCommitment.inputs[0] <== commitment1.out;
     finalCommitment.inputs[1] <== commitment2.out;
-    finalCommitment.inputs[2] <== salt; // Extra salt for security
+    finalCommitment.inputs[2] <== salt;
+    
+    // Verify the commitment matches the provided hash
     dataCommitment === finalCommitment.out;
     
-    // Always check age range (required for all studies)
-    ageInRange.value <== age;
-    ageInRange.min <== minAge;
-    ageInRange.max <== maxAge;
+    // ========================================
+    // ELIGIBILITY CRITERIA CHECKING
+    // ========================================
     
-    // Always check basic health metrics
-    cholesterolInRange.value <== cholesterol;
-    cholesterolInRange.min <== minCholesterol;
-    cholesterolInRange.max <== maxCholesterol;
+    // Age range check
+    ageCheck.enabled <== enableAge;
+    ageCheck.value <== age;
+    ageCheck.min <== minAge;
+    ageCheck.max <== maxAge;
     
-    bmiInRange.value <== bmi;
-    bmiInRange.min <== minBMI;
-    bmiInRange.max <== maxBMI;
+    // Cholesterol range check
+    cholesterolCheck.enabled <== enableCholesterol;
+    cholesterolCheck.value <== cholesterol;
+    cholesterolCheck.min <== minCholesterol;
+    cholesterolCheck.max <== maxCholesterol;
     
-    // Blood type check (always enabled)
-    bloodTypeCheck.patientBloodType <== bloodType;
-    bloodTypeCheck.allowed1 <== allowedBloodType1;
-    bloodTypeCheck.allowed2 <== allowedBloodType2;
-    bloodTypeCheck.allowed3 <== allowedBloodType3;
-    bloodTypeCheck.allowed4 <== allowedBloodType4;
+    // BMI range check
+    bmiCheck.enabled <== enableBMI;
+    bmiCheck.value <== bmi;
+    bmiCheck.min <== minBMI;
+    bmiCheck.max <== maxBMI;
     
-    // Conditional checks (can be enabled/disabled per study)
+    // Blood type array check
+    bloodTypeCheck.enabled <== enableBloodType;
+    bloodTypeCheck.patientValue <== bloodType;
+    bloodTypeCheck.allowedValues[0] <== allowedBloodTypes[0];
+    bloodTypeCheck.allowedValues[1] <== allowedBloodTypes[1];
+    bloodTypeCheck.allowedValues[2] <== allowedBloodTypes[2];
+    bloodTypeCheck.allowedValues[3] <== allowedBloodTypes[3];
+    
+    // Gender single value check
     genderCheck.enabled <== enableGender;
-    genderCheck.value <== gender;
-    genderCheck.allowed <== allowedGender;
+    genderCheck.patientValue <== gender;
+    genderCheck.allowedValue <== allowedGender;
     
+    // Region array check
     regionCheck.enabled <== enableLocation;
-    regionCheck.value <== region;
-    regionCheck.allowed1 <== allowedRegion1;
-    regionCheck.allowed2 <== allowedRegion2;
-    regionCheck.allowed3 <== allowedRegion3;
-    regionCheck.allowed4 <== allowedRegion4;
+    regionCheck.patientValue <== region;
+    regionCheck.allowedValues[0] <== allowedRegions[0];
+    regionCheck.allowedValues[1] <== allowedRegions[1];
+    regionCheck.allowedValues[2] <== allowedRegions[2];
+    regionCheck.allowedValues[3] <== allowedRegions[3];
     
+    // Blood pressure dual range check
     bloodPressureCheck.enabled <== enableBloodPressure;
-    bloodPressureCheck.value1 <== systolicBP;
-    bloodPressureCheck.min1 <== minSystolic;
-    bloodPressureCheck.max1 <== maxSystolic;
-    bloodPressureCheck.value2 <== diastolicBP;
-    bloodPressureCheck.min2 <== minDiastolic;
-    bloodPressureCheck.max2 <== maxDiastolic;
+    bloodPressureCheck.systolicValue <== systolicBP;
+    bloodPressureCheck.minSystolic <== minSystolic;
+    bloodPressureCheck.maxSystolic <== maxSystolic;
+    bloodPressureCheck.diastolicValue <== diastolicBP;
+    bloodPressureCheck.minDiastolic <== minDiastolic;
+    bloodPressureCheck.maxDiastolic <== maxDiastolic;
     
+    // HbA1c range check
     hba1cCheck.enabled <== enableHbA1c;
-    hba1cCheck.value1 <== hba1c;
-    hba1cCheck.min1 <== minHbA1c;
-    hba1cCheck.max1 <== maxHbA1c;
-    hba1cCheck.value2 <== 0; // Unused
-    hba1cCheck.min2 <== 0;
-    hba1cCheck.max2 <== 0;
+    hba1cCheck.value <== hba1c;
+    hba1cCheck.min <== minHbA1c;
+    hba1cCheck.max <== maxHbA1c;
     
+    // Smoking status check
     smokingCheck.enabled <== enableSmoking;
-    smokingCheck.value <== smokingStatus;
-    smokingCheck.allowed <== allowedSmoking;
+    smokingCheck.patientValue <== smokingStatus;
+    smokingCheck.allowedValue <== allowedSmoking;
     
+    // Activity level range check
     activityCheck.enabled <== enableActivity;
-    activityCheck.value1 <== activityLevel;
-    activityCheck.min1 <== minActivityLevel;
-    activityCheck.max1 <== maxActivityLevel;
-    activityCheck.value2 <== 0; // Unused
-    activityCheck.min2 <== 0;
-    activityCheck.max2 <== 0;
+    activityCheck.value <== activityLevel;
+    activityCheck.min <== minActivityLevel;
+    activityCheck.max <== maxActivityLevel;
     
+    // Diabetes status check
     diabetesCheck.enabled <== enableDiabetes;
-    diabetesCheck.value <== diabetesStatus;
-    diabetesCheck.allowed <== allowedDiabetes;
+    diabetesCheck.patientValue <== diabetesStatus;
+    diabetesCheck.allowedValue <== allowedDiabetes;
     
+    // Heart disease history check
     heartDiseaseCheck.enabled <== enableHeartDisease;
-    heartDiseaseCheck.value <== heartDiseaseHistory;
-    heartDiseaseCheck.allowed <== allowedHeartDisease;
+    heartDiseaseCheck.patientValue <== heartDiseaseHistory;
+    heartDiseaseCheck.allowedValue <== allowedHeartDisease;
     
-    // Combine all checks for final eligibility (broken down for quadratic constraints)
-    // ALL checks are now conditional - maximum flexibility!
-    signal basicChecks1;
-    signal basicChecks2;
-    signal conditionalChecks1;
-    signal conditionalChecks2;
-    signal allConditionalChecks;
+    // ========================================
+    // FINAL ELIGIBILITY CALCULATION
+    // ========================================
     
-    // All checks are conditional - group for quadratic constraint efficiency
-    basicChecks1 <== ageCheck.valid * cholesterolCheck.valid * bmiCheck.valid;
-    basicChecks2 <== bloodTypeCheck.valid * genderCheck.valid * regionCheck.valid;
+    // ========================================
+    // FINAL ELIGIBILITY CALCULATION (Quadratic Constraints Only)
+    // ========================================
     
-    // Advanced conditional checks - group 1
-    conditionalChecks1 <== bloodPressureCheck.valid * hba1cCheck.valid * smokingCheck.valid;
+    // Break down all multiplications to be quadratic (max 2 multiplications per constraint)
     
-    // Advanced conditional checks - group 2  
-    conditionalChecks2 <== activityCheck.valid * diabetesCheck.valid * heartDiseaseCheck.valid;
+    // Step 1: Combine basic health checks (age, cholesterol, BMI)
+    signal ageAndCholesterol;
+    signal basicHealthChecks;
+    ageAndCholesterol <== ageCheck.valid * cholesterolCheck.valid;
+    basicHealthChecks <== ageAndCholesterol * bmiCheck.valid;
     
-    // Combine all checks (maximum flexibility - every criteria is optional!)
-    allConditionalChecks <== conditionalChecks1 * conditionalChecks2;
-    eligible <== basicChecks1 * basicChecks2 * allConditionalChecks;
+    // Step 2: Combine demographic checks (bloodType, gender, region)
+    signal bloodTypeAndGender;
+    signal demographicChecks;
+    bloodTypeAndGender <== bloodTypeCheck.valid * genderCheck.valid;
+    demographicChecks <== bloodTypeAndGender * regionCheck.valid;
+    
+    // Step 3: Combine advanced health checks (bloodPressure, hbA1c)
+    signal advancedHealthChecks;
+    advancedHealthChecks <== bloodPressureCheck.valid * hba1cCheck.valid;
+    
+    // Step 4: Combine lifestyle checks (smoking, activity)
+    signal lifestyleChecks;
+    lifestyleChecks <== smokingCheck.valid * activityCheck.valid;
+    
+    // Step 5: Combine medical history checks (diabetes, heartDisease)
+    signal medicalHistoryChecks;
+    medicalHistoryChecks <== diabetesCheck.valid * heartDiseaseCheck.valid;
+    
+    // Step 6: Combine all groups step by step (quadratic constraints only)
+    signal basicAndDemographic;
+    signal advancedAndLifestyle;
+    signal allButMedical;
+    
+    basicAndDemographic <== basicHealthChecks * demographicChecks;
+    advancedAndLifestyle <== advancedHealthChecks * lifestyleChecks;
+    allButMedical <== basicAndDemographic * advancedAndLifestyle;
+    
+    // Final result: ALL criteria must be satisfied
+    eligible <== allButMedical * medicalHistoryChecks;
 }
+
+// ========================================
+// HELPER TEMPLATES
+// ========================================
 
 template RangeCheck(n) {
     signal input value;
@@ -232,75 +275,64 @@ template RangeCheck(n) {
     valid <== geq.out * leq.out;
 }
 
-template BloodTypeAllowed() {
-    signal input patientBloodType;
-    signal input allowed1;
-    signal input allowed2;
-    signal input allowed3;
-    signal input allowed4;
+// Conditional range check template
+template ConditionalRangeCheck(n) {
+    signal input enabled;        // 0=disabled, 1=enabled
+    signal input value;          // Patient's value
+    signal input min;
+    signal input max;
     signal output valid;
     
-    component eq1 = IsEqual();
-    component eq2 = IsEqual();
-    component eq3 = IsEqual();
-    component eq4 = IsEqual();
+    component rangeCheck = RangeCheck(n);
+    component isDisabled = IsEqual();
     
-    eq1.in[0] <== patientBloodType;
-    eq1.in[1] <== allowed1;
+    rangeCheck.value <== value;
+    rangeCheck.min <== min;
+    rangeCheck.max <== max;
     
-    eq2.in[0] <== patientBloodType;
-    eq2.in[1] <== allowed2;
+    // Check if criteria is disabled
+    isDisabled.in[0] <== enabled;
+    isDisabled.in[1] <== 0;
     
-    eq3.in[0] <== patientBloodType;
-    eq3.in[1] <== allowed3;
-    
-    eq4.in[0] <== patientBloodType;
-    eq4.in[1] <== allowed4;
-    
-    valid <== eq1.out + eq2.out + eq3.out + eq4.out;
-    
-    component validRange = LessEqThan(3);
-    validRange.in[0] <== valid;
-    validRange.in[1] <== 4;
-    validRange.out === 1;
+    // If disabled, always valid (1). If enabled, check range
+    valid <== isDisabled.out + (enabled * rangeCheck.valid);
 }
 
 // Conditional single value check (e.g., gender, smoking status)
 template ConditionalSingleValueCheck() {
     signal input enabled;        // 0=disabled, 1=enabled
-    signal input value;          // Patient's actual value
-    signal input allowed;        // Allowed value (or special codes like 3=any)
+    signal input patientValue;   // Patient's actual value
+    signal input allowedValue;   // Allowed value (or special codes like 3=any)
     signal output valid;
     
     component isEqual = IsEqual();
     component isAny = IsEqual();
-    
-    isEqual.in[0] <== value;
-    isEqual.in[1] <== allowed;
-    
-    // Check if "any" is allowed (usually code 3 or higher)
-    isAny.in[0] <== allowed;
-    isAny.in[1] <== 3;  // 3 typically means "any value allowed"
-    
-    signal matchOrAny;
-    matchOrAny <== isEqual.out + isAny.out;
-    
-    // If disabled (enabled=0), always valid. If enabled (enabled=1), check criteria
     component isDisabled = IsEqual();
+    
+    // Check if patient's value matches allowed value
+    isEqual.in[0] <== patientValue;
+    isEqual.in[1] <== allowedValue;
+    
+    // Check if "any" is allowed (usually code 3 or higher means "any value")
+    isAny.in[0] <== allowedValue;
+    isAny.in[1] <== 3;
+    
+    // Check if criteria is disabled
     isDisabled.in[0] <== enabled;
     isDisabled.in[1] <== 0;
+    
+    // Patient passes if: disabled OR (enabled AND (matches OR any-allowed))
+    signal matchOrAny;
+    matchOrAny <== isEqual.out + isAny.out;
     
     valid <== isDisabled.out + (enabled * matchOrAny);
 }
 
-// Conditional multi-value check (e.g., allowed regions)  
-template ConditionalMultiValueCheck() {
-    signal input enabled;        // 0=disabled, 1=enabled
-    signal input value;          // Patient's value
-    signal input allowed1;       // Allowed values
-    signal input allowed2;
-    signal input allowed3;
-    signal input allowed4;
+// Conditional array check (e.g., allowed blood types, regions)  
+template ConditionalArrayCheck() {
+    signal input enabled;           // 0=disabled, 1=enabled
+    signal input patientValue;      // Patient's value
+    signal input allowedValues[4];  // Array of allowed values
     signal output valid;
     
     component eq1 = IsEqual();
@@ -309,66 +341,65 @@ template ConditionalMultiValueCheck() {
     component eq4 = IsEqual();
     component isDisabled = IsEqual();
     
-    eq1.in[0] <== value;
-    eq1.in[1] <== allowed1;
+    // Check if patient's value matches any allowed value
+    eq1.in[0] <== patientValue;
+    eq1.in[1] <== allowedValues[0];
     
-    eq2.in[0] <== value;
-    eq2.in[1] <== allowed2;
+    eq2.in[0] <== patientValue;
+    eq2.in[1] <== allowedValues[1];
     
-    eq3.in[0] <== value;
-    eq3.in[1] <== allowed3;
+    eq3.in[0] <== patientValue;
+    eq3.in[1] <== allowedValues[2];
     
-    eq4.in[0] <== value;
-    eq4.in[1] <== allowed4;
+    eq4.in[0] <== patientValue;
+    eq4.in[1] <== allowedValues[3];
     
+    // Patient passes if matches any allowed value
     signal matchAny;
     matchAny <== eq1.out + eq2.out + eq3.out + eq4.out;
     
-    // If disabled, always valid
+    // Check if criteria is disabled
     isDisabled.in[0] <== enabled;
     isDisabled.in[1] <== 0;
     
+    // Patient passes if: disabled OR (enabled AND matches-any)
     valid <== isDisabled.out + (enabled * matchAny);
 }
 
-// Conditional range check (supports dual ranges like blood pressure)
-template ConditionalRangeCheck(n) {
-    signal input enabled;        // 0=disabled, 1=enabled
-    signal input value1;         // First value to check
-    signal input min1;
-    signal input max1;
-    signal input value2;         // Second value (optional, set to 0 if unused)
-    signal input min2;
-    signal input max2;
+// Conditional dual range check (specifically for blood pressure)
+template ConditionalDualRangeCheck(n) {
+    signal input enabled;           // 0=disabled, 1=enabled
+    signal input systolicValue;     // Patient's systolic BP
+    signal input minSystolic;
+    signal input maxSystolic;
+    signal input diastolicValue;    // Patient's diastolic BP
+    signal input minDiastolic;
+    signal input maxDiastolic;
     signal output valid;
     
-    component range1 = RangeCheck(n);
-    component range2 = RangeCheck(n);
+    component systolicCheck = RangeCheck(n);
+    component diastolicCheck = RangeCheck(n);
     component isDisabled = IsEqual();
-    component hasSecondValue = GreaterThan(n);
     
-    // Check first range
-    range1.value <== value1;
-    range1.min <== min1;
-    range1.max <== max1;
+    // Check systolic range
+    systolicCheck.value <== systolicValue;
+    systolicCheck.min <== minSystolic;
+    systolicCheck.max <== maxSystolic;
     
-    // Check second range (if value2 > 0)
-    range2.value <== value2;
-    range2.min <== min2;
-    range2.max <== max2;
+    // Check diastolic range
+    diastolicCheck.value <== diastolicValue;
+    diastolicCheck.min <== minDiastolic;
+    diastolicCheck.max <== maxDiastolic;
     
-    // Check if second value is used
-    hasSecondValue.in[0] <== value2;
-    hasSecondValue.in[1] <== 0;
-    
-    // Both ranges must be valid if second value is provided
+    // Both systolic AND diastolic must be in range
     signal bothValid;
-    bothValid <== range1.valid * (range2.valid + (1 - hasSecondValue.out));
+    bothValid <== systolicCheck.valid * diastolicCheck.valid;
     
-    // If disabled, always valid
+    // Check if criteria is disabled
     isDisabled.in[0] <== enabled;
     isDisabled.in[1] <== 0;
     
+    // Patient passes if: disabled OR (enabled AND both-ranges-valid)
     valid <== isDisabled.out + (enabled * bothValid);
 }
 

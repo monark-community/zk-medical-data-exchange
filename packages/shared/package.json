@@ -2,6 +2,7 @@
   "name": "@zk-medical/shared",
   "version": "1.0.0",
   "description": "Shared types and utilities for ZK medical data exchange",
+  "type": "module",
   "main": "studyCriteria.ts",
   "types": "studyCriteria.ts",
   "exports": {

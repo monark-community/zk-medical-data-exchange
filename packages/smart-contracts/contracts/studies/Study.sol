@@ -91,9 +91,10 @@ contract Study {
         require(currentParticipants < maxParticipants, "Study is full");
         require(!participants[msg.sender], "Already participating");
         
-        // Verify the ZK proof using auto-generated Groth16 verifier
-        // Auto-generated verifier only needs the output signal (eligible=1)
-        uint[1] memory pubSignals = [uint256(1)];
+        // Verify the ZK proof - only checks that patient proved they are eligible
+        // The study criteria were used during proof generation (client-side)
+        // Only the eligibility result (1 = eligible, 0 = not eligible) is public
+        uint[1] memory pubSignals = [uint256(1)]; // Expected: eligible = 1
         bool isEligible = zkVerifier.verifyProof(_pA, _pB, _pC, pubSignals);
         
         emit EligibilityVerified(msg.sender, isEligible);
