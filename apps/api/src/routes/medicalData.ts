@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { downloadCIDs, uploadCID } from "@/controllers/medicalDataController";
+import { deleteCID, downloadCIDs, uploadCID } from "@/controllers/medicalDataController";
 
 const router = Router();
 /**
@@ -57,5 +57,27 @@ router.post("/", uploadCID);
  *                     format: date-time
  */
 router.get("/", downloadCIDs);
+
+/**
+ * @swagger
+ * /medical-data:
+ *   delete:
+ *     summary: Delete medical data
+ *    requestBody:
+ *    required: true
+ *   content:
+ *    application/json:
+ *    schema:
+ *    type: object
+ *   properties:
+ *    wallet_address:
+ *    type: string
+ *  encrypted_cid:
+ *   type: string
+ *   responses:
+ *    200:
+ *      description: Data deleted successfully
+ */
+router.delete("/", deleteCID);
 
 export default router;

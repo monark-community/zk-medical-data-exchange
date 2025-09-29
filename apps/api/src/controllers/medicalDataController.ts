@@ -47,3 +47,22 @@ export const downloadCIDs = async (req: Request, res: Response) => {
   logger.info("downloadCIDs success");
   return res.status(200).json(selectResult.data);
 };
+
+export const deleteCID = async (req: Request, res: Response) => {
+  const { wallet_address, encrypted_cid } = req.body;
+  logger.info({ wallet_address, encrypted_cid }, "deleteCIDs called");
+
+  const deleteResult = await req.supabase
+    .from(DATA_VAULT!.name)
+    .delete()
+    .eq(DATA_VAULT!.columns.walletAddress!, wallet_address)
+    .eq(DATA_VAULT!.columns.encryptedCid!, encrypted_cid);
+
+  if (deleteResult.error) {
+    logger.warn({ error: deleteResult.error }, "deleteCIDs delete error");
+    return res.status(500).json({ error: deleteResult.error.message });
+  }
+
+  logger.info("deleteCIDs success");
+  return res.status(200).json({ message: "Data deleted successfully" });
+};

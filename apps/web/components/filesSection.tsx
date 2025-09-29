@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { fetchCIDs } from "@/services/dataVaultService";
-import { Button } from "./ui/button";
-import { ipfsDownload } from "@/services/ipfsService";
+import { deleteCID, fetchCIDs } from "@/services/dataVaultService";
+import { Button } from "@/components/ui/button";
+import { ipfsDelete, ipfsDownload, ipfsGetFiles } from "@/services/ipfsService";
 import { decryptWithKey } from "@/utils/encryption";
-import { DataVault } from "@/constants/dataVault";
+import { MedicalData } from "@/interfaces/medicalData";
 
 import {
   Table,
@@ -33,7 +33,7 @@ export default function FilesSection({
   walletAddress: `0x${string}` | undefined;
   aesKey: string | null;
 }) {
-  const [medicalData, setMedicalData] = useState<DataVault[]>([]);
+  const [medicalData, setMedicalData] = useState<MedicalData[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -86,31 +86,44 @@ export default function FilesSection({
     window.open(url, "_blank");
   };
   const data = medicalData;
-  const columns: ColumnDef<DataVault>[] = [
+  const columns: ColumnDef<MedicalData>[] = [
     {
       accessorKey: "details", // A new accessorKey for the card content
       header: "Details Card",
       cell: ({ row }) => {
-        const item = row.original; // Access the full row data
+        const data = row.original; // Access the full row data
         return (
           <Card className="w-full h-full bg-gray-50 fla">
             <CardHeader className="flex flex-row items-center space-x-4">
               <div className="w-12 h-12 bg-gradient-to-br from-blue-100 to-teal-100 rounded-lg flex items-center justify-center">
                 <HeartPulse />
               </div>
-              <CardTitle>{item.resource_type}</CardTitle>
+              <CardTitle>{data.resourceType}</CardTitle>
               <CardDescription className="text-sm text-gray-600 break-words break-all"></CardDescription>
             </CardHeader>
             <CardContent>
               <p>
                 <strong>Uploaded: </strong>
-                {new Date(item.created_at).toLocaleString()}
+                {new Date(data.createdAt).toLocaleString()}
               </p>
-              <Button onClick={() => displayContent(item.encrypted_cid)} disabled={!aesKey}>
+              <Button onClick={() => displayContent(data.encryptedCid)} disabled={!aesKey}>
                 View Content
               </Button>
-              <Button onClick={() => downloadContent(item.encrypted_cid)} disabled={!aesKey}>
+              <Button onClick={() => downloadContent(data.encryptedCid)} disabled={!aesKey}>
                 Download Content
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={async () => {
+                  if (!walletAddress) return;
+                  await deleteContent(data.encryptedCid);
+                  setMedicalData((prev) =>
+                    prev.filter((item) => item.encryptedCid !== data.encryptedCid)
+                  );
+                }}
+                disabled={!aesKey}
+              >
+                Delete Content
               </Button>
             </CardContent>
           </Card>
@@ -124,6 +137,24 @@ export default function FilesSection({
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
   });
+
+  const deleteContent = async (cid: string) => {
+    if (!aesKey) return;
+    try {
+      const decryptedCid = decryptWithKey(cid, aesKey);
+      const files = await ipfsGetFiles();
+      const uid = files.fileList.find((file) => file.cid === decryptedCid)?.id;
+      if (!uid) {
+        alert("File not found on IPFS.");
+        return;
+      }
+      await Promise.all([ipfsDelete(uid), deleteCID(walletAddress!, cid)]);
+      alert("File deleted successfully.");
+    } catch (error) {
+      console.error("Failed to fetch IPFS content:", error);
+      alert("Failed to load content.");
+    }
+  };
   if (!walletAddress) return <div>No wallet connected</div>;
 
   return (
@@ -147,6 +178,44 @@ export default function FilesSection({
                 <p className="text-sm text-gray-600">
                   <strong>Uploaded:</strong> {new Date(data.created_at).toLocaleString()}
                 </p>
+          <h2 className="text-lg font-semibold mb-4">Available Medical Data:</h2>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {medicalData.map((data, index) => (
+              <div
+                key={index}
+                className="p-6 border rounded shadow bg-white flex flex-col justify-between space-y-2"
+              >
+                <div className="mb-2">
+                  <p className="text-sm text-gray-600 break-all">
+                    <strong>CID:</strong> {data.encryptedCid}
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    <strong>Type:</strong> {data.resourceType}
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    <strong>Uploaded:</strong> {new Date(data.createdAt).toLocaleString()}
+                  </p>
+                </div>
+                <Button onClick={() => displayContent(data.encryptedCid)} disabled={!aesKey}>
+                  View Content
+                </Button>
+                <Button onClick={() => downloadContent(data.encryptedCid)} disabled={!aesKey}>
+                  Download Content
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={async () => {
+                    if (!walletAddress) return;
+                    await deleteContent(data.encryptedCid);
+                    setMedicalData((prev) =>
+                      prev.filter((item) => item.encryptedCid !== data.encryptedCid)
+                    );
+                  }}
+                  disabled={!aesKey}
+                >
+                  Delete Content
+                </Button>
               </div>
               <Button onClick={() => displayContent(data.encrypted_cid)} disabled={!aesKey}>
                 View Content
