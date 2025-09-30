@@ -1,4 +1,16 @@
-import { describe, it, expect, spyOn } from 'bun:test';
+import { describe, it, expect, spyOn, mock } from 'bun:test';
+
+mock.module('@/config/config', () => ({
+  Config: {
+    APP_API_URL: 'http://localhost:3001',
+    APP_API_KEY: 'test-api-key',
+    PINATA_API_KEY: 'test-pinata-api-key',
+    PINATA_SECRET_API_KEY: 'test-pinata-secret-key',
+    WEB3AUTH_CLIENT_ID: 'test-web3auth-client-id',
+    APP_SALT: '0dsfwsaf2na8mc80a8efv8qpo'
+  }
+}));
+
 import { ipfsUpload, ipfsDownload, ipfsApiClient, ipfsGatewayClient } from './ipfsService';
 
 describe('ipfsUpload', () => {
