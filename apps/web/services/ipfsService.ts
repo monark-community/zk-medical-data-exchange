@@ -125,3 +125,28 @@ export const ipfsDownload = async (cid: string): Promise<string> => {
     );
   }
 };
+
+// /**
+//  * Deletes a file from IPFS using the Lighthouse service.
+//  * @param cid - The IPFS Content Identifier of the file to delete.
+//  * @returns A Promise that resolves to true if deletion was successful, false otherwise.
+//  */
+// export const ipfsDelete = async (cid: string): Promise<boolean> => {
+//   console.log("Deleting file with CID:", cid);
+//   const response = await lighthouse.deleteFile(Config.LIGHTHOUSE_API_KEY!, cid);
+
+//   if (response.data.message !== "File deleted successfully") {
+//     return false;
+//   }
+
+//   return true;
+// };
+
+// /**
+//  * Fetches a list of files uploaded to IPFS using the Lighthouse service.
+//  * @returns A Promise that resolves to an array of uploaded file metadata.
+//  */
+// export const ipfsGetFiles = async () => {
+//   const response = await lighthouse.getUploads(Config.LIGHTHOUSE_API_KEY!, null);
+//   return response.data;
+// };

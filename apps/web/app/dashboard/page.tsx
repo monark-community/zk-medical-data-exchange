@@ -11,6 +11,7 @@ import DashboardTabs from "./components/dashboardTabs";
 
 import { useAccount } from "wagmi";
 import UploadSection from "@/components/fileManagement/uploadSection";
+import AccountOverview from "./components/accountOverview";
 
 export default function Dashboard() {
   const { isConnected } = useProtectedRoute();
@@ -37,10 +38,15 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-gray-50">
       <CustomNavbar />
-      <main className="flex min-h-screen flex-col items-center justify-center gap-10 px-4">
+      <main className="flex min-h-screen flex-col items-center gap-10 px-4 py-8">
         <div className=" container mx-auto px-4 py-4 sm:px-6 lg:px-8">
-          <div className="title "></div>
-          <div className="summarySection "></div>
+          <div className="title mb-8">
+            <p className="text-3xl font-bold text-gray-900 mb-2">Your Health Data Dashboard</p>
+            <p className="text-gray-600">Manage your data contributions and track rewards</p>
+          </div>
+          <div className="summarySection ">
+            <AccountOverview />
+          </div>
           <div className="tabSection ">
             <DashboardTabs aesKey={aesKey} walletAddress={account.address} />
           </div>
