@@ -9,106 +9,7 @@ import { privateKeyToAccount } from "viem/accounts";
 import type { StudyCriteria } from "@zk-medical/shared";
 import logger from "@/utils/logger";
 import { Config } from "@/config/config";
-
-const STUDY_FACTORY_ABI = [
-  // Events
-  {
-    type: "event",
-    name: "StudyCreated",
-    inputs: [
-      { name: "studyId", type: "uint256", indexed: true },
-      { name: "studyContract", type: "address", indexed: true },
-      { name: "principalInvestigator", type: "address", indexed: true },
-      { name: "title", type: "string", indexed: false },
-    ],
-  },
-  // Read functions
-  {
-    type: "function",
-    name: "studyCount",
-    inputs: [],
-    outputs: [{ name: "", type: "uint256" }],
-    stateMutability: "view",
-  },
-  {
-    type: "function",
-    name: "openCreation",
-    inputs: [],
-    outputs: [{ name: "", type: "bool" }],
-    stateMutability: "view",
-  },
-  {
-    type: "function",
-    name: "owner",
-    inputs: [],
-    outputs: [{ name: "", type: "address" }],
-    stateMutability: "view",
-  },
-  {
-    type: "function",
-    name: "authorizedCreators",
-    inputs: [{ name: "", type: "address" }],
-    outputs: [{ name: "", type: "bool" }],
-    stateMutability: "view",
-  },
-  // Write functions
-  {
-    type: "function",
-    name: "createStudy",
-    inputs: [
-      { name: "title", type: "string" },
-      { name: "description", type: "string" },
-      { name: "maxParticipants", type: "uint256" },
-      { name: "startDate", type: "uint256" },
-      { name: "endDate", type: "uint256" },
-      { name: "principalInvestigator", type: "address" },
-      { name: "zkVerifierAddress", type: "address" },
-      {
-        name: "customCriteria",
-        type: "tuple",
-        components: [
-          { name: "enableAge", type: "uint256" },
-          { name: "minAge", type: "uint256" },
-          { name: "maxAge", type: "uint256" },
-          { name: "enableCholesterol", type: "uint256" },
-          { name: "minCholesterol", type: "uint256" },
-          { name: "maxCholesterol", type: "uint256" },
-          { name: "enableBMI", type: "uint256" },
-          { name: "minBMI", type: "uint256" },
-          { name: "maxBMI", type: "uint256" },
-          { name: "enableBloodType", type: "uint256" },
-          { name: "allowedBloodTypes", type: "uint256[4]" },
-          { name: "enableGender", type: "uint256" },
-          { name: "allowedGender", type: "uint256" },
-          { name: "enableLocation", type: "uint256" },
-          { name: "allowedRegions", type: "uint256[4]" },
-          { name: "enableBloodPressure", type: "uint256" },
-          { name: "minSystolic", type: "uint256" },
-          { name: "maxSystolic", type: "uint256" },
-          { name: "minDiastolic", type: "uint256" },
-          { name: "maxDiastolic", type: "uint256" },
-          { name: "enableSmoking", type: "uint256" },
-          { name: "allowedSmoking", type: "uint256" },
-          { name: "enableHbA1c", type: "uint256" },
-          { name: "minHbA1c", type: "uint256" },
-          { name: "maxHbA1c", type: "uint256" },
-          { name: "enableActivity", type: "uint256" },
-          { name: "minActivityLevel", type: "uint256" },
-          { name: "maxActivityLevel", type: "uint256" },
-          { name: "enableDiabetes", type: "uint256" },
-          { name: "allowedDiabetes", type: "uint256" },
-          { name: "enableHeartDisease", type: "uint256" },
-          { name: "allowedHeartDisease", type: "uint256" },
-        ],
-      },
-    ],
-    outputs: [
-      { name: "studyId", type: "uint256" },
-      { name: "studyAddress", type: "address" },
-    ],
-    stateMutability: "nonpayable",
-  },
-] as const;
+import { STUDY_FACTORY_ABI } from "../contracts/generated";
 
 export interface BlockchainDeploymentParams {
   title: string;
@@ -549,8 +450,13 @@ class BlockchainService {
         );
       }
 
-      const studyId = Number(decodedEvent.args.studyId);
-      const studyAddress = decodedEvent.args.studyContract;
+      // Ensure we have the correct StudyCreated event
+      if (decodedEvent.eventName !== "StudyCreated") {
+        throw new Error(`Expected StudyCreated event, got ${decodedEvent.eventName}`);
+      }
+
+      const studyId = Number((decodedEvent.args as any).studyId);
+      const studyAddress = (decodedEvent.args as any).studyContract;
 
       logger.info({ decodedEvent, studyId, studyAddress }, "Event decoded successfully");
 

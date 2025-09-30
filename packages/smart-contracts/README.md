@@ -76,6 +76,8 @@ bun run deploy:sepolia         # Deploy to Sepolia testnet
 - **[TESTING_GUIDE.md](./TESTING_GUIDE.md)** - ZK verifier testing guide
 - **[docs/CUSTOM_STUDIES.md](./docs/CUSTOM_STUDIES.md)** - Create custom medical studies
 
+> **📦 ABI Generation**: After compiling contracts, the API automatically generates TypeScript ABIs from artifacts. See [`apps/api/README.md`](../../apps/api/README.md#-contract-abi-generation) for details.
+
 ## 🎯 ZK Proof Workflow
 
 1. **Patient Data Input** - Age, BMI, blood pressure, medical history, etc.

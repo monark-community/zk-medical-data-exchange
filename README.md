@@ -78,6 +78,9 @@ bun run infra                      # Start local infrastructure (DB, ClickHouse)
 bun run deploy:contracts:local     # Deploy to local Hardhat network
 bun run deploy:contracts:sepolia   # Deploy to Sepolia testnet
 
+# Contract ABI Generation (API)
+bun run build:contracts            # Generate TypeScript ABIs from compiled contracts
+
 # Testing
 bun run test:contracts             # All smart contract tests
 bun run test:contracts:solidity    # Solidity unit tests
