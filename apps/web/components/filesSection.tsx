@@ -68,7 +68,7 @@ export default function FilesSection({
   };
 
   const deleteContent = async (cid: string) => {
-    if (!aesKey) return;
+    if (!aesKey || !walletAddress) return;
     try {
       const decryptedCid = decryptWithKey(cid, aesKey);
       const files = await ipfsGetFiles();
@@ -79,9 +79,11 @@ export default function FilesSection({
       }
       await Promise.all([ipfsDelete(uid), deleteCID(walletAddress!, cid)]);
       alert("File deleted successfully.");
+      setMedicalData((prev) => prev.filter((item) => item.encryptedCid !== cid));
     } catch (error) {
       console.error("Failed to fetch IPFS content:", error);
       alert("Failed to load content.");
+      // TODO: Add better UI feedback
     }
   };
   if (!walletAddress) return <div>No wallet connected</div>;
@@ -119,13 +121,7 @@ export default function FilesSection({
                 </Button>
                 <Button
                   variant="destructive"
-                  onClick={async () => {
-                    if (!walletAddress) return;
-                    await deleteContent(data.encryptedCid);
-                    setMedicalData((prev) =>
-                      prev.filter((item) => item.encryptedCid !== data.encryptedCid)
-                    );
-                  }}
+                  onClick={() => deleteContent(data.encryptedCid)}
                   disabled={!aesKey}
                 >
                   Delete Content
