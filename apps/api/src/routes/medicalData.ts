@@ -63,20 +63,20 @@ router.get("/", downloadCIDs);
  * /medical-data:
  *   delete:
  *     summary: Delete medical data
- *    requestBody:
- *    required: true
- *   content:
- *    application/json:
- *    schema:
- *    type: object
- *   properties:
- *    wallet_address:
- *    type: string
- *  encrypted_cid:
- *   type: string
- *   responses:
- *    200:
- *      description: Data deleted successfully
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               wallet_address:
+ *                 type: string
+ *               encrypted_cid:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Data deleted successfully
  */
 router.delete("/", deleteCID);
 
