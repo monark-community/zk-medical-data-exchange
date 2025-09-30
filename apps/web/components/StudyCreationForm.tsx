@@ -20,7 +20,9 @@ const TemplateSelector = ({
     <div className="space-y-6">
       <div>
         <h3 className="text-xl font-semibold text-gray-900 mb-2">Quick Start Templates</h3>
-        <p className="text-gray-600 text-sm">Choose a template to get started quickly, or customize your own criteria below.</p>
+        <p className="text-gray-600 text-sm">
+          Choose a template to get started quickly, or customize your own criteria below.
+        </p>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {STUDY_FORM_MAPPINGS.templates.map((template) => (
@@ -35,7 +37,9 @@ const TemplateSelector = ({
             }
           >
             <div className="absolute top-4 right-4 w-3 h-3 bg-blue-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
-            <h4 className="font-semibold text-gray-900 mb-3 group-hover:text-blue-700 transition-colors">{template.name}</h4>
+            <h4 className="font-semibold text-gray-900 mb-3 group-hover:text-blue-700 transition-colors">
+              {template.name}
+            </h4>
             <p className="text-sm text-gray-600 leading-relaxed">{template.description}</p>
           </div>
         ))}
@@ -57,11 +61,13 @@ const CriteriaField = ({
   children: React.ReactNode;
 }) => {
   return (
-    <div className={`relative p-6 border-2 rounded-xl transition-all duration-200 ${
-      enabled 
-        ? 'border-blue-200 bg-gradient-to-br from-blue-50 to-white shadow-sm' 
-        : 'border-gray-200 bg-white hover:border-gray-300'
-    }`}>
+    <div
+      className={`relative p-6 border-2 rounded-xl transition-all duration-200 ${
+        enabled
+          ? "border-blue-200 bg-gradient-to-br from-blue-50 to-white shadow-sm"
+          : "border-gray-200 bg-white hover:border-gray-300"
+      }`}
+    >
       <div className="flex items-center space-x-4 mb-4">
         <div className="relative">
           <input
@@ -74,14 +80,15 @@ const CriteriaField = ({
             <div className="absolute -top-1 -right-1 w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div>
           )}
         </div>
-        <label className="font-semibold text-gray-900 text-lg cursor-pointer" onClick={() => onEnabledChange(!enabled)}>
+        <label
+          className="font-semibold text-gray-900 text-lg cursor-pointer"
+          onClick={() => onEnabledChange(!enabled)}
+        >
           {label}
         </label>
       </div>
       {enabled && (
-        <div className="ml-9 space-y-4 animate-in slide-in-from-top-2 duration-300">
-          {children}
-        </div>
+        <div className="ml-9 space-y-4 animate-in slide-in-from-top-2 duration-300">{children}</div>
       )}
     </div>
   );
@@ -153,7 +160,11 @@ interface StudyCreationFormProps {
   onSubmitStateChange?: (isSubmitting: boolean) => void;
 }
 
-const StudyCreationForm = ({ onSuccess, isModal = false, onSubmitStateChange }: StudyCreationFormProps) => {
+const StudyCreationForm = ({
+  onSuccess,
+  isModal = false,
+  onSubmitStateChange,
+}: StudyCreationFormProps) => {
   // Basic study info
   const [studyInfo, setStudyInfo] = useState(DEFAULT_STUDY_INFO);
 
@@ -352,14 +363,16 @@ const StudyCreationForm = ({ onSuccess, isModal = false, onSubmitStateChange }: 
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-8 space-y-4 sm:space-y-0">
           <div>
             <h2 className="text-2xl font-bold text-gray-900 mb-2">Eligibility Criteria</h2>
-            <p className="text-gray-600">Define the requirements participants must meet to join your study.</p>
+            <p className="text-gray-600">
+              Define the requirements participants must meet to join your study.
+            </p>
           </div>
           <div className="flex items-center space-x-3">
             <div className="bg-blue-100 text-blue-800 font-semibold px-4 py-2 rounded-full text-sm">
               {enabledCount}/12 criteria enabled
             </div>
             <div className="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
-              <div 
+              <div
                 className="h-full bg-gradient-to-r from-blue-500 to-blue-600 transition-all duration-500"
                 style={{ width: `${(enabledCount / 12) * 100}%` }}
               ></div>

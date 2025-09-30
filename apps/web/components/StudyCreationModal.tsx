@@ -75,10 +75,10 @@ export default function StudyCreationModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
-      <div 
+      <div
         className={`absolute inset-0 bg-black ${
-          isCreatingStudy ? 'bg-opacity-70' : 'bg-opacity-50'
-        }`} 
+          isCreatingStudy ? "bg-opacity-70" : "bg-opacity-50"
+        }`}
         onClick={isCreatingStudy ? undefined : handleCloseClick}
       />
 
@@ -109,7 +109,9 @@ export default function StudyCreationModal({
                 ></path>
               </svg>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">Creating Your Study</h3>
-              <p className="text-gray-600">Please wait while we deploy your study to the blockchain...</p>
+              <p className="text-gray-600">
+                Please wait while we deploy your study to the blockchain...
+              </p>
             </div>
           </div>
         )}
@@ -123,13 +125,11 @@ export default function StudyCreationModal({
                 Configure eligibility criteria and deploy your ZK-powered medical research study
               </p>
             </div>
-            <Button 
-              onClick={handleCloseClick} 
-              variant="outline" 
-              size="sm" 
-              className={`h-8 w-8 p-0 ${
-                isCreatingStudy ? 'opacity-50 cursor-not-allowed' : ''
-              }`}
+            <Button
+              onClick={handleCloseClick}
+              variant="outline"
+              size="sm"
+              className={`h-8 w-8 p-0 ${isCreatingStudy ? "opacity-50 cursor-not-allowed" : ""}`}
               disabled={isCreatingStudy}
             >
               ✕
@@ -140,8 +140,8 @@ export default function StudyCreationModal({
         {/* Content */}
         <div className="overflow-y-auto max-h-[calc(90vh-100px)]">
           <div className="p-6">
-            <StudyCreationForm 
-              onSuccess={handleStudyCreated} 
+            <StudyCreationForm
+              onSuccess={handleStudyCreated}
               isModal={true}
               onSubmitStateChange={handleSubmitStateChange}
             />
