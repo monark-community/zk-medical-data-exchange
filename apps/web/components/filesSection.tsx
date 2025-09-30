@@ -72,7 +72,7 @@ export default function FilesSection({
     try {
       const decryptedCid = decryptWithKey(cid, aesKey);
       await ipfsDelete(decryptedCid);
-      await deleteCID(walletAddress!, decryptedCid);
+      await deleteCID(walletAddress!, cid);
       alert("File deleted successfully.");
       setMedicalData((prev) => prev.filter((item) => item.encryptedCid !== cid));
     } catch (error) {
