@@ -9,6 +9,7 @@ import { ipfsUpload } from "@/services/ipfsService";
 import { uploadMedicalData } from "@/services/dataVaultService";
 import RecordTypeSelect from "@/components/fileManagement/recordTypeSelect";
 import { Upload } from "lucide-react";
+import eventBus from "@/lib/eventBus";
 export default function UploadSection({
   account,
   aesKey,
@@ -115,6 +116,7 @@ export default function UploadSection({
 
                   if (result) {
                     alert("Medical data uploaded successfully.");
+                    eventBus.emit("medicalDataUploaded");
                   }
 
                   setUploadedFileName(null);

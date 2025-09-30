@@ -23,6 +23,7 @@ import {
 } from "@tanstack/react-table";
 import { ChevronLeft, ChevronRight, HeartPulse } from "lucide-react";
 import FileSkeletonCard from "@/app/dashboard/components/fileSkeletonCard";
+import eventBus from "@/lib/eventBus";
 
 export default function FilesSection({
   walletAddress,
@@ -40,7 +41,6 @@ export default function FilesSection({
       setLoading(true);
       try {
         const data = await fetchCIDs(walletAddress);
-
         setMedicalData(data);
       } catch (error) {
         console.error("Error fetching CIDs:", error);
@@ -50,9 +50,22 @@ export default function FilesSection({
     };
 
     fetchData();
+
+    const handler = () => {
+      // Simply refetch; no payload filtering needed
+      fetchData();
+    };
+    eventBus.on("medicalDataUploaded", handler);
+    return () => {
+      eventBus.off("medicalDataUploaded", handler);
+    };
   }, [walletAddress]);
 
-  const data = medicalData;
+  const [data, setData] = useState(medicalData);
+
+  useEffect(() => {
+    setData(medicalData);
+  }, [medicalData]);
   const columns: ColumnDef<MedicalData>[] = [
     {
       accessorKey: "details",
