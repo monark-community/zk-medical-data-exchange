@@ -29,6 +29,8 @@ test('Config Debug Info', () => {
   console.log('APP_API_KEY:', Config.APP_API_KEY ? '***SET***' : 'EMPTY');
   console.log('NODE_ENV:', Config.NODE_ENV);
   console.log('Test API Key:', testApiKey ? '***SET***' : 'EMPTY');
+  console.log('Environment IS_CI:', process.env.IS_CI);
+  console.log('Environment IS_LOCAL_MODE:', process.env.IS_LOCAL_MODE);
   console.log('=== End Debug Info ===');
 });
 

@@ -40,6 +40,14 @@ app.use(
 
 app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use(express.json());
+
+console.log('=== Middleware Setup Debug ===');
+console.log('IS_LOCAL_MODE:', Config.IS_LOCAL_MODE);
+console.log('Applying API key middleware:', !Config.IS_LOCAL_MODE);
+console.log('IS_CI:', Config.IS_CI);
+console.log('Applying Supabase middleware:', !Config.IS_CI);
+console.log('=== End Middleware Debug ===');
+
 if (!Config.IS_LOCAL_MODE) app.use(apiKeyMiddleware);
 if (!Config.IS_CI) app.use(supabaseMiddleware);
 app.use("/", mainRouter);
