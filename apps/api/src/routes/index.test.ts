@@ -3,7 +3,7 @@ process.env.NODE_ENV = 'test';
 import { test, expect, mock } from 'bun:test';
 import request from 'supertest';
 
-mock.module('@/config/config', () => ({
+mock.module('../config/config', () => ({
   Config: {
     APP_API_KEY: 'test-key',
     SUPABASE_URL: 'http://localhost:8000',
@@ -12,7 +12,7 @@ mock.module('@/config/config', () => ({
   }
 }));
 
-import app from '@/index';
+import app from '../index';
 
 test('GET / should return Hello World', async () => {
   const res = await request(app).get('/').set('x-api-key', 'test-key');
