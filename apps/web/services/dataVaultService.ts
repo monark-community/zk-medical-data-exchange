@@ -24,3 +24,10 @@ export const fetchCIDs = async (wallet_address: string): Promise<MedicalData[]> 
     createdAt: item.created_at,
   }));
 };
+
+export const deleteCID = async (wallet_address: string, encrypted_cid: string) => {
+  const response = await apiClient.delete("/medical-data", {
+    data: { wallet_address, encrypted_cid },
+  });
+  return response.data;
+};
