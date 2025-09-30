@@ -13,7 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   useReactTable,
   getPaginationRowModel,
@@ -79,7 +79,13 @@ export default function FilesSection({
                 <div className="w-12 h-12 bg-gradient-to-br from-blue-100 to-teal-100 rounded-lg flex items-center justify-center">
                   <HeartPulse />
                 </div>
-                <CardTitle>{data.resourceType}</CardTitle>
+                <div className="items-center">
+                  <CardTitle>{data.resourceType}</CardTitle>
+                  <p>
+                    <strong>Uploaded: </strong>
+                    {new Date(data.createdAt).toLocaleString()}
+                  </p>
+                </div>
               </div>
               <FileOperationDropDown
                 walletAddress={walletAddress}
@@ -88,14 +94,6 @@ export default function FilesSection({
                 data={data}
               />
             </CardHeader>
-            <CardContent>
-              <div>
-                <p>
-                  <strong>Uploaded: </strong>
-                  {new Date(data.createdAt).toLocaleString()}
-                </p>
-              </div>
-            </CardContent>
           </Card>
         );
       },
