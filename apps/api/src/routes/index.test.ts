@@ -1,6 +1,7 @@
 import { test, expect, mock } from 'bun:test';
 import request from 'supertest';
 
+// Mock in local testing, use real config in CI
 if (process.env.IS_CI !== 'true') {
   mock.module('../config/config', () => ({
     Config: {
@@ -18,10 +19,10 @@ if (process.env.IS_CI !== 'true') {
 }
 
 import app from '../index';
-import { Config } from '../config/config';
 
-// Use the same API key that the config is using
-const testApiKey = Config.APP_API_KEY || 'test-key';
+const testApiKey = process.env.IS_CI === 'true' 
+  ? process.env.APP_API_KEY || 'test-key'
+  : 'test-key';
 
 test('GET / should return Hello World', async () => {
   const res = await request(app).get('/').set('x-api-key', testApiKey);
