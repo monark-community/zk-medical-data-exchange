@@ -18,8 +18,10 @@ if (process.env.IS_CI !== 'true') {
 }
 
 import app from '../index';
+import { Config } from '../config/config';
 
-const testApiKey = process.env.APP_API_KEY || 'test-key';
+// Use the same API key that the config is using
+const testApiKey = Config.APP_API_KEY || 'test-key';
 
 test('GET / should return Hello World', async () => {
   const res = await request(app).get('/').set('x-api-key', testApiKey);
