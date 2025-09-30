@@ -52,7 +52,6 @@ export default function FilesSection({
     fetchData();
 
     const handler = () => {
-      // Simply refetch; no payload filtering needed
       fetchData();
     };
     eventBus.on("medicalDataUploaded", handler);
@@ -107,7 +106,7 @@ export default function FilesSection({
     getPaginationRowModel: getPaginationRowModel(),
     initialState: {
       pagination: {
-        pageSize: 4, // Set the page size to 4
+        pageSize: 4,
       },
     },
   });
