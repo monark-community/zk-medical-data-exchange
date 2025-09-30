@@ -7,7 +7,7 @@
     "build": "next build --turbopack",
     "start": "next start",
     "lint": "eslint .",
-    "test": "echo \"No tests yet\""
+    "test": "bun test"
   },
   "dependencies": {
     "@lighthouse-web3/sdk": "^0.4.2",
@@ -32,6 +32,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/bun": "latest",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

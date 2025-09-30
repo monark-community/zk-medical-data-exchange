@@ -44,10 +44,14 @@ if (!Config.IS_LOCAL_MODE) app.use(apiKeyMiddleware);
 if (!Config.IS_CI) app.use(supabaseMiddleware);
 app.use("/", mainRouter);
 
-app.listen(port, () => {
-  logger.info(`API listening on http://localhost:${port}`);
-  logger.info(`Docs at http://localhost:${port}/docs`);
-});
+export default app;
+
+if (import.meta.main) {
+  app.listen(port, () => {
+    logger.info(`API listening on http://localhost:${port}`);
+    logger.info(`Docs at http://localhost:${port}/docs`);
+  });
+}
 
 process.on("uncaughtException", (err) => {
   logger.error({ err }, "Uncaught Exception");
@@ -56,5 +60,3 @@ process.on("uncaughtException", (err) => {
 process.on("unhandledRejection", (reason, promise) => {
   logger.error({ reason, promise }, "Unhandled Rejection");
 });
-
-export default app;
