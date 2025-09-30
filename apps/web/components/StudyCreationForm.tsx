@@ -114,7 +114,12 @@ const RangeInput = ({
   );
 };
 
-const StudyCreationForm = () => {
+interface StudyCreationFormProps {
+  onSuccess?: () => void;
+  isModal?: boolean;
+}
+
+const StudyCreationForm = ({ onSuccess, isModal = false }: StudyCreationFormProps) => {
   // Basic study info
   const [studyInfo, setStudyInfo] = useState(DEFAULT_STUDY_INFO);
 
@@ -210,9 +215,13 @@ const StudyCreationForm = () => {
             `• View on Etherscan: ${deployResult.data.deployment.etherscanUrl}`
         );
 
-        // Clear form and navigate to dashboard
+        // Clear form and handle success
         resetForm();
-        router.push("/dashboard");
+        if (isModal && onSuccess) {
+          onSuccess();
+        } else {
+          router.push("/dashboard");
+        }
       } catch (deployError) {
         console.error("Blockchain deployment failed:", deployError);
         alert(
@@ -221,9 +230,13 @@ const StudyCreationForm = () => {
             `You can retry deployment later from the study management page.`
         );
 
-        // Clear form and navigate to dashboard even if blockchain deployment failed
+        // Clear form and handle success even if blockchain deployment failed
         resetForm();
-        router.push("/dashboard");
+        if (isModal && onSuccess) {
+          onSuccess();
+        } else {
+          router.push("/dashboard");
+        }
       }
     } catch (error) {
       console.error("Failed to create study:", error);
