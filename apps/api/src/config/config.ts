@@ -1,10 +1,17 @@
-import * as dotenv from "dotenv";
-dotenv.config();
+import dotenv from 'dotenv';
 
-function requireEnv(name: string): string | undefined {
-  if (process.env.IS_CI) return undefined;
+if (process.env.NODE_ENV !== 'test') {
+  dotenv.config();
+}
+
+function requireEnv(name: string): string {
   const value = process.env[name];
-  if (!value) throw new Error(`Missing required env var: ${name}`);
+  if (!value) {
+    if (process.env.NODE_ENV === 'test') {
+      return '';
+    }
+    throw new Error(`Missing required env var: ${name}`);
+  }
   return value;
 }
 
@@ -22,4 +29,6 @@ export const Config = {
   // Supabase
   SUPABASE_URL: requireEnv("SUPABASE_URL"),
   SUPABASE_KEY: requireEnv("SUPABASE_ANON_KEY"),
+  PINATA_API_KEY: requireEnv('PINATA_API_KEY'),
+  PINATA_SECRET_API_KEY: requireEnv('PINATA_SECRET_API_KEY')
 };
