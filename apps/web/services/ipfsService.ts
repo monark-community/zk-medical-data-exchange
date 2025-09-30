@@ -1,7 +1,7 @@
 import { Config } from "@/config/config";
 import axios from "axios";
 
-const GATEWAY_URL = 'https://gateway.pinata.cloud';
+const GATEWAY_URL = 'https://violet-added-quelea-543.mypinata.cloud';
 
 const MAX_CACHE_SIZE = 100; 
 const MAX_CONTENT_SIZE = 1024 * 1024; // 1MB 
@@ -48,23 +48,25 @@ const manageCacheSize = (): void => {
 };
 
 /**
- * Uploads plain text content to IPFS using the Pinata service.
+ * Uploads encrypted content to IPFS using the Pinata service with minimal metadata.
  *
- * @param file_content - The string content to be uploaded.
- * @param metadata - Optional metadata for the upload.
+ * @param file_content - The encrypted content to be uploaded.
  * @returns A Promise that resolves to the CID (Content Identifier) of the uploaded file.
- * @throws Will throw an error if the upload request fails or content is invalid.
+ * @throws Will throw an error if the upload request fails.
  */
 export const ipfsUpload = async (
-  file_content: string, 
-  metadata?: { name?: string; keyvalues?: Record<string, string> }
+  file_content: string
 ): Promise<string> => {
   try {
+    const randomId = Math.random().toString(36).substring(2, 10);
+    
     const data = {
       pinataContent: file_content,
       pinataMetadata: {
-        name: metadata?.name || `medical-data-${Date.now()}`,
-        keyvalues: metadata?.keyvalues || {}
+        name: `data-${randomId}`,
+        keyvalues: {
+          contentType: "encrypted"
+        }
       }
     };
 
