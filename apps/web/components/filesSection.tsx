@@ -44,10 +44,10 @@ export default function FilesSection({
   };
 
   const downloadContent = async (cid: string) => {
-    const decrypted = await getFileContent(cid);
-    if (!decrypted) return;
+    const decryptedContent = await getFileContent(cid);
+    if (!decryptedContent) return;
 
-    const blob = new Blob([decrypted], { type: "text/plain" });
+    const blob = new Blob([decryptedContent], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
