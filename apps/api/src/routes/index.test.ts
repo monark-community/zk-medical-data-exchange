@@ -1,7 +1,7 @@
 import { test, expect, mock } from 'bun:test';
 import request from 'supertest';
 
-if (!process.env.APP_API_KEY || process.env.APP_API_KEY === '') {
+if (process.env.IS_CI !== 'true') {
   mock.module('../config/config', () => ({
     Config: {
       APP_API_KEY: 'test-key',
