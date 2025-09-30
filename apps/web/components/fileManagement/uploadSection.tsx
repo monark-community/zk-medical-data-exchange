@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Button } from "./ui/button";
+import { Button } from "@/components/ui/button";
 import { checkCompliance, ComplianceResult } from "@/utils/compliance";
 import { FhirResourceType, FhirResourceTypes } from "@/constants/fhirResourceTypes";
 import { ReportType } from "@/constants/reportType";
@@ -7,8 +7,9 @@ import { Config, UseAccountReturnType } from "wagmi";
 import { encryptWithKey } from "@/utils/encryption";
 import { ipfsUpload } from "@/services/ipfsService";
 import { uploadMedicalData } from "@/services/dataVaultService";
-import RecordTypeSelect from "./recordTypeSelect";
-
+import RecordTypeSelect from "@/components/fileManagement/recordTypeSelect";
+import { Upload } from "lucide-react";
+import eventBus from "@/lib/eventBus";
 export default function UploadSection({
   account,
   aesKey,
@@ -76,7 +77,11 @@ export default function UploadSection({
   };
   return (
     <>
-      <Button onClick={handleUploadMedicalData}>Upload medical data</Button>
+      {!checking && !readyToSend && (
+        <Button onClick={handleUploadMedicalData}>
+          <Upload /> Upload medical data
+        </Button>
+      )}
       {uploadedFileName && (
         <div className="flex items-center gap-2 mt-2">
           <span>{uploadedFileName}</span>
@@ -113,6 +118,7 @@ export default function UploadSection({
 
                   if (result) {
                     alert("Medical data uploaded successfully.");
+                    eventBus.emit("medicalDataUploaded");
                   }
 
                   setUploadedFileName(null);
