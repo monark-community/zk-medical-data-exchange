@@ -13,7 +13,7 @@ import {
 
 import { EllipsisVertical } from "lucide-react";
 
-// import { deleteCID } from "@/services/dataVaultService";
+import { deleteCID } from "@/services/dataVaultService";
 
 import { ipfsDownload } from "@/services/ipfsService";
 import { decryptWithKey } from "@/utils/encryption";
@@ -21,9 +21,9 @@ import { decryptWithKey } from "@/utils/encryption";
 // import { useWeb3AuthDisconnect } from "@web3auth/modal/react";
 import { MedicalData } from "@/interfaces/medicalData";
 const FileOperationDropDown = ({
-  // walletAddress,
+  walletAddress,
   aesKey,
-  // setMedicalData,
+  setMedicalData,
   data,
 }: {
   walletAddress: `0x${string}` | undefined;
@@ -70,23 +70,20 @@ const FileOperationDropDown = ({
     window.open(url, "_blank");
   };
 
-  // const deleteContent = async (cid: string) => {
-  //   if (!aesKey) return;
-  //   try {
-  //     const decryptedCid = decryptWithKey(cid, aesKey);
-  //     const files = await ipfsGetFiles();
-  //     const uid = files.fileList.find((file) => file.cid === decryptedCid)?.id;
-  //     if (!uid) {
-  //       alert("File not found on IPFS.");
-  //       return;
-  //     }
-  //     await Promise.all([ipfsDelete(uid), deleteCID(walletAddress!, cid)]);
-  //     alert("File deleted successfully.");
-  //   } catch (error) {
-  //     console.error("Failed to fetch IPFS content:", error);
-  //     alert("Failed to load content.");
-  //   }
-  // };
+  const deleteContent = async (cid: string) => {
+    if (!aesKey || !walletAddress) return;
+    try {
+      // TODO: Delete file on ipfs
+      // const decryptedCid = decryptWithKey(cid, aesKey);
+      await deleteCID(walletAddress!, cid);
+      alert("File deleted successfully.");
+      setMedicalData((prev) => prev.filter((item) => item.encryptedCid !== cid));
+    } catch (error) {
+      console.error("Failed to fetch IPFS content:", error);
+      alert("Failed to load content.");
+      // TODO: Add better UI feedback
+    }
+  };
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -104,19 +101,13 @@ const FileOperationDropDown = ({
             Download Content
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          {/* <DropdownMenuItem
+          <DropdownMenuItem
             variant="destructive"
-            onClick={async () => {
-              if (!walletAddress) return;
-              await deleteContent(data.encryptedCid);
-              setMedicalData((prev) =>
-                prev.filter((item) => item.encryptedCid !== data.encryptedCid)
-              );
-            }}
+            onClick={() => deleteContent(data.encryptedCid)}
             disabled={!aesKey}
           >
             Delete Content
-          </DropdownMenuItem> */}
+          </DropdownMenuItem>
         </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>
