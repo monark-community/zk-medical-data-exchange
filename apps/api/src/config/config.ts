@@ -1,15 +1,21 @@
-import * as dotenv from "dotenv";
-dotenv.config();
+import dotenv from 'dotenv';
 
-function requireEnv(name: string): string | undefined {
-  if (process.env.IS_CI) return undefined;
+if (process.env.NODE_ENV !== 'test') {
+  dotenv.config();
+}
+
+function requireEnv(name: string): string {
   const value = process.env[name];
-  if (!value) throw new Error(`Missing required env var: ${name}`);
+  if (!value) {
+    if (process.env.NODE_ENV === 'test') {
+      return '';
+    }
+    throw new Error(`Missing required env var: ${name}`);
+  }
   return value;
 }
 
 function determineLocalMode(): boolean {
-  if (process.env.IS_CI) return true;
   return process.env.IS_LOCAL_MODE === "true";
 }
 

@@ -13,6 +13,8 @@ on:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+    env:
+      IS_CI: "true"
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
