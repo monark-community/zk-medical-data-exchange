@@ -46,7 +46,7 @@ app.use("/", mainRouter);
 
 export default app;
 
-if (import.meta.main) {
+if (process.argv[1] === __filename) {
   app.listen(port, () => {
     logger.info(`API listening on http://localhost:${port}`);
     logger.info(`Docs at http://localhost:${port}/docs`);
