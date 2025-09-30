@@ -16,7 +16,7 @@ function requireEnv(name: string): string {
 }
 
 function determineLocalMode(): boolean {
-  if (process.env.IS_CI) return true;
+  if (process.env.IS_CI === "true") return true;
   return process.env.IS_LOCAL_MODE === "true";
 }
 
