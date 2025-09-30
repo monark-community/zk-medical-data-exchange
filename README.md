@@ -1,4 +1,4 @@
-# ZK Medical Data Exchange
+# CURA
 
 A privacy-preserving Web3 platform that enables secure medical research through Zero-Knowledge proofs, allowing patients to participate in studies without revealing sensitive medical data.
 
