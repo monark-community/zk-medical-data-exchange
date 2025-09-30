@@ -8,8 +8,10 @@ import {
   deployStudy,
 } from "@/controllers/studyController";
 
+// TODO: [LT] Improve All Swagger docs
+
 const router = Router();
-// TODO: [LT] Improve Swagger docs
+
 /**
  * @swagger
  * /studies:

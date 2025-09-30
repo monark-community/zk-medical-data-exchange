@@ -32,10 +32,12 @@ export const Config = {
 
   // Blockchain Configuration
   SEPOLIA_PRIVATE_KEY: requireEnv("SEPOLIA_PRIVATE_KEY"),
-  SEPOLIA_RPC_URL:
-    process.env.SEPOLIA_RPC_URL || "https://sepolia.infura.io/v3/1fc9dc00f527450ab8ec6ea9c0571e9e",
+  SEPOLIA_RPC_URL: process.env.SEPOLIA_RPC_URL,
 
   // Smart Contract Addresses
-  STUDY_FACTORY_ADDRESS: "0x46209a88c172e06dd2c3eae2d2bca161e3306aef" as const,
-  ZK_VERIFIER_ADDRESS: "0x3c973b7ed28c26efcd6e733e722b1a5d3d488046" as const,
+  // TODO: [LT] Remove the default values before deploying to production!
+  STUDY_FACTORY_ADDRESS:
+    process.env.STUDY_FACTORY_ADDRESS || "0x46209a88c172e06dd2c3eae2d2bca161e3306aef",
+  ZK_VERIFIER_ADDRESS:
+    process.env.ZK_VERIFIER_ADDRESS || "0x3c973b7ed28c26efcd6e733e722b1a5d3d488046",
 };
