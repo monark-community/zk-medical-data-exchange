@@ -28,6 +28,4 @@ export const Config = {
   // Supabase
   SUPABASE_URL: requireEnv("SUPABASE_URL"),
   SUPABASE_KEY: requireEnv("SUPABASE_ANON_KEY"),
-  PINATA_API_KEY: requireEnv('PINATA_API_KEY'),
-  PINATA_SECRET_API_KEY: requireEnv('PINATA_SECRET_API_KEY')
 };
