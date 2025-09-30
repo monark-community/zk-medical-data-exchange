@@ -164,8 +164,8 @@ router.patch("/:id", updateStudy);
 /**
  * @swagger
  * /studies/{id}/deployment:
- *   put:
- *     summary: Deploy study to blockchain (create/update deployment)
+ *   post:
+ *     summary: Deploy study to blockchain
  *     description: Creates or updates the blockchain deployment for a study
  *     parameters:
  *       - name: id
