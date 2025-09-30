@@ -8,14 +8,7 @@ function requireEnv(name: string): string {
   const value = process.env[name];
   if (!value) {
     if (process.env.NODE_ENV === 'test') {
-      const testDefaults: Record<string, string> = {
-        'APP_API_KEY': 'test-fallback-key',
-        'SUPABASE_URL': 'http://localhost:8000',
-        'SUPABASE_ANON_KEY': 'test-supabase-key',
-        'PINATA_API_KEY': 'test-pinata-key',
-        'PINATA_SECRET_API_KEY': 'test-pinata-secret-key'
-      };
-      return testDefaults[name] || '';
+      return '';
     }
     throw new Error(`Missing required env var: ${name}`);
   }
