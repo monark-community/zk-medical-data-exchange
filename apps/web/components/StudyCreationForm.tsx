@@ -13,36 +13,98 @@ import { STUDY_FORM_MAPPINGS, DEFAULT_STUDY_INFO } from "@/constants/studyFormMa
 // Template selector component
 const TemplateSelector = ({
   onTemplateSelect,
+  selectedTemplate,
+  onClearTemplate,
 }: {
   onTemplateSelect: (_template: any, _templateId: string) => void;
+  selectedTemplate?: string;
+  onClearTemplate: () => void;
 }) => {
   return (
     <div className="space-y-6">
-      <div>
-        <h3 className="text-xl font-semibold text-gray-900 mb-2">Quick Start Templates</h3>
-        <p className="text-gray-600 text-sm">
-          Choose a template to get started quickly, or customize your own criteria below.
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-xl font-semibold text-gray-900 mb-2">Quick Start Templates</h3>
+          <p className="text-gray-600 text-sm">
+            Choose a template to get started quickly, or customize your own criteria below.
+            {selectedTemplate && (
+              <span className="ml-2 text-blue-600 font-medium">
+                Currently using:{" "}
+                {STUDY_FORM_MAPPINGS.templates.find((t) => t.id === selectedTemplate)?.name}
+              </span>
+            )}
+          </p>
+        </div>
+        {selectedTemplate && (
+          <Button
+            onClick={onClearTemplate}
+            variant="outline"
+            size="sm"
+            className="text-gray-600 hover:text-gray-800 border-gray-300"
+          >
+            Clear Template
+          </Button>
+        )}
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-        {STUDY_FORM_MAPPINGS.templates.map((template) => (
-          <div
-            key={template.id}
-            className="group relative p-6 border-2 border-gray-200 rounded-xl cursor-pointer transition-all duration-200 hover:border-blue-300 hover:shadow-lg hover:scale-[1.02] bg-gradient-to-br from-white to-gray-50"
-            onClick={() =>
-              onTemplateSelect(
-                STUDY_TEMPLATES[template.id as keyof typeof STUDY_TEMPLATES],
-                template.id
-              )
-            }
-          >
-            <div className="absolute top-4 right-4 w-3 h-3 bg-blue-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
-            <h4 className="font-semibold text-gray-900 mb-3 group-hover:text-blue-700 transition-colors">
-              {template.name}
-            </h4>
-            <p className="text-sm text-gray-600 leading-relaxed">{template.description}</p>
-          </div>
-        ))}
+        {STUDY_FORM_MAPPINGS.templates.map((template) => {
+          const isSelected = selectedTemplate === template.id;
+          return (
+            <div
+              key={template.id}
+              className={`group relative p-6 border-2 rounded-xl cursor-pointer transition-all duration-200 ${
+                isSelected
+                  ? "border-blue-500 bg-gradient-to-br from-blue-100 to-blue-50 shadow-lg scale-[1.02]"
+                  : "border-gray-200 hover:border-blue-300 hover:shadow-lg hover:scale-[1.02] bg-gradient-to-br from-white to-gray-50"
+              }`}
+              onClick={() =>
+                onTemplateSelect(
+                  STUDY_TEMPLATES[template.id as keyof typeof STUDY_TEMPLATES],
+                  template.id
+                )
+              }
+            >
+              {/* Selection indicator */}
+              <div
+                className={`absolute top-4 right-4 w-6 h-6 rounded-full transition-all duration-200 ${
+                  isSelected
+                    ? "bg-blue-500 opacity-100 scale-100"
+                    : "bg-blue-500 opacity-0 group-hover:opacity-100 scale-75 group-hover:scale-100"
+                }`}
+              >
+                {isSelected && (
+                  <svg
+                    className="w-4 h-4 text-white absolute top-1 left-1"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                )}
+              </div>
+
+              {/* Selected badge */}
+              {isSelected && (
+                <div className="absolute -top-2 -left-2 bg-blue-500 text-white text-xs font-bold px-2 py-1 rounded-full">
+                  SELECTED
+                </div>
+              )}
+
+              <h4
+                className={`font-semibold mb-3 transition-colors ${
+                  isSelected ? "text-blue-700" : "text-gray-900 group-hover:text-blue-700"
+                }`}
+              >
+                {template.name}
+              </h4>
+              <p className="text-sm text-gray-600 leading-relaxed">{template.description}</p>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -202,6 +264,12 @@ const StudyCreationForm = ({
     setValidationErrors([]);
   };
 
+  const handleClearTemplate = () => {
+    setCriteria(createCriteria());
+    setSelectedTemplate(undefined);
+    setValidationErrors([]);
+  };
+
   const updateCriteria = (updates: Partial<typeof criteria>) => {
     const newCriteria = { ...criteria, ...updates };
     setCriteria(newCriteria);
@@ -355,7 +423,11 @@ const StudyCreationForm = ({
 
       {/* Template Selection */}
       <div className="bg-gradient-to-br from-white to-blue-50 p-8 rounded-2xl shadow-lg border border-blue-100">
-        <TemplateSelector onTemplateSelect={handleTemplateSelect} />
+        <TemplateSelector
+          onTemplateSelect={handleTemplateSelect}
+          selectedTemplate={selectedTemplate}
+          onClearTemplate={handleClearTemplate}
+        />
       </div>
 
       {/* Criteria Configuration */}
@@ -363,9 +435,21 @@ const StudyCreationForm = ({
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-8 space-y-4 sm:space-y-0">
           <div>
             <h2 className="text-2xl font-bold text-gray-900 mb-2">Eligibility Criteria</h2>
-            <p className="text-gray-600">
-              Define the requirements participants must meet to join your study.
-            </p>
+            <div className="flex items-center space-x-3">
+              <p className="text-gray-600">
+                Define the requirements participants must meet to join your study.
+              </p>
+              {selectedTemplate ? (
+                <div className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-medium">
+                  Template:{" "}
+                  {STUDY_FORM_MAPPINGS.templates.find((t) => t.id === selectedTemplate)?.name}
+                </div>
+              ) : (
+                <div className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-xs font-medium">
+                  Custom Configuration
+                </div>
+              )}
+            </div>
           </div>
           <div className="flex items-center space-x-3">
             <div className="bg-blue-100 text-blue-800 font-semibold px-4 py-2 rounded-full text-sm">
