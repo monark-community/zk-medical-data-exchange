@@ -6,8 +6,6 @@ mock.module('../config/config', () => ({
     APP_API_KEY: 'test-key',
     SUPABASE_URL: 'http://localhost:8000',
     SUPABASE_KEY: 'test-supabase-key',
-    PINATA_API_KEY: 'test-pinata-api-key',
-    PINATA_SECRET_API_KEY: 'test-pinata-secret-key',
     IS_LOCAL_MODE: false,
     IS_CI: process.env.IS_CI === 'true',
     NODE_ENV: 'test',
