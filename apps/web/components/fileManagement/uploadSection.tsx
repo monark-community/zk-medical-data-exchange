@@ -8,7 +8,7 @@ import { encryptWithKey } from "@/utils/encryption";
 import { ipfsUpload } from "@/services/ipfsService";
 import { uploadMedicalData } from "@/services/dataVaultService";
 import RecordTypeSelect from "@/components/fileManagement/recordTypeSelect";
-
+import { Upload } from "lucide-react";
 export default function UploadSection({
   account,
   aesKey,
@@ -76,7 +76,9 @@ export default function UploadSection({
   };
   return (
     <>
-      <Button onClick={handleUploadMedicalData}>Upload medical data</Button>
+      <Button onClick={handleUploadMedicalData}>
+        <Upload /> Upload medical data
+      </Button>
       {uploadedFileName && (
         <div className="flex items-center gap-2 mt-2">
           <span>{uploadedFileName}</span>

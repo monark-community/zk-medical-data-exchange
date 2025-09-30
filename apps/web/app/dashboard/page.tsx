@@ -10,7 +10,7 @@ import CustomNavbar from "@/components/navigation/customNavBar";
 import DashboardTabs from "./components/dashboardTabs";
 
 import { useAccount } from "wagmi";
-import UploadSection from "@/components/fileManagement/uploadSection";
+
 import AccountOverview from "./components/accountOverview";
 
 export default function Dashboard() {
@@ -49,10 +49,8 @@ export default function Dashboard() {
             <AccountOverview />
           </div>
           <div className="tabSection ">
-            <DashboardTabs aesKey={aesKey} walletAddress={account.address} />
+            <DashboardTabs aesKey={aesKey} account={account} />
           </div>
-          {/* <FilesSection aesKey={aesKey} walletAddress={account.address} /> */}
-          <UploadSection account={account} aesKey={aesKey} />
         </div>
       </main>
     </div>

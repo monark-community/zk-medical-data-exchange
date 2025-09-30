@@ -2,11 +2,13 @@
 import { Database } from "lucide-react";
 
 import FilesSection from "@/components/fileManagement/filesSection";
+import { Config, UseAccountReturnType } from "wagmi";
+import UploadSection from "@/components/fileManagement/uploadSection";
 const DataVaultSection = ({
-  walletAddress,
+  account,
   aesKey,
 }: {
-  walletAddress: `0x${string}` | undefined;
+  account: UseAccountReturnType<Config>;
   aesKey: string | null;
 }) => {
   return (
@@ -16,8 +18,9 @@ const DataVaultSection = ({
           <h3 className="text-2xl font-semibold leading-none tracking-tight flex items-center space-x-2">
             <Database /> <span>Your Data Vault</span>
           </h3>
+          <UploadSection account={account} aesKey={aesKey} />
         </div>
-        <FilesSection walletAddress={walletAddress} aesKey={aesKey} />
+        <FilesSection walletAddress={account.address} aesKey={aesKey} />
       </div>
     </div>
   );

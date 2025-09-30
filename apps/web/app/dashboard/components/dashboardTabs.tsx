@@ -3,11 +3,12 @@ import React from "react";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import DataVaultSection from "./dataVaultSection";
+import { Config, UseAccountReturnType } from "wagmi";
 const DashboardTabs = ({
-  walletAddress,
+  account,
   aesKey,
 }: {
-  walletAddress: `0x${string}` | undefined;
+  account: UseAccountReturnType<Config>;
   aesKey: string | null;
 }) => {
   return (
@@ -20,7 +21,7 @@ const DashboardTabs = ({
       </TabsList>
       <TabsContent value="overview"></TabsContent>
       <TabsContent value="dataVault">
-        <DataVaultSection aesKey={aesKey} walletAddress={walletAddress} />
+        <DataVaultSection aesKey={aesKey} account={account} />
       </TabsContent>
       <TabsContent value="studies"></TabsContent>
       <TabsContent value="privacy"></TabsContent>
