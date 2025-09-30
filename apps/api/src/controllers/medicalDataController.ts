@@ -54,7 +54,7 @@ export const deleteCID = async (req: Request, res: Response) => {
 
   const checkResult = await req.supabase
     .from(DATA_VAULT!.name)
-    .select(TABLES.DATA_VAULT!.columns.id!)
+    .select(DATA_VAULT!.columns.id!)
     .eq(DATA_VAULT!.columns.walletAddress!, wallet_address)
     .eq(DATA_VAULT!.columns.encryptedCid!, encrypted_cid);
 
