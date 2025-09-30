@@ -18,7 +18,6 @@ import { deleteCID } from "@/services/dataVaultService";
 import { ipfsDownload } from "@/services/ipfsService";
 import { decryptWithKey } from "@/utils/encryption";
 
-// import { useWeb3AuthDisconnect } from "@web3auth/modal/react";
 import { MedicalData } from "@/interfaces/medicalData";
 const FileOperationDropDown = ({
   walletAddress,
@@ -31,8 +30,6 @@ const FileOperationDropDown = ({
   setMedicalData: Dispatch<SetStateAction<MedicalData[]>>;
   data: MedicalData;
 }) => {
-  //   const { disconnect } = useWeb3AuthDisconnect();
-
   const getFileContent = async (cid: string) => {
     if (!aesKey) return;
     try {
