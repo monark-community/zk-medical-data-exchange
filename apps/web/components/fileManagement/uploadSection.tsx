@@ -77,9 +77,11 @@ export default function UploadSection({
   };
   return (
     <>
-      <Button onClick={handleUploadMedicalData}>
-        <Upload /> Upload medical data
-      </Button>
+      {!checking && !readyToSend && (
+        <Button onClick={handleUploadMedicalData}>
+          <Upload /> Upload medical data
+        </Button>
+      )}
       {uploadedFileName && (
         <div className="flex items-center gap-2 mt-2">
           <span>{uploadedFileName}</span>
