@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { deleteCID, fetchCIDs } from "@/services/dataVaultService";
 import { Button } from "@/components/ui/button";
-import { ipfsDelete, ipfsDownload, ipfsGetFiles } from "@/services/ipfsService";
+import { ipfsDownload } from "@/services/ipfsService";
 import { decryptWithKey } from "@/utils/encryption";
 import { MedicalData } from "@/interfaces/medicalData";
 
@@ -44,10 +44,10 @@ export default function FilesSection({
   };
 
   const downloadContent = async (cid: string) => {
-    const decrypted = await getFileContent(cid);
-    if (!decrypted) return;
+    const decryptedContent = await getFileContent(cid);
+    if (!decryptedContent) return;
 
-    const blob = new Blob([decrypted], { type: "text/plain" });
+    const blob = new Blob([decryptedContent], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
@@ -70,14 +70,9 @@ export default function FilesSection({
   const deleteContent = async (cid: string) => {
     if (!aesKey || !walletAddress) return;
     try {
-      const decryptedCid = decryptWithKey(cid, aesKey);
-      const files = await ipfsGetFiles();
-      const uid = files.fileList.find((file) => file.cid === decryptedCid)?.id;
-      if (!uid) {
-        alert("File not found on IPFS.");
-        return;
-      }
-      await Promise.all([ipfsDelete(uid), deleteCID(walletAddress!, cid)]);
+      // TODO: Delete file on ipfs
+      // const decryptedCid = decryptWithKey(cid, aesKey);
+      await deleteCID(walletAddress!, cid);
       alert("File deleted successfully.");
       setMedicalData((prev) => prev.filter((item) => item.encryptedCid !== cid));
     } catch (error) {
