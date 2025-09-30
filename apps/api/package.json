@@ -6,8 +6,9 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "lint": "eslint .",
-    "build": "npm run build:contracts && tsc",
+    "build": "tsc",
     "build:contracts": "tsx scripts/generateABIs.ts",
+    "generate-abis": "tsx scripts/generateABIs.ts",
     "start": "node dist/index.js",
     "test": "bun test"
   },
