@@ -18,21 +18,8 @@ if (!process.env.APP_API_KEY || process.env.APP_API_KEY === '') {
 }
 
 import app from '../index';
-import { Config } from '../config/config';
 
 const testApiKey = process.env.APP_API_KEY || 'test-key';
-
-test('Config Debug Info', () => {
-  console.log('=== Test Configuration Debug ===');
-  console.log('IS_LOCAL_MODE:', Config.IS_LOCAL_MODE);
-  console.log('IS_CI:', Config.IS_CI);
-  console.log('APP_API_KEY:', Config.APP_API_KEY ? '***SET***' : 'EMPTY');
-  console.log('NODE_ENV:', Config.NODE_ENV);
-  console.log('Test API Key:', testApiKey ? '***SET***' : 'EMPTY');
-  console.log('Environment IS_CI:', process.env.IS_CI);
-  console.log('Environment IS_LOCAL_MODE:', process.env.IS_LOCAL_MODE);
-  console.log('=== End Debug Info ===');
-});
 
 test('GET / should return Hello World', async () => {
   const res = await request(app).get('/').set('x-api-key', testApiKey);
