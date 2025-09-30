@@ -1,9 +1,7 @@
-import { test, expect, mock, beforeAll } from 'bun:test';
-import request from 'supertest';
+process.env.NODE_ENV = 'test';
 
-beforeAll(() => {
-  process.env.NODE_ENV = 'test';
-});
+import { test, expect, mock } from 'bun:test';
+import request from 'supertest';
 
 mock.module('@/config/config', () => ({
   Config: {
