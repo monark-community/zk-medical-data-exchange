@@ -2,11 +2,13 @@
 /* eslint-disable no-unused-vars */
 
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { createCriteria, validateCriteria, STUDY_TEMPLATES } from "@zk-medical/shared";
 import { useCreateStudy } from "@/services/api";
 import { apiClient } from "@/services/core/apiClient";
 import { useAccount } from "wagmi";
+import { STUDY_FORM_MAPPINGS, DEFAULT_STUDY_INFO } from "@/constants/studyFormMappings";
 
 // Template selector component
 const TemplateSelector = ({
@@ -14,37 +16,11 @@ const TemplateSelector = ({
 }: {
   onTemplateSelect: (_template: any, _templateId: string) => void;
 }) => {
-  const templates = [
-    { id: "OPEN", name: "Open Study", description: "No restrictions - anyone can join" },
-    { id: "AGE_ONLY", name: "Age Only", description: "Simple age-based eligibility (18-65)" },
-    { id: "WOMEN_18_TO_55", name: "Women's Health", description: "Female participants, age 18-55" },
-    {
-      id: "HEALTHY_BMI",
-      name: "Healthy Weight Study",
-      description: "Normal BMI participants only",
-    },
-    {
-      id: "CARDIAC_RESEARCH",
-      name: "Cardiac Research",
-      description: "Comprehensive cardiovascular study with BP & smoking",
-    },
-    {
-      id: "DIABETES_RESEARCH",
-      name: "Diabetes Research",
-      description: "Diabetes study with HbA1c & BMI requirements",
-    },
-    {
-      id: "HYPERTENSION_STUDY",
-      name: "Hypertension Study",
-      description: "Blood pressure focused research",
-    },
-  ];
-
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold">Quick Start Templates</h3>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {templates.map((template) => (
+        {STUDY_FORM_MAPPINGS.templates.map((template) => (
           <div
             key={template.id}
             className="p-4 border rounded-lg cursor-pointer hover:bg-blue-50 hover:border-blue-300"
@@ -140,12 +116,7 @@ const RangeInput = ({
 
 const StudyCreationForm = () => {
   // Basic study info
-  const [studyInfo, setStudyInfo] = useState({
-    title: "",
-    description: "",
-    maxParticipants: 1000,
-    durationDays: 365,
-  });
+  const [studyInfo, setStudyInfo] = useState(DEFAULT_STUDY_INFO);
 
   // Study criteria state
   const [criteria, setCriteria] = useState(() => createCriteria());
@@ -156,8 +127,19 @@ const StudyCreationForm = () => {
   // Wagmi wallet hook
   const { address: walletAddress, isConnected } = useAccount();
 
+  // Next.js router for navigation
+  const router = useRouter();
+
   // API hook
   const { createStudy: createStudyApi } = useCreateStudy();
+
+  // Reset form to initial state
+  const resetForm = () => {
+    setStudyInfo(DEFAULT_STUDY_INFO);
+    setCriteria(createCriteria());
+    setValidationErrors([]);
+    setSelectedTemplate(undefined);
+  };
 
   const handleTemplateSelect = (templateCriteria: any, templateId: string) => {
     setCriteria(templateCriteria);
@@ -227,6 +209,10 @@ const StudyCreationForm = () => {
             `• Gas used: ${deployResult.data.deployment.gasUsed}\n` +
             `• View on Etherscan: ${deployResult.data.deployment.etherscanUrl}`
         );
+
+        // Clear form and navigate to dashboard
+        resetForm();
+        router.push("/dashboard");
       } catch (deployError) {
         console.error("Blockchain deployment failed:", deployError);
         alert(
@@ -234,6 +220,10 @@ const StudyCreationForm = () => {
             `Error: ${deployError instanceof Error ? deployError.message : "Unknown error"}\n\n` +
             `You can retry deployment later from the study management page.`
         );
+
+        // Clear form and navigate to dashboard even if blockchain deployment failed
+        resetForm();
+        router.push("/dashboard");
       }
     } catch (error) {
       console.error("Failed to create study:", error);
@@ -302,8 +292,6 @@ const StudyCreationForm = () => {
         <TemplateSelector onTemplateSelect={handleTemplateSelect} />
       </div>
 
-      {/* The mapping logic when creating study is done below */}
-
       {/* Criteria Configuration */}
       <div className="bg-white p-6 rounded-lg shadow">
         <div className="flex justify-between items-center mb-6">
@@ -341,9 +329,11 @@ const StudyCreationForm = () => {
                 onChange={(e) => updateCriteria({ allowedGender: Number(e.target.value) })}
                 className="w-40 px-3 py-2 border rounded"
               >
-                <option value={1}>Male</option>
-                <option value={2}>Female</option>
-                <option value={3}>Any</option>
+                {STUDY_FORM_MAPPINGS.genderOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
               </select>
             </div>
           </CriteriaField>
@@ -421,10 +411,11 @@ const StudyCreationForm = () => {
                 onChange={(e) => updateCriteria({ allowedSmoking: Number(e.target.value) })}
                 className="w-48 px-3 py-2 border rounded"
               >
-                <option value={0}>Non-smoker only</option>
-                <option value={1}>Current smoker only</option>
-                <option value={2}>Former smoker only</option>
-                <option value={3}>Any smoking status</option>
+                {STUDY_FORM_MAPPINGS.smokingOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
               </select>
             </div>
           </CriteriaField>
@@ -440,16 +431,7 @@ const StudyCreationForm = () => {
                 Allowed Regions (select up to 4)
               </label>
               <div className="grid grid-cols-2 gap-2">
-                {[
-                  { value: 1, label: "North America" },
-                  { value: 2, label: "Europe" },
-                  { value: 3, label: "Asia" },
-                  { value: 4, label: "South America" },
-                  { value: 5, label: "Africa" },
-                  { value: 6, label: "Oceania" },
-                  { value: 7, label: "Middle East" },
-                  { value: 8, label: "Central America" },
-                ].map((region) => {
+                {STUDY_FORM_MAPPINGS.regions.map((region) => {
                   const isSelected = criteria.allowedRegions.includes(region.value);
                   const selectedCount = criteria.allowedRegions.filter((r) => r > 0).length;
                   const canSelect = isSelected || selectedCount < 4;
@@ -505,16 +487,7 @@ const StudyCreationForm = () => {
                 Allowed Blood Types (select up to 4)
               </label>
               <div className="grid grid-cols-4 gap-2">
-                {[
-                  { value: 1, label: "O+" },
-                  { value: 2, label: "O-" },
-                  { value: 3, label: "A+" },
-                  { value: 4, label: "A-" },
-                  { value: 5, label: "B+" },
-                  { value: 6, label: "B-" },
-                  { value: 7, label: "AB+" },
-                  { value: 8, label: "AB-" },
-                ].map((bloodType) => {
+                {STUDY_FORM_MAPPINGS.bloodTypes.map((bloodType) => {
                   const isSelected = criteria.allowedBloodTypes.includes(bloodType.value);
                   const selectedCount = criteria.allowedBloodTypes.filter((bt) => bt > 0).length;
                   const canSelect = isSelected || selectedCount < 4;
@@ -594,11 +567,11 @@ const StudyCreationForm = () => {
                     onChange={(e) => updateCriteria({ minActivityLevel: Number(e.target.value) })}
                     className="w-32 px-2 py-1 border rounded"
                   >
-                    <option value={1}>Sedentary</option>
-                    <option value={2}>Lightly Active</option>
-                    <option value={3}>Moderately Active</option>
-                    <option value={4}>Very Active</option>
-                    <option value={5}>Extremely Active</option>
+                    {STUDY_FORM_MAPPINGS.activityLevels.map((level) => (
+                      <option key={level.value} value={level.value}>
+                        {level.label}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <span className="text-gray-500">to</span>
@@ -608,11 +581,11 @@ const StudyCreationForm = () => {
                     onChange={(e) => updateCriteria({ maxActivityLevel: Number(e.target.value) })}
                     className="w-32 px-2 py-1 border rounded"
                   >
-                    <option value={1}>Sedentary</option>
-                    <option value={2}>Lightly Active</option>
-                    <option value={3}>Moderately Active</option>
-                    <option value={4}>Very Active</option>
-                    <option value={5}>Extremely Active</option>
+                    {STUDY_FORM_MAPPINGS.activityLevels.map((level) => (
+                      <option key={level.value} value={level.value}>
+                        {level.label}
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>
@@ -634,12 +607,11 @@ const StudyCreationForm = () => {
                 onChange={(e) => updateCriteria({ allowedDiabetes: Number(e.target.value) })}
                 className="w-48 px-3 py-2 border rounded"
               >
-                <option value={0}>No diabetes history</option>
-                <option value={1}>Type 1 diabetes only</option>
-                <option value={2}>Type 2 diabetes only</option>
-                <option value={3}>Any diabetes type</option>
-                <option value={4}>Pre-diabetes only</option>
-                <option value={5}>Any diabetes or pre-diabetes</option>
+                {STUDY_FORM_MAPPINGS.diabetesOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
               </select>
             </div>
           </CriteriaField>
@@ -659,11 +631,11 @@ const StudyCreationForm = () => {
                 onChange={(e) => updateCriteria({ allowedHeartDisease: Number(e.target.value) })}
                 className="w-48 px-3 py-2 border rounded"
               >
-                <option value={0}>No heart disease history</option>
-                <option value={1}>Previous heart attack</option>
-                <option value={2}>Any cardiovascular condition</option>
-                <option value={3}>Family history only</option>
-                <option value={4}>Current heart condition</option>
+                {STUDY_FORM_MAPPINGS.heartDiseaseOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
               </select>
             </div>
           </CriteriaField>

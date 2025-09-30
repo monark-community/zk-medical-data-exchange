@@ -6,6 +6,7 @@
 import { apiClient } from "@/services/core/apiClient";
 import { StudyCriteria } from "@zk-medical/shared";
 import { processFHIRForStudy } from "@/services/fhir";
+import { GENDER_VALUES } from "@/constants/medicalDataConstants";
 
 // ========================================
 // TYPES
@@ -190,8 +191,10 @@ export const formatStudyCriteria = (criteria: StudyCriteria): string[] => {
   }
 
   if (criteria.enableGender) {
-    const gender =
-      criteria.allowedGender === 1 ? "Male" : criteria.allowedGender === 2 ? "Female" : "Any";
+    let gender = "Any";
+    if (criteria.allowedGender === GENDER_VALUES.MALE) gender = "Male";
+    else if (criteria.allowedGender === GENDER_VALUES.FEMALE) gender = "Female";
+
     formatted.push(`Gender: ${gender}`);
   }
 

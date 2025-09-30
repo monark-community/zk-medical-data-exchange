@@ -4,6 +4,3 @@
  */
 
 export { apiClient } from "./apiClient";
-
-// Re-export for backward compatibility
-export * from "./apiClient";

@@ -35,7 +35,7 @@ export const Config = {
   SEPOLIA_RPC_URL: process.env.SEPOLIA_RPC_URL,
 
   // Smart Contract Addresses
-  // TODO: [LT] Remove the default values before deploying to production!
+  // TODO: [LT] Remove the default values before deploying to production
   STUDY_FACTORY_ADDRESS:
     process.env.STUDY_FACTORY_ADDRESS || "0x46209a88c172e06dd2c3eae2d2bca161e3306aef",
   ZK_VERIFIER_ADDRESS:
