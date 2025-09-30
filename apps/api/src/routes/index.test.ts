@@ -1,17 +1,14 @@
 process.env.NODE_ENV = 'test';
+process.env.IS_LOCAL_MODE = 'false';
+process.env.IS_CI = 'false';
+process.env.APP_API_KEY = 'test-key';
+process.env.SUPABASE_URL = 'http://localhost:8000';
+process.env.SUPABASE_ANON_KEY = 'test-supabase-key';
+process.env.PINATA_API_KEY = 'test-pinata-api-key';
+process.env.PINATA_SECRET_API_KEY = 'test-pinata-secret-key';
 
-import { test, expect, mock } from 'bun:test';
+import { test, expect } from 'bun:test';
 import request from 'supertest';
-
-mock.module('../config/config', () => ({
-  Config: {
-    APP_API_KEY: 'test-key',
-    SUPABASE_URL: 'http://localhost:8000',
-    SUPABASE_KEY: 'test-supabase-key',
-    IS_LOCAL_MODE: false,
-  }
-}));
-
 import app from '../index';
 
 test('GET / should return Hello World', async () => {
