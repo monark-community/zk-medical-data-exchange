@@ -1,6 +1,18 @@
 import { test, expect, mock } from 'bun:test';
 import request from 'supertest';
 
+// Debug: Log all relevant environment variables
+console.log('=== Environment Variables Debug ===');
+console.log('NODE_ENV:', process.env.NODE_ENV);
+console.log('IS_CI:', process.env.IS_CI);
+console.log('IS_LOCAL_MODE:', process.env.IS_LOCAL_MODE);
+console.log('APP_API_KEY:', process.env.APP_API_KEY ? '***SET***' : 'MISSING');
+console.log('SUPABASE_URL:', process.env.SUPABASE_URL ? '***SET***' : 'MISSING');
+console.log('SUPABASE_ANON_KEY:', process.env.SUPABASE_ANON_KEY ? '***SET***' : 'MISSING');
+console.log('PINATA_API_KEY:', process.env.PINATA_API_KEY ? '***SET***' : 'MISSING');
+console.log('PINATA_SECRET_API_KEY:', process.env.PINATA_SECRET_API_KEY ? '***SET***' : 'MISSING');
+console.log('=== End Environment Variables ===');
+
 // Mock in local testing, use real config in CI
 if (process.env.IS_CI !== 'true') {
   mock.module('../config/config', () => ({
