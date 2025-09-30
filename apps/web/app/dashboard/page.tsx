@@ -7,8 +7,8 @@ import { generateAESKey } from "@/utils/encryption";
 import { useProtectedRoute } from "@/hooks/useAuth";
 import { useWeb3AuthDisconnect } from "@web3auth/modal/react";
 import { useAccount } from "wagmi";
-import UploadSection from "@/components/uploadSection";
-import FilesSection from "@/components/filesSection";
+
+import AccountOverview from "./components/accountOverview";
 
 export default function Dashboard() {
   const { isConnected } = useProtectedRoute();
