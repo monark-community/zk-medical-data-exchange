@@ -5,8 +5,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { createCriteria, validateCriteria, STUDY_TEMPLATES } from "@zk-medical/shared";
-import { useCreateStudy } from "@/services/api";
-import { apiClient } from "@/services/core/apiClient";
+import { useCreateStudy, deployStudy } from "@/services/api/StudyService";
 import { useAccount } from "wagmi";
 import { STUDY_FORM_MAPPINGS, DEFAULT_STUDY_INFO } from "@/constants/studyFormMappings";
 
@@ -318,9 +317,9 @@ const StudyCreationForm = ({
       console.log("Deploying study to blockchain...");
 
       try {
-        const deployResult = await apiClient.post(`/studies/${result.study.id}/deploy`);
+        const deployResult = await deployStudy(result.study.id);
 
-        console.log("Blockchain deployment successful:", deployResult.data);
+        console.log("Blockchain deployment successful:", deployResult);
 
         alert(
           `🎉 Study "${result.study.title}" created and deployed successfully!\n\n` +
@@ -328,9 +327,9 @@ const StudyCreationForm = ({
             `• Complexity: ${result.study.stats.complexity}\n` +
             `• Enabled criteria: ${result.study.stats.enabledCriteriaCount}/12\n\n` +
             `⛓️ Blockchain Details:\n` +
-            `• Contract: ${deployResult.data.deployment.contractAddress}\n` +
-            `• Gas used: ${deployResult.data.deployment.gasUsed}\n` +
-            `• View on Etherscan: ${deployResult.data.deployment.etherscanUrl}`
+            `• Contract: ${deployResult.deployment.contractAddress}\n` +
+            `• Gas used: ${deployResult.deployment.gasUsed}\n` +
+            `• View on Etherscan: ${deployResult.deployment.etherscanUrl}`
         );
 
         // Clear form and handle success

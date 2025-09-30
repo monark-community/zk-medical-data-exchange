@@ -3,6 +3,5 @@
  * External API communication and endpoints
  */
 
-export * from "./studyApiService";
-export * from "./studyService";
+export * from "./StudyService";
 export * from "./dataVaultService";

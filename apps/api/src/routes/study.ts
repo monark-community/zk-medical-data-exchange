@@ -78,29 +78,6 @@ router.post("/", createStudy);
 
 /**
  * @swagger
- * /studies/{id}/deploy:
- *   post:
- *     summary: Deploy study to blockchain
- *     parameters:
- *       - name: id
- *         in: path
- *         required: true
- *         schema:
- *           type: integer
- *     responses:
- *       200:
- *         description: Study deployed successfully
- *       400:
- *         description: Invalid request or study already deployed
- *       404:
- *         description: Study not found
- *       500:
- *         description: Deployment failed
- */
-router.post("/:id/deploy", deployStudy);
-
-/**
- * @swagger
  * /studies/{id}:
  *   get:
  *     summary: Get study by ID
@@ -121,8 +98,42 @@ router.get("/:id", getStudyById);
 /**
  * @swagger
  * /studies/{id}:
+ *   put:
+ *     summary: Update study (full update)
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               status:
+ *                 type: string
+ *               maxParticipants:
+ *                 type: number
+ *     responses:
+ *       200:
+ *         description: Study updated successfully
+ *       404:
+ *         description: Study not found
+ */
+router.put("/:id", updateStudy);
+
+/**
+ * @swagger
+ * /studies/{id}:
  *   patch:
- *     summary: Update study
+ *     summary: Partially update study
  *     parameters:
  *       - name: id
  *         in: path
@@ -152,9 +163,36 @@ router.patch("/:id", updateStudy);
 
 /**
  * @swagger
- * /studies/{id}/participate:
+ * /studies/{id}/deployment:
+ *   put:
+ *     summary: Deploy study to blockchain (create/update deployment)
+ *     description: Creates or updates the blockchain deployment for a study
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Study deployed successfully
+ *       201:
+ *         description: Study deployment created successfully
+ *       400:
+ *         description: Invalid request or deployment validation failed
+ *       404:
+ *         description: Study not found
+ *       500:
+ *         description: Deployment failed
+ */
+router.post("/:id/deployment", deployStudy);
+
+/**
+ * @swagger
+ * /studies/{id}/participants:
  *   post:
- *     summary: Participate in a study
+ *     summary: Add a new participant to the study
+ *     description: Register a new participant in the study with their eligibility proof
  *     parameters:
  *       - name: id
  *         in: path
@@ -170,20 +208,31 @@ router.patch("/:id", updateStudy);
  *             properties:
  *               participantWallet:
  *                 type: string
+ *                 description: Participant's wallet address
  *               proofJson:
  *                 type: object
+ *                 description: Zero-knowledge proof of eligibility
  *               publicInputsJson:
  *                 type: object
+ *                 description: Public inputs for proof verification
  *               matchedCriteria:
  *                 type: array
  *                 items:
  *                   type: string
+ *                 description: List of criteria the participant matches
  *               eligibilityScore:
  *                 type: number
+ *                 description: Numerical eligibility score
  *     responses:
  *       201:
- *         description: Participation recorded successfully
+ *         description: Participant added successfully
+ *       400:
+ *         description: Invalid participation data or proof verification failed
+ *       404:
+ *         description: Study not found
+ *       409:
+ *         description: Participant already enrolled in this study
  */
-router.post("/:id/participate", participateInStudy);
+router.post("/:id/participants", participateInStudy);
 
 export default router;
