@@ -6,8 +6,11 @@
  * - Patient: demographics (gender, birthDate for age calculation)
  * - Observation: vitals, lab values (cholesterol, BMI, blood pressure, HbA1c, smoking status, activity)
  * - Condition: medical conditions (diabetes, heart disease)
+ *
+ * It maps to same values defined in the frontend StudyFormFields and backend StudyCriteria
  */
 
+// TODO: [LT] Verify when generating zkproof if everything in this fle is actually useful/needed
 // ========================================
 // GENDER MAPPINGS (FHIR Patient.gender)
 // ========================================

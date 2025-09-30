@@ -5,8 +5,8 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { createCriteria, validateCriteria, STUDY_TEMPLATES } from "@zk-medical/shared";
 import { useCreateStudy } from "@/services/api";
+import { apiClient } from "@/services/core/apiClient";
 import { useAccount } from "wagmi";
-import { Config } from "@/config/config";
 
 // Template selector component
 const TemplateSelector = ({
@@ -213,24 +213,9 @@ const StudyCreationForm = () => {
       console.log("Deploying study to blockchain...");
 
       try {
-        const deployResponse = await fetch(
-          `${Config.APP_API_URL || "http://localhost:3001"}/studies/${result.study.id}/deploy`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "X-API-Key": Config.APP_API_KEY || "",
-            },
-          }
-        );
+        const deployResult = await apiClient.post(`/studies/${result.study.id}/deploy`);
 
-        if (!deployResponse.ok) {
-          throw new Error(`Deployment failed: ${deployResponse.statusText}`);
-        }
-
-        const deployResult = await deployResponse.json();
-
-        console.log("Blockchain deployment successful:", deployResult);
+        console.log("Blockchain deployment successful:", deployResult.data);
 
         alert(
           `🎉 Study "${result.study.title}" created and deployed successfully!\n\n` +
@@ -238,9 +223,9 @@ const StudyCreationForm = () => {
             `• Complexity: ${result.study.stats.complexity}\n` +
             `• Enabled criteria: ${result.study.stats.enabledCriteriaCount}/12\n\n` +
             `⛓️ Blockchain Details:\n` +
-            `• Contract: ${deployResult.deployment.contractAddress}\n` +
-            `• Gas used: ${deployResult.deployment.gasUsed}\n` +
-            `• View on Etherscan: ${deployResult.deployment.etherscanUrl}`
+            `• Contract: ${deployResult.data.deployment.contractAddress}\n` +
+            `• Gas used: ${deployResult.data.deployment.gasUsed}\n` +
+            `• View on Etherscan: ${deployResult.data.deployment.etherscanUrl}`
         );
       } catch (deployError) {
         console.error("Blockchain deployment failed:", deployError);
@@ -316,6 +301,8 @@ const StudyCreationForm = () => {
       <div className="bg-white p-6 rounded-lg shadow">
         <TemplateSelector onTemplateSelect={handleTemplateSelect} />
       </div>
+
+      {/* The mapping logic when creating study is done below */}
 
       {/* Criteria Configuration */}
       <div className="bg-white p-6 rounded-lg shadow">

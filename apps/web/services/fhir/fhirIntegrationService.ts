@@ -6,6 +6,8 @@
 import { StudyCriteria } from "@zk-medical/shared";
 import { extractZKValuesFromFHIR } from "@/services/fhir/fhirToZkMappings";
 
+// TODO: [LT] Verify when generating zkproof if everything in this fle is actually useful/needed
+
 export interface FHIRDataBundle {
   resources: any[];
   patientId?: string;

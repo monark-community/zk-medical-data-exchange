@@ -6,10 +6,10 @@ import {
   updateStudy,
   participateInStudy,
   deployStudy,
-} from "../controllers/studyController";
+} from "@/controllers/studyController";
 
 const router = Router();
-
+// TODO: [LT] Improve Swagger docs
 /**
  * @swagger
  * /studies:

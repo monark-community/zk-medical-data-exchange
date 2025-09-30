@@ -116,6 +116,8 @@
         "ethers": "^6.15.0",
         "forge-std": "github:foundry-rs/forge-std#v1.9.4",
         "hardhat": "^3.0.3",
+        "poseidon-lite": "^0.3.0",
+        "snarkjs": "^0.7.3",
         "typescript": "~5.8.0",
         "viem": "^2.36.0"
       },
@@ -12079,6 +12081,20 @@
         "optionalPeers": ["typescript"]
       },
       "sha512-fTEzYMBoNtO7Un53dYcK/Yfve6kAhByiiQNv672VnbwdW/Kb5Ob9jmFG1BhUwx6XUuxs9qJWyQuKameXyjwFaw=="
+    ],
+
+    "wasmbuilder": [
+      "wasmbuilder@0.0.16",
+      "",
+      {},
+      "sha512-Qx3lEFqaVvp1cEYW7Bfi+ebRJrOiwz2Ieu7ZG2l7YyeSJIok/reEQCQCuicj/Y32ITIJuGIM9xZQppGx5LrQdA=="
+    ],
+
+    "wasmcurves": [
+      "wasmcurves@0.2.2",
+      "",
+      { "dependencies": { "wasmbuilder": "0.0.16" } },
+      "sha512-JRY908NkmKjFl4ytnTu5ED6AwPD+8VJ9oc94kdq7h5bIwbj0L4TDJ69mG+2aLs2SoCmGfqIesMWTEJjtYsoQXQ=="
     ],
 
     "web": ["web@workspace:apps/web"],

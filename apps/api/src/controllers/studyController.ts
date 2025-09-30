@@ -9,6 +9,7 @@ import {
 } from "@zk-medical/shared";
 import logger from "@/utils/logger";
 import crypto from "crypto";
+import { TABLES, getColumns } from "@/constants/db";
 
 /**
  * Create a new medical study (with database storage)
@@ -96,7 +97,7 @@ export const createStudy = async (req: Request, res: Response) => {
     };
 
     const { data: studyData, error: insertError } = await req.supabase
-      .from("studies")
+      .from(TABLES.STUDIES!.name)
       .insert(insertData)
       .select()
       .single();
@@ -153,9 +154,9 @@ export const deployStudy = async (req: Request, res: Response) => {
 
     // Get study from database
     const { data: study, error: fetchError } = await req.supabase
-      .from("studies")
+      .from(TABLES.STUDIES!.name)
       .select("*")
-      .eq("id", studyId)
+      .eq(TABLES.STUDIES!.columns.id!, studyId)
       .single();
 
     if (fetchError || !study) {
@@ -168,7 +169,10 @@ export const deployStudy = async (req: Request, res: Response) => {
     }
 
     // Update status to deploying
-    await req.supabase.from("studies").update({ status: "deploying" }).eq("id", studyId);
+    await req.supabase
+      .from(TABLES.STUDIES!.name)
+      .update({ status: "deploying" })
+      .eq(TABLES.STUDIES!.columns.id!, studyId);
 
     logger.info({ studyId, title: study.title }, "Starting blockchain deployment");
 
@@ -223,7 +227,10 @@ export const deployStudy = async (req: Request, res: Response) => {
 
     if (!deploymentResult.success) {
       // Update status back to draft on failure
-      await req.supabase.from("studies").update({ status: "draft" }).eq("id", studyId);
+      await req.supabase
+        .from(TABLES.STUDIES!.name)
+        .update({ status: "draft" })
+        .eq(TABLES.STUDIES!.columns.id!, studyId);
 
       return res.status(500).json({
         error: "Blockchain deployment failed",
@@ -233,14 +240,14 @@ export const deployStudy = async (req: Request, res: Response) => {
 
     // Update database with deployment info
     const { error: updateError } = await req.supabase
-      .from("studies")
+      .from(TABLES.STUDIES!.name)
       .update({
         status: "active",
         deployment_tx_hash: deploymentResult.transactionHash,
         contract_address: deploymentResult.studyAddress,
         deployed_at: new Date().toISOString(),
       })
-      .eq("id", studyId);
+      .eq(TABLES.STUDIES!.columns.id!, studyId);
 
     if (updateError) {
       logger.error({ error: updateError, studyId }, "Failed to update study with deployment info");
@@ -279,15 +286,18 @@ export const getStudies = async (req: Request, res: Response) => {
   try {
     const { status, template, page = 1, limit = 20 } = req.query;
 
-    let query = req.supabase.from("studies").select("*").order("created_at", { ascending: false });
+    let query = req.supabase
+      .from(TABLES.STUDIES!.name)
+      .select("*")
+      .order(TABLES.STUDIES!.columns.createdAt!, { ascending: false });
 
     // Apply filters
     if (status) {
-      query = query.eq("status", status);
+      query = query.eq(TABLES.STUDIES!.columns.status!, status);
     }
 
     if (template) {
-      query = query.eq("template_name", template);
+      query = query.eq(TABLES.STUDIES!.columns.templateName!, template);
     }
 
     // Apply pagination
@@ -347,9 +357,9 @@ export const getStudyById = async (req: Request, res: Response) => {
     const { id } = req.params;
 
     const { data: study, error } = await req.supabase
-      .from("studies")
+      .from(TABLES.STUDIES!.name)
       .select("*")
-      .eq("id", id)
+      .eq(TABLES.STUDIES!.columns.id!, id)
       .single();
 
     if (error) {
@@ -409,9 +419,9 @@ export const updateStudy = async (req: Request, res: Response) => {
     }
 
     const { data: updatedStudy, error } = await req.supabase
-      .from("studies")
+      .from(TABLES.STUDIES!.name)
       .update(updates)
-      .eq("id", id)
+      .eq(TABLES.STUDIES!.columns.id!, id)
       .select()
       .single();
 
@@ -448,20 +458,25 @@ export const participateInStudy = async (req: Request, res: Response) => {
 
     // Check if study exists and is active
     const { data: study, error: studyError } = await req.supabase
-      .from("studies")
-      .select("id, status, max_participants, current_participants")
-      .eq("id", id)
+      .from(TABLES.STUDIES!.name)
+      .select(
+        getColumns(TABLES.STUDIES!, ["id", "status", "maxParticipants", "currentParticipants"])
+      )
+      .eq(TABLES.STUDIES!.columns.id!, id)
       .single();
 
     if (studyError || !study) {
       return res.status(404).json({ error: "Study not found" });
     }
 
-    if (study.status !== "active") {
+    // TypeScript type assertion to ensure study is the data object
+    const studyData = study as any;
+
+    if (studyData.status !== "active") {
       return res.status(400).json({ error: "Study is not accepting participants" });
     }
 
-    if (study.current_participants >= study.max_participants) {
+    if (studyData.current_participants >= studyData.max_participants) {
       return res.status(400).json({ error: "Study is full" });
     }
 
@@ -502,7 +517,7 @@ export const participateInStudy = async (req: Request, res: Response) => {
     // Update study participant count
     await req.supabase
       .from("studies")
-      .update({ current_participants: study.current_participants + 1 })
+      .update({ current_participants: studyData.current_participants + 1 })
       .eq("id", id);
 
     logger.info({ studyId: id, participantWallet }, "Participation recorded");
