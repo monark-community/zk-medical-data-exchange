@@ -9,14 +9,41 @@ const CONTRACTS_DIR = path.join(__dirname, "../../../packages/smart-contracts/ar
 const OUTPUT_DIR = path.join(__dirname, "../src/contracts");
 const OUTPUT_FILE = path.join(OUTPUT_DIR, "generated.ts");
 
+// Proper ABI type definitions
+interface ABIInput {
+  internalType: string;
+  name: string;
+  type: string;
+  components?: ABIInput[];
+  indexed?: boolean; // For event inputs
+}
+
+interface ABIOutput {
+  internalType: string;
+  name: string;
+  type: string;
+  components?: ABIOutput[];
+}
+
+interface ABIItem {
+  type: "function" | "event" | "constructor" | "fallback" | "receive" | "error";
+  name?: string;
+  inputs?: ABIInput[];
+  outputs?: ABIOutput[];
+  stateMutability?: "pure" | "view" | "nonpayable" | "payable";
+  anonymous?: boolean;
+}
+
+type ABI = readonly ABIItem[];
+
 interface ContractArtifact {
-  abi: any[];
+  abi: ABI;
   bytecode: string;
   contractName: string;
 }
 
 interface ABICollection {
-  [contractName: string]: any[];
+  [contractName: string]: ABI;
 }
 
 interface ContractConfig {
@@ -25,7 +52,7 @@ interface ContractConfig {
   path: string;
 }
 
-function extractABI(filePath: string): any[] | null {
+function extractABI(filePath: string): ABI | null {
   try {
     const artifact: ContractArtifact = JSON.parse(fs.readFileSync(filePath, "utf8"));
     return artifact.abi;
@@ -95,10 +122,10 @@ function generateABIs(): void {
 
       if (abi) {
         abis[contract.export] = abi;
-        console.log(`✅ Extracted ABI for ${contract.name}`);
+        console.log(`Extracted ABI for ${contract.name}`);
       }
     } else {
-      console.error(`❌ Contract file not found for ${contract.name}`);
+      console.error(`Contract file not found for ${contract.name}`);
     }
   }
 
@@ -108,9 +135,12 @@ function generateABIs(): void {
 
   let output = `// Auto-generated contract ABIs\n// Generated on ${new Date().toISOString()}\n\n`;
 
+  // Add type definitions at the top of the generated file
+  output += `// ABI type definitions\ninterface ABIInput {\n  internalType: string;\n  name: string;\n  type: string;\n  components?: ABIInput[];\n  indexed?: boolean; // For event inputs\n}\n\ninterface ABIOutput {\n  internalType: string;\n  name: string;\n  type: string;\n  components?: ABIOutput[];\n}\n\ninterface ABIItem {\n  type: 'function' | 'event' | 'constructor' | 'fallback' | 'receive' | 'error';\n  name?: string;\n  inputs?: ABIInput[];\n  outputs?: ABIOutput[];\n  stateMutability?: 'pure' | 'view' | 'nonpayable' | 'payable';\n  anonymous?: boolean;\n}\n\nexport type ABI = readonly ABIItem[];\n\n`;
+
   for (const contract of contracts) {
     if (abis[contract.export]) {
-      output += `export const ${contract.export} = ${JSON.stringify(
+      output += `export const ${contract.export}: ABI = ${JSON.stringify(
         abis[contract.export],
         null,
         2
@@ -120,9 +150,9 @@ function generateABIs(): void {
 
   fs.writeFileSync(OUTPUT_FILE, output);
 
-  console.log(`🎉 Contract ABIs generated successfully!`);
-  console.log(`📁 Output: ${OUTPUT_FILE}`);
-  console.log(`📊 Generated ${Object.keys(abis).length} contract ABIs`);
+  console.log(`Contract ABIs generated successfully!`);
+  console.log(`Output: ${OUTPUT_FILE}`);
+  console.log(`Generated ${Object.keys(abis).length} contract ABIs`);
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
@@ -130,7 +160,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     generateABIs();
   } catch (error) {
     console.error(
-      "❌ Failed to generate ABIs:",
+      "Failed to generate ABIs:",
       error instanceof Error ? error.message : String(error)
     );
     process.exit(1);
