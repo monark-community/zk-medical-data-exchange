@@ -482,10 +482,10 @@ export const participateInStudy = async (req: Request, res: Response) => {
 
     // Check if already participated
     const { data: existing } = await req.supabase
-      .from("study_participation")
-      .select("id")
-      .eq("study_id", id)
-      .eq("participant_wallet", participantWallet)
+      .from(TABLES.STUDY_PARTICIPATION!.name)
+      .select(TABLES.STUDY_PARTICIPATION!.columns.id!)
+      .eq(TABLES.STUDY_PARTICIPATION!.columns.study_id!, id)
+      .eq(TABLES.STUDY_PARTICIPATION!.columns.participant_wallet!, participantWallet)
       .single();
 
     if (existing) {
@@ -504,7 +504,7 @@ export const participateInStudy = async (req: Request, res: Response) => {
     };
 
     const { data: participation, error: participationError } = await req.supabase
-      .from("study_participation")
+      .from(TABLES.STUDY_PARTICIPATION!.name)
       .insert(participationData)
       .select()
       .single();
@@ -516,9 +516,9 @@ export const participateInStudy = async (req: Request, res: Response) => {
 
     // Update study participant count
     await req.supabase
-      .from("studies")
+      .from(TABLES.STUDIES!.name)
       .update({ current_participants: studyData.current_participants + 1 })
-      .eq("id", id);
+      .eq(TABLES.STUDIES!.columns.id!, id);
 
     logger.info({ studyId: id, participantWallet }, "Participation recorded");
 
