@@ -21,7 +21,7 @@ import {
   ColumnDef,
   flexRender,
 } from "@tanstack/react-table";
-import { HeartPulse } from "lucide-react";
+import { ChevronLeft, ChevronRight, HeartPulse } from "lucide-react";
 import FileSkeletonCard from "@/app/dashboard/components/fileSkeletonCard";
 
 export default function FilesSection({
@@ -32,19 +32,20 @@ export default function FilesSection({
   aesKey: string | null;
 }) {
   const [medicalData, setMedicalData] = useState<MedicalData[]>([]);
-  const [loading, setLoading] = useState(true); // Add loading state
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       if (!walletAddress) return;
-      setLoading(true); // Set loading to true before fetching
+      setLoading(true);
       try {
         const data = await fetchCIDs(walletAddress);
+
         setMedicalData(data);
       } catch (error) {
         console.error("Error fetching CIDs:", error);
       } finally {
-        setLoading(false); // Set loading to false after fetching
+        setLoading(false);
       }
     };
 
@@ -87,18 +88,24 @@ export default function FilesSection({
       },
     },
   ];
+
   const table = useReactTable({
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
+    initialState: {
+      pagination: {
+        pageSize: 4, // Set the page size to 4
+      },
+    },
   });
 
   if (!walletAddress) return <div>No wallet connected</div>;
 
   return (
     <div className="w-full p-6 pt-0">
-      {loading ? ( // Show FileSkeletonCard while loading
+      {loading ? (
         <FileSkeletonCard />
       ) : medicalData.length === 0 ? (
         <div>No medical data found for this wallet.</div>
@@ -127,6 +134,25 @@ export default function FilesSection({
               )}
             </TableBody>
           </Table>
+          <div className="flex justify-center mt-4">
+            <button
+              onClick={() => table.previousPage()}
+              disabled={!table.getCanPreviousPage()}
+              className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
+            >
+              <ChevronLeft />
+            </button>
+            <span className="px-4">
+              Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
+            </span>
+            <button
+              onClick={() => table.nextPage()}
+              disabled={!table.getCanNextPage()}
+              className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
+            >
+              <ChevronRight />
+            </button>
+          </div>
         </div>
       )}
     </div>
