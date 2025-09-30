@@ -1,11 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-// import { deleteCID, fetchCIDs } from "@/services/dataVaultService";
 import { fetchCIDs } from "@/services/dataVaultService";
-// import { Button } from "@/components/ui/button";
-// import { ipfsDelete, ipfsDownload, ipfsGetFiles } from "@/services/ipfsService";
-// import { decryptWithKey } from "@/utils/encryption";
 import { MedicalData } from "@/interfaces/medicalData";
 import FileOperationDropDown from "./fileOperationDropDown";
 import {
@@ -26,6 +22,7 @@ import {
   flexRender,
 } from "@tanstack/react-table";
 import { HeartPulse } from "lucide-react";
+import FileSkeletonCard from "@/app/dashboard/components/fileSkeletonCard";
 
 export default function FilesSection({
   walletAddress,
@@ -35,15 +32,19 @@ export default function FilesSection({
   aesKey: string | null;
 }) {
   const [medicalData, setMedicalData] = useState<MedicalData[]>([]);
+  const [loading, setLoading] = useState(true); // Add loading state
 
   useEffect(() => {
     const fetchData = async () => {
       if (!walletAddress) return;
+      setLoading(true); // Set loading to true before fetching
       try {
         const data = await fetchCIDs(walletAddress);
         setMedicalData(data);
       } catch (error) {
         console.error("Error fetching CIDs:", error);
+      } finally {
+        setLoading(false); // Set loading to false after fetching
       }
     };
 
@@ -53,10 +54,10 @@ export default function FilesSection({
   const data = medicalData;
   const columns: ColumnDef<MedicalData>[] = [
     {
-      accessorKey: "details", // A new accessorKey for the card content
+      accessorKey: "details",
       header: "Details Card",
       cell: ({ row }) => {
-        const data = row.original; // Access the full row data
+        const data = row.original;
         return (
           <Card className="w-full h-full bg-gray-50 fla">
             <CardHeader className="flex flex-row items-center space-x-4 justify-between">
@@ -97,7 +98,9 @@ export default function FilesSection({
 
   return (
     <div className="w-full p-6 pt-0">
-      {medicalData.length === 0 ? (
+      {loading ? ( // Show FileSkeletonCard while loading
+        <FileSkeletonCard />
+      ) : medicalData.length === 0 ? (
         <div>No medical data found for this wallet.</div>
       ) : (
         <div className="w-full">
