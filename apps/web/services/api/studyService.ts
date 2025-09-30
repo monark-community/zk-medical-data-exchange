@@ -197,7 +197,8 @@ export const participateInStudy = async (
  */
 export const checkPatientEligibilityForStudy = async (
   studyId: number,
-  _fhirData: any // Prefixed with _ to indicate intentionally unused
+  // eslint-disable-next-line no-unused-vars
+  fhirData: any // Intentionally unused in simplified implementation
 ): Promise<{
   eligible: boolean;
   matchedCriteria: string[];
