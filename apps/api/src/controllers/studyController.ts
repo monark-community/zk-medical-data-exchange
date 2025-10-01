@@ -284,7 +284,7 @@ export const deployStudy = async (req: Request, res: Response) => {
  */
 export const getStudies = async (req: Request, res: Response) => {
   try {
-    const { status, template, page = 1, limit = 20 } = req.query;
+    const { status, template, createdBy, page = 1, limit = 20 } = req.query;
 
     let query = req.supabase
       .from(TABLES.STUDIES!.name)
@@ -298,6 +298,10 @@ export const getStudies = async (req: Request, res: Response) => {
 
     if (template) {
       query = query.eq(TABLES.STUDIES!.columns.templateName!, template);
+    }
+
+    if (createdBy) {
+      query = query.eq(TABLES.STUDIES!.columns.createdBy!, createdBy);
     }
 
     // Apply pagination
@@ -444,7 +448,7 @@ export const updateStudy = async (req: Request, res: Response) => {
 
 /**
  * Record study participation (after ZK proof verification)
- * POST /api/studies/:id/participate
+ * POST /api/studies/:id/participants
  */
 export const participateInStudy = async (req: Request, res: Response) => {
   try {

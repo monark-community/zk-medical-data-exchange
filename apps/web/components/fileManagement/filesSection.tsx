@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { fetchCIDs } from "@/services/dataVaultService";
 import { MedicalData } from "@/interfaces/medicalData";
 import FileOperationDropDown from "./fileOperationDropDown";
 import {
@@ -24,6 +23,7 @@ import {
 import { ChevronLeft, ChevronRight, HeartPulse } from "lucide-react";
 import FileSkeletonCard from "@/app/dashboard/components/fileSkeletonCard";
 import eventBus from "@/lib/eventBus";
+import { fetchCIDs } from "@/services/api";
 
 export default function FilesSection({
   walletAddress,

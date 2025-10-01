@@ -9,8 +9,6 @@ import {
   deleteStudy,
 } from "@/controllers/studyController";
 
-// TODO: [LT] Improve All Swagger docs
-
 const router = Router();
 
 /**
@@ -29,6 +27,12 @@ const router = Router();
  *         schema:
  *           type: string
  *         description: Filter by template name
+ *       - name: createdBy
+ *         in: query
+ *         schema:
+ *           type: string
+ *         description: Filter by creator wallet address
+ *         example: "0x742d35Cc6635C0532925a3b8D97C6b009af2af9f"
  *       - name: page
  *         in: query
  *         schema:
@@ -224,16 +228,23 @@ router.delete("/:id", deleteStudy);
  *         required: true
  *         schema:
  *           type: integer
+ *           minimum: 1
+ *         description: Unique study identifier (must be 'active' status)
+ *         example: 123
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - participantWallet
  *             properties:
  *               participantWallet:
  *                 type: string
  *                 description: Participant's wallet address
+ *                 example: "0x742d35Cc6635C0532925a3b8D97C6b009af2af9f"
+ *                 pattern: "^0x[a-fA-F0-9]{40}$"
  *               proofJson:
  *                 type: object
  *                 description: Zero-knowledge proof of eligibility
