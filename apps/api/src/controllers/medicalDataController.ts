@@ -50,7 +50,23 @@ export const downloadCIDs = async (req: Request, res: Response) => {
 
 export const deleteCID = async (req: Request, res: Response) => {
   const { wallet_address, encrypted_cid } = req.body;
-  logger.info({ wallet_address, encrypted_cid }, "deleteCIDs called");
+  logger.info({ wallet_address, encrypted_cid }, "deleteCID called");
+
+  const checkResult = await req.supabase
+    .from(DATA_VAULT!.name)
+    .select(DATA_VAULT!.columns.id!)
+    .eq(DATA_VAULT!.columns.walletAddress!, wallet_address)
+    .eq(DATA_VAULT!.columns.encryptedCid!, encrypted_cid);
+
+  if (checkResult.error) {
+    logger.warn({ error: checkResult.error }, "deleteCID check error");
+    return res.status(500).json({ error: checkResult.error.message });
+  }
+
+  if (!checkResult.data || checkResult.data.length === 0) {
+    logger.warn({ wallet_address, encrypted_cid }, "Record not found to delete");
+    return res.status(404).json({ error: "Record not found" });
+  }
 
   const deleteResult = await req.supabase
     .from(DATA_VAULT!.name)
@@ -59,10 +75,10 @@ export const deleteCID = async (req: Request, res: Response) => {
     .eq(DATA_VAULT!.columns.encryptedCid!, encrypted_cid);
 
   if (deleteResult.error) {
-    logger.warn({ error: deleteResult.error }, "deleteCIDs delete error");
+    logger.warn({ error: deleteResult.error }, "deleteCID delete error");
     return res.status(500).json({ error: deleteResult.error.message });
   }
 
-  logger.info("deleteCIDs success");
+  logger.info("deleteCID success");
   return res.status(200).json({ message: "Data deleted successfully" });
 };
