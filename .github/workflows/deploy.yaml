@@ -24,7 +24,8 @@ jobs:
       - name: Build and push API Docker image
         uses: docker/build-push-action@v6
         with:
-          context: ./apps/api
+          context: .
+          file: ./apps/api/Dockerfile
           push: true
           tags: |
             docker.io/${{ secrets.DOCKERHUB_USERNAME }}/cura-api:latest
@@ -33,7 +34,8 @@ jobs:
       - name: Build and push Web Docker image
         uses: docker/build-push-action@v6
         with:
-          context: ./apps/web
+          context: .
+          file: ./apps/web/Dockerfile
           push: true
           tags: |
             docker.io/${{ secrets.DOCKERHUB_USERNAME }}/cura-web:latest

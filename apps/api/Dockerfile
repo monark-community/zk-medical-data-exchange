@@ -19,8 +19,7 @@ RUN bun install
 
 # Copy API source code
 WORKDIR /workspace/apps/api
-# add debug logs
-RUN ls -la /workspace/apps/api
+
 COPY ./apps/api/ ./
 
 # Build the API
