@@ -1,14 +1,14 @@
-import dotenv from 'dotenv';
+import dotenv from "dotenv";
 
-if (process.env.NODE_ENV !== 'test') {
+if (process.env.NODE_ENV !== "test") {
   dotenv.config();
 }
 
 function requireEnv(name: string): string {
   const value = process.env[name];
   if (!value) {
-    if (process.env.NODE_ENV === 'test') {
-      return '';
+    if (process.env.NODE_ENV === "test") {
+      return "";
     }
     throw new Error(`Missing required env var: ${name}`);
   }
@@ -32,12 +32,9 @@ export const Config = {
 
   // Blockchain Configuration
   SEPOLIA_PRIVATE_KEY: requireEnv("SEPOLIA_PRIVATE_KEY"),
-  SEPOLIA_RPC_URL: process.env.SEPOLIA_RPC_URL,
+  SEPOLIA_RPC_URL: requireEnv("SEPOLIA_RPC_URL"),
 
   // Smart Contract Addresses
-  // TODO: [LT] Remove the default values before deploying to production
-  STUDY_FACTORY_ADDRESS:
-    process.env.STUDY_FACTORY_ADDRESS || "0x46209a88c172e06dd2c3eae2d2bca161e3306aef",
-  ZK_VERIFIER_ADDRESS:
-    process.env.ZK_VERIFIER_ADDRESS || "0x3c973b7ed28c26efcd6e733e722b1a5d3d488046",
+  STUDY_FACTORY_ADDRESS: requireEnv("STUDY_FACTORY_ADDRESS"),
+  ZK_VERIFIER_ADDRESS: requireEnv("ZK_VERIFIER_ADDRESS"),
 };
