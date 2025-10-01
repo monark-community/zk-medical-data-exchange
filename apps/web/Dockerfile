@@ -16,12 +16,11 @@ WORKDIR /workspace
 # Copy workspace configuration files
 COPY ./package.json ./bun.lock ./
 
-# Copy the shared package
+# Copy all workspace directories that are referenced in package.json
 COPY ./packages/shared ./packages/shared
-
-# Set up web directory and copy web package.json
-WORKDIR /workspace/apps/web
-COPY ./apps/web/package.json ./
+COPY ./packages/smart-contracts ./packages/smart-contracts
+COPY ./apps/web/package.json ./apps/web/package.json
+COPY ./apps/api/package.json ./apps/api/package.json
 
 # Install dependencies from workspace root
 WORKDIR /workspace
