@@ -1,67 +1,121 @@
-# Sample Hardhat 3 Beta Project (`node:test` and `viem`)
+# ZK Medical Data Exchange - Smart Contracts
 
-Scripts :
+Privacy-preserving medical study enrollment using Zero-Knowledge proofs and blockchain technology.
 
-deploy:local
-Deploy a smart-contract on the local network
-Example use : bun run deploy:local -- ignition/modules/Counter.ts
+## 🏥 Overview
 
-deploy:sepolia
-Deploy a smart-contract on the sepolia network
-Example use : bun run deploy:sepolia -- ignition/modules/Counter.ts
+This package contains the smart contracts and ZK circuits for the ZK Medical Data Exchange platform:
 
-This project showcases a Hardhat 3 Beta project using the native Node.js test runner (`node:test`) and the `viem` library for Ethereum interactions.
+- **StudyFactory** - Creates and manages medical studies
+- **Study** - Individual study contracts with ZK eligibility verification
+- **MedicalEligibilityVerifier** - Groth16 ZK verifier for patient eligibility
+- **Circom Circuit** - Zero-knowledge circuit for medical data privacy
 
-To learn more about the Hardhat 3 Beta, please visit the [Getting Started guide](https://hardhat.org/docs/getting-started#getting-started-with-hardhat-3). To share your feedback, join our [Hardhat 3 Beta](https://hardhat.org/hardhat3-beta-telegram-group) Telegram group or [open an issue](https://github.com/NomicFoundation/hardhat/issues/new) in our GitHub issue tracker.
+## 🚀 Quick Start
 
-## Project Overview
+### Prerequisites
 
-This example project includes:
+- **Node.js 18+** and **bun**
+- **Circom 2.0+** for circuit compilation
+- **snarkjs** for proof generation
+- **Sepolia testnet ETH** for deployment
 
-- A simple Hardhat configuration file.
-- Foundry-compatible Solidity unit tests.
-- TypeScript integration tests using [`node:test`](nodejs.org/api/test.html), the new Node.js native test runner, and [`viem`](https://viem.sh/).
-- Examples demonstrating how to connect to different types of networks, including locally simulating OP mainnet.
+### Installation
 
-## Usage
-
-### Running Tests
-
-To run all the tests in the project, execute the following command:
-
-```shell
-npx hardhat test
+```bash
+cd packages/smart-contracts
+bun install
 ```
 
-You can also selectively run the Solidity or `node:test` tests:
+### Testing
 
-```shell
-npx hardhat test solidity
-npx hardhat test nodejs
+```bash
+# Test smart contracts
+bun run test
+
+# Test ZK proof generation and verification
+cd circuits
+node test_proof.js
 ```
 
-### Make a deployment to Sepolia
+## 📋 Core Components
 
-This project includes an example Ignition module to deploy the contract. You can deploy this module to a locally simulated chain or to Sepolia.
+### 1. Smart Contracts (`contracts/`)
 
-To run the deployment to a local chain:
+- **StudyFactory.sol** - Deploys and manages study contracts
+- **Study.sol** - Individual study with ZK eligibility verification
+- **MedicalEligibilityVerifier.sol** - Generated Groth16 verifier
 
-```shell
-npx hardhat ignition deploy ignition/modules/Counter.ts
+### 2. ZK Circuit (`circuits/`)
+
+- **medical_eligibility.circom** - Patient eligibility verification circuit
+- **test_proof.js** - Complete ZK proof testing suite
+- **build/** - Compiled circuit artifacts (R1CS, WASM, proving/verification keys)
+
+### 3. Deployment Scripts (`scripts/`)
+
+- **deployStudyWithZK.ts** - Deploy complete ZK study infrastructure
+
+## 🔧 Available Commands
+
+```bash
+# Smart contract testing
+bun run test                    # All tests
+bun run test:solidity          # Solidity unit tests only
+bun run test:nodejs            # TypeScript integration tests
+bun run test:zk-proof          # Complete ZK proof workflow test
+
+# Deployment
+bun run deploy:local           # Deploy to local hardhat network
+bun run deploy:sepolia         # Deploy to Sepolia testnet
 ```
 
-To run the deployment to Sepolia, you need an account with funds to send the transaction. The provided Hardhat configuration includes a Configuration Variable called `SEPOLIA_PRIVATE_KEY`, which you can use to set the private key of the account you want to use.
+## 📚 Documentation
 
-You can set the `SEPOLIA_PRIVATE_KEY` variable using the `hardhat-keystore` plugin or by setting it as an environment variable.
+- **[SEPOLIA_DEPLOYMENT.md](./SEPOLIA_DEPLOYMENT.md)** - Deploy to Sepolia testnet
+- **[TESTING_GUIDE.md](./TESTING_GUIDE.md)** - ZK verifier testing guide
+- **[docs/CUSTOM_STUDIES.md](./docs/CUSTOM_STUDIES.md)** - Create custom medical studies
 
-To set the `SEPOLIA_PRIVATE_KEY` config variable using `hardhat-keystore`:
+> **📦 ABI Generation**: After compiling contracts, the API automatically generates TypeScript ABIs from artifacts. See [`apps/api/README.md`](../../apps/api/README.md#-contract-abi-generation) for details.
 
-```shell
-npx hardhat keystore set SEPOLIA_PRIVATE_KEY
+## 🎯 ZK Proof Workflow
+
+1. **Patient Data Input** - Age, BMI, blood pressure, medical history, etc.
+2. **Circuit Execution** - Generate ZK proof of eligibility without revealing data
+3. **On-Chain Verification** - Smart contract verifies proof using Groth16 verifier
+4. **Study Enrollment** - Eligible patients join study while preserving privacy
+
+## 🔐 Privacy Features
+
+- **Zero-Knowledge Proofs** - Prove eligibility without revealing medical data
+- **Commitment Schemes** - Bind proofs to specific patient data
+- **Range Proofs** - Verify values within study criteria ranges
+- **Selective Disclosure** - Enable/disable specific eligibility criteria
+
+## 🌐 Deployed Contracts (Sepolia)
+
+See [SEPOLIA_DEPLOYMENT.md](./SEPOLIA_DEPLOYMENT.md) for current deployment addresses and interaction examples.
+
+## 🧪 Example Study Criteria
+
+```javascript
+const studyCriteria = {
+  enableAge: 1, // Enable age checking
+  minAge: 18, // Minimum 18 years old
+  maxAge: 65, // Maximum 65 years old
+  enableBMI: 1, // Enable BMI checking
+  minBMI: 185, // Minimum BMI 18.5 (stored as integer)
+  maxBMI: 350, // Maximum BMI 35.0
+  // All other criteria disabled by default
+};
 ```
 
-After setting the variable, you can run the deployment with the Sepolia network:
+## 🛠️ Development
 
-```shell
-npx hardhat ignition deploy --network sepolia ignition/modules/Counter.ts
-```
+This package uses:
+
+- **Hardhat 3** for smart contract development
+- **Circom 2.0** for ZK circuit compilation
+- **snarkjs** for proof generation and verification
+- **viem** for blockchain interactions
+- **TypeScript** for type safety

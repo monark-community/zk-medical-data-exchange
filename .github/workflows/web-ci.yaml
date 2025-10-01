@@ -13,6 +13,8 @@ on:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+    env:
+      IS_CI: "true"
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
@@ -23,7 +25,7 @@ jobs:
           bun-version: latest
 
       - name: Install dependencies
-        run: bun install
+        run: bun install --cwd apps/web
 
       - name: Lint
         run: bun run lint:web
