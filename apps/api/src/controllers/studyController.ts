@@ -284,7 +284,7 @@ export const deployStudy = async (req: Request, res: Response) => {
  */
 export const getStudies = async (req: Request, res: Response) => {
   try {
-    const { status, template, createdBy, page = 1, limit = 20 } = req.query;
+    const { status, template, createdBy, page = 1, limit } = req.query;
 
     let query = req.supabase
       .from(TABLES.STUDIES!.name)
@@ -304,9 +304,17 @@ export const getStudies = async (req: Request, res: Response) => {
       query = query.eq(TABLES.STUDIES!.columns.createdBy!, createdBy);
     }
 
-    // Apply pagination
-    const offset = (Number(page) - 1) * Number(limit);
-    query = query.range(offset, offset + Number(limit) - 1);
+    // Apply pagination only if limit is specified
+    // When fetching user's own studies (createdBy), don't limit by default
+    if (limit && !createdBy) {
+      const offset = (Number(page) - 1) * Number(limit);
+      query = query.range(offset, offset + Number(limit) - 1);
+    } else if (limit && createdBy) {
+      // Even with createdBy, respect limit if explicitly provided
+      const offset = (Number(page) - 1) * Number(limit);
+      query = query.range(offset, offset + Number(limit) - 1);
+    }
+    // If no limit and createdBy is provided, fetch all user's studies without pagination
 
     const { data: studies, error, count } = await query;
 
@@ -317,25 +325,58 @@ export const getStudies = async (req: Request, res: Response) => {
 
     // Transform data for response
     const transformedStudies =
-      studies?.map((study) => ({
-        id: study.id,
-        title: study.title,
-        description: study.description,
-        maxParticipants: study.max_participants,
-        currentParticipants: study.current_participants,
-        status: study.status,
-        complexityScore: study.complexity_score,
-        templateName: study.template_name,
-        createdAt: study.created_at,
-        contractAddress: study.contract_address,
-        // Include quick criteria summary
-        criteriasSummary: {
+      studies?.map((study) => {
+        // Parse criteria to get detailed information
+        let criteriaDetails = null;
+        if (study.criteria_json) {
+          try {
+            criteriaDetails =
+              typeof study.criteria_json === "string"
+                ? JSON.parse(study.criteria_json)
+                : study.criteria_json;
+          } catch (e) {
+            logger.error(
+              { error: e, studyId: study.id },
+              "Failed to parse criteria JSON for summary"
+            );
+          }
+        }
+
+        // Build simple criteria summary - just show what's required, not the details
+        const criteriasSummary: any = {
+          // Basic requirements from DB columns
           requiresAge: study.requires_age,
-          ageRange: study.requires_age ? `${study.min_age}-${study.max_age}` : null,
           requiresGender: study.requires_gender,
           requiresDiabetes: study.requires_diabetes,
-        },
-      })) || [];
+        };
+
+        // Add other criteria types if available (just boolean flags)
+        if (criteriaDetails) {
+          criteriasSummary.requiresSmoking = criteriaDetails.enableSmoking === 1;
+          criteriasSummary.requiresBMI = criteriaDetails.enableBMI === 1;
+          criteriasSummary.requiresBloodPressure = criteriaDetails.enableBloodPressure === 1;
+          criteriasSummary.requiresCholesterol = criteriaDetails.enableCholesterol === 1;
+          criteriasSummary.requiresHeartDisease = criteriaDetails.enableHeartDisease === 1;
+          criteriasSummary.requiresActivity = criteriaDetails.enableActivity === 1;
+          criteriasSummary.requiresHbA1c = criteriaDetails.enableHbA1c === 1;
+          criteriasSummary.requiresBloodType = criteriaDetails.enableBloodType === 1;
+          criteriasSummary.requiresLocation = criteriaDetails.enableLocation === 1;
+        }
+
+        return {
+          id: study.id,
+          title: study.title,
+          description: study.description,
+          maxParticipants: study.max_participants,
+          currentParticipants: study.current_participants,
+          status: study.status,
+          complexityScore: study.complexity_score,
+          templateName: study.template_name,
+          createdAt: study.created_at,
+          contractAddress: study.contract_address,
+          criteriasSummary,
+        };
+      }) || [];
 
     res.json({
       studies: transformedStudies,
@@ -584,13 +625,8 @@ export const deleteStudy = async (req: Request, res: Response) => {
       });
     }
 
-    // Only allow deletion of draft studies or studies that failed deployment
-    if (existingStudy.status === "active") {
-      return res.status(400).json({
-        error: "Cannot delete active study",
-        details: "Active studies that are deployed to blockchain cannot be deleted",
-      });
-    }
+    // Note: Allow deletion of any study status, including active studies
+    // The creator should have full control over their studies
 
     // Delete the study
     const { error: deleteError } = await req.supabase

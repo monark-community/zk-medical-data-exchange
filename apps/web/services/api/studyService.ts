@@ -24,9 +24,17 @@ export interface StudySummary {
   contractAddress?: string;
   criteriasSummary: {
     requiresAge: boolean;
-    ageRange?: string;
     requiresGender: boolean;
     requiresDiabetes: boolean;
+    requiresSmoking?: boolean;
+    requiresBMI?: boolean;
+    requiresBloodPressure?: boolean;
+    requiresCholesterol?: boolean;
+    requiresHeartDisease?: boolean;
+    requiresActivity?: boolean;
+    requiresHbA1c?: boolean;
+    requiresBloodType?: boolean;
+    requiresLocation?: boolean;
   };
 }
 
@@ -104,11 +112,13 @@ export const getStudies = async (params?: {
   status?: string;
   page?: number;
   limit?: number;
+  createdBy?: string;
 }): Promise<StudyListResponse> => {
   const queryParams = new URLSearchParams();
   if (params?.status) queryParams.append("status", params.status);
   if (params?.page) queryParams.append("page", params.page.toString());
   if (params?.limit) queryParams.append("limit", params.limit.toString());
+  if (params?.createdBy) queryParams.append("createdBy", params.createdBy);
 
   const { data } = await apiClient.get(`/studies?${queryParams.toString()}`);
   return data;
