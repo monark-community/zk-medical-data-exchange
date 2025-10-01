@@ -52,16 +52,13 @@ bun install
 ### Local Development
 
 ```bash
-# 1. Start infrastructure (PostgreSQL, ClickHouse, Adminer)
-bun run infra
-
-# 2. Start backend API (requires DB connection)
+# 1. Start backend API (requires DB connection)
 bun run dev:api
 
-# 3. Start frontend (in new terminal)
+# 2. Start frontend (in new terminal)
 bun run dev:web
 
-# 4. Open http://localhost:3000
+# 3. Open http://localhost:3000
 ```
 
 ## 📋 Available Scripts
@@ -163,7 +160,6 @@ zk-medical-data-exchange/
 ### Local Testing
 
 ```bash
-bun run infra                      # Start databases
 bun run deploy:contracts:local     # Deploy contracts locally
 ```
 

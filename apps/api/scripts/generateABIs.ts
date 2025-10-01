@@ -96,7 +96,7 @@ function generateABIs(): void {
   }
 
   const contractFiles = findContractFiles(CONTRACTS_DIR);
-  console.log(`📁 Found ${contractFiles.length} contract artifacts`);
+  console.log(`Found ${contractFiles.length} contract artifacts`);
 
   const abis: ABICollection = {};
   const contracts: ContractConfig[] = [
@@ -117,7 +117,7 @@ function generateABIs(): void {
     const contractFile = contractFiles.find((file) => file.includes(`/${contract.path}`));
 
     if (contractFile) {
-      console.log(`📋 Processing ${contract.name}...`);
+      console.log(`Processing ${contract.name}...`);
       const abi = extractABI(contractFile);
 
       if (abi) {
