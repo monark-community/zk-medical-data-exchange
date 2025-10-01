@@ -15,7 +15,7 @@ import { EllipsisVertical } from "lucide-react";
 
 import { deleteCID } from "@/services/dataVaultService";
 
-import { ipfsDownload } from "@/services/ipfsService";
+import { ipfsDelete, ipfsDownload } from "@/services/ipfsService";
 import { decryptWithKey } from "@/utils/encryption";
 
 import { MedicalData } from "@/interfaces/medicalData";
@@ -70,8 +70,8 @@ const FileOperationDropDown = ({
   const deleteContent = async (cid: string) => {
     if (!aesKey || !walletAddress) return;
     try {
-      // TODO: Delete file on ipfs
-      // const decryptedCid = decryptWithKey(cid, aesKey);
+      const decryptedCid = decryptWithKey(cid, aesKey);
+      await ipfsDelete(decryptedCid);
       await deleteCID(walletAddress!, cid);
       alert("File deleted successfully.");
       setMedicalData((prev) => prev.filter((item) => item.encryptedCid !== cid));

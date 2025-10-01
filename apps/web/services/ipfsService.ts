@@ -7,13 +7,18 @@ const MAX_CACHE_SIZE = 100;
 const MAX_CONTENT_SIZE = 1024 * 1024; // 1MB
 
 export const ipfsApiClient = axios.create({
-  baseURL: "https://api.pinata.cloud",
   headers: {
-    "Content-Type": "application/json",
-    pinata_api_key: Config.PINATA_API_KEY!,
-    pinata_secret_api_key: Config.PINATA_SECRET_API_KEY!,
+    Authorization: `Bearer ${Config.PINATA_JWT}`,
   },
 });
+
+const setBaseUrlForOperation = (operation: 'upload' | 'management') => {
+  if (operation === 'upload') {
+    ipfsApiClient.defaults.baseURL = "https://uploads.pinata.cloud/v3";
+  } else {
+    ipfsApiClient.defaults.baseURL = "https://api.pinata.cloud/v3";
+  }
+};
 
 export const ipfsGatewayClient = axios.create({
   baseURL: GATEWAY_URL,
@@ -56,20 +61,27 @@ const manageCacheSize = (): void => {
  */
 export const ipfsUpload = async (file_content: string): Promise<string> => {
   try {
+    setBaseUrlForOperation('upload');
+    
     const randomId = Math.random().toString(36).substring(2, 10);
 
-    const data = {
-      pinataContent: file_content,
-      pinataMetadata: {
-        name: `data-${randomId}`,
-        keyvalues: {
-          contentType: "encrypted",
-        },
-      },
-    };
+    const formData = new FormData();
+    const blob = new Blob([file_content], { type: 'application/json' });
 
-    const response = await ipfsApiClient.post("/pinning/pinJSONToIPFS", data);
-    const cid = response.data.IpfsHash;
+    formData.append('file', blob, `data-${randomId}.json`);
+    formData.append('network', 'public');
+    formData.append('name', `data-${randomId}`);
+    formData.append('keyvalues', JSON.stringify({
+      contentType: "encrypted"
+    }));
+
+    const response = await ipfsApiClient.post("/files", formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+
+    const cid = response.data.data.cid;
 
     if (file_content.length <= MAX_CONTENT_SIZE) {
       manageCacheSize();
@@ -126,27 +138,61 @@ export const ipfsDownload = async (cid: string): Promise<string> => {
   }
 };
 
-// /**
-//  * Deletes a file from IPFS using the Lighthouse service.
-//  * @param cid - The IPFS Content Identifier of the file to delete.
-//  * @returns A Promise that resolves to true if deletion was successful, false otherwise.
-//  */
-// export const ipfsDelete = async (cid: string): Promise<boolean> => {
-//   console.log("Deleting file with CID:", cid);
-//   const response = await lighthouse.deleteFile(Config.LIGHTHOUSE_API_KEY!, cid);
+/**
+ * Deletes a file from Pinata IPFS storage using the file's CID.
+ * 
+ * @param cid - The IPFS Content Identifier (CID) of the file to delete
+ * @returns A Promise that resolves to an object containing success status and message
+ * @throws Will throw an error if the file is not found or if deletion fails
+ */
+export const ipfsDelete = async (
+  cid: string,
+): Promise<{ success: boolean; message: string }> => {
+  try {
+    setBaseUrlForOperation('management');
+    
+    const network = 'public'; // We use 'public' for mainnet files
+    
+    const searchResponse = await ipfsApiClient.get(`/files/${network}`, {
+      params: {
+        cid: cid,
+        limit: 1,
+      },
+    });
 
-//   if (response.data.message !== "File deleted successfully") {
-//     return false;
-//   }
+    const files = searchResponse.data.data.files || [];
+    if (files.length === 0) {
+      throw new Error(`File with CID ${cid} not found`);
+    }
 
-//   return true;
-// };
+    const fileId = files[0].id;
 
-// /**
-//  * Fetches a list of files uploaded to IPFS using the Lighthouse service.
-//  * @returns A Promise that resolves to an array of uploaded file metadata.
-//  */
-// export const ipfsGetFiles = async () => {
-//   const response = await lighthouse.getUploads(Config.LIGHTHOUSE_API_KEY!, null);
-//   return response.data;
-// };
+    await ipfsApiClient.delete(`/files/${network}/${fileId}`);
+
+    if (contentCache[cid]) {
+      delete contentCache[cid];
+    }
+
+    return {
+      success: true,
+      message: `Successfully deleted file with CID: ${cid}`,
+    };
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      const status = error.response?.status;
+      const message = error.response?.data?.error || error.message;
+
+      if (status === 401 || status === 403) {
+        throw new Error('Invalid or insufficient permissions for Pinata JWT token');
+      }
+
+      if (status === 404) {
+        throw new Error(`File with CID ${cid} not found or already deleted`);
+      }
+
+      throw new Error(`Failed to delete file: ${message}`);
+    }
+    
+    throw error;
+  }
+}

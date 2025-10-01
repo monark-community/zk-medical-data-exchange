@@ -4,14 +4,13 @@ mock.module('@/config/config', () => ({
   Config: {
     APP_API_URL: 'http://localhost:3001',
     APP_API_KEY: 'test-api-key',
-    PINATA_API_KEY: 'test-pinata-api-key',
-    PINATA_SECRET_API_KEY: 'test-pinata-secret-key',
+    PINATA_JWT: 'test-pinata-jwt-token',
     WEB3AUTH_CLIENT_ID: 'test-web3auth-client-id',
     APP_SALT: '0dsfwsaf2na8mc80a8efv8qpo'
   }
 }));
 
-import { ipfsUpload, ipfsDownload, ipfsApiClient, ipfsGatewayClient } from './ipfsService';
+import { ipfsUpload, ipfsDownload, ipfsApiClient, ipfsGatewayClient, ipfsDelete } from './ipfsService';
 
 describe('ipfsUpload', () => {
   it('should upload content and return CID', async () => {
@@ -19,20 +18,23 @@ describe('ipfsUpload', () => {
     const content = 'encrypted-content';
     
     spyOn(ipfsApiClient, 'post').mockResolvedValue({
-      data: { IpfsHash: mockCid }
+      data: { 
+        data: { 
+          cid: mockCid 
+        } 
+      }
     });
 
     const cid = await ipfsUpload(content);
 
     expect(cid).toBe(mockCid);
     expect(ipfsApiClient.post).toHaveBeenCalledWith(
-      '/pinning/pinJSONToIPFS',
+      '/files',
+      expect.any(FormData),
       expect.objectContaining({
-        pinataContent: content,
-        pinataMetadata: expect.objectContaining({
-          name: expect.stringMatching(/^data-/),
-          keyvalues: { contentType: 'encrypted' }
-        })
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
       })
     );
   });
@@ -42,7 +44,11 @@ describe('ipfsUpload', () => {
     const content = 'small-content';
     
     spyOn(ipfsApiClient, 'post').mockResolvedValue({
-      data: { IpfsHash: mockCid }
+      data: { 
+        data: { 
+          cid: mockCid 
+        } 
+      }
     });
 
     await ipfsUpload(content);
@@ -54,7 +60,7 @@ describe('ipfsUpload', () => {
 
   it('should throw error on upload failure', async () => {
     spyOn(ipfsApiClient, 'post').mockRejectedValue(new Error('Network error'));
-    await expect(ipfsUpload('fail')).rejects.toThrow('Network error');
+    expect(ipfsUpload('fail')).rejects.toThrow('Network error');
   });
 });
 
@@ -75,7 +81,7 @@ describe('ipfsDownload', () => {
 
   it('should throw error on download failure', async () => {
     spyOn(ipfsGatewayClient, 'get').mockRejectedValue(new Error('Gateway error'));
-    await expect(ipfsDownload('QmFailNew999')).rejects.toThrow(
+    expect(ipfsDownload('QmFailNew999')).rejects.toThrow(
       'Gateway error'
     );
   });
@@ -90,7 +96,11 @@ describe('Cache Management', () => {
 
     for (const { cid, content } of uploads) {
       spyOn(ipfsApiClient, 'post').mockResolvedValueOnce({
-        data: { IpfsHash: cid }
+        data: { 
+          data: { 
+            cid: cid 
+          } 
+        }
       });
       await ipfsUpload(content);
     }
@@ -102,5 +112,62 @@ describe('Cache Management', () => {
     await ipfsDownload(uploads[0].cid);
 
     expect(ipfsGatewayClient.get).toHaveBeenCalledWith(`/ipfs/${uploads[0].cid}`);
+  });
+});
+
+describe('IpfsDelete', () => {
+  it('should delete a file by CID', async () => {
+    const mockCid = 'QmDeleteTest123';
+    const mockFileId = 'file-id-123';
+
+    spyOn(ipfsApiClient, 'get').mockResolvedValue({
+      data: { 
+        data: { 
+          files: [{ 
+            id: mockFileId, 
+            cid: mockCid 
+          }] 
+        } 
+      }
+    });
+
+    spyOn(ipfsApiClient, 'delete').mockResolvedValue({
+      data: { success: true }
+    });
+
+    const result = await ipfsDelete(mockCid);
+
+    expect(result).toEqual({ 
+      success: true, 
+      message: `Successfully deleted file with CID: ${mockCid}` 
+    });
+    
+    expect(ipfsApiClient.get).toHaveBeenCalledWith(
+      '/files/public',
+      expect.objectContaining({
+        params: {
+          cid: mockCid,
+          limit: 1
+        }
+      })
+    );
+    
+    expect(ipfsApiClient.delete).toHaveBeenCalledWith(
+      `/files/public/${mockFileId}`
+    );
+  });
+
+  it('should return error if file not found', async () => {
+    const mockCid = 'QmNonExistentCID';
+    
+    spyOn(ipfsApiClient, 'get').mockResolvedValue({
+      data: { 
+        data: { 
+          files: [] 
+        } 
+      }
+    });
+
+    expect(ipfsDelete(mockCid)).rejects.toThrow(`File with CID ${mockCid} not found`);
   });
 });
