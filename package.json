@@ -16,12 +16,14 @@
     "test:api": "bun run --cwd apps/api test",
     "test:contracts": "bun run --cwd packages/smart-contracts test",
     "test:contracts:solidity": "bun run --cwd packages/smart-contracts test:solidity",
-    "test:contracts:nodejs": "bun run --cwd packages/smart-contracts test:nodejs"
+    "test:contracts:nodejs": "bun run --cwd packages/smart-contracts test:nodejs",
+    "test:contracts:zk-proof": "bun run --cwd packages/smart-contracts test:zk-proof"
   },
   "workspaces": [
     "apps/api",
     "apps/web",
-    "packages/smart-contracts"
+    "packages/smart-contracts",
+    "packages/shared"
   ],
   "devDependencies": {
     "@eslint/js": "^9.34.0",

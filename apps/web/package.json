@@ -7,7 +7,8 @@
     "build": "next build --turbopack",
     "start": "next start",
     "lint": "eslint .",
-    "test": "bun test"
+    "test": "bun test",
+    "test:study-flow": "ts-node scripts/testStudyFlow.ts"
   },
   "dependencies": {
     "@lighthouse-web3/sdk": "^0.4.2",
@@ -17,6 +18,7 @@
     "@supabase/ssr": "^0.7.0",
     "@tanstack/react-table": "^8.21.3",
     "@web3auth/modal": "^10.3.0",
+    "@zk-medical/shared": "workspace:*",
     "axios": "^1.12.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
