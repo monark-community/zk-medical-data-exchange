@@ -20,9 +20,10 @@ RUN bun install
 WORKDIR /workspace/apps/api
 COPY ./apps/api/ ./
 
-# Build the API
-RUN bun run build
+# Don't build - Bun can run TypeScript directly
+# RUN bun run build
 
 EXPOSE 8000
 
-CMD ["bun", "dist/index.js"]
+# Run TypeScript directly with Bun
+CMD ["bun", "run", "src/index.ts"]
