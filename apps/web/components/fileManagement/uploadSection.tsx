@@ -6,7 +6,7 @@ import { ReportType } from "@/constants/reportType";
 import { Config, UseAccountReturnType } from "wagmi";
 import { encryptWithKey } from "@/utils/encryption";
 import RecordTypeSelect from "@/components/fileManagement/recordTypeSelect";
-import { Upload } from "lucide-react";
+import { Upload, Loader2 } from "lucide-react";
 import eventBus from "@/lib/eventBus";
 import { ipfsUpload } from "@/services/storage";
 import { uploadMedicalData } from "@/services/api";
@@ -20,6 +20,7 @@ export default function UploadSection({
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [checking, setChecking] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [isCompliant, setIsCompliant] = useState<boolean | null>(null);
   const [readyToSend, setReadyToSend] = useState(false);
   const [recordType, setRecordType] = useState<FhirResourceTypes>(FhirResourceType.NOT_SUPPORTED);
@@ -77,9 +78,19 @@ export default function UploadSection({
   };
   return (
     <>
-      {!checking && !readyToSend && (
-        <Button onClick={handleUploadMedicalData}>
-          <Upload /> Upload medical data
+      {!checking && !readyToSend && !uploading && (
+        <Button onClick={handleUploadMedicalData} disabled={uploading}>
+          {uploading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Uploading...
+            </>
+          ) : (
+            <>
+              <Upload className="mr-2 h-4 w-4" />
+              Upload medical data
+            </>
+          )}
         </Button>
       )}
       {uploadedFileName && (
@@ -106,28 +117,49 @@ export default function UploadSection({
           {readyToSend && (
             <>
               <button
-                className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-xs"
+                className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-xs flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={uploading}
                 onClick={async () => {
                   if (account.status !== "connected") return;
                   if (!aesKey || !uploadedFile) return;
-                  const content = await uploadedFile.text();
-                  const encryptedContent = encryptWithKey(content, aesKey);
-                  const cid = await ipfsUpload(encryptedContent);
-                  const encryptedCid = encryptWithKey(cid, aesKey);
-                  const result = await uploadMedicalData(account.address, encryptedCid, recordType);
 
-                  if (result) {
-                    alert("Medical data uploaded successfully.");
-                    eventBus.emit("medicalDataUploaded");
+                  setUploading(true);
+                  try {
+                    const content = await uploadedFile.text();
+                    const encryptedContent = encryptWithKey(content, aesKey);
+                    const cid = await ipfsUpload(encryptedContent);
+                    const encryptedCid = encryptWithKey(cid, aesKey);
+                    const result = await uploadMedicalData(
+                      account.address,
+                      encryptedCid,
+                      recordType
+                    );
+
+                    if (result) {
+                      alert("Medical data uploaded successfully.");
+                      eventBus.emit("medicalDataUploaded");
+                    }
+
+                    setUploadedFileName(null);
+                    setUploadedFile(null);
+                    setIsCompliant(null);
+                    setReadyToSend(false);
+                  } catch (error) {
+                    console.error("Upload failed:", error);
+                    alert("Failed to upload medical data. Please try again.");
+                  } finally {
+                    setUploading(false);
                   }
-
-                  setUploadedFileName(null);
-                  setUploadedFile(null);
-                  setIsCompliant(null);
-                  setReadyToSend(false);
                 }}
               >
-                Confirm Send
+                {uploading ? (
+                  <>
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    Uploading...
+                  </>
+                ) : (
+                  "Confirm Send"
+                )}
               </button>
               <RecordTypeSelect onValueChange={onRecordTypeChange} selectedValue={recordType} />
             </>

@@ -3,14 +3,7 @@
 import { useEffect, useState } from "react";
 import { MedicalData } from "@/interfaces/medicalData";
 import FileOperationDropDown from "./fileOperationDropDown";
-import {
-  Table,
-  TableBody,
-  TableCaption,
-  TableCell,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHeader, TableRow } from "@/components/ui/table";
 
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -122,7 +115,6 @@ export default function FilesSection({
       ) : (
         <div className="w-full">
           <Table>
-            <TableCaption>A list of your data.</TableCaption>
             <TableHeader></TableHeader>
             <TableBody>
               {table.getRowModel().rows?.length ? (
