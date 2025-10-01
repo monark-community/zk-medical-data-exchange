@@ -1,49 +1,187 @@
-# Cura
+# CURA
 
-A collaborative Web3 project that empowers patients to control their medical data and enable ethical, secure research.
+A privacy-preserving Web3 platform that enables secure medical research through Zero-Knowledge proofs, allowing patients to participate in studies without revealing sensitive medical data.
 
 ---
 
-## Requirements
+## 🏥 Overview
 
-If not done yet, install bun
-https://bun.sh/
+This platform combines blockchain technology with Zero-Knowledge cryptography to solve the privacy dilemma in medical research:
 
-To install dependencies:
+- **🔐 Patient Privacy** - Medical data never leaves the patient's control
+- **📊 Research Enablement** - Researchers can verify eligibility without accessing raw data
+- **🛡️ Zero-Knowledge Proofs** - Cryptographic proofs of eligibility without data disclosure
+- **⚡ Blockchain Verification** - Decentralized, transparent, and tamper-proof enrollment
+
+## 🏗️ Architecture
+
+```
+┌─────────────────┬─────────────────┬─────────────────┐
+│   Frontend      │   Backend API   │ Smart Contracts │
+│   (Next.js)     │   (Node.js)     │   (Solidity)    │
+├─────────────────┼─────────────────┼─────────────────┤
+│ Study Creation  │ FHIR Integration│ StudyFactory    │
+│ Patient Portal  │ Database Layer  │ Study Contract  │
+│ ZK Proof UI     │ Blockchain APIs │ ZK Verifier     │
+└─────────────────┴─────────────────┴─────────────────┘
+                           │
+                  ┌─────────────────┐
+                  │  ZK Circuits    │
+                  │  (Circom)       │
+                  │ Medical Proofs  │
+                  └─────────────────┘
+```
+
+## 🚀 Quick Start
+
+### Prerequisites
+
+- **Node.js v22.7.1+**
+- **[Bun](https://bun.sh/)** (recommended package manager)
+- **Docker** (for local infrastructure)
+- **Sepolia testnet ETH** (for deployment)
+
+### Installation
 
 ```bash
+git clone https://github.com/monark-community/zk-medical-data-exchange.git
+cd zk-medical-data-exchange
 bun install
 ```
 
-#### Node version
-#### v22.7.1
-
-## 🚀 Scripts
-
-These scripts are available from the **root** of the repository.
-
-### Development
+### Local Development
 
 ```bash
-bun run dev:web          # Start Next.js frontend
-bun run dev:api          # Start backend API
-# Requires env variables set (POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB)
-bun run infra            # Start local infrastructure (DB, clickhouse, adminer)
+# 1. Start backend API (requires DB connection)
+bun run dev:api
 
-# Deploy a contract to local chain
-bun run deploy:contracts:local -- <contract>
-# Example use : bun run deploy:contracts:local -- ignition/modules/Counter.ts
+# 2. Start frontend (in new terminal)
+bun run dev:web
 
-# Deploy a contract to Sepolia testnet
-bun run deploy:contracts:sepolia -- <contract>
-# Example use : bun run deploy:contracts:sepolia -- ignition/modules/Counter.ts
-
-bun run lint           # Lint entire monorepo
-bun run lint:web       # Lint frontend only
-bun run lint:api       # Lint api only
-
-bun run test:contracts             # Run all contract tests
-bun run test:contracts:solidity    # Run Solidity tests only
-bun run test:contracts:nodejs      # Run Node.js integration tests only
+# 3. Open http://localhost:3000
 ```
 
+## 📋 Available Scripts
+
+### Development & Testing
+
+```bash
+# Frontend & Backend
+bun run dev:web                    # Start Next.js frontend (port 3000)
+bun run dev:api                    # Start backend API (port 3001)
+bun run infra                      # Start local infrastructure (DB, ClickHouse)
+
+# Smart Contracts & ZK Circuits
+bun run deploy:contracts:local     # Deploy to local Hardhat network
+bun run deploy:contracts:sepolia   # Deploy to Sepolia testnet
+
+# Contract ABI Generation (API)
+bun run build:contracts            # Generate TypeScript ABIs from compiled contracts
+
+# Testing
+bun run test:contracts             # All smart contract tests
+bun run test:contracts:solidity    # Solidity unit tests
+bun run test:contracts:nodejs      # TypeScript integration tests
+bun run test:web                   # Frontend tests
+bun run test:api                   # Backend API tests
+
+# Code Quality
+bun run lint                       # Lint entire monorepo
+bun run lint:web                   # Lint frontend only
+bun run lint:api                   # Lint backend only
+```
+
+### ZK Circuit Testing
+
+```bash
+# From repository root
+bun run test:contracts:zk-proof      # Complete ZK proof workflow test
+
+# Or from smart-contracts directory
+cd packages/smart-contracts
+bun run test:zk-proof               # Same test, run locally
+```
+
+## 🏗️ Project Structure
+
+```
+zk-medical-data-exchange/
+├── apps/
+│   ├── api/                      # Backend API (Node.js + PostgreSQL)
+│   │   ├── src/controllers/      # API endpoints
+│   │   ├── src/services/         # Business logic
+│   │   └── src/middleware/       # Auth, validation
+│   └── web/                      # Frontend (Next.js + React)
+│       ├── app/                  # App router pages
+│       ├── components/           # UI components
+│       └── services/             # API clients, blockchain
+├── packages/
+│   ├── shared/                   # Shared types and utilities
+│   ├── smart-contracts/          # Solidity contracts + ZK circuits
+│   │   ├── contracts/            # Smart contracts
+│   │   ├── circuits/             # Circom ZK circuits
+│   │   └── test/                 # Contract tests
+│   └── subgraph/                 # The Graph indexing
+└── infra/
+    └── docker-compose.yaml       # Local development infrastructure
+```
+
+## 🔐 Zero-Knowledge Workflow
+
+1. **📋 Study Creation** - Researchers define eligibility criteria
+2. **🏥 Patient Data** - Patients input medical data locally
+3. **🔒 Proof Generation** - ZK circuit creates eligibility proof
+4. **⛓️ On-Chain Verification** - Smart contract verifies proof
+5. **✅ Study Enrollment** - Eligible patients join without data disclosure
+
+## 🎯 Key Features
+
+### For Researchers
+
+- **Study Management** - Create studies with custom eligibility criteria
+- **Privacy-Preserving Recruitment** - Verify eligibility without accessing patient data
+- **Blockchain Transparency** - Immutable record of enrollments and study parameters
+
+### For Patients
+
+- **Data Sovereignty** - Medical data never leaves your control
+- **Privacy-First Participation** - Prove eligibility without disclosure
+- **Informed Consent** - Clear understanding of study requirements
+
+### Technical Features
+
+- **Groth16 ZK-SNARKs** - Efficient zero-knowledge proof system
+- **FHIR Integration** - Standard medical data formats
+- **Smart Contract Automation** - Decentralized study management
+- **Scalable Architecture** - Modular monorepo design
+
+## 🌐 Deployment
+
+### Local Testing
+
+```bash
+bun run deploy:contracts:local     # Deploy contracts locally
+```
+
+### Sepolia Testnet
+
+```bash
+bun run deploy:contracts:sepolia   # Deploy to Sepolia
+# See packages/smart-contracts/SEPOLIA_DEPLOYMENT.md for details
+```
+
+## 📚 Documentation
+
+- **[Smart Contracts README](./packages/smart-contracts/README.md)** - Contract architecture and ZK circuits
+- **[Sepolia Deployment](./packages/smart-contracts/SEPOLIA_DEPLOYMENT.md)** - Testnet deployment guide
+- **[ZK Testing Guide](./packages/smart-contracts/TESTING_GUIDE.md)** - Zero-knowledge proof testing
+- **[FHIR Integration](./FHIR_INTEGRATION.md)** - Medical data standards integration
+- **[Study Flow](./COMPLETE_STUDY_FLOW.md)** - End-to-end workflow documentation
+
+## 🤝 Contributing
+
+This project uses a monorepo structure with TypeScript, modern tooling, and comprehensive testing. See individual package READMEs for specific development guidelines.
+
+## 📄 License
+
+[License information]

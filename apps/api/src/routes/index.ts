@@ -1,6 +1,7 @@
 import { Router } from "express";
 import medicalDataRoutes from "./medicalData";
-import logger from '@/utils/logger';
+import studyRoutes from "./study";
+import logger from "@/utils/logger";
 
 const router = Router();
 
@@ -19,5 +20,6 @@ router.get("/", (req, res) => {
 });
 
 router.use("/medical-data", medicalDataRoutes);
+router.use("/studies", studyRoutes);
 
 export default router;

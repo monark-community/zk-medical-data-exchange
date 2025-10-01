@@ -1,5 +1,5 @@
 import { MedicalData } from "@/interfaces/medicalData";
-import { apiClient } from "./apiClient";
+import { apiClient } from "@/services/core/apiClient";
 
 export const uploadMedicalData = async (
   wallet_address: string,
