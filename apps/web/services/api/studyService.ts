@@ -162,6 +162,14 @@ export const deployStudy = async (studyId: number) => {
 };
 
 /**
+ * Delete a study from the database
+ */
+export const deleteStudy = async (studyId: number) => {
+  const { data } = await apiClient.delete(`/studies/${studyId}`);
+  return data;
+};
+
+/**
  * Participate in a study
  */
 export const participateInStudy = async (

@@ -5,7 +5,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { createCriteria, validateCriteria, STUDY_TEMPLATES } from "@zk-medical/shared";
-import { useCreateStudy, deployStudy } from "@/services/api/studyService";
+import { useCreateStudy, deployStudy, deleteStudy } from "@/services/api/studyService";
 import { useAccount } from "wagmi";
 import { STUDY_FORM_MAPPINGS, DEFAULT_STUDY_INFO } from "@/constants/studyFormMappings";
 
@@ -155,6 +155,78 @@ const CriteriaField = ({
   );
 };
 
+// Number input component with empty value support
+const NumberInput = ({
+  value,
+  onChange,
+  onBlur,
+  className,
+  placeholder,
+  min,
+  max,
+}: {
+  value: number;
+  onChange: (value: number) => void;
+  onBlur?: (value: number) => void;
+  className?: string;
+  placeholder?: string;
+  min?: number;
+  max?: number;
+}) => {
+  const [displayValue, setDisplayValue] = useState(value.toString());
+
+  // Update display value when prop value changes
+  useEffect(() => {
+    setDisplayValue(value.toString());
+  }, [value]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value;
+    setDisplayValue(newValue);
+
+    // Allow empty string to clear the field
+    if (newValue === "") {
+      return;
+    }
+
+    const numValue = Number(newValue);
+    if (!isNaN(numValue)) {
+      onChange(numValue);
+    }
+  };
+
+  const handleBlur = () => {
+    // If field is empty on blur, restore the original value
+    if (displayValue === "" || isNaN(Number(displayValue))) {
+      setDisplayValue(value.toString());
+      onBlur?.(value);
+    } else {
+      const numValue = Number(displayValue);
+      // Apply min/max constraints
+      let constrainedValue = numValue;
+      if (min !== undefined && numValue < min) constrainedValue = min;
+      if (max !== undefined && numValue > max) constrainedValue = max;
+
+      setDisplayValue(constrainedValue.toString());
+      onChange(constrainedValue);
+      onBlur?.(constrainedValue);
+    }
+  };
+
+  return (
+    <input
+      type="number"
+      value={displayValue}
+      onChange={handleChange}
+      onBlur={handleBlur}
+      className={className}
+      placeholder={placeholder}
+      min={min}
+      max={max}
+    />
+  );
+};
+
 // Range input component
 const RangeInput = ({
   label,
@@ -177,10 +249,9 @@ const RangeInput = ({
       <div className="flex items-center space-x-4">
         <div className="flex-1">
           <div className="relative">
-            <input
-              type="number"
+            <NumberInput
               value={minValue}
-              onChange={(e) => onMinChange(Number(e.target.value))}
+              onChange={onMinChange}
               className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 text-center font-medium"
               placeholder="Min"
             />
@@ -196,10 +267,9 @@ const RangeInput = ({
         </div>
         <div className="flex-1">
           <div className="relative">
-            <input
-              type="number"
+            <NumberInput
               value={maxValue}
-              onChange={(e) => onMaxChange(Number(e.target.value))}
+              onChange={onMaxChange}
               className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 text-center font-medium"
               placeholder="Max"
             />
@@ -341,19 +411,23 @@ const StudyCreationForm = ({
         }
       } catch (deployError) {
         console.error("Blockchain deployment failed:", deployError);
+
+        // Delete the study from database since deployment failed
+        try {
+          await deleteStudy(result.study.id);
+          console.log("Study deleted from database due to deployment failure");
+        } catch (deleteError) {
+          console.error("Failed to delete study after deployment failure:", deleteError);
+        }
+
         alert(
-          `⚠️ Study "${result.study.title}" was created in database but blockchain deployment failed.\n\n` +
+          `❌ Study creation failed during blockchain deployment.\n\n` +
             `Error: ${deployError instanceof Error ? deployError.message : "Unknown error"}\n\n` +
-            `You can retry deployment later from the study management page.`
+            `Please try creating the study again.`
         );
 
-        // Clear form and handle success even if blockchain deployment failed
-        resetForm();
-        if (isModal && onSuccess) {
-          onSuccess();
-        } else {
-          router.push("/dashboard");
-        }
+        // Don't reset form or navigate on failure, let user try again
+        return;
       }
     } catch (error) {
       console.error("Failed to create study:", error);
@@ -399,13 +473,12 @@ const StudyCreationForm = ({
           </div>
           <div className="space-y-2">
             <label className="block text-sm font-semibold text-gray-700">Max Participants</label>
-            <input
-              type="number"
+            <NumberInput
               value={studyInfo.maxParticipants}
-              onChange={(e) =>
-                setStudyInfo({ ...studyInfo, maxParticipants: Number(e.target.value) })
-              }
+              onChange={(value) => setStudyInfo({ ...studyInfo, maxParticipants: value })}
               className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200"
+              min={1}
+              placeholder="Enter maximum participants"
             />
           </div>
           <div className="lg:col-span-2 space-y-2">

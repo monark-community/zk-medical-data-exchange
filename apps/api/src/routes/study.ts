@@ -6,6 +6,7 @@ import {
   updateStudy,
   participateInStudy,
   deployStudy,
+  deleteStudy,
 } from "@/controllers/studyController";
 
 // TODO: [LT] Improve All Swagger docs
@@ -186,6 +187,30 @@ router.patch("/:id", updateStudy);
  *         description: Deployment failed
  */
 router.post("/:id/deployment", deployStudy);
+
+/**
+ * @swagger
+ * /studies/{id}:
+ *   delete:
+ *     summary: Delete a study
+ *     description: Delete a study from the database. Only draft or failed studies can be deleted.
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Study deleted successfully
+ *       400:
+ *         description: Cannot delete active study or invalid study ID
+ *       404:
+ *         description: Study not found
+ *       500:
+ *         description: Internal server error
+ */
+router.delete("/:id", deleteStudy);
 
 /**
  * @swagger

@@ -536,3 +536,64 @@ export const participateInStudy = async (req: Request, res: Response) => {
     res.status(500).json({ error: "Internal server error" });
   }
 };
+
+/**
+ * Delete a study from the database
+ * DELETE /studies/:id
+ */
+export const deleteStudy = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      return res.status(400).json({ error: "Study ID is required" });
+    }
+
+    const studyId = parseInt(id);
+
+    if (isNaN(studyId)) {
+      return res.status(400).json({ error: "Invalid study ID" });
+    }
+
+    // Check if study exists
+    const { data: existingStudy, error: fetchError } = await req.supabase
+      .from(TABLES.STUDIES!.name)
+      .select("id, title, status")
+      .eq(TABLES.STUDIES!.columns.id!, studyId)
+      .single();
+
+    if (fetchError || !existingStudy) {
+      return res.status(404).json({ error: "Study not found" });
+    }
+
+    // Only allow deletion of draft studies or studies that failed deployment
+    if (existingStudy.status === "active") {
+      return res.status(400).json({
+        error: "Cannot delete active study",
+        details: "Active studies that are deployed to blockchain cannot be deleted",
+      });
+    }
+
+    // Delete the study
+    const { error: deleteError } = await req.supabase
+      .from(TABLES.STUDIES!.name)
+      .delete()
+      .eq(TABLES.STUDIES!.columns.id!, studyId);
+
+    if (deleteError) {
+      logger.error({ error: deleteError, studyId }, "Failed to delete study");
+      return res.status(500).json({ error: "Failed to delete study" });
+    }
+
+    logger.info({ studyId, title: existingStudy.title }, "Study deleted successfully");
+
+    res.status(200).json({
+      success: true,
+      message: "Study deleted successfully",
+      deletedStudyId: studyId,
+    });
+  } catch (error) {
+    logger.error({ error }, "Study deletion error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
