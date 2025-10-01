@@ -164,8 +164,10 @@ export const deployStudy = async (studyId: number) => {
 /**
  * Delete a study from the database
  */
-export const deleteStudy = async (studyId: number) => {
-  const { data } = await apiClient.delete(`/studies/${studyId}`);
+export const deleteStudy = async (studyId: number, walletId: string) => {
+  const { data } = await apiClient.delete(`/studies/${studyId}`, {
+    data: { walletId },
+  });
   return data;
 };
 

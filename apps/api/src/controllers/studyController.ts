@@ -540,13 +540,19 @@ export const participateInStudy = async (req: Request, res: Response) => {
 /**
  * Delete a study from the database
  * DELETE /studies/:id
+ *
  */
 export const deleteStudy = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+    const { walletId } = req.body;
 
     if (!id) {
       return res.status(400).json({ error: "Study ID is required" });
+    }
+
+    if (!walletId) {
+      return res.status(400).json({ error: "Wallet ID is required" });
     }
 
     const studyId = parseInt(id);
@@ -555,15 +561,23 @@ export const deleteStudy = async (req: Request, res: Response) => {
       return res.status(400).json({ error: "Invalid study ID" });
     }
 
-    // Check if study exists
+    // Check if study exists and get creator info
     const { data: existingStudy, error: fetchError } = await req.supabase
       .from(TABLES.STUDIES!.name)
-      .select("id, title, status")
+      .select("id, title, status, created_by")
       .eq(TABLES.STUDIES!.columns.id!, studyId)
       .single();
 
     if (fetchError || !existingStudy) {
       return res.status(404).json({ error: "Study not found" });
+    }
+
+    // Verify that the wallet requesting deletion is the creator
+    if (existingStudy.created_by?.toLowerCase() !== walletId.toLowerCase()) {
+      return res.status(403).json({
+        error: "Unauthorized",
+        details: "Only the study creator can delete this study",
+      });
     }
 
     // Only allow deletion of draft studies or studies that failed deployment
@@ -585,7 +599,14 @@ export const deleteStudy = async (req: Request, res: Response) => {
       return res.status(500).json({ error: "Failed to delete study" });
     }
 
-    logger.info({ studyId, title: existingStudy.title }, "Study deleted successfully");
+    logger.info(
+      {
+        studyId,
+        title: existingStudy.title,
+        deletedBy: walletId,
+      },
+      "Study deleted successfully"
+    );
 
     res.status(200).json({
       success: true,

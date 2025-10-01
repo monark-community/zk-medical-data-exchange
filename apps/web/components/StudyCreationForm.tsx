@@ -414,7 +414,7 @@ const StudyCreationForm = ({
 
         // Delete the study from database since deployment failed
         try {
-          await deleteStudy(result.study.id);
+          await deleteStudy(result.study.id, walletAddress!);
           console.log("Study deleted from database due to deployment failure");
         } catch (deleteError) {
           console.error("Failed to delete study after deployment failure:", deleteError);
