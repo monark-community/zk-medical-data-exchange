@@ -19,9 +19,6 @@ const web3AuthContextConfig: Web3AuthContextConfig = {
   web3AuthOptions: {
     clientId,
     web3AuthNetwork: WEB3AUTH_NETWORK.SAPPHIRE_DEVNET,
-    // process.env.NODE_ENV === "production"
-    //   ? WEB3AUTH_NETWORK.SAPPHIRE_MAINNET
-    //   : WEB3AUTH_NETWORK.SAPPHIRE_DEVNET,
     ssr: true,
   },
 };
