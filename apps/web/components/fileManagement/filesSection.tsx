@@ -1,17 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { fetchCIDs } from "@/services/dataVaultService";
 import { MedicalData } from "@/interfaces/medicalData";
 import FileOperationDropDown from "./fileOperationDropDown";
-import {
-  Table,
-  TableBody,
-  TableCaption,
-  TableCell,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHeader, TableRow } from "@/components/ui/table";
 
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -24,6 +16,7 @@ import {
 import { ChevronLeft, ChevronRight, HeartPulse } from "lucide-react";
 import FileSkeletonCard from "@/app/dashboard/components/fileSkeletonCard";
 import eventBus from "@/lib/eventBus";
+import { fetchCIDs } from "@/services/api";
 
 export default function FilesSection({
   walletAddress,
@@ -122,7 +115,6 @@ export default function FilesSection({
       ) : (
         <div className="w-full">
           <Table>
-            <TableCaption>A list of your data.</TableCaption>
             <TableHeader></TableHeader>
             <TableBody>
               {table.getRowModel().rows?.length ? (

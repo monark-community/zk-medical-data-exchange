@@ -13,12 +13,11 @@ import {
 
 import { EllipsisVertical } from "lucide-react";
 
-import { deleteCID } from "@/services/dataVaultService";
-
-import { ipfsDelete, ipfsDownload } from "@/services/ipfsService";
 import { decryptWithKey } from "@/utils/encryption";
 
 import { MedicalData } from "@/interfaces/medicalData";
+import { ipfsDelete, ipfsDownload } from "@/services/storage";
+import { deleteCID } from "@/services/api";
 const FileOperationDropDown = ({
   walletAddress,
   aesKey,

@@ -1,9 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { addAESKeyToStore } from "@/services/aesKeyStore";
-import { deriveKeyFromWallet } from "@/utils/walletKey";
-import { generateAESKey } from "@/utils/encryption";
 import { useProtectedRoute } from "@/hooks/useAuth";
 
 import CustomNavbar from "@/components/navigation/customNavBar";
@@ -12,6 +9,9 @@ import DashboardTabs from "./components/dashboardTabs";
 import { useAccount } from "wagmi";
 
 import AccountOverview from "./components/accountOverview";
+import { generateAESKey } from "@/utils/encryption";
+import { deriveKeyFromWallet } from "@/utils/walletKey";
+import { addAESKeyToStore } from "@/services/storage";
 
 export default function Dashboard() {
   const { isConnected } = useProtectedRoute();

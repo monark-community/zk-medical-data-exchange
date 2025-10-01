@@ -3,6 +3,7 @@ import React from "react";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import DataVaultSection from "./dataVaultSection";
+import StudiesSection from "./StudiesSection";
 import { Config, UseAccountReturnType } from "wagmi";
 const DashboardTabs = ({
   account,
@@ -23,7 +24,9 @@ const DashboardTabs = ({
       <TabsContent value="dataVault">
         <DataVaultSection aesKey={aesKey} account={account} />
       </TabsContent>
-      <TabsContent value="studies"></TabsContent>
+      <TabsContent value="studies">
+        <StudiesSection />
+      </TabsContent>
       <TabsContent value="privacy"></TabsContent>
     </Tabs>
   );
