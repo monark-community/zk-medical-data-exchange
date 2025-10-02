@@ -1,23 +1,35 @@
 {
   "name": "smart-contracts",
   "module": "index.ts",
-  "private": true,
   "type": "module",
+  "private": true,
   "scripts": {
     "test": "bunx hardhat test",
     "test:solidity": "bunx hardhat test solidity",
     "test:nodejs": "bunx hardhat test nodejs",
-    "deploy:local": "bunx hardhat ignition deploy",
-    "deploy:sepolia": "bunx hardhat ignition deploy --network sepolia"
+    "test:verifier": "node test/test-verifier.js",
+    "test:integration": "node test/integration-test.js",
+    "test:simple-integration": "node test/simple-integration-test.js",
+    "test:zk-proof": "node test/zkProofIntegration.test.cjs",
+    "deploy:local": "bunx hardhat run scripts/deploy.ts",
+    "deploy:sepolia": "bunx hardhat run scripts/deploy.ts --network sepolia",
+    "deploy:tenderly": "bunx hardhat run scripts/deploy.ts --network tenderly",
+    "deploy:study-factory": "bunx hardhat run scripts/deployStudyFactory.ts --network sepolia"
   },
-  "devDependencies": {
+  "dependencies": {
+    "@nomicfoundation/hardhat-ethers": "^4.0.1",
     "@nomicfoundation/hardhat-ignition": "^3.0.1",
     "@nomicfoundation/hardhat-toolbox-viem": "^5.0.0",
     "@openzeppelin/contracts": "^5.4.0",
+    "@openzeppelin/defender-sdk": "^2.7.0",
     "@types/bun": "latest",
     "@types/node": "^22.18.0",
+    "dotenv": "^17.2.2",
+    "ethers": "^6.15.0",
     "forge-std": "github:foundry-rs/forge-std#v1.9.4",
     "hardhat": "^3.0.3",
+    "poseidon-lite": "^0.3.0",
+    "snarkjs": "^0.7.3",
     "typescript": "~5.8.0",
     "viem": "^2.36.0"
   },

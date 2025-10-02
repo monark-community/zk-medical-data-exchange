@@ -26,14 +26,19 @@ export const deriveKeyFromWallet = async (): Promise<Buffer> => {
 
   const provider = new BrowserProvider(window.ethereum);
   const signer = await provider.getSigner();
-  
-  // get address (public wallet id)
+
   const address = await signer.getAddress();
-  console.log("Wallet address:", address);
-  const message = "Generate AES key for encryption";
+
+  const message = `App: Cura
+
+Wallet: ${address}
+
+Action: Derive AES key. This will not cost any gas.
+Note: This signature does not authorize any transactions.
+`;
+
   const signature = await signer.signMessage(message);
 
-  // Hash the signature to get a 32-byte AES key
   const aesKey = crypto.createHash("sha256").update(signature).digest();
   return aesKey;
 };

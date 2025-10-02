@@ -3,6 +3,7 @@
     "baseUrl": "./src",
     "paths": {
       "@contracts/*": ["../../packages/smart-contracts/*"],
+      "@shared/*": ["../../packages/shared/*"],
       "@/*": ["*"]
     },
     // Environment setup & latest features
