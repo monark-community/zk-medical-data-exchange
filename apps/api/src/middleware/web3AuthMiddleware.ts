@@ -35,7 +35,9 @@ export interface Web3AuthUser {
 }
 
 declare global {
+  // eslint-disable-next-line no-unused-vars
   namespace Express {
+    // eslint-disable-next-line no-unused-vars
     interface Request {
       web3AuthUser?: Web3AuthUser;
     }
@@ -69,12 +71,16 @@ export function verifyWeb3AuthToken(
     return;
   }
 
-  let decodedPreview: any;
+  let decodedPreview: { header: jwt.JwtHeader; payload: Web3AuthUser } | null;
   try {
-    decodedPreview = jwt.decode(token, { complete: true });
+    decodedPreview = jwt.decode(token, { complete: true }) as {
+      header: jwt.JwtHeader;
+      payload: Web3AuthUser;
+    } | null;
+
     logger.debug({
-      issuer: (decodedPreview?.payload as any)?.iss,
-      audience: (decodedPreview?.payload as any)?.aud,
+      issuer: decodedPreview?.payload?.iss,
+      audience: decodedPreview?.payload?.aud,
     }, "Token preview");
   } catch (decodeErr) {
     logger.error({ error: decodeErr }, "Failed to decode token");

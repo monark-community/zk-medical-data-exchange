@@ -11,10 +11,7 @@ export function useAuthRedirect() {
   const router = useRouter();
 
   useEffect(() => {
-    console.log("[Auth] useAuthRedirect - Connection status:", isConnected);
-    
     if (isConnected) {
-      console.log("[Auth] User is connected, redirecting to dashboard...");
       router.push('/dashboard');
     }
   }, [isConnected, router]);
