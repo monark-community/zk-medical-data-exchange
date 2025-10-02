@@ -28,7 +28,7 @@ function getKey(header: any, callback: jwt.SigningKeyCallback) {
   });
 }
 
-interface Web3AuthUser {
+export interface Web3AuthUser {
   iss: string;
   aud: string;
   sub?: string;

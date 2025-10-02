@@ -12,10 +12,6 @@ logger.debug({ sessionDuration: SESSION_DURATION }, "Session manager initialized
 export interface SessionData {
   userId: string;
   walletAddress: string;
-  email?: string;
-  name?: string;
-  verifier: string;
-  verifierId: string;
   createdAt: number;
   expiresAt: number;
 }
@@ -33,10 +29,6 @@ export function generateSessionToken(web3AuthUser: Web3AuthUser): string {
   const sessionData: SessionData = {
     userId: web3AuthUser.sub,
     walletAddress,
-    email: web3AuthUser.email,
-    name: web3AuthUser.name,
-    verifier: web3AuthUser.verifier,
-    verifierId: web3AuthUser.verifierId,
     createdAt: now,
     expiresAt: now + SESSION_DURATION,
   };
