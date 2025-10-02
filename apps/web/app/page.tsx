@@ -30,7 +30,6 @@ export default function LandingPage() {
       const res = await verifySignature(userAddress, signature, message);
 
       if (res.success && res.token) {
-        // Store JWT token with expiration
         setAuthToken(res.token, res.expiresIn);
         router.push('/dashboard');
       } else {

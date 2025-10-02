@@ -1,14 +1,14 @@
 import { Router } from 'express';
 import { generateNonce, verifySignature, logout } from '@/controllers/authController';
-import { authMiddleware } from '@/middleware/tokenValidationMiddleware';
+import { authMiddleware } from '@/middleware/authMiddleware';
 
 const router = Router();
 
-// Public auth endpoints
+// Public endpoints
 router.post('/nonce', generateNonce);
 router.post('/verify', verifySignature);
 
-// Protected auth endpoints (require authentication)
+// Protected endpoints (require authentication enforced by authMiddleware)
 router.post('/logout', authMiddleware, logout);
 
 export default router;

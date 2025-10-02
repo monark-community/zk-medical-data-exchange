@@ -16,17 +16,14 @@ export async function generateNonce(req: Request, res: Response) {
       return res.status(400).json({ error: 'Wallet address is required' });
     }
 
-    // Validate wallet address format
     if (!ethers.isAddress(walletAddress)) {
       logger.error(`Invalid wallet address format: ${walletAddress}`);
       return res.status(400).json({ error: 'Invalid wallet address format' });
     }
 
     const nonce = crypto.randomUUID();
-    logger.info(`Generated nonce: ${nonce} for wallet: ${walletAddress}`);
     const issuedAt = new Date().toISOString();
-    
-    // Store nonce with wallet address binding
+
     nonceStore.setNonce(nonce, walletAddress);
 
     const message = generateAuthMessage({
@@ -36,11 +33,11 @@ export async function generateNonce(req: Request, res: Response) {
       issuedAt: issuedAt,
     });
 
-    logger.info(`Nonce generated for wallet: ${walletAddress}`);
+    logger.info(`Nonce generated successfully.`);
     res.json({ 
       nonce, 
       message,
-      expiresIn: AUTH_CONFIG.MAX_MESSAGE_AGE_MS / 1000 // Return expiry in seconds
+      expiresIn: AUTH_CONFIG.MAX_MESSAGE_AGE_MS / 1000
     });
   } catch (err) {
     logger.error(`Error generating nonce: ${err}`);
@@ -59,20 +56,17 @@ export async function verifySignature(req: Request, res: Response) {
       return res.status(400).json({ error: 'walletAddress, signature, and message are required' });
     }
 
-    // Validate wallet address format
     if (!ethers.isAddress(walletAddress)) {
       logger.error(`Invalid wallet address format: ${walletAddress}`);
       return res.status(400).json({ error: 'Invalid wallet address format' });
     }
 
-    // Parse the authentication message
     const parsedMessage = parseAuthMessage(message);
     if (!parsedMessage) {
-      logger.warn(`Invalid message format for wallet: ${walletAddress}`);
+      logger.error(`Invalid message format for wallet: ${walletAddress}`);
       return res.status(400).json({ error: 'Invalid message format' });
     }
 
-    // Validate message structure and freshness
     const messageValidation = validateAuthMessage(
       parsedMessage, 
       walletAddress, 
@@ -81,34 +75,31 @@ export async function verifySignature(req: Request, res: Response) {
     );
 
     if (!messageValidation.isValid) {
-      logger.warn(`Message validation failed for wallet ${walletAddress}: ${messageValidation.error}`);
+      logger.error(`Message validation failed for wallet ${walletAddress}: ${messageValidation.error}`);
       return res.status(400).json({ error: 'Invalid authentication message' });
     }
 
-    // Validate and consume the nonce
     const nonceValid = nonceStore.validateAndConsumeNonce(parsedMessage.nonce, walletAddress);
     if (!nonceValid) {
-      logger.warn(`Nonce validation failed for wallet ${walletAddress}, nonce: ${parsedMessage.nonce}`);
+      logger.error(`Nonce validation failed for wallet ${walletAddress}, nonce: ${parsedMessage.nonce}`);
       return res.status(401).json({ error: 'Invalid or expired nonce' });
     }
 
-    // Verify the cryptographic signature
     let recoveredAddress: string;
     try {
       recoveredAddress = ethers.verifyMessage(message, signature);
     } catch (sigError) {
-      logger.warn(`Signature verification failed for wallet ${walletAddress}: ${sigError}`);
+      logger.error(`Signature verification failed for wallet ${walletAddress}: ${sigError}`);
       return res.status(401).json({ error: 'Invalid signature' });
     }
     
     if (recoveredAddress.toLowerCase() !== walletAddress.toLowerCase()) {
-      logger.warn(`Signature address mismatch - expected: ${walletAddress}, recovered: ${recoveredAddress}`);
+      logger.error(`Signature address mismatch - expected: ${walletAddress}, recovered: ${recoveredAddress}`);
       return res.status(401).json({ error: 'Signature verification failed' });
     }
 
     logger.info(`Authentication successful for wallet: ${walletAddress}`);
     
-    // Generate JWT token with 15-minute expiration
     const token = generateToken(recoveredAddress);
     const expiresIn = getTokenExpiration();
     
@@ -117,7 +108,7 @@ export async function verifySignature(req: Request, res: Response) {
       message: 'Authentication successful',
       token,
       walletAddress: recoveredAddress,
-      expiresIn, // Expiration time in seconds
+      expiresIn,
       authenticatedAt: new Date().toISOString()
     });
   } catch (err) {
@@ -128,7 +119,6 @@ export async function verifySignature(req: Request, res: Response) {
 
 export async function logout(req: Request, res: Response) {
   try {
-    // Extract wallet address from authenticated request (set by auth middleware)
     const walletAddress = (req as any).user?.walletAddress;
     
     if (walletAddress) {
@@ -137,11 +127,8 @@ export async function logout(req: Request, res: Response) {
       logger.info('Logout requested (no authenticated user)');
     }
     
-    // In a stateless JWT system, logout is handled client-side by removing the token
-    // However, we can implement token blacklisting here if needed in the future
-    
     res.json({ 
-      success: true, 
+      success: true,
       message: 'Logout successful'
     });
   } catch (err) {

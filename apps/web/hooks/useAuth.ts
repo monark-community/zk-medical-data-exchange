@@ -11,12 +11,10 @@ export function useAuthRedirect() {
   const [hasSession, setHasSession] = useState(false);
 
   useEffect(() => {
-    // Check if user has valid JWT session
     setHasSession(isAuthenticated());
   }, []);
 
   useEffect(() => {
-    // Redirect to dashboard if connected and has valid session
     if (isConnected && hasSession) {
       router.push('/dashboard');
     }
@@ -31,11 +29,9 @@ export function useProtectedRoute() {
   const [hasSession, setHasSession] = useState(false);
 
   useEffect(() => {
-    // Check if user has valid JWT session
     const authenticated = isAuthenticated();
     setHasSession(authenticated);
     
-    // Redirect to home if not connected or no valid session
     if (!isConnected || !authenticated) {
       router.push('/');
     }

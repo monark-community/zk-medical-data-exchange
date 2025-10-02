@@ -8,11 +8,8 @@ export interface JWTPayload {
   exp?: number;
 }
 
-const JWT_EXPIRATION = '15m'; // 15 minutes
+const JWT_EXPIRATION = '15m';
 
-/**
- * Generate a JWT token for an authenticated wallet address
- */
 export function generateToken(walletAddress: string): string {
   try {
     const token = jwt.sign(
@@ -33,9 +30,6 @@ export function generateToken(walletAddress: string): string {
   }
 }
 
-/**
- * Verify and decode a JWT token
- */
 export function verifyToken(token: string): JWTPayload | null {
   try {
     const decoded = jwt.verify(token, Config.JWT_SECRET, {
@@ -56,9 +50,6 @@ export function verifyToken(token: string): JWTPayload | null {
   }
 }
 
-/**
- * Decode a JWT token without verification (for debugging)
- */
 export function decodeToken(token: string): JWTPayload | null {
   try {
     const decoded = jwt.decode(token) as JWTPayload;
@@ -69,9 +60,6 @@ export function decodeToken(token: string): JWTPayload | null {
   }
 }
 
-/**
- * Get token expiration time in seconds
- */
 export function getTokenExpiration(): number {
-  return 15 * 60; // 15 minutes in seconds
+  return 15 * 60;
 }

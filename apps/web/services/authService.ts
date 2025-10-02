@@ -22,7 +22,6 @@ export const logout = async () => {
   
   if (token) {
     try {
-      // Call logout endpoint with authentication
       await apiClient.post("/auth/logout", {}, {
         headers: {
           Authorization: `Bearer ${token}`
@@ -30,29 +29,21 @@ export const logout = async () => {
       });
     } catch (error) {
       console.error("Logout API call failed:", error);
-      // Continue with local logout even if API call fails
     }
   }
   
-  // Clear local session data
   clearAuthToken();
 };
 
-/**
- * Store JWT token and expiration time in localStorage
- */
 export const setAuthToken = (token: string, expiresIn: number) => {
   if (typeof window === 'undefined') return;
   
-  const expiryTime = Date.now() + (expiresIn * 1000); // Convert seconds to milliseconds
+  const expiryTime = Date.now() + (expiresIn * 1000);
   
   localStorage.setItem(TOKEN_KEY, token);
   localStorage.setItem(TOKEN_EXPIRY_KEY, expiryTime.toString());
 };
 
-/**
- * Get JWT token from localStorage if it's not expired
- */
 export const getAuthToken = (): string | null => {
   if (typeof window === 'undefined') return null;
   
@@ -63,7 +54,6 @@ export const getAuthToken = (): string | null => {
     return null;
   }
   
-  // Check if token is expired
   if (Date.now() > parseInt(expiry)) {
     clearAuthToken();
     return null;
@@ -72,9 +62,6 @@ export const getAuthToken = (): string | null => {
   return token;
 };
 
-/**
- * Clear JWT token and expiration time from localStorage
- */
 export const clearAuthToken = () => {
   if (typeof window === 'undefined') return;
   
@@ -82,9 +69,6 @@ export const clearAuthToken = () => {
   localStorage.removeItem(TOKEN_EXPIRY_KEY);
 };
 
-/**
- * Check if user has a valid authentication session
- */
 export const isAuthenticated = (): boolean => {
   return getAuthToken() !== null;
 };

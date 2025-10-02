@@ -9,23 +9,19 @@ interface NonceEntry {
 
 /**
  * In-memory nonce store for Web3 authentication
- * In production, this should be replaced with Redis or similar
+ * TODO : replace with Redis cache system (more secure for production)
  */
 class NonceStore {
   private store = new Map<string, NonceEntry>();
-  private readonly NONCE_EXPIRY_MS = 5 * 60 * 1000; // 5 minutes
+  private readonly NONCE_EXPIRY_MS = 5 * 60 * 1000;
   private cleanupInterval: ReturnType<typeof setInterval>;
 
   constructor() {
-    // Clean up expired nonces every minute
     this.cleanupInterval = setInterval(() => {
       this.cleanup();
     }, 60 * 1000);
   }
 
-  /**
-   * Store a new nonce for a wallet address
-   */
   setNonce(nonce: string, walletAddress: string): void {
     const now = Date.now();
     this.store.set(nonce, {
@@ -38,10 +34,6 @@ class NonceStore {
     logger.info({ nonce, walletAddress }, 'Nonce stored');
   }
 
-  /**
-   * Validate and consume a nonce
-   * Returns true if nonce is valid and unused, false otherwise
-   */
   validateAndConsumeNonce(nonce: string, walletAddress: string): boolean {
     const entry = this.store.get(nonce);
     
@@ -66,21 +58,16 @@ class NonceStore {
       return false;
     }
 
-    // Mark as used
     entry.used = true;
     logger.debug({ nonce, walletAddress }, 'Nonce validated and consumed');
     
-    // Clean up after a short delay
     setTimeout(() => {
       this.store.delete(nonce);
-    }, 30 * 1000); // Remove after 30 seconds
+    }, 30 * 1000);
 
     return true;
   }
 
-  /**
-   * Check if a nonce exists and is valid (without consuming it)
-   */
   isValidNonce(nonce: string, walletAddress: string): boolean {
     const entry = this.store.get(nonce);
     
@@ -92,9 +79,6 @@ class NonceStore {
     return true;
   }
 
-  /**
-   * Clean up expired nonces
-   */
   private cleanup(): void {
     const now = Date.now();
     let cleanedCount = 0;
@@ -111,9 +95,6 @@ class NonceStore {
     }
   }
 
-  /**
-   * Get store statistics for monitoring
-   */
   getStats() {
     return {
       totalNonces: this.store.size,
@@ -121,9 +102,6 @@ class NonceStore {
     };
   }
 
-  /**
-   * Clean up resources
-   */
   destroy(): void {
     if (this.cleanupInterval) {
       clearInterval(this.cleanupInterval);
@@ -132,10 +110,8 @@ class NonceStore {
   }
 }
 
-// Export singleton instance
 export const nonceStore = new NonceStore();
 
-// Cleanup on process exit
 process.on('SIGINT', () => {
   nonceStore.destroy();
 });

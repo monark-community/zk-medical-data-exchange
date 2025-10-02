@@ -25,17 +25,11 @@ const UserMenu = () => {
   
   const handleLogout = async () => {
     try {
-      // Call logout service to clear JWT token
       await logout();
-      
-      // Disconnect wallet
       disconnect();
-      
-      // Redirect to home page
       router.push('/');
     } catch (error) {
       console.error("Logout failed:", error);
-      // Even if logout API fails, still disconnect locally
       disconnect();
       router.push('/');
     }
