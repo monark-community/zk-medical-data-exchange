@@ -7,6 +7,7 @@ import jwt from 'jsonwebtoken';
 import jwksClient from 'jwks-rsa';
 import type { Request, Response, NextFunction } from 'express';
 import logger from '@/utils/logger';
+import { Config } from '@/config/config';
 
 // MetaMask uses the AuthJS JWKS endpoint (not the social login endpoint)
 const METAMASK_JWKS_URI = "https://authjs.web3auth.io/jwks";
@@ -140,6 +141,30 @@ export function verifyWeb3AuthToken(
         res.status(401).json({
           error: "Unauthorized",
           message: "No wallet address in token",
+        });
+        return;
+      }
+
+      const allowedAudiences = Config.IS_LOCAL_MODE
+        ? ["localhost", "127.0.0.1"]
+        : ["cura-web.onrender.com"];
+
+      const isValidAudience = allowedAudiences.some(allowed => {
+        const aud = web3AuthUser.aud?.replace(/^https?:\/\//, '').replace(/\/$/, '');
+        const allowedClean = allowed.replace(/^https?:\/\//, '').replace(/\/$/, '');
+        return aud === allowedClean || aud?.includes(allowedClean);
+      });
+
+      if (!isValidAudience) {
+        logger.error({
+          audience: web3AuthUser.aud,
+          allowedAudiences,
+          isLocal: Config.IS_LOCAL_MODE,
+        }, "Invalid audience - token not from allowed origin");
+        
+        res.status(401).json({
+          error: "Unauthorized",
+          message: "Token from unauthorized origin",
         });
         return;
       }
