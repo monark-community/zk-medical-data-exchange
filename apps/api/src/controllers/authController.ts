@@ -4,6 +4,7 @@ import crypto from 'crypto';
 import { ethers } from 'ethers';
 import { nonceStore } from '@/services/nonceStore';
 import { generateAuthMessage, parseAuthMessage, validateAuthMessage, AUTH_CONFIG } from '@/utils/authMessage';
+import { generateToken, getTokenExpiration } from '@/utils/jwt';
 
 export async function generateNonce(req: Request, res: Response) {
   try {
@@ -107,16 +108,44 @@ export async function verifySignature(req: Request, res: Response) {
 
     logger.info(`Authentication successful for wallet: ${walletAddress}`);
     
-    // Here you could generate a JWT token or session
-    // For now, just return success with recovered address for verification
+    // Generate JWT token with 15-minute expiration
+    const token = generateToken(recoveredAddress);
+    const expiresIn = getTokenExpiration();
+    
     res.json({ 
       success: true, 
       message: 'Authentication successful',
+      token,
       walletAddress: recoveredAddress,
+      expiresIn, // Expiration time in seconds
       authenticatedAt: new Date().toISOString()
     });
   } catch (err) {
     logger.error(`Error verifying signature: ${err}`);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+}
+
+export async function logout(req: Request, res: Response) {
+  try {
+    // Extract wallet address from authenticated request (set by auth middleware)
+    const walletAddress = (req as any).user?.walletAddress;
+    
+    if (walletAddress) {
+      logger.info(`Logout successful for wallet: ${walletAddress}`);
+    } else {
+      logger.info('Logout requested (no authenticated user)');
+    }
+    
+    // In a stateless JWT system, logout is handled client-side by removing the token
+    // However, we can implement token blacklisting here if needed in the future
+    
+    res.json({ 
+      success: true, 
+      message: 'Logout successful'
+    });
+  } catch (err) {
+    logger.error(`Error during logout: ${err}`);
     res.status(500).json({ error: 'Internal server error' });
   }
 }

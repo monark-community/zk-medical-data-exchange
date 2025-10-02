@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { useWeb3AuthConnect } from "@web3auth/modal/react";
-import { requestNonce, verifySignature } from "@/services/authService";
+import { requestNonce, verifySignature, setAuthToken } from "@/services/authService";
 import { BrowserProvider } from "ethers";
 import { useRouter } from "next/navigation";
 
@@ -10,14 +10,16 @@ export default function LandingPage() {
   const { connect } = useWeb3AuthConnect();
   const router = useRouter();
   const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const handleConnectionAttempt = async () => {
     try {
       setIsAuthenticating(true);
+      setErrorMessage(null);
       
       const web3authProvider = await connect();
 
-      if (!web3authProvider) { throw new Error("MetaMask not found"); }
+      if (!web3authProvider) { throw new Error("Wallet not found"); }
 
       const provider = new BrowserProvider(web3authProvider);
       const signer = await provider.getSigner();
@@ -27,14 +29,17 @@ export default function LandingPage() {
       const signature = await signer.signMessage(message);
       const res = await verifySignature(userAddress, signature, message);
 
-      if (res.success) {
+      if (res.success && res.token) {
+        // Store JWT token with expiration
+        setAuthToken(res.token, res.expiresIn);
         router.push('/dashboard');
       } else {
-        throw new Error("Invalid signature");
+        throw new Error("Invalid signature verification");
       }
-    } catch (err) {
-      console.log("Authentication failed:", err);
-      alert("Authentication failed. Please try again.");
+    } catch (err: any) {
+      console.error("Authentication failed:", err);
+      const message = err?.message || "Authentication failed. Please try again.";
+      setErrorMessage(message);
     } finally {
       setIsAuthenticating(false);
     }
@@ -53,13 +58,22 @@ export default function LandingPage() {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center">
-      <button
-        className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-8 py-3 rounded-lg disabled:opacity-50 cursor-pointer"
-        onClick={handleConnectionAttempt}
-        disabled={isAuthenticating}
-      >
-        Connect Wallet
-      </button>
+      <div className="text-center space-y-4">
+        <button
+          className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-8 py-3 rounded-lg disabled:opacity-50 cursor-pointer"
+          onClick={handleConnectionAttempt}
+          disabled={isAuthenticating}
+        >
+          Connect Wallet
+        </button>
+        
+        {errorMessage && (
+          <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 max-w-md">
+            <p className="font-semibold">Authentication Failed</p>
+            <p className="text-sm mt-1">{errorMessage}</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

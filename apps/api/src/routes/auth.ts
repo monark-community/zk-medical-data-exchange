@@ -1,10 +1,14 @@
 import { Router } from 'express';
-import { generateNonce, verifySignature } from '@/controllers/authController';
+import { generateNonce, verifySignature, logout } from '@/controllers/authController';
+import { authMiddleware } from '@/middleware/tokenValidationMiddleware';
 
 const router = Router();
 
-// Apply rate limiting to auth endpoints
+// Public auth endpoints
 router.post('/nonce', generateNonce);
 router.post('/verify', verifySignature);
+
+// Protected auth endpoints (require authentication)
+router.post('/logout', authMiddleware, logout);
 
 export default router;

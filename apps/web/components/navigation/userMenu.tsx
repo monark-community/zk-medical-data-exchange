@@ -15,9 +15,31 @@ import { LogOut, User, Settings } from "lucide-react";
 
 import { useAccount } from "wagmi";
 import { useWeb3AuthDisconnect } from "@web3auth/modal/react";
+import { logout } from "@/services/authService";
+import { useRouter } from "next/navigation";
+
 const UserMenu = () => {
   const { address } = useAccount();
   const { disconnect } = useWeb3AuthDisconnect();
+  const router = useRouter();
+  
+  const handleLogout = async () => {
+    try {
+      // Call logout service to clear JWT token
+      await logout();
+      
+      // Disconnect wallet
+      disconnect();
+      
+      // Redirect to home page
+      router.push('/');
+    } catch (error) {
+      console.error("Logout failed:", error);
+      // Even if logout API fails, still disconnect locally
+      disconnect();
+      router.push('/');
+    }
+  };
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -49,7 +71,7 @@ const UserMenu = () => {
         </DropdownMenuGroup>
 
         <DropdownMenuSeparator />
-        <DropdownMenuItem className="text-red-700" onClick={() => disconnect()}>
+        <DropdownMenuItem className="text-red-700" onClick={handleLogout}>
           <LogOut className="text-red-700" />
           Log out
         </DropdownMenuItem>
