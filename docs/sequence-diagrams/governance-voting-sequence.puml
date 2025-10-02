@@ -1,0 +1,68 @@
+@startuml Governance_Voting_Sequence
+!theme plain
+
+title Cura - Diagramme de Séquence : Vote sur Proposition de Gouvernance
+
+actor "Votant" as Voter
+participant "Interface Web\n(Next.js)" as Frontend
+participant "API Backend\n(Express)" as Backend
+participant "Base de Données\n(Supabase)" as Database
+participant "Smart Contract\n(GovernanceContract)" as GovernanceContract
+
+== Phase de Consultation ==
+Voter -> Frontend : Accès section "Gouvernance"
+Frontend -> Frontend : Vérification authentification (JWT)
+Frontend -> Backend : GET /api/governance/proposals
+Backend -> Database : Récupération propositions actives
+Database -> Backend : Liste des propositions
+Backend -> Frontend : Propositions avec statistiques
+Frontend -> Voter : Affichage des propositions
+
+== Phase de Sélection ==
+Voter -> Frontend : Clic sur une proposition
+Frontend -> Backend : GET /api/governance/proposals/:id
+Backend -> Database : Détails proposition + compteurs votes
+Database -> Backend : Données complètes
+Backend -> Frontend : Détails de la proposition
+Frontend -> Voter : Affichage détaillé + boutons Pour/Contre
+
+== Phase de Vote ==
+Voter -> Frontend : Clic "Voter Pour" ou "Voter Contre"
+Frontend -> Backend : Vérification vote autorisé
+Backend -> Database : Vérification double vote
+
+alt Utilisateur a déjà voté
+    Backend -> Frontend : HTTP 409 - Vote déjà enregistré
+    Frontend -> Voter : "Vous avez déjà voté"
+else Vote autorisé
+    Frontend -> Backend : POST /api/governance/vote
+    note right
+    Authorization Bearer <JWT_TOKEN>
+    Body: proposalId, vote (true/false)
+    end note
+    
+    Backend -> Backend : Validation JWT et données
+    
+    Backend -> Database : Enregistrement du vote
+    note right
+    INSERT vote + UPDATE compteurs
+    votes_for/against++
+    end note
+    
+    Backend -> GovernanceContract : castVote(proposalId, voterAddress, vote)
+    GovernanceContract -> Backend : Vote enregistré blockchain
+    
+    Backend -> Frontend : HTTP 201 - Vote enregistré avec succès
+    Frontend -> Voter : Confirmation + mise à jour compteurs
+end
+
+== Gestion d'Erreurs ==
+alt Proposition expirée
+    Backend -> Frontend : HTTP 410 - Période de vote terminée
+    Frontend -> Voter : "La période de vote est terminée"
+else Erreur technique
+    Backend -> Frontend : HTTP 500 - Erreur serveur
+    Frontend -> Voter : "Erreur technique, réessayez"
+end
+
+@enduml

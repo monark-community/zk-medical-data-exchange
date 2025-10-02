@@ -1,15 +1,21 @@
 FROM oven/bun:latest
 
-WORKDIR /api
+WORKDIR /workspace
 
-COPY package.json ./
+COPY ./package.json ./bun.lock ./
 
+COPY ./packages/shared ./packages/shared
+COPY ./packages/smart-contracts ./packages/smart-contracts
+COPY ./apps/web/package.json ./apps/web/package.json
+COPY ./apps/api/package.json ./apps/api/package.json
+
+WORKDIR /workspace
 RUN bun install
 
-COPY . ./
+WORKDIR /workspace/apps/api
+COPY ./apps/api/ ./
 
-RUN bun run build
 
 EXPOSE 8000
 
-CMD ["bun", "dist/index.js"]
+CMD ["bun", "run", "src/index.ts"]

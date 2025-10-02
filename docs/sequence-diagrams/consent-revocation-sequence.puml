@@ -1,0 +1,73 @@
+@startuml Consent_Revocation_Sequence
+!theme plain
+
+title Cura - Diagramme de Séquence : Révocation de Consentement d'Étude
+
+actor "Patient" as Patient
+participant "Interface Web\n(Next.js)" as Frontend
+participant "API Backend\n(Express)" as Backend
+participant "Base de Données\n(Supabase)" as Database
+participant "Smart Contract\n(StudyContract)" as StudyContract
+
+== Phase de Consultation ==
+Patient -> Frontend : Accès section "Mes Études"
+Frontend -> Frontend : Vérification authentification (JWT)
+Frontend -> Backend : GET /api/studies/my-participations/:walletAddress
+Backend -> Database : Études actives du patient
+Database -> Backend : Liste des études
+Backend -> Frontend : Études avec statuts
+Frontend -> Patient : Affichage des études participées
+
+== Phase de Sélection ==
+Patient -> Frontend : Clic sur une étude à quitter
+Frontend -> Backend : GET /api/studies/:studyId/participation-details
+Backend -> Database : Détails participation + permissions révocation
+Backend -> Frontend : Informations + options de retrait
+Frontend -> Patient : Affichage détails + bouton "Révoquer"
+
+== Phase de Confirmation ==
+Patient -> Frontend : Clic "Révoquer mon consentement"
+Frontend -> Patient : Modal de confirmation avec conséquences
+note right
+Avertissements:
+Retrait définitif, données déjà
+partagées restent utilisables
+end note
+
+Patient -> Frontend : Confirmation de révocation
+
+== Phase de Révocation ==
+Frontend -> Backend : POST /api/studies/:studyId/revoke-consent
+note right
+Authorization Bearer <JWT_TOKEN>
+Body: studyId, walletAddress
+end note
+
+Backend -> Backend : Validation JWT et droits
+
+Backend -> Database : Mise à jour statut révocation
+note right
+UPDATE status='consent_revoked'
+Suppression permissions
+Historique révocation
+end note
+
+Backend -> StudyContract : revokeConsent(studyId, participantAddress)
+StudyContract -> Backend : Révocation enregistrée blockchain
+
+Backend -> Frontend : HTTP 200 - Consentement révoqué
+Frontend -> Patient : Confirmation de révocation
+
+== Gestion d'Erreurs ==
+alt Révocation non autorisée
+    Backend -> Frontend : HTTP 403 - Révocation non permise
+    Frontend -> Patient : "Impossible de révoquer à ce stade"
+else Erreur technique
+    Backend -> Frontend : HTTP 500 - Erreur serveur
+    Frontend -> Patient : "Erreur technique, réessayez"
+else Déjà révoqué
+    Backend -> Frontend : HTTP 409 - Consentement déjà révoqué
+    Frontend -> Patient : "Consentement déjà révoqué"
+end
+
+@enduml

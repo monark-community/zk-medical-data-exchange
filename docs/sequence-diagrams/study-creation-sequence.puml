@@ -1,0 +1,73 @@
+@startuml Creation_Etude_Sequence
+!theme plain
+
+title Cura - Diagramme de Séquence : Création d'Étude
+
+actor "Chercheur" as Researcher
+participant "Interface Web\n(StudyCreationForm)" as Frontend
+participant "API Backend\n(Express)" as Backend
+participant "Middleware JWT\n(Validation)" as JWTMiddleware
+participant "Base de Données\n(Supabase)" as Database
+participant "Service Blockchain\n(BlockchainService)" as Blockchain
+participant "Smart Contract\n(StudyFactory)" as Factory
+participant "Contrat Study\n(Déployé)" as StudyContract
+
+== Phase de Saisie ==
+Researcher -> Frontend : Clic "Créer une étude"
+Researcher -> Frontend : Saisie titre, description, critères
+Frontend -> Frontend : Validation côté client
+Researcher -> Frontend : Soumission formulaire
+
+== Phase de sauvegarde en Base de données ==
+Frontend -> Backend : POST /api/studies
+note right
+Authorization: Bearer <JWT_TOKEN>
+Body: { title, description, 
+maxParticipants, criteria,
+walletAddress }
+end note
+
+Backend -> JWTMiddleware : Validation JWT token
+JWTMiddleware -> Backend : Token valide + user info
+Backend -> Backend : Validation critères + autorisation
+Backend -> Database : INSERT studies (status='draft')
+Database -> Backend : Retour study_id
+Backend -> Frontend : Réponse { study: {...} }
+
+== Phase de déploiement Blockchain ==
+Frontend -> Backend : POST /api/studies/{id}/deployment
+note right
+Authorization: Bearer <JWT_TOKEN>
+end note
+Backend -> JWTMiddleware : Validation JWT token
+JWTMiddleware -> Backend : Token valide + user info
+Backend -> Blockchain : deployStudy(studyParams)
+Blockchain -> Factory : createStudy(title, criteria, zkVerifier, ...)
+Factory -> StudyContract : new Study(title, maxParticipants, criteria, zkVerifier)
+note right
+Déploie un contrat Study individuel
+avec les critères d'éligibilité ZK
+end note
+StudyContract -> Factory : Retour address(Study)
+Factory -> Blockchain : event StudyCreated(studyId, studyAddress)
+Blockchain -> Backend : { studyId, studyAddress, txHash }
+Backend -> Database : UPDATE (status='active', contract_address, tx_hash)
+Backend -> Frontend : Réponse déploiement
+Frontend -> Researcher : Confirmation avec lien Etherscan
+
+== Gestion d'Erreurs ==
+alt Token JWT invalide/expiré
+    JWTMiddleware -> Backend : Erreur 401 - Non autorisé
+    Backend -> Frontend : HTTP 401 - Token invalide
+    Frontend -> Researcher : "Session expirée, reconnectez-vous"
+else Échec déploiement blockchain
+    Blockchain -> Backend : Erreur déploiement
+    Backend -> Database : DELETE study (rollback)
+    Backend -> Frontend : Erreur 500
+    Frontend -> Researcher : "Déploiement échoué, réessayez"
+else Erreur validation
+    Backend -> Frontend : HTTP 400 - Critères invalides
+    Frontend -> Researcher : Message d'erreur
+end
+
+@enduml

@@ -1,0 +1,93 @@
+@startuml Medical_Data_Upload_Sequence
+!theme plain
+
+title Cura - Diagramme de Séquence : Upload de Fichiers Médicaux FHIR sur IPFS
+
+actor "Patient" as Patient
+participant "Interface Web\n(Next.js)" as Frontend
+participant "API Backend\n(Express)" as Backend
+participant "Stockage IPFS\n(Pinata)" as IPFS
+participant "Base de Données\n(Supabase)" as Database
+
+== Phase de Sélection de Fichiers ==
+Patient -> Frontend : Accès à la section "Mes Données Médicales"
+Frontend -> Frontend : Vérification authentification (JWT)
+Patient -> Frontend : Clic "Ajouter des fichiers médicaux"
+
+Patient -> Frontend : Sélection fichier(s) JSON FHIR
+note right
+Types FHIR acceptés:
+Patient, Condition, Observation,
+MedicationStatement, DiagnosticReport
+end note
+
+Frontend -> Frontend : Validation taille et extension fichier
+
+== Phase de Validation FHIR ==
+Frontend -> Frontend : Lecture du contenu du fichier
+Frontend -> Frontend : Parsing JSON
+Frontend -> Frontend : Validation schéma FHIR R4
+note right
+Validation côté client:
+- Structure JSON valide
+- Champs obligatoires présents
+- Types de données conformes
+- Codes terminologiques valides
+- Références cohérentes
+end note
+
+alt Fichier FHIR valide
+    Frontend -> Frontend : Extraction métadonnées FHIR
+    Frontend -> Patient : Indication de validation réussie
+else Erreurs de validation FHIR
+    Frontend -> Patient : Affichage des erreurs avec suggestions
+    note right
+    Types d'erreurs possibles:
+    - Champs manquants
+    - Formats de dates incorrects
+    - Codes terminologiques invalides
+    - Structure non conforme
+    end note
+end
+
+== Phase de Chiffrement ==
+alt Validation réussie
+    Patient -> Frontend : Confirmation d'upload
+    Frontend -> Frontend : Signature wallet pour générer clé AES
+    Frontend -> Frontend : Chiffrement du contenu FHIR
+    Frontend -> IPFS : Upload fichier chiffré
+    note right
+    Le backend ne voit jamais:
+    - Contenu FHIR original
+    - Clé AES
+    - Données déchiffrées
+    end note
+    
+    IPFS -> Frontend : CID du fichier stocké
+    Frontend -> Frontend : Chiffrement du CID
+    Frontend -> Backend : POST /api/medical-data {encryptedCid, resourceType}
+end
+
+== Phase de Sauvegarde ==
+Backend -> Database : INSERT INTO medical_data
+note right
+Sauvegarde métadonnées:
+encrypted_cid, resource_type,
+patient_wallet, upload_date
+end note
+
+Backend -> Frontend : HTTP 201 - Upload réussi
+Frontend -> Patient : Notification de succès
+
+== Gestion d'Erreurs ==
+alt Erreur validation/chiffrement
+    Frontend -> Patient : "Erreur de validation ou sécurisation"
+else Erreur stockage
+    IPFS -> Frontend : Échec de stockage
+    Frontend -> Patient : "Problème de stockage, réessayez"
+else Erreur sauvegarde
+    Backend -> Frontend : HTTP 500 - Erreur serveur
+    Frontend -> Patient : "Erreur de sauvegarde, réessayez"
+end
+
+@enduml

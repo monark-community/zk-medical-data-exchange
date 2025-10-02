@@ -1,0 +1,75 @@
+@startuml Rejoindre_Etude_Sequence
+!theme plain
+
+title Cura - Diagramme de Séquence : Rejoindre une Étude Active
+
+actor "Patient" as Patient
+participant "Interface Web\n(Next.js)" as Frontend
+participant "API Backend\n(Express)" as Backend
+participant "Base de Données\n(Supabase)" as Database
+participant "Smart Contract\n(StudyContract)" as StudyContract
+participant "Service ZK Proof\n(Circom)" as ZKService
+participant "Stockage IPFS\n(Pinata)" as IPFS
+
+== Phase de Découverte des Études ==
+Patient -> Frontend : Navigation vers "Études disponibles"
+Frontend -> Backend : GET /api/studies?status=active
+Backend -> Database : Récupération études actives
+Database -> Backend : Liste des études
+Backend -> Frontend : Études disponibles
+Frontend -> Patient : Affichage des études
+
+== Phase de Sélection d'Étude ==
+Patient -> Frontend : Clic sur une étude spécifique
+Frontend -> Backend : GET /api/studies/:studyId/details
+Backend -> Database : Détails étude + critères
+Backend -> Frontend : Détails complets de l'étude
+Frontend -> Patient : Affichage détails + critères d'éligibilité
+
+== Phase de Récupération des Données Médicales ==
+Patient -> Frontend : Clic "Vérifier mon éligibilité"
+Frontend -> Backend : GET /api/medical-data/user/:walletAddress
+Backend -> Database : CIDs chiffrés des données médicales
+Backend -> Frontend : Liste des CIDs chiffrés
+Frontend -> Frontend : Déchiffrement des CIDs
+
+loop Pour chaque CID
+    Frontend -> IPFS : Récupération fichier FHIR
+    IPFS -> Frontend : Contenu chiffré
+    Frontend -> Frontend : Déchiffrement contenu FHIR
+end
+
+Frontend -> Frontend : Consolidation des données FHIR
+
+== Phase de Mapping et Génération ZK ==
+Frontend -> Frontend : Extraction des critères requis
+note right
+Mapping FHIR vers critères ZK
+end note
+
+alt Données manquantes
+    Frontend -> Patient : Demande de données supplémentaires
+end
+
+Frontend -> ZKService : generateEligibilityProof(fhirData, criteria)
+ZKService -> Frontend : Preuve d'éligibilité générée
+
+== Phase de Soumission ==
+Frontend -> Backend : POST /api/studies/:studyId/submit-proof
+note right
+L'API gère l'interaction blockchain
+end note
+
+Backend -> StudyContract : submitEligibilityProof(studyId, proof)
+StudyContract -> Backend : Vérification de la preuve
+
+alt Preuve valide et éligible
+    Backend -> Database : Enregistrement participation
+    Backend -> Frontend : HTTP 200 - Participation confirmée
+    Frontend -> Patient : Notification de succès
+else Preuve invalide
+    Backend -> Frontend : HTTP 400 - Preuve rejetée
+    Frontend -> Patient : Notification d'échec
+end
+
+@enduml

@@ -1,0 +1,78 @@
+@startuml Authentication_Sequence
+!theme plain
+
+title Cura - Diagramme de Séquence : Authentification Web3Auth + MetaMask
+
+actor "Utilisateur" as User
+participant "Interface Web\n(Next.js)" as Frontend
+participant "Web3Auth SDK" as Web3Auth
+participant "MetaMask" as MetaMask
+participant "API Backend\n(Express)" as Backend
+participant "Base de Données\n(Supabase)" as Database
+participant "JWT Service" as JWTService
+
+== Phase d'Initialisation ==
+User -> Frontend : Accès à la plateforme
+Frontend -> Frontend : Vérification état d'authentification
+Frontend -> Web3Auth : Initialisation Web3Auth SDK
+
+== Phase de Connexion ==
+User -> Frontend : Clic "Se connecter"
+
+alt Connexion via Web3Auth Social Login
+    User -> Web3Auth : Sélection fournisseur (metamask disponible seulement)
+    Web3Auth -> Frontend : Wallet connecté + adresse
+else Connexion via MetaMask
+    User -> MetaMask : Demande connexion
+    MetaMask -> Frontend : Adresse wallet connectée
+end
+
+== Phase de Signature de Message ==
+Frontend -> Frontend : Génération message de signature unique
+note right
+Message unique avec timestamp
+et adresse wallet
+end note
+
+alt Via Web3Auth
+    Frontend -> Web3Auth : Demande signature du message
+    Web3Auth -> Frontend : Message signé
+else Via MetaMask
+    Frontend -> MetaMask : Demande signature
+    MetaMask -> Frontend : Message signé
+end
+
+== Phase de Vérification Backend ==
+Frontend -> Backend : POST /api/auth/verify {walletAddress, message, signature}
+Backend -> Backend : Vérification de la signature
+
+alt Signature valide
+    Backend -> Database : Vérification/création utilisateur
+    Database -> Backend : Données utilisateur
+    Backend -> JWTService : Génération JWT token
+    JWTService -> Backend : Token JWT signé
+    Backend -> Frontend : HTTP 200 {token, user}
+    Frontend -> User : Redirection vers dashboard
+else Signature invalide
+    Backend -> Frontend : HTTP 401 - Signature invalide
+    Frontend -> User : Message d'erreur
+end
+
+== Phase de Validation Continue ==
+loop Requêtes authentifiées
+    Frontend -> Backend : Requête API avec Authorization: Bearer <token>
+    Backend -> Backend : Validation du token JWT
+    alt Token valide
+        Backend -> Frontend : Réponse API
+    else Token invalidé
+        Backend -> Frontend : HTTP 401 - Token invalide
+        Frontend -> User : Redirection vers connexion
+    end
+end
+
+== Phase de Déconnexion ==
+User -> Frontend : Clic "Se déconnecter"
+Frontend -> Frontend : Suppression token local
+Frontend -> User : Redirection vers page d'accueil
+
+@enduml
