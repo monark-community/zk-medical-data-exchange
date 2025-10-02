@@ -26,6 +26,9 @@ export const Config = {
   LOG_LEVEL: process.env.LOG_LEVEL || "info",
   APP_API_KEY: requireEnv("APP_API_KEY"),
 
+  // Web3Auth
+  SESSION_SECRET: requireEnv("SESSION_SECRET"),
+
   // Supabase
   SUPABASE_URL: requireEnv("SUPABASE_URL"),
   SUPABASE_KEY: requireEnv("SUPABASE_ANON_KEY"),
