@@ -1,12 +1,10 @@
 "use client";
 
-import { Web3Auth } from "@web3auth/single-factor-auth";
 import { useWeb3AuthConnect, useWeb3Auth, useIdentityToken } from "@web3auth/modal/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useCallback, useState } from "react";
 import { Config } from "@/config/config";
-import { IBaseProvider } from "@web3auth/modal";
-import { EthereumPrivateKeyProvider } from "@web3auth/ethereum-provider";
+import axios from "axios";
 
 export function useAuthRedirect() {
   const { isConnected } = useWeb3AuthConnect();
@@ -43,105 +41,51 @@ export function useProtectedRoute() {
 }
 
 export function useWeb3AuthLogin() {
-  const { connect, isConnected } = useWeb3AuthConnect();
+  const { isConnected } = useWeb3AuthConnect();
   const { web3Auth } = useWeb3Auth();
-  const { getIdentityToken, token } = useIdentityToken();
+  const { getIdentityToken } = useIdentityToken();
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
-  const login = useCallback(async () => {
-    try {
-      console.log("[Auth] Starting Web3Auth login flow...");
-      setIsAuthenticating(true);
-      setError(null);
+const login = useCallback(async () => {
+  try {
+    console.log("[Auth] Starting Web3Auth login flow...");
+    setIsAuthenticating(true);
+    setError(null);
 
-      // Step 1: Connect with Web3Auth (handles OAuth and wallet creation)
-      console.log("[Auth] Step 1: Connecting to Web3Auth...");
-      const provider = await web3Auth!.connect();
-      console.log("[Auth] ✓ Web3Auth connection successful");
+    await web3Auth!.connect();
+    console.log("[Auth] ✓ Web3Auth connection successful");
 
-      // Step 2: Get the JWT token from Web3Auth
-      if (!web3Auth) {
-        console.error("[Auth] ✗ Web3Auth instance not found");
-        throw new Error("Web3Auth not initialized");
-      }
-
-      console.log("[Auth] Step 2: Retrieving JWT token from Web3Auth...");
+    const idToken = await getIdentityToken();
+    
+    // DECODE THE TOKEN TO SEE ITS CONTENTS
+    if (idToken) {
+      const tokenParts = idToken.split('.');
+      const payload = JSON.parse(atob(tokenParts[1]));
+      console.log("[Auth] Token payload:", {
+        aud: payload.aud,
+        iss: payload.iss,
+        sub: payload.sub,
+        exp: payload.exp,
+        wallets: payload.wallets
+      });
+    }
+    
+    if (!idToken) {
+      throw new Error("Failed to retrieve authentication token");
+    }
       
-      // Get the idToken from Web3Auth
-      // The authenticateUser method returns the user info with idToken
-      let idToken = "";
-      
-      try {
-        // Try to get idToken using the provider
-        const userInfo = await web3Auth.getUserInfo();
-        console.log("[Auth] User info obtained:", userInfo);
-
-        getIdentityToken();
-        console.log(token);
-
-        // const authentication = await provider!.useIdentityToken();
-
-        // For Web3Auth Modal, we need to get the idToken from the session
-        // This is stored in the provider after authentication
-        if ((web3Auth as any).sessionManager?.sessionId) {
-          idToken = (web3Auth as any).sessionManager.sessionId;
-        } else if ((web3Auth as any).provider) {
-          // Try to get it from the provider
-          const provider = (web3Auth as any).provider;
-          if (provider.request) {
-            try {
-              // Request the idToken from the provider
-              const result = await provider.request({
-                method: "private_key",
-              });
-              console.log("[Auth] Provider result:", result);
-            } catch {
-              console.log("[Auth] Could not get private_key from provider");
-            }
-          }
-        }
-        
-        // If we still don't have an idToken, try getUserInfo which should have it
-        if (!idToken && (userInfo as any).idToken) {
-          idToken = (userInfo as any).idToken;
-        }
-      } catch (error) {
-        console.error("[Auth] Error getting token:", error);
-      }
-      
-      console.log("[Auth] JWT token retrieved:");
-      console.log("  - Token length:", idToken.length);
-      console.log("  - Token preview:", idToken ? idToken.substring(0, 50) + "..." : "EMPTY");
-      console.log("  - Full token:", idToken);
-      
-      if (!idToken) {
-        console.error("[Auth] ✗ Failed to retrieve idToken from Web3Auth");
-        throw new Error("Failed to retrieve authentication token");
-      }
-      
-      // Step 3: Send token to backend for verification
-      console.log("[Auth] Step 3: Sending token to backend for verification...");
-      console.log("[Auth] Backend URL:", `${Config.APP_API_URL}/api/auth/verify`);
-      
-      const response = await fetch(`${Config.APP_API_URL}/api/auth/verify`, {
-        method: 'POST',
+      const response = await axios.post(`${Config.APP_API_URL}/auth/verify`, {}, {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${idToken}`,
         },
-      });
+      }); 
 
       console.log("[Auth] Backend response status:", response.status);
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.error("[Auth] ✗ Backend verification failed:", errorData);
-        throw new Error(errorData.error || 'Authentication failed on backend');
-      }
-
-      const data = await response.json();
+      const data = response.data;
       console.log("[Auth] ✓ Backend verification successful", {
         userId: data.userId,
         walletAddress: data.walletAddress,
@@ -168,7 +112,7 @@ export function useWeb3AuthLogin() {
     } finally {
       setIsAuthenticating(false);
     }
-  }, [connect, web3Auth, router]);
+  }, [web3Auth, getIdentityToken, router]);
 
   const logout = useCallback(async () => {
     try {
@@ -204,26 +148,19 @@ export function useWeb3AuthLogin() {
 }
 
 export function useAuthToken() {
-  const { web3Auth } = useWeb3Auth();
+  const { getIdentityToken } = useIdentityToken();
   const [token, setToken] = useState<string | null>(null);
 
   const getToken = useCallback(async () => {
     try {
       console.log("[Auth] Retrieving authentication token...");
       
-      if (!web3Auth) {
-        console.error("[Auth] ✗ Web3Auth not initialized");
-        throw new Error("Web3Auth not initialized");
-      }
-
-      // Get the idToken from Web3Auth
-      let idToken = "";
-      const userInfo = await web3Auth.getUserInfo();
+      // Use the getIdentityToken function from useIdentityToken hook
+      const idToken = await getIdentityToken();
       
-      if ((userInfo as any).idToken) {
-        idToken = (userInfo as any).idToken;
-      } else if ((web3Auth as any).sessionManager?.sessionId) {
-        idToken = (web3Auth as any).sessionManager.sessionId;
+      if (!idToken) {
+        console.error("[Auth] ✗ No token available");
+        throw new Error("No authentication token available");
       }
       
       console.log("[Auth] ✓ Token retrieved (length: %d)", idToken.length);
@@ -234,7 +171,7 @@ export function useAuthToken() {
       console.error("[Auth] ✗ Failed to get token:", err);
       return null;
     }
-  }, [web3Auth]);
+  }, [getIdentityToken]);
 
   return { token, getToken };
 }
