@@ -35,7 +35,7 @@ class NonceStore {
       used: false,
     });
 
-    logger.debug({ nonce, walletAddress }, 'Nonce stored');
+    logger.info({ nonce, walletAddress }, 'Nonce stored');
   }
 
   /**

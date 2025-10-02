@@ -22,6 +22,7 @@ export async function generateNonce(req: Request, res: Response) {
     }
 
     const nonce = crypto.randomUUID();
+    logger.info(`Generated nonce: ${nonce} for wallet: ${walletAddress}`);
     const issuedAt = new Date().toISOString();
     
     // Store nonce with wallet address binding
