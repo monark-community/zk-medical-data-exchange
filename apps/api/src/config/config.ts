@@ -27,7 +27,7 @@ export const Config = {
   APP_API_KEY: requireEnv("APP_API_KEY"),
 
   // Web3Auth
-  SESSION_SECRET: process.env.SESSION_SECRET || "your-session-secret-change-in-production",
+  SESSION_SECRET: requireEnv("SESSION_SECRET"),
 
   // Supabase
   SUPABASE_URL: requireEnv("SUPABASE_URL"),
