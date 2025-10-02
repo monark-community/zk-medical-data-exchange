@@ -1,15 +1,9 @@
-/**
- * Middleware to verify Web3Auth JWT tokens (MetaMask only)
- * Uses the AuthJS JWKS endpoint for external wallet verification
- */
-
 import jwt from 'jsonwebtoken';
 import jwksClient from 'jwks-rsa';
 import type { Request, Response, NextFunction } from 'express';
 import logger from '@/utils/logger';
 import { Config } from '@/config/config';
 
-// MetaMask uses the AuthJS JWKS endpoint (not the social login endpoint)
 const METAMASK_JWKS_URI = "https://authjs.web3auth.io/jwks";
 
 const client = jwksClient({
@@ -40,7 +34,6 @@ export interface Web3AuthUser {
   }>;
 }
 
-// Extend Express Request type
 declare global {
   namespace Express {
     interface Request {

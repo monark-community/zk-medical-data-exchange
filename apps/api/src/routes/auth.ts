@@ -4,8 +4,8 @@ import {
   refreshSession,
   logout,
   getCurrentUser,
-} from "../controllers/authController";
-import { verifyWeb3AuthToken } from "../middleware/web3AuthMiddleware";
+} from "@/controllers/authController";
+import { verifyWeb3AuthToken } from "@/middleware/web3AuthMiddleware";
 
 const router = Router();
 
