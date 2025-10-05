@@ -3,6 +3,7 @@ import medicalDataRoutes from "./medicalData";
 import studyRoutes from "./study";
 import authRoutes from "./auth";
 import logger from "@/utils/logger";
+import { verifySessionToken } from "@/middleware/tokenValidationMiddleware";
 
 const router = Router();
 
@@ -21,7 +22,7 @@ router.get("/", (req, res) => {
 });
 
 router.use("/auth", authRoutes);
-router.use("/medical-data", medicalDataRoutes);
-router.use("/studies", studyRoutes);
+router.use("/medical-data", verifySessionToken, medicalDataRoutes);
+router.use("/studies", verifySessionToken, studyRoutes);
 
 export default router;

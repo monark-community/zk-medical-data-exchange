@@ -12,7 +12,7 @@ export function useAuthRedirect() {
 
   useEffect(() => {
     if (isConnected) {
-      router.push('/dashboard');
+      router.push("/dashboard");
     }
   }, [isConnected, router]);
 
@@ -20,12 +20,16 @@ export function useAuthRedirect() {
 }
 
 export function useProtectedRoute() {
-  const { isConnected } = useWeb3AuthConnect();
+  const { isConnected, logout } = useWeb3AuthLogin();
   const router = useRouter();
 
   useEffect(() => {
-    if (!isConnected) {
-      router.push('/');
+    const token = localStorage.getItem("session_token");
+    const walletAddress = localStorage.getItem("wallet_address");
+    const userId = localStorage.getItem("user_id");
+
+    if (!isConnected || !token || !walletAddress || !userId) {
+      logout();
     }
   }, [isConnected, router]);
 
@@ -40,39 +44,42 @@ export function useWeb3AuthLogin() {
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
-const login = useCallback(async () => {
-  try {
-    setIsAuthenticating(true);
-    setError(null);
+  const login = useCallback(async () => {
+    try {
+      setIsAuthenticating(true);
+      setError(null);
 
-    await web3Auth!.connect();
+      await web3Auth!.connect();
 
-    const idToken = await getIdentityToken();
-    
-    if (!idToken) {
-      throw new Error("Failed to retrieve authentication token");
-    }
-      
-      const response = await axios.post(`${Config.APP_API_URL}/auth/verify`, {}, {
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${idToken}`,
-        },
-      }); 
+      const idToken = await getIdentityToken();
+
+      if (!idToken) {
+        throw new Error("Failed to retrieve authentication token");
+      }
+
+      const response = await axios.post(
+        `${Config.APP_API_URL}/auth/verify`,
+        {},
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${idToken}`,
+          },
+        }
+      );
 
       const data = response.data;
 
       if (data.sessionToken) {
-        localStorage.setItem('session_token', data.sessionToken);
-        localStorage.setItem('wallet_address', data.walletAddress);
-        localStorage.setItem('user_id', data.userId);
+        localStorage.setItem("session_token", data.sessionToken);
+        localStorage.setItem("wallet_address", data.walletAddress);
+        localStorage.setItem("user_id", data.userId);
       }
 
-      router.push('/dashboard');
-      
+      router.push("/dashboard");
     } catch (err) {
       console.error("[Auth] ✗ Authentication error:", err);
-      setError(err instanceof Error ? err.message : 'Authentication failed');
+      setError(err instanceof Error ? err.message : "Authentication failed");
     } finally {
       setIsAuthenticating(false);
     }
@@ -83,14 +90,13 @@ const login = useCallback(async () => {
       if (web3Auth) {
         await web3Auth.logout();
       }
-      
-      localStorage.removeItem('session_token');
-      localStorage.removeItem('wallet_address');
-      localStorage.removeItem('user_id');
-
-      router.push('/');
     } catch (err) {
       console.error("[Auth] ✗ Logout error:", err);
+    } finally {
+      localStorage.removeItem("session_token");
+      localStorage.removeItem("wallet_address");
+      localStorage.removeItem("user_id");
+      router.push("/");
     }
   }, [web3Auth, router]);
 
@@ -110,12 +116,12 @@ export function useAuthToken() {
   const getToken = useCallback(async () => {
     try {
       const idToken = await getIdentityToken();
-      
+
       if (!idToken) {
         console.error("[Auth] ✗ No token available");
         throw new Error("No authentication token available");
       }
-      
+
       setToken(idToken);
       return idToken;
     } catch (err) {
