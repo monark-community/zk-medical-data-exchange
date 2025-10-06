@@ -2,6 +2,7 @@ import { Router } from "express";
 import medicalDataRoutes from "./medicalData";
 import studyRoutes from "./study";
 import authRoutes from "./auth";
+import userRoutes from "./user";
 import logger from "@/utils/logger";
 import { verifySessionToken } from "@/middleware/tokenValidationMiddleware";
 
@@ -24,5 +25,6 @@ router.get("/", (req, res) => {
 router.use("/auth", authRoutes);
 router.use("/medical-data", verifySessionToken, medicalDataRoutes);
 router.use("/studies", verifySessionToken, studyRoutes);
+router.use("/users", verifySessionToken, userRoutes);
 
 export default router;

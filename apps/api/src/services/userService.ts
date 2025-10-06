@@ -7,30 +7,30 @@ const { USERS } = TABLES;
 export async function checkIfUserExists(
   req: Request,
   res: Response,
-  wallet_address: string
+  walletAddress: string
 ): Promise<boolean> {
   try {
-    logger.info({ wallet_address }, "checkIfUserExists called");
+    logger.info({ walletAddress }, "checkIfUserExists called");
 
     const { data, error } = await req.supabase
       .from(USERS!.name!)
       .select("*")
-      .eq(USERS!.columns.id!, wallet_address)
+      .eq(USERS!.columns.id!, walletAddress)
       .limit(1)
-      .maybeSingle();
+      .single();
 
     if (error) {
-      logger.error({ error, wallet_address }, "Supabase query error in checkIfUserExists");
+      logger.error({ error, walletAddress }, "Supabase query error in checkIfUserExists");
       res.status(500).json({ error: "Database query failed" });
       return false;
     }
 
     const exists = !!data;
-    logger.info({ wallet_address, exists }, "checkIfUserExists result");
+    logger.info({ walletAddress, exists }, "checkIfUserExists result");
 
     return exists;
   } catch (err) {
-    logger.error({ err, wallet_address }, "Unexpected error in checkIfUserExists");
+    logger.error({ err, walletAddress }, "Unexpected error in checkIfUserExists");
     res.status(500).json({ error: "Internal server error" });
     return false;
   }
@@ -39,25 +39,28 @@ export async function checkIfUserExists(
 export async function createUser(
   req: Request,
   res: Response,
-  wallet_address: string
+  walletAddress: string
 ): Promise<boolean> {
   try {
-    logger.info({ wallet_address }, "createUser called");
+    logger.info({ walletAddress }, "createUser called");
 
+    // For simplicity, using walletAddress as username
+    // User will be able to change it later in the settings
     const { error } = await req.supabase.from(USERS!.name!).insert({
-      [USERS!.columns.id!]: wallet_address,
+      [USERS!.columns.id!]: walletAddress,
+      [USERS!.columns.username!]: walletAddress,
     });
 
     if (error) {
-      logger.error({ error, wallet_address }, "Supabase insert error in createUser");
+      logger.error({ error, walletAddress }, "Supabase insert error in createUser");
       res.status(500).json({ error: "Failed to create user" });
       return false;
     }
 
-    logger.info({ wallet_address }, "User created successfully");
+    logger.info({ walletAddress }, "User created successfully");
     return true;
   } catch (err) {
-    logger.error({ err, wallet_address }, "Unexpected error in createUser");
+    logger.error({ err, walletAddress }, "Unexpected error in createUser");
     res.status(500).json({ error: "Internal server error" });
     return false;
   }

@@ -102,6 +102,7 @@ export const TABLES: Record<string, TableDefinition> = {
     name: "users",
     columns: {
       id: "id",
+      username: "username",
       createdAt: "created_at",
     },
   },
