@@ -97,4 +97,12 @@ export const TABLES: Record<string, TableDefinition> = {
       eligibilityScore: "eligibility_score",
     },
   },
+
+  USERS: {
+    name: "users",
+    columns: {
+      id: "id",
+      createdAt: "created_at",
+    },
+  },
 };

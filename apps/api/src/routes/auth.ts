@@ -1,7 +1,5 @@
 import { Router } from "express";
-import {
-  verifyAuthentication,
-} from "@/controllers/authController";
+import { verifyAuthentication } from "@/controllers/authController";
 import { verifyWeb3AuthToken } from "@/middleware/web3AuthMiddleware";
 
 const router = Router();
@@ -26,8 +24,6 @@ const router = Router();
  *                 success:
  *                   type: boolean
  *                 sessionToken:
- *                   type: string
- *                 userId:
  *                   type: string
  *                 walletAddress:
  *                   type: string

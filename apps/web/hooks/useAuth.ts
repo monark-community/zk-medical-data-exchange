@@ -6,17 +6,24 @@ import { useEffect, useCallback, useState } from "react";
 import { Config } from "@/config/config";
 import axios from "axios";
 
+function hasSessionTokens() {
+  if (typeof window === "undefined") return false;
+  const token = localStorage.getItem("session_token");
+  const walletAddress = localStorage.getItem("wallet_address");
+  return token && walletAddress;
+}
+
 export function useAuthRedirect() {
   const { isConnected } = useWeb3AuthConnect();
   const router = useRouter();
 
   useEffect(() => {
-    if (isConnected) {
+    if (isConnected && hasSessionTokens()) {
       router.push("/dashboard");
     }
   }, [isConnected, router]);
 
-  return { isConnected };
+  return { isConnected: isConnected && hasSessionTokens() };
 }
 
 export function useProtectedRoute() {
@@ -24,11 +31,7 @@ export function useProtectedRoute() {
   const router = useRouter();
 
   useEffect(() => {
-    const token = localStorage.getItem("session_token");
-    const walletAddress = localStorage.getItem("wallet_address");
-    const userId = localStorage.getItem("user_id");
-
-    if (!isConnected || !token || !walletAddress || !userId) {
+    if (!isConnected || !hasSessionTokens()) {
       logout();
     }
   }, [isConnected, router]);
@@ -73,7 +76,6 @@ export function useWeb3AuthLogin() {
       if (data.sessionToken) {
         localStorage.setItem("session_token", data.sessionToken);
         localStorage.setItem("wallet_address", data.walletAddress);
-        localStorage.setItem("user_id", data.userId);
       }
 
       router.push("/dashboard");
@@ -95,7 +97,6 @@ export function useWeb3AuthLogin() {
     } finally {
       localStorage.removeItem("session_token");
       localStorage.removeItem("wallet_address");
-      localStorage.removeItem("user_id");
       router.push("/");
     }
   }, [web3Auth, router]);
