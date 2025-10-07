@@ -1,0 +1,39 @@
+@startuml Study_Statistics_Retrieval_Sequence
+!theme plain
+
+title Cura - Diagramme de Séquence : Récupération de Statistiques d'Étude
+
+actor "Chercheur" as Researcher
+participant "Interface Web\n(Dashboard)" as Frontend
+participant "API Backend\n(Express)" as Backend
+participant "Base de Données\n(Supabase)" as Database
+participant "Smart Contract\n(Study)" as StudyContract
+
+== Phase d'Accès ==
+Researcher -> Frontend : Accès "Mes Études"
+Frontend -> Backend : GET /api/studies/my-studies
+Backend -> Database : Récupération études du chercheur
+Database -> Backend : Liste des études
+Backend -> Frontend : Études avec métadonnées
+Frontend -> Researcher : Affichage études
+
+== Phase de Sélection ==
+Researcher -> Frontend : Clic étude pour statistiques
+Frontend -> Backend : GET /api/studies/{id}/statistics
+Backend -> Backend : Validation propriétaire
+Backend -> Database : Récupération stats participation
+Backend -> StudyContract : getStudyStats()
+StudyContract -> Backend : Stats blockchain ZK
+Backend -> Frontend : Statistiques complètes
+Frontend -> Researcher : Dashboard graphiques
+
+== Gestion d'Erreurs ==
+alt Accès non autorisé
+    Backend -> Frontend : HTTP 403 - Non autorisé
+    Frontend -> Researcher : "Étude non accessible"
+else Erreur technique
+    Backend -> Frontend : HTTP 500 - Erreur serveur
+    Frontend -> Researcher : "Erreur technique, réessayez"
+end
+
+@enduml

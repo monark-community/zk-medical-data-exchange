@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const headersList = await headers();
-  const web3authInitialState = cookieToWeb3AuthState(headersList.get('cookie'));
+  const web3authInitialState = cookieToWeb3AuthState(headersList.get("cookie"));
   return (
     <html lang="en">
       <body>
