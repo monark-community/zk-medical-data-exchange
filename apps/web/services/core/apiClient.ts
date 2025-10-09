@@ -8,3 +8,16 @@ export const apiClient = axios.create({
     "x-api-key": Config.APP_API_KEY,
   },
 });
+
+apiClient.interceptors.request.use(
+  (config) => {
+    const token = typeof window !== "undefined" ? localStorage.getItem("session_token") : null;
+
+    if (token) {
+      config.headers["Authorization"] = `Bearer ${token}`;
+    }
+
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
