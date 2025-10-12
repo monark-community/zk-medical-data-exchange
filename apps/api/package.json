@@ -19,7 +19,8 @@
     "@types/node": "^24.3.0",
     "@types/supertest": "^6.0.3",
     "supertest": "^7.1.4",
-    "tsx": "^4.20.5"
+    "tsx": "^4.20.5",
+    "globals": "^15.0.0"
   },
   "peerDependencies": {
     "typescript": "^5.9.2"
