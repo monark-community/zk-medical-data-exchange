@@ -5,7 +5,9 @@ import { UserProfile } from "@/services/api/auditService";
 
 interface ProfileContextType {
   currentProfile: UserProfile;
+  // eslint-disable-next-line no-unused-vars
   setProfile: (profile: UserProfile) => void;
+  // eslint-disable-next-line no-unused-vars
   getProfileDisplayName: (profile: UserProfile) => string;
 }
 
