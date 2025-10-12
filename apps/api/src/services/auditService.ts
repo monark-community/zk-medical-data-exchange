@@ -263,42 +263,6 @@ class AuditService {
   }
 
   /**
-   * Get paginated user actions by profile
-   */
-  async getUserProfileActionsPaginated(
-    userAddress: string,
-    userProfile: UserProfile,
-    offset: number = 0,
-    limit: number = 100,
-    latestFirst: boolean = true
-  ): Promise<{ records: any[]; total: number }> {
-    try {
-      const auditTrailAddress = Config.AUDIT_TRAIL_ADDRESS;
-
-      const [records, total] = await this.publicClient.readContract({
-        address: auditTrailAddress,
-        abi: AUDIT_TRAIL_ABI,
-        functionName: "getUserProfileActionsPaginated",
-        args: [
-          userAddress as `0x${string}`,
-          userProfile,
-          BigInt(offset),
-          BigInt(limit),
-          latestFirst,
-        ],
-      });
-
-      return { records, total: Number(total) };
-    } catch (error) {
-      logger.error(
-        { error, userAddress, userProfile, offset, limit },
-        "Failed to get user profile actions paginated"
-      );
-      return { records: [], total: 0 };
-    }
-  }
-
-  /**
    * Get audit record details by ID
    */
   async getAuditRecord(recordId: number): Promise<any | null> {
@@ -366,6 +330,23 @@ class AuditService {
       action: "join_study",
       success,
       sensitiveData: proofData, // Will be hashed for privacy
+    });
+  }
+
+  async logStudyDeletion(
+    userAddress: string,
+    studyId: string,
+    success: boolean,
+    metadata?: Record<string, any>
+  ) {
+    return this.logAction({
+      user: userAddress,
+      userProfile: UserProfile.RESEARCHER,
+      actionType: ActionType.STUDY_STATUS_CHANGE,
+      resource: `study_${studyId}`,
+      action: "delete_study",
+      success,
+      metadata,
     });
   }
 
