@@ -26,6 +26,7 @@ jobs:
 
       - name: Install dependencies
         run: |
+          bun install
           bun install --cwd apps/web
 
       - name: Lint
