@@ -3,6 +3,7 @@ import medicalDataRoutes from "./medicalData";
 import studyRoutes from "./study";
 import authRoutes from "./auth";
 import userRoutes from "./user";
+import auditRoutes from "./audit";
 import logger from "@/utils/logger";
 import { verifySessionToken } from "@/middleware/tokenValidationMiddleware";
 
@@ -26,5 +27,6 @@ router.use("/auth", authRoutes);
 router.use("/medical-data", verifySessionToken, medicalDataRoutes);
 router.use("/studies", verifySessionToken, studyRoutes);
 router.use("/users", verifySessionToken, userRoutes);
+router.use("/audit", verifySessionToken, auditRoutes);
 
 export default router;

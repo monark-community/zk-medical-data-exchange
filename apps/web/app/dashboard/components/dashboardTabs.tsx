@@ -4,6 +4,7 @@ import React from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import DataVaultSection from "./dataVaultSection";
 import StudiesSection from "./StudiesSection";
+import PrivacySection from "./PrivacySection";
 import { Config, UseAccountReturnType } from "wagmi";
 const DashboardTabs = ({
   account,
@@ -27,7 +28,9 @@ const DashboardTabs = ({
       <TabsContent value="studies">
         <StudiesSection />
       </TabsContent>
-      <TabsContent value="privacy"></TabsContent>
+      <TabsContent value="privacy">
+        <PrivacySection />
+      </TabsContent>
     </Tabs>
   );
 };

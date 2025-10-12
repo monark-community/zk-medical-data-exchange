@@ -6,6 +6,7 @@ import { WagmiProvider } from "@web3auth/modal/react/wagmi";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import React from "react";
 import { Config } from "@/config/config";
+import { ProfileProvider } from "@/contexts/ProfileContext";
 
 const clientId =
   Config.WEB3AUTH_CLIENT_ID ??
@@ -33,7 +34,9 @@ export default function Provider({
   return (
     <Web3AuthProvider config={web3AuthContextConfig} initialState={web3authInitialState}>
       <QueryClientProvider client={queryClient}>
-        <WagmiProvider>{children}</WagmiProvider>
+        <WagmiProvider>
+          <ProfileProvider>{children}</ProfileProvider>
+        </WagmiProvider>
       </QueryClientProvider>
     </Web3AuthProvider>
   );

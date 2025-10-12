@@ -11,13 +11,26 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-import { LogOut, User, Settings } from "lucide-react";
+import { LogOut, User, RefreshCw } from "lucide-react";
 
 import { useAccount } from "wagmi";
 import { useWeb3AuthDisconnect } from "@web3auth/modal/react";
+import { useProfile } from "@/contexts/ProfileContext";
+import { UserProfile } from "@/services/api/auditService";
 const UserMenu = () => {
   const { address } = useAccount();
   const { disconnect } = useWeb3AuthDisconnect();
+  const { currentProfile, setProfile, getProfileDisplayName } = useProfile();
+
+  const handleProfileSwitch = () => {
+    const newProfile =
+      currentProfile === UserProfile.DATA_SELLER ? UserProfile.RESEARCHER : UserProfile.DATA_SELLER;
+    setProfile(newProfile);
+  };
+
+  const getOtherProfileName = () => {
+    return currentProfile === UserProfile.DATA_SELLER ? "Researcher" : "Data Seller";
+  };
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -36,22 +49,22 @@ const UserMenu = () => {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56" align="end">
-        <DropdownMenuLabel>Data Seller view</DropdownMenuLabel>
+        <DropdownMenuLabel>Current view: {getProfileDisplayName(currentProfile)}</DropdownMenuLabel>
         <DropdownMenuGroup>
           <DropdownMenuItem>
             <User />
             Profile
           </DropdownMenuItem>
-          <DropdownMenuItem>
-            <Settings />
-            Settings
+          <DropdownMenuItem onClick={handleProfileSwitch}>
+            <RefreshCw />
+            Switch to {getOtherProfileName()}
           </DropdownMenuItem>
         </DropdownMenuGroup>
 
         <DropdownMenuSeparator />
         <DropdownMenuItem className="text-red-700" onClick={() => disconnect()}>
           <LogOut className="text-red-700" />
-          Log out
+          Disconnect
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

@@ -10,12 +10,18 @@ import {
 import logger from "@/utils/logger";
 import crypto from "crypto";
 import { TABLES, getColumns } from "@/constants/db";
+import { auditService } from "@/services/auditService";
 
 /**
  * Create a new medical study (with database storage)
  * POST /studies
  */
 export const createStudy = async (req: Request, res: Response) => {
+  const startTime = Date.now();
+  const userAgent = req.get("User-Agent") || "";
+  const ipAddress = req.ip || req.socket?.remoteAddress || "";
+  let creatorAddress = "";
+
   try {
     const {
       title,
@@ -29,9 +35,20 @@ export const createStudy = async (req: Request, res: Response) => {
     } = req.body;
 
     // Use createdBy if provided, otherwise fall back to principalInvestigator
-    const creatorAddress = createdBy || principalInvestigator;
+    creatorAddress = createdBy || principalInvestigator;
 
     if (!title) {
+      // Log failed study creation - missing title (non-blocking)
+      auditService
+        .logStudyCreation(creatorAddress || "unknown", "unknown", false, {
+          reason: "missing_title",
+          userAgent,
+          ipAddress,
+          duration: Date.now() - startTime,
+        })
+        .catch((error) => {
+          logger.error({ error }, "Failed to log study creation audit event");
+        });
       return res.status(400).json({ error: "Study title is required" });
     }
 
@@ -54,6 +71,18 @@ export const createStudy = async (req: Request, res: Response) => {
     // Validate the criteria
     const validation = validateCriteria(eligibilityCriteria);
     if (!validation.valid) {
+      // Log failed study creation - invalid criteria (non-blocking)
+      auditService
+        .logStudyCreation(creatorAddress, "unknown", false, {
+          reason: "invalid_criteria",
+          errors: validation.errors,
+          userAgent,
+          ipAddress,
+          duration: Date.now() - startTime,
+        })
+        .catch((error) => {
+          logger.error({ error }, "Failed to log study creation audit event");
+        });
       return res.status(400).json({
         error: "Invalid study criteria",
         details: validation.errors,
@@ -104,10 +133,40 @@ export const createStudy = async (req: Request, res: Response) => {
 
     if (insertError) {
       logger.error({ error: insertError }, "Failed to create study");
+
+      // Log failed study creation - database error (non-blocking)
+      auditService
+        .logStudyCreation(creatorAddress, "unknown", false, {
+          reason: "database_error",
+          error: insertError.message,
+          userAgent,
+          ipAddress,
+          duration: Date.now() - startTime,
+        })
+        .catch((error) => {
+          logger.error({ error }, "Failed to log study creation audit event");
+        });
+
       return res.status(500).json({ error: "Failed to create study" });
     }
 
     logger.info({ studyId: studyData.id, title }, "Study created successfully");
+
+    // Log successful study creation (non-blocking)
+    auditService
+      .logStudyCreation(creatorAddress, studyData.id.toString(), true, {
+        title,
+        templateName: actualTemplateName,
+        maxParticipants,
+        durationDays,
+        complexityScore: enabledCount,
+        userAgent,
+        ipAddress,
+        duration: Date.now() - startTime,
+      })
+      .catch((error) => {
+        logger.error({ error }, "Failed to log successful study creation audit event");
+      });
 
     res.status(201).json({
       success: true,
@@ -130,6 +189,20 @@ export const createStudy = async (req: Request, res: Response) => {
     });
   } catch (error) {
     logger.error({ error }, "Study creation error");
+
+    // Log failed study creation - unexpected error (non-blocking)
+    auditService
+      .logStudyCreation(creatorAddress || "unknown", "unknown", false, {
+        reason: "unexpected_error",
+        error: error instanceof Error ? error.message : "unknown_error",
+        userAgent,
+        ipAddress,
+        duration: Date.now() - startTime,
+      })
+      .catch((auditError) => {
+        logger.error({ auditError }, "Failed to log study creation audit event");
+      });
+
     res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -192,12 +265,12 @@ export const deployStudy = async (req: Request, res: Response) => {
 
     logger.info({ studyId, parsedCriteria }, "Parsed criteria for deployment");
 
-    // Import blockchain service dynamically to avoid initialization issues
-    let blockchainService;
+    // Import study service dynamically to avoid initialization issues
+    let studyService;
     try {
-      const imported = await import("@/services/blockchainService");
-      blockchainService = imported.blockchainService;
-      logger.info("Blockchain service imported successfully");
+      const imported = await import("@/services/studyService");
+      studyService = imported.studyService;
+      logger.info("Study service imported successfully");
     } catch (importError) {
       logger.error(
         {
@@ -205,17 +278,17 @@ export const deployStudy = async (req: Request, res: Response) => {
           message: importError instanceof Error ? importError.message : "Unknown error",
           stack: importError instanceof Error ? importError.stack : undefined,
         },
-        "Failed to import blockchain service"
+        "Failed to import study service"
       );
       return res.status(500).json({
-        error: "Failed to load blockchain service",
+        error: "Failed to load study service",
         details: importError instanceof Error ? importError.message : String(importError),
       });
     }
 
     // Deploy to blockchain
     logger.info("Calling deployStudy method");
-    const deploymentResult = await blockchainService.deployStudy({
+    const deploymentResult = await studyService.deployStudy({
       title: study.title,
       description: study.description || "",
       maxParticipants: study.max_participants,
