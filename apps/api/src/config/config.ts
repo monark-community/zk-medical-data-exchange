@@ -40,4 +40,5 @@ export const Config = {
   // Smart Contract Addresses
   STUDY_FACTORY_ADDRESS: requireEnv("STUDY_FACTORY_ADDRESS"),
   ZK_VERIFIER_ADDRESS: requireEnv("ZK_VERIFIER_ADDRESS"),
+  AUDIT_TRAIL_ADDRESS: requireEnv("AUDIT_TRAIL_ADDRESS"),
 };

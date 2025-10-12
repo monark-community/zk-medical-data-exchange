@@ -20,11 +20,11 @@ const router = Router();
  *             schema:
  *               type: object
  *               properties:
- *                 id
+ *                 id:
  *                   type: string
- *                 username
+ *                 username:
  *                   type: string
- *                 createdAt
+ *                 createdAt:
  *                   type: string
  *       401:
  *         description: Unauthorized - Invalid token
