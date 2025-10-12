@@ -12,6 +12,7 @@ import { PaginationInfo } from "@/services/api/auditService";
 
 interface AuditPaginationProps {
   pagination: PaginationInfo;
+  // eslint-disable-next-line no-unused-vars
   onPageChange?: (page: number) => void;
   isLoading?: boolean;
   className?: string;

@@ -708,15 +708,34 @@ export const deleteStudy = async (req: Request, res: Response) => {
       .eq(TABLES.STUDIES!.columns.id!, studyId);
 
     if (deleteError) {
+      // Log failed study deletion (non-blocking)
+      auditService
+        .logStudyDeletion(walletId, studyId.toString(), false, {
+          studyTitle: existingStudy.title,
+          error: deleteError.message,
+        })
+        .catch((error) => {
+          logger.error({ error }, "Failed to log study deletion failure audit event");
+        });
+
       logger.error({ error: deleteError, studyId }, "Failed to delete study");
       return res.status(500).json({ error: "Failed to delete study" });
     }
+
+    // Log successful study deletion (non-blocking)
+    auditService
+      .logStudyDeletion(walletId, studyId.toString(), true, {
+        studyTitle: existingStudy.title,
+        previousStatus: existingStudy.status,
+      })
+      .catch((error) => {
+        logger.error({ error }, "Failed to log study deletion audit event");
+      });
 
     logger.info(
       {
         studyId,
         title: existingStudy.title,
-        deletedBy: walletId,
       },
       "Study deleted successfully"
     );

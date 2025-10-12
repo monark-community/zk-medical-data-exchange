@@ -6,15 +6,16 @@
 "use client";
 
 import React, { useState, useCallback } from "react";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { RefreshCw, Shield, AlertCircle } from "lucide-react";
+import { RefreshCw, Shield, AlertCircle, Activity, Database } from "lucide-react";
 import { useAccount } from "wagmi";
 import { useAudit } from "@/hooks/useAudit";
-import { AuditRecord, getProfileName } from "@/services/api/auditService";
+import { AuditRecord } from "@/services/api/auditService";
 import AuditTable from "./AuditTable";
 import AuditPagination from "./AuditPagination";
+import AuditRecordDialog from "./AuditRecordDialog";
 
 interface AuditSectionProps {
   className?: string;
@@ -23,6 +24,7 @@ interface AuditSectionProps {
 const AuditSection: React.FC<AuditSectionProps> = ({ className = "" }) => {
   const { address: userAddress } = useAccount();
   const [selectedRecord, setSelectedRecord] = useState<AuditRecord | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   const {
     records,
@@ -33,7 +35,8 @@ const AuditSection: React.FC<AuditSectionProps> = ({ className = "" }) => {
     goToPage,
     refresh,
     loadInitialData,
-    currentProfile,
+    canRefresh,
+    refreshCooldownSeconds,
   } = useAudit({
     userAddress,
     autoFetch: false, // Disable auto-fetch for manual control
@@ -50,6 +53,7 @@ const AuditSection: React.FC<AuditSectionProps> = ({ className = "" }) => {
 
   const handleRecordClick = useCallback((record: AuditRecord) => {
     setSelectedRecord(record);
+    setDialogOpen(true);
   }, []);
 
   const handleRefresh = useCallback(() => {
@@ -62,107 +66,181 @@ const AuditSection: React.FC<AuditSectionProps> = ({ className = "" }) => {
 
   if (!userAddress) {
     return (
-      <div className={`text-center py-8 ${className}`}>
-        <div className="flex flex-col items-center space-y-4">
-          <AlertCircle className="h-12 w-12 text-yellow-500" />
-          <div>
-            <h3 className="text-lg font-medium text-gray-900">Wallet Not Connected</h3>
-            <p className="text-gray-600">Please connect your wallet to view audit logs</p>
-          </div>
-        </div>
+      <div className={`${className}`}>
+        <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-50 to-indigo-50">
+          <CardContent className="flex flex-col items-center space-y-6 py-12">
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full blur-lg opacity-20"></div>
+              <div className="relative bg-gradient-to-r from-blue-600 to-indigo-600 p-4 rounded-full">
+                <AlertCircle className="h-8 w-8 text-white" />
+              </div>
+            </div>
+            <div className="text-center space-y-2">
+              <h3 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                Wallet Connection Required
+              </h3>
+              <p className="text-gray-600 max-w-md">
+                Connect your wallet to access your privacy audit logs and activity history
+              </p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className={`space-y-6 ${className}`}>
+    <div className={`space-y-8 ${className}`}>
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-3">
-          <Shield className="h-6 w-6 text-blue-600" />
-          <div>
-            <h2 className="text-xl font-semibold text-gray-900">Activity & Audit Logs</h2>
-            <p className="text-sm text-gray-600">View your Data account activity and audit trail</p>
-          </div>
-        </div>
+      <div className="relative">
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-indigo-500/10 rounded-xl blur-xl"></div>
+        <Card className="relative border-0 shadow-lg bg-gradient-to-r from-white to-blue-50/50">
+          <CardHeader className="pb-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg blur opacity-20"></div>
+                  <div className="relative bg-gradient-to-r from-blue-600 to-indigo-600 p-3 rounded-lg">
+                    <Shield className="h-6 w-6 text-white" />
+                  </div>
+                </div>
+                <div>
+                  <CardTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                    Privacy & Audit Center
+                  </CardTitle>
+                  <CardDescription className="text-gray-600 mt-1">
+                    Monitor your data activity and privacy trail on the blockchain
+                  </CardDescription>
+                </div>
+              </div>
 
-        <div className="flex items-center space-x-3">
-          <Button
-            onClick={handleRefresh}
-            disabled={isLoading}
-            variant="outline"
-            size="sm"
-            className="flex items-center space-x-2"
-          >
-            <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
-            <span>Refresh</span>
-          </Button>
-        </div>
+              <div className="flex items-center space-x-3">
+                <Button
+                  onClick={handleRefresh}
+                  disabled={isLoading || !canRefresh}
+                  variant="outline"
+                  size="sm"
+                  className="border-blue-200 hover:border-blue-300 hover:bg-blue-50 transition-all duration-200"
+                >
+                  <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />
+                  <span>
+                    {refreshCooldownSeconds > 0 ? `Wait ${refreshCooldownSeconds}s` : "Refresh"}
+                  </span>
+                </Button>
+              </div>
+            </div>
+          </CardHeader>
+        </Card>
       </div>
-
-      {/* Profile Info */}
-      <Card className="p-4">
-        <div className="flex items-center space-x-4">
-          <div className="flex items-center space-x-2">
-            <Shield className="h-4 w-4 text-gray-600" />
-            <span className="text-sm font-medium">Profile:</span>
-          </div>
-          <Badge variant="outline" className="text-sm">
-            {getProfileName(currentProfile)}
-          </Badge>
-        </div>
-      </Card>
 
       {/* Initial Load State - Show when no data has been loaded */}
       {!hasDataLoaded && !isLoading && !error && (
-        <Card className="p-8 text-center">
-          <div className="flex flex-col items-center space-y-4">
-            <Shield className="h-12 w-12 text-blue-600" />
-            <div>
-              <h3 className="text-lg font-medium text-gray-900">Load Your Audit Logs</h3>
-              <p className="text-gray-600 mt-1">
-                Click the button below to fetch your activity and audit trail from the blockchain.
-              </p>
+        <Card className="border-0 shadow-lg bg-gradient-to-br from-purple-50 to-pink-50">
+          <CardContent className="py-12">
+            <div className="flex flex-col items-center space-y-6 text-center">
+              <div className="relative">
+                <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full blur-lg opacity-20"></div>
+                <div className="relative bg-gradient-to-r from-purple-600 to-pink-600 p-6 rounded-full">
+                  <Database className="h-12 w-12 text-white" />
+                </div>
+              </div>
+              <div className="space-y-3">
+                <h3 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                  Load Your Privacy Audit Trail
+                </h3>
+                <p className="text-gray-600 max-w-md">
+                  Fetch your complete activity history and audit trail directly from the blockchain.
+                  This includes all your data interactions and privacy events.
+                </p>
+              </div>
+              <Button
+                onClick={handleLoadData}
+                size="lg"
+                className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-lg hover:shadow-xl transition-all duration-200"
+              >
+                <Database className="h-5 w-5 mr-2" />
+                <span>Load Audit Data</span>
+              </Button>
             </div>
-            <Button onClick={handleLoadData} className="flex items-center space-x-2" size="lg">
-              <Shield className="h-4 w-4" />
-              <span>Load Audit Data</span>
-            </Button>
-          </div>
+          </CardContent>
         </Card>
       )}
 
       {/* Error State */}
       {error && (
-        <Card className="p-4 border-red-200 bg-red-50">
-          <div className="flex items-center space-x-2">
-            <AlertCircle className="h-5 w-5 text-red-600" />
-            <div>
-              <h3 className="text-sm font-medium text-red-800">Error Loading Audit Logs</h3>
-              <p className="text-sm text-red-600">{error}</p>
+        <Card className="border-0 shadow-lg bg-gradient-to-r from-red-50 to-orange-50 border-l-4 border-l-red-500">
+          <CardContent className="py-4">
+            <div className="flex items-center space-x-4">
+              <div className="bg-gradient-to-r from-red-500 to-orange-500 p-2 rounded-lg">
+                <AlertCircle className="h-5 w-5 text-white" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-red-800">Unable to Load Audit Data</h3>
+                <p className="text-red-700 mt-1 text-sm">{error}</p>
+              </div>
+              <Button
+                onClick={handleRefresh}
+                disabled={!canRefresh}
+                variant="outline"
+                size="sm"
+                className="border-red-200 text-red-700 hover:bg-red-50"
+              >
+                {refreshCooldownSeconds > 0 ? `Wait ${refreshCooldownSeconds}s` : "Try Again"}
+              </Button>
             </div>
-          </div>
+          </CardContent>
         </Card>
       )}
 
       {/* Audit Table - Only show when data has been loaded */}
       {hasDataLoaded && records.length > 0 && (
-        <Card className="overflow-hidden">
-          <div className="p-4 border-b">
+        <Card className="border-0 shadow-xl overflow-hidden bg-white/95 backdrop-blur-sm">
+          <CardHeader className="bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/50 border-b border-slate-200/50 px-8 py-6">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-medium">Recent Activity</h3>
-              <div className="flex items-center space-x-2 text-sm text-gray-600">
-                <span>Showing:</span>
-                <Badge variant="secondary">{records.length} records</Badge>
+              <div className="flex items-center space-x-4">
+                <div className="relative group">
+                  <div className="absolute inset-0 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl blur-sm opacity-75 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  <div className="relative bg-gradient-to-br from-emerald-500 to-teal-600 p-3 rounded-xl shadow-lg">
+                    <Activity className="h-6 w-6 text-white" />
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <CardTitle className="text-2xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
+                    Recent Activity
+                  </CardTitle>
+                  <CardDescription className="text-slate-600 font-medium">
+                    Your latest privacy and data interactions
+                  </CardDescription>
+                </div>
+              </div>
+              <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-3">
+                  <Badge
+                    variant="secondary"
+                    className="bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800 border border-blue-200/50 px-3 py-1.5 font-semibold shadow-sm"
+                  >
+                    <Database className="h-3 w-3 mr-1.5" />
+                    {records.length} records
+                  </Badge>
+                  {pagination && (
+                    <Badge
+                      variant="outline"
+                      className="text-slate-600 border-slate-300/50 bg-white/50 backdrop-blur-sm px-3 py-1.5 font-medium shadow-sm"
+                    >
+                      Page {Math.floor(pagination.offset / 20) + 1} of{" "}
+                      {Math.ceil(pagination.total / 20)}
+                    </Badge>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
+          </CardHeader>
 
           <AuditTable records={records} isLoading={isLoading} onRecordClick={handleRecordClick} />
 
           {/* Pagination */}
           {pagination && (
-            <div className="p-4 border-t">
+            <div className="bg-gradient-to-br from-slate-50/80 via-blue-50/20 to-indigo-50/30 border-t border-slate-200/50 px-8 py-6">
               <AuditPagination
                 pagination={pagination}
                 onPageChange={handlePageChange}
@@ -173,39 +251,8 @@ const AuditSection: React.FC<AuditSectionProps> = ({ className = "" }) => {
         </Card>
       )}
 
-      {/* Record Detail Modal/Drawer (Future Enhancement) */}
-      {selectedRecord && (
-        <Card className="p-4 border-blue-200 bg-blue-50">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium text-blue-800">Selected Record</h3>
-            <Button variant="ghost" size="sm" onClick={() => setSelectedRecord(null)}>
-              ✕
-            </Button>
-          </div>
-          <div className="mt-2 space-y-2 text-sm">
-            <div>
-              <span className="font-medium">ID:</span> {selectedRecord.id}
-            </div>
-            <div>
-              <span className="font-medium">Action:</span> {selectedRecord.action}
-            </div>
-            <div>
-              <span className="font-medium">Resource:</span> {selectedRecord.resource}
-            </div>
-            <div>
-              <span className="font-medium">User:</span> {selectedRecord.user}
-            </div>
-            {selectedRecord.metadata && (
-              <div>
-                <span className="font-medium">Metadata:</span>
-                <pre className="mt-1 text-xs bg-white p-2 rounded border overflow-auto max-h-32">
-                  {JSON.stringify(JSON.parse(selectedRecord.metadata), null, 2)}
-                </pre>
-              </div>
-            )}
-          </div>
-        </Card>
-      )}
+      {/* Audit Record Dialog */}
+      <AuditRecordDialog record={selectedRecord} open={dialogOpen} onOpenChange={setDialogOpen} />
     </div>
   );
 };

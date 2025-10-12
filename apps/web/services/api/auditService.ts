@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 /**
  * Audit Service
  * Handles API calls to audit endpoints for retrieving user audit logs
@@ -190,25 +191,6 @@ export const getUserActionsByProfilePaginated = async (
       error: error.response?.data?.error || error.message || "Failed to fetch audit records",
     };
   }
-};
-
-/**
- * Get profile-specific actions only (excludes COMMON actions)
- */
-export const getUserProfileActionsOnly = async (
-  userAddress: string,
-  profile: UserProfile,
-  offset: number = 0,
-  limit: number = 100,
-  latestFirst: boolean = true
-): Promise<AuditResponse> => {
-  const response = await apiClient.get(
-    `/audit/user/${userAddress}/profile/${profile}/actions/profile-only`,
-    {
-      params: { offset, limit, latestFirst },
-    }
-  );
-  return response.data;
 };
 
 /**
