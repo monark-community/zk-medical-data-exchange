@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertCircle, Shield, Users, Calendar, CheckCircle, XCircle } from "lucide-react";
+import { useAccount } from "wagmi";
 import { 
   getStudies, 
   checkStudyEligibility, 
@@ -18,12 +19,20 @@ import {
 } from "@/services/api/studyService";
 
 export default function Research() {
+  const { address: walletAddress, isConnected } = useAccount();
   const [studies, setStudies] = useState<StudySummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedStudy, setSelectedStudy] = useState<StudySummary | null>(null);
-  const [applicationStep, setApplicationStep] = useState<'form' | 'checking' | 'result'>('form');
+  const [applicationStep, setApplicationStep] = useState<'form' | 'checking' | 'result' | 'submitting'>('form');
   const [eligibilityResult, setEligibilityResult] = useState<{ eligible: boolean; message: string } | null>(null);
-  const [medicalData, setMedicalData] = useState<EligibilityCheckRequest["medicalData"]>({});
+  const [medicalData, setMedicalData] = useState<EligibilityCheckRequest["medicalData"]>({
+    age: undefined,
+    gender: undefined,
+    bmi: undefined,
+    cholesterol: undefined,
+    diabetesType: undefined,
+    smokingStatus: undefined
+  });
 
   useEffect(() => {
     loadStudies();
@@ -68,20 +77,38 @@ export default function Research() {
   const handleFinalApplication = async () => {
     if (!selectedStudy || !eligibilityResult?.eligible) return;
 
+    if (!isConnected || !walletAddress) {
+      alert("Please connect your wallet to submit your application.");
+      return;
+    }
+
+    setApplicationStep('submitting');
+
     try {
       // In a real implementation, this would generate a ZK proof
-      // For now, we'll simulate it
+      // For now, we'll simulate it with the medical data used for eligibility
       const mockZkProof = {
         proof: "mock_proof_data_" + Date.now(),
-        publicSignals: ["1"] // 1 = eligible
+        publicSignals: ["1"],
+        dataCommitment: `commitment_${walletAddress}_${selectedStudy.id}`
       };
 
-      await applyToStudyWithZK(selectedStudy.id, mockZkProof, "mock_wallet_address");
-      alert("Application submitted successfully!");
+      await applyToStudyWithZK(selectedStudy.id, mockZkProof, walletAddress);
+      
+      alert("🎉 Application submitted successfully! You are now enrolled in the study.");
+      
+      await loadStudies();
+      
       setSelectedStudy(null);
+      setApplicationStep('form');
+      setEligibilityResult(null);
+      setMedicalData({});
+      
     } catch (error) {
       console.error('Application failed:', error);
-      alert("Application failed. Please try again.");
+      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+      alert(`❌ Application failed: ${errorMessage}\n\nPlease try again.`);
+      setApplicationStep('result'); 
     }
   };
 
@@ -228,8 +255,10 @@ export default function Research() {
                                 <Input
                                   id="age"
                                   type="number"
-                                  value={medicalData.age || ''}
-                                  onChange={(e) => setMedicalData(prev => ({ ...prev, age: parseInt(e.target.value) || undefined }))}
+                                  value={medicalData?.age || ''}
+                                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => 
+                                    setMedicalData(prev => ({ ...prev, age: parseInt(e.target.value) || undefined }))
+                                  }
                                 />
                               </div>
                               
@@ -255,8 +284,10 @@ export default function Research() {
                                   id="bmi"
                                   type="number"
                                   step="0.1"
-                                  value={medicalData.bmi || ''}
-                                  onChange={(e) => setMedicalData(prev => ({ ...prev, bmi: parseFloat(e.target.value) || undefined }))}
+                                  value={medicalData?.bmi || ''}
+                                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => 
+                                    setMedicalData(prev => ({ ...prev, bmi: parseFloat(e.target.value) || undefined }))
+                                  }
                                 />
                               </div>
                               
@@ -265,8 +296,10 @@ export default function Research() {
                                 <Input
                                   id="cholesterol"
                                   type="number"
-                                  value={medicalData.cholesterol || ''}
-                                  onChange={(e) => setMedicalData(prev => ({ ...prev, cholesterol: parseInt(e.target.value) || undefined }))}
+                                  value={medicalData?.cholesterol || ''}
+                                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => 
+                                    setMedicalData(prev => ({ ...prev, cholesterol: parseInt(e.target.value) || undefined }))
+                                  }
                                 />
                               </div>
                             </div>
@@ -315,6 +348,16 @@ export default function Research() {
                             <p>Checking eligibility privately...</p>
                             <p className="text-sm text-gray-600 mt-2">
                               Your data is being processed using zero-knowledge proofs
+                            </p>
+                          </div>
+                        )}
+
+                        {applicationStep === 'submitting' && (
+                          <div className="text-center py-8">
+                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
+                            <p>Submitting your application...</p>
+                            <p className="text-sm text-gray-600 mt-2">
+                              Generating zero-knowledge proof and enrolling you in the study
                             </p>
                           </div>
                         )}

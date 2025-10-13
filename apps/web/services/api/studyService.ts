@@ -215,13 +215,18 @@ export const applyToStudyWithZK = async (
   zkProof: {
     proof: string;
     publicSignals: string[];
+    dataCommitment?: string;
   },
   walletAddress: string
 ): Promise<ParticipationResult> => {
   try {
     const response = await apiClient.post(`/studies/${studyId}/apply-with-proof`, {
-      zkProof,
-      walletAddress,
+      participantWallet: walletAddress,
+      eligibilityProof: {
+        proof: zkProof.proof,
+        publicSignals: zkProof.publicSignals,
+        dataCommitment: zkProof.dataCommitment || `commitment_${walletAddress}_${studyId}`
+      }
     });
     return response.data;
   } catch (error: any) {

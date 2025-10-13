@@ -6,10 +6,19 @@ interface StudiesListProps {
   studies: StudySummary[];
   // eslint-disable-next-line no-unused-vars
   onDeleteStudy: (id: number) => Promise<void>;
+  // eslint-disable-next-line no-unused-vars
+  onApplyStudy: (id: number) => Promise<void>;
   deletingStudyId: number | null;
+  applyingStudyId?: number | null;
 }
 
-export default function StudiesList({ studies, onDeleteStudy, deletingStudyId }: StudiesListProps) {
+export default function StudiesList({ 
+  studies, 
+  onDeleteStudy, 
+  onApplyStudy, 
+  deletingStudyId, 
+  applyingStudyId = null 
+}: StudiesListProps) {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "active":
@@ -108,6 +117,28 @@ export default function StudiesList({ studies, onDeleteStudy, deletingStudyId }:
                 >
                   {study.status.charAt(0).toUpperCase() + study.status.slice(1)}
                 </span>
+                {study.status === 'active' && study.currentParticipants < study.maxParticipants && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onApplyStudy(study.id);
+                    }}
+                    disabled={applyingStudyId === study.id}
+                    className="h-7 px-3 text-blue-600 hover:text-blue-700 hover:bg-blue-50 border-blue-200 disabled:opacity-50"
+                    title="Apply to study"
+                  >
+                    {applyingStudyId === study.id ? (
+                      <>
+                        <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                        Applying...
+                      </>
+                    ) : (
+                      'Apply'
+                    )}
+                  </Button>
+                )}
                 <Button
                   variant="outline"
                   size="sm"

@@ -786,7 +786,7 @@ export const checkEligibilityWithZK = async (req: Request, res: Response) => {
 };
 
 /**
- * Apply to study with ZK proof (privacy-preserving)
+ * Apply to study with ZK proof
  * POST /api/studies/:id/apply-with-proof
  */
 export const applyToStudyWithZKProof = async (req: Request, res: Response) => {

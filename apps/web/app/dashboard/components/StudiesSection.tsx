@@ -6,12 +6,13 @@ import { Plus, BookOpen, Users, Activity, Loader2, AlertTriangle } from "lucide-
 import { useAccount } from "wagmi";
 import StudyCreationDialog from "@/components/StudyCreationDialog";
 import { useStudies } from "@/hooks/useStudies";
-import { deleteStudy } from "@/services/api/studyService";
+import { deleteStudy, checkStudyEligibility, applyToStudyWithZK } from "@/services/api/studyService";
 import StudiesList from "./StudiesList";
 
 export default function StudiesSection() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [deletingStudyId, setDeletingStudyId] = useState<number | null>(null);
+  const [applyingStudyId, setApplyingStudyId] = useState<number | null>(null);
   const { address: walletAddress } = useAccount();
   const { studies, isLoading, error, refetch } = useStudies(walletAddress);
 
@@ -59,6 +60,59 @@ export default function StudiesSection() {
       } finally {
         setDeletingStudyId(null);
       }
+    }
+  };
+
+  const handleApplyStudy = async (studyId: number) => {
+    if (!walletAddress) {
+      alert("Wallet not connected");
+      return;
+    }
+
+    if (applyingStudyId === studyId) {
+      return;
+    }
+
+    setApplyingStudyId(studyId);
+
+    try {
+      const mockMedicalData = {
+        age: 30,
+        gender: 1 as const, // 0: male, 1: female, 2: other
+        bmi: 25.0,
+        smokingStatus: 0 as const, // 0: never, 1: former, 2: current
+        hasHeartDisease: false,
+      };
+
+      await checkStudyEligibility(studyId, {
+        medicalData: mockMedicalData
+      });
+
+      const mockZkProof = {
+        proof: `proof_${walletAddress}_${studyId}_${Date.now()}`,
+        publicSignals: [`${studyId}`, walletAddress.slice(2, 10)],
+        dataCommitment: `commitment_${walletAddress}_${studyId}`
+      };
+
+      await applyToStudyWithZK(studyId, mockZkProof, walletAddress);
+      
+      alert("Successfully applied to study!");
+      refetch(); 
+      
+    } catch (error: any) {
+      console.error("Error applying to study:", error);
+      
+      if (error.message?.includes("not eligible")) {
+        alert("You don't meet the eligibility criteria for this study.");
+      } else if (error.message?.includes("already participated")) {
+        alert("You have already applied to or participated in this study.");
+      } else if (error.message?.includes("study full")) {
+        alert("This study has reached its maximum number of participants.");
+      } else {
+        alert(`Failed to apply to study: ${error.message || "Unknown error"}`);
+      }
+    } finally {
+      setApplyingStudyId(null);
     }
   };
 
@@ -168,7 +222,9 @@ export default function StudiesSection() {
               <StudiesList
                 studies={studies}
                 onDeleteStudy={handleDeleteStudy}
+                onApplyStudy={handleApplyStudy}
                 deletingStudyId={deletingStudyId}
+                applyingStudyId={applyingStudyId}
               />
             )}
           </div>
