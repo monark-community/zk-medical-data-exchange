@@ -27,6 +27,39 @@ export default function StudiesList({ studies, onDeleteStudy, deletingStudyId }:
     }
   };
 
+  const getTagCategory = (tag: string): 'demographic' | 'lifestyle' | 'health' | 'generic' => {
+    const tagLower = tag.toLowerCase();
+    
+    if (tagLower.includes('age')) {
+      return 'demographic';
+    }
+    
+    if (tagLower.includes('smoker') || tagLower.includes('smoking') || tagLower.includes('diabetes')) {
+      return 'lifestyle';
+    }
+    
+    if (tagLower.includes('bmi') || tagLower.includes('bp') || tagLower.includes('blood pressure') || tagLower.includes('cholesterol')) {
+      return 'health';
+    }
+    
+    return 'generic';
+  };
+
+  const getTagStyles = (tag: string) => {
+    const category = getTagCategory(tag);
+    
+    switch (category) {
+      case 'demographic':
+        return "bg-blue-50 text-blue-800 border border-blue-200 hover:bg-blue-100 hover:shadow-sm";
+      case 'lifestyle':
+        return "bg-violet-50 text-violet-800 border border-violet-200 hover:bg-violet-100 hover:shadow-sm";
+      case 'health':
+        return "bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 hover:shadow-sm";
+      default:
+        return "bg-gray-50 text-gray-800 border border-gray-200 hover:bg-gray-100 hover:shadow-sm";
+    }
+  };
+
   return (
     <div className="p-4">
       <div className="space-y-3">
@@ -37,20 +70,39 @@ export default function StudiesList({ studies, onDeleteStudy, deletingStudyId }:
               index !== studies.length - 1 ? "mb-3" : ""
             }`}
           >
-            <div className="flex items-start justify-between mb-3">
+            <div className="flex items-start justify-between mb-4">
               <div className="space-y-1 flex-1">
                 <h4 className="text-sm font-medium text-gray-900">{study.title}</h4>
                 {study.description && (
-                  <p className="text-xs text-gray-600">
+                  <p className="text-xs text-gray-600 leading-relaxed">
                     {study.description.length > 80
                       ? `${study.description.substring(0, 80)}...`
                       : study.description}
                   </p>
                 )}
+                
+                {/* Tags Section */}
+                {study.tags && study.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {study.tags.slice(0, 4).map((tag, tagIndex) => (
+                      <span
+                        key={tagIndex}
+                        className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium transition-all duration-200 ${getTagStyles(tag)}`}
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                    {study.tags.length > 4 && (
+                      <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-50 text-gray-800 border border-gray-200 hover:bg-gray-100 hover:shadow-sm transition-all duration-200">
+                        +{study.tags.length - 4} more
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
               <div className="flex items-center space-x-2 ml-3">
                 <span
-                  className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(
+                  className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(
                     study.status
                   )}`}
                 >
@@ -91,81 +143,7 @@ export default function StudiesList({ studies, onDeleteStudy, deletingStudyId }:
                   <span>{new Date(study.createdAt).toLocaleDateString()}</span>
                 </div>
               </div>
-
-              {study.templateName && (
-                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-gray-100 text-gray-700 border border-gray-200">
-                  {study.templateName}
-                </span>
-              )}
             </div>
-
-            {/* Criteria Summary */}
-            {study.criteriasSummary && (
-              <div className="mt-2 pt-2 border-t border-gray-100">
-                <div className="flex flex-wrap gap-1">
-                  {study.criteriasSummary.requiresAge && (
-                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-blue-50 text-blue-700 border border-blue-200">
-                      Age
-                    </span>
-                  )}
-                  {study.criteriasSummary.requiresGender && (
-                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-purple-50 text-purple-700 border border-purple-200">
-                      Gender
-                    </span>
-                  )}
-                  {study.criteriasSummary.requiresDiabetes && (
-                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-green-50 text-green-700 border border-green-200">
-                      Diabetes
-                    </span>
-                  )}
-                  {study.criteriasSummary.requiresSmoking && (
-                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-orange-50 text-orange-700 border border-orange-200">
-                      Smoking
-                    </span>
-                  )}
-                  {study.criteriasSummary.requiresBMI && (
-                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-yellow-50 text-yellow-700 border border-yellow-200">
-                      BMI
-                    </span>
-                  )}
-                  {study.criteriasSummary.requiresBloodPressure && (
-                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-red-50 text-red-700 border border-red-200">
-                      Blood Pressure
-                    </span>
-                  )}
-                  {study.criteriasSummary.requiresCholesterol && (
-                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-indigo-50 text-indigo-700 border border-indigo-200">
-                      Cholesterol
-                    </span>
-                  )}
-                  {study.criteriasSummary.requiresHeartDisease && (
-                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-pink-50 text-pink-700 border border-pink-200">
-                      Heart Disease
-                    </span>
-                  )}
-                  {study.criteriasSummary.requiresActivity && (
-                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-teal-50 text-teal-700 border border-teal-200">
-                      Activity Level
-                    </span>
-                  )}
-                  {study.criteriasSummary.requiresHbA1c && (
-                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-cyan-50 text-cyan-700 border border-cyan-200">
-                      HbA1c
-                    </span>
-                  )}
-                  {study.criteriasSummary.requiresBloodType && (
-                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-emerald-50 text-emerald-700 border border-emerald-200">
-                      Blood Type
-                    </span>
-                  )}
-                  {study.criteriasSummary.requiresLocation && (
-                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-violet-50 text-violet-700 border border-violet-200">
-                      Location
-                    </span>
-                  )}
-                </div>
-              </div>
-            )}
           </div>
         ))}
       </div>

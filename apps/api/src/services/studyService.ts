@@ -85,7 +85,6 @@ class StudyService {
   private formatCriteriaForContract(criteria: StudyCriteria) {
     logger.info({ criteria }, "formatCriteriaForContract called");
 
-    // Helper function to get safe range defaults for disabled criteria
     const getSafeRange = (
       enable: number,
       min: number,
@@ -96,7 +95,6 @@ class StudyService {
       if (enable === 1) {
         return { min: BigInt(min || defaultMin), max: BigInt(max || defaultMax) };
       }
-      // For disabled criteria, use safe defaults that pass validation
       return { min: BigInt(defaultMin), max: BigInt(defaultMax) };
     };
 
@@ -150,7 +148,6 @@ class StudyService {
       500
     );
 
-    // Return as an object matching the struct fields
     return {
       enableAge: BigInt(criteria.enableAge || 0),
       minAge: ageRange.min,
@@ -450,7 +447,6 @@ class StudyService {
         );
       }
 
-      // Ensure we have the correct StudyCreated event
       if (decodedEvent.eventName !== "StudyCreated") {
         throw new Error(`Expected StudyCreated event, got ${decodedEvent.eventName}`);
       }

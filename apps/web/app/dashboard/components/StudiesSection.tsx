@@ -28,7 +28,6 @@ export default function StudiesSection() {
 
     const study = studies.find((s) => s.id === studyId);
 
-    // Different confirmation message for active studies
     let confirmMessage = `Are you sure you want to delete "${study?.title}"?\n\nThis action cannot be undone and will permanently remove the study and all its data.`;
 
     if (study?.status === "active") {
@@ -42,17 +41,16 @@ export default function StudiesSection() {
       try {
         await deleteStudy(studyId, walletAddress);
         console.log("Study deleted successfully from API!");
-        refetch(); // Refresh the studies list
+        refetch(); 
       } catch (error: any) {
         console.error("Error deleting study:", error);
 
-        // More detailed error handling
         if (error.response?.status === 400) {
           const errorMessage = error.response?.data?.error || "Bad request";
           alert(`Failed to delete study: ${errorMessage}`);
         } else if (error.response?.status === 404) {
           alert("Study not found. It may have already been deleted.");
-          refetch(); // Refresh to remove it from the list
+          refetch(); 
         } else if (error.response?.status === 403) {
           alert("You don't have permission to delete this study.");
         } else {
@@ -64,7 +62,6 @@ export default function StudiesSection() {
     }
   };
 
-  // Calculate stats from studies
   const totalStudies = studies.length;
   const activeStudies = studies.filter((study) => study.status === "active").length;
   const totalParticipants = studies.reduce((sum, study) => sum + study.currentParticipants, 0);

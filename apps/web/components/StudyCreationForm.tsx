@@ -9,7 +9,6 @@ import { useCreateStudy, deployStudy, deleteStudy } from "@/services/api/studySe
 import { useAccount } from "wagmi";
 import { STUDY_FORM_MAPPINGS, DEFAULT_STUDY_INFO } from "@/constants/studyFormMappings";
 
-// Template selector component
 const TemplateSelector = ({
   onTemplateSelect,
   selectedTemplate,
@@ -109,7 +108,6 @@ const TemplateSelector = ({
   );
 };
 
-// Individual criteria component
 const CriteriaField = ({
   label,
   enabled,
@@ -155,7 +153,6 @@ const CriteriaField = ({
   );
 };
 
-// Number input component with empty value support
 const NumberInput = ({
   value,
   onChange,
@@ -175,7 +172,6 @@ const NumberInput = ({
 }) => {
   const [displayValue, setDisplayValue] = useState(value.toString());
 
-  // Update display value when prop value changes
   useEffect(() => {
     setDisplayValue(value.toString());
   }, [value]);
@@ -184,7 +180,6 @@ const NumberInput = ({
     const newValue = e.target.value;
     setDisplayValue(newValue);
 
-    // Allow empty string to clear the field
     if (newValue === "") {
       return;
     }
@@ -196,13 +191,11 @@ const NumberInput = ({
   };
 
   const handleBlur = () => {
-    // If field is empty on blur, restore the original value
     if (displayValue === "" || isNaN(Number(displayValue))) {
       setDisplayValue(value.toString());
       onBlur?.(value);
     } else {
       const numValue = Number(displayValue);
-      // Apply min/max constraints
       let constrainedValue = numValue;
       if (min !== undefined && numValue < min) constrainedValue = min;
       if (max !== undefined && numValue > max) constrainedValue = max;
@@ -227,7 +220,6 @@ const NumberInput = ({
   );
 };
 
-// Range input component
 const RangeInput = ({
   label,
   minValue,
@@ -296,30 +288,23 @@ const StudyCreationForm = ({
   isModal = false,
   onSubmitStateChange,
 }: StudyCreationFormProps) => {
-  // Basic study info
   const [studyInfo, setStudyInfo] = useState(DEFAULT_STUDY_INFO);
 
-  // Study criteria state
   const [criteria, setCriteria] = useState(() => createCriteria());
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<string | undefined>();
 
-  // Notify parent component when submit state changes
   useEffect(() => {
     onSubmitStateChange?.(isSubmitting);
   }, [isSubmitting, onSubmitStateChange]);
 
-  // Wagmi wallet hook
   const { address: walletAddress, isConnected } = useAccount();
 
-  // Next.js router for navigation
   const router = useRouter();
 
-  // API hook
   const { createStudy: createStudyApi } = useCreateStudy();
 
-  // Reset form to initial state
   const resetForm = () => {
     setStudyInfo(DEFAULT_STUDY_INFO);
     setCriteria(createCriteria());
@@ -343,10 +328,8 @@ const StudyCreationForm = ({
     const newCriteria = { ...criteria, ...updates };
     setCriteria(newCriteria);
 
-    // Clear template selection since user is customizing
     setSelectedTemplate(undefined);
 
-    // Validate on change
     const validation = validateCriteria(newCriteria);
     setValidationErrors(validation.errors);
   };
@@ -355,7 +338,19 @@ const StudyCreationForm = ({
     setIsSubmitting(true);
 
     try {
-      // Validate criteria
+      if (!studyInfo.title.trim()) {
+        alert("Study title is required.");
+        return;
+      }
+      if (!studyInfo.description.trim()) {
+        alert("Study description is required.");
+        return;
+      }
+      if (studyInfo.maxParticipants <= 0) {
+        alert("Max participants must be greater than 0.");
+        return;
+      }
+
       const validation = validateCriteria(criteria);
       if (!validation.valid) {
         setValidationErrors(validation.errors);
@@ -364,13 +359,11 @@ const StudyCreationForm = ({
 
       console.log("Creating study via API...");
 
-      // Check if wallet is connected
       if (!isConnected || !walletAddress) {
         alert("Please connect your wallet before creating a study.");
         return;
       }
 
-      // Step 1: Call the backend API to create study in database
       const result = await createStudyApi(
         studyInfo.title,
         studyInfo.description,
@@ -378,12 +371,11 @@ const StudyCreationForm = ({
         studyInfo.durationDays,
         criteria,
         selectedTemplate,
-        walletAddress // Pass wallet address
+        walletAddress 
       );
 
       console.log("Study created in database:", result);
 
-      // Step 2: Deploy to blockchain
       console.log("Deploying study to blockchain...");
 
       try {
@@ -402,7 +394,6 @@ const StudyCreationForm = ({
             `• View on Etherscan: ${deployResult.deployment.etherscanUrl}`
         );
 
-        // Clear form and handle success
         resetForm();
         if (isModal && onSuccess) {
           onSuccess();
@@ -412,7 +403,6 @@ const StudyCreationForm = ({
       } catch (deployError) {
         console.error("Blockchain deployment failed:", deployError);
 
-        // Delete the study from database since deployment failed
         try {
           await deleteStudy(result.study.id, walletAddress!);
           console.log("Study deleted from database due to deployment failure");
@@ -426,7 +416,6 @@ const StudyCreationForm = ({
             `Please try creating the study again.`
         );
 
-        // Don't reset form or navigate on failure, let user try again
         return;
       }
     } catch (error) {
@@ -462,7 +451,9 @@ const StudyCreationForm = ({
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="space-y-2">
-            <label className="block text-sm font-semibold text-gray-700">Study Title</label>
+            <label className="block text-sm font-semibold text-gray-700">
+              Study Title <span className="text-red-500">*</span>
+            </label>
             <input
               type="text"
               value={studyInfo.title}
@@ -472,7 +463,9 @@ const StudyCreationForm = ({
             />
           </div>
           <div className="space-y-2">
-            <label className="block text-sm font-semibold text-gray-700">Max Participants</label>
+            <label className="block text-sm font-semibold text-gray-700">
+              Max Participants <span className="text-red-500">*</span>
+            </label>
             <NumberInput
               value={studyInfo.maxParticipants}
               onChange={(value) => setStudyInfo({ ...studyInfo, maxParticipants: value })}
@@ -482,7 +475,9 @@ const StudyCreationForm = ({
             />
           </div>
           <div className="lg:col-span-2 space-y-2">
-            <label className="block text-sm font-semibold text-gray-700">Description</label>
+            <label className="block text-sm font-semibold text-gray-700">
+              Description <span className="text-red-500">*</span>
+            </label>
             <textarea
               value={studyInfo.description}
               onChange={(e) => setStudyInfo({ ...studyInfo, description: e.target.value })}

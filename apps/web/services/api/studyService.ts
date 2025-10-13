@@ -18,24 +18,9 @@ export interface StudySummary {
   maxParticipants: number;
   currentParticipants: number;
   status: "draft" | "deploying" | "active" | "paused" | "completed";
-  complexityScore: number;
-  templateName?: string;
   createdAt: string;
   contractAddress?: string;
-  criteriasSummary: {
-    requiresAge: boolean;
-    requiresGender: boolean;
-    requiresDiabetes: boolean;
-    requiresSmoking?: boolean;
-    requiresBMI?: boolean;
-    requiresBloodPressure?: boolean;
-    requiresCholesterol?: boolean;
-    requiresHeartDisease?: boolean;
-    requiresActivity?: boolean;
-    requiresHbA1c?: boolean;
-    requiresBloodType?: boolean;
-    requiresLocation?: boolean;
-  };
+  tags?: string[];
 }
 
 export interface StudyDetails extends StudySummary {
@@ -98,7 +83,33 @@ export interface ParticipationResult {
     proof: string;
     publicSignals: string[];
   };
-  errors?: string[];
+}
+
+export interface EligibilityCheckRequest {
+  medicalData?: {
+    age?: number;
+    gender?: 0 | 1 | 2;
+    bmi?: number;
+    cholesterol?: number;
+    diabetesType?: 0 | 1 | 2 | 3 | 4; 
+    smokingStatus?: 0 | 1 | 2; 
+    systolicBP?: number;
+    diastolicBP?: number;
+    hasHeartDisease?: boolean;
+    activityLevel?: number;
+    hba1c?: number;
+    bloodType?: string;
+    location?: string;
+  };
+  zkProof?: {
+    proof: string;
+    publicSignals: string[];
+  };
+}
+
+export interface EligibilityCheckResponse {
+  eligible: boolean;
+  message: string;
 }
 
 // ========================================
@@ -140,7 +151,6 @@ export const createStudy = async (studyData: CreateStudyRequest): Promise<Create
     const response = await apiClient.post<CreateStudyResponse>("/studies", studyData);
     return response.data;
   } catch (error: any) {
-    // Handle axios errors
     if (error.response?.data?.error) {
       throw new Error(error.response.data.error);
     }
@@ -182,7 +192,45 @@ export const deleteStudy = async (studyId: number, walletId: string) => {
 };
 
 /**
- * Participate in a study
+ * Check eligibility for a study using ZK proof or medical data (privacy-preserving)
+ * Patients can only learn if they're eligible AFTER providing real medical data
+ */
+export const checkStudyEligibility = async (
+  studyId: number,
+  request: EligibilityCheckRequest
+): Promise<EligibilityCheckResponse> => {
+  try {
+    const response = await apiClient.post(`/studies/${studyId}/check-eligibility`, request);
+    return response.data;
+  } catch (error: any) {
+    throw new Error(error.response?.data?.error || error.message || "Eligibility check failed");
+  }
+};
+
+/**
+ * Apply to a study using ZK proof
+ */
+export const applyToStudyWithZK = async (
+  studyId: number,
+  zkProof: {
+    proof: string;
+    publicSignals: string[];
+  },
+  walletAddress: string
+): Promise<ParticipationResult> => {
+  try {
+    const response = await apiClient.post(`/studies/${studyId}/apply-with-proof`, {
+      zkProof,
+      walletAddress,
+    });
+    return response.data;
+  } catch (error: any) {
+    throw new Error(error.response?.data?.error || error.message || "Application failed");
+  }
+};
+
+/**
+ * Participate in a study (legacy method - consider deprecating)
  */
 export const participateInStudy = async (
   studyId: number,
@@ -190,10 +238,8 @@ export const participateInStudy = async (
   walletAddress: string
 ): Promise<ParticipationResult> => {
   try {
-    // Get study details first to get criteria
     const study = await getStudyDetails(studyId);
 
-    // Process FHIR data for the study
     const processedData = await processFHIRForStudy(fhirData, study.eligibilityCriteria);
 
     const response = await apiClient.post(`/studies/${studyId}/participants`, {
@@ -212,29 +258,22 @@ export const participateInStudy = async (
 // ========================================
 
 /**
- * Check patient eligibility for a study using FHIR data
- * Note: Simplified implementation - full FHIR processing would be more complex
+ * Check patient eligibility for a study using privacy-preserving approach
+ * NOTE: This function now uses the server-side eligibility check to prevent criteria gaming
  */
 export const checkPatientEligibilityForStudy = async (
   studyId: number,
-  // eslint-disable-next-line no-unused-vars
-  fhirData: any // Intentionally unused in simplified implementation
+  medicalData: EligibilityCheckRequest["medicalData"]
 ): Promise<{
   eligible: boolean;
-  matchedCriteria: string[];
-  failedCriteria: string[];
-  eligibilityScore: number;
+  message: string;
 }> => {
   try {
-    // Get study details to verify it exists
-    await getStudyDetails(studyId);
-
-    // Simplified implementation - full FHIR processing would be implemented here
+    const result = await checkStudyEligibility(studyId, { medicalData });
+    
     return {
-      eligible: true,
-      matchedCriteria: ["Basic validation passed"],
-      failedCriteria: [],
-      eligibilityScore: 100,
+      eligible: result.eligible,
+      message: result.message,
     };
   } catch (error: any) {
     throw new Error(`Eligibility check failed: ${error.message}`);
@@ -252,7 +291,6 @@ export const formatStudyCriteria = (criteria: StudyCriteria): string[] => {
   }
 
   if (criteria.enableGender) {
-    // Simple gender mapping
     const genderLabels = ["Other", "Male", "Female", "Any"];
     formatted.push(`Gender: ${genderLabels[criteria.allowedGender] || "Specified"}`);
   }
@@ -300,7 +338,6 @@ export const useCreateStudy = () => {
       description,
       maxParticipants,
       durationDays,
-      // Use template if selected, otherwise use custom criteria
       ...(selectedTemplate ? { templateName: selectedTemplate } : { customCriteria: criteria }),
       ...(createdBy ? { createdBy } : {}),
     };

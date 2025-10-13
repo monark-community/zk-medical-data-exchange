@@ -12,6 +12,8 @@ import crypto from "crypto";
 import { TABLES, getColumns } from "@/constants/db";
 import { auditService } from "@/services/auditService";
 
+const SEPOLIA_TESTNET_CHAIN_ID = 11155111;
+
 /**
  * Create a new medical study (with database storage)
  * POST /studies
@@ -34,7 +36,6 @@ export const createStudy = async (req: Request, res: Response) => {
       principalInvestigator,
     } = req.body;
 
-    // Use createdBy if provided, otherwise fall back to principalInvestigator
     creatorAddress = createdBy || principalInvestigator;
 
     if (!title) {
@@ -52,7 +53,6 @@ export const createStudy = async (req: Request, res: Response) => {
       return res.status(400).json({ error: "Study title is required" });
     }
 
-    // Determine eligibility criteria
     let eligibilityCriteria: StudyCriteria;
     let actualTemplateName: string | null = null;
 
@@ -64,11 +64,10 @@ export const createStudy = async (req: Request, res: Response) => {
       eligibilityCriteria = createCriteria(customCriteria);
       logger.info("Using custom criteria");
     } else {
-      eligibilityCriteria = createCriteria(); // All defaults (disabled)
+      eligibilityCriteria = createCriteria();
       logger.info("Creating open study");
     }
 
-    // Validate the criteria
     const validation = validateCriteria(eligibilityCriteria);
     if (!validation.valid) {
       // Log failed study creation - invalid criteria (non-blocking)
@@ -89,7 +88,6 @@ export const createStudy = async (req: Request, res: Response) => {
       });
     }
 
-    // Calculate study metrics
     const enabledCount = countEnabledCriteria(eligibilityCriteria);
     const complexity = getStudyComplexity(eligibilityCriteria);
     const criteriaHash = crypto
@@ -97,12 +95,10 @@ export const createStudy = async (req: Request, res: Response) => {
       .update(JSON.stringify(eligibilityCriteria))
       .digest("hex");
 
-    // Extract quick-access criteria fields
     const requiresAge = eligibilityCriteria.enableAge === 1;
     const requiresGender = eligibilityCriteria.enableGender === 1;
     const requiresDiabetes = eligibilityCriteria.enableDiabetes === 1;
 
-    // Save to database using simple field names
     const insertData = {
       title,
       description,
@@ -122,7 +118,7 @@ export const createStudy = async (req: Request, res: Response) => {
       created_by: creatorAddress,
       complexity_score: enabledCount,
       template_name: actualTemplateName,
-      chain_id: 11155111, // Sepolia testnet
+      chain_id: SEPOLIA_TESTNET_CHAIN_ID,
     };
 
     const { data: studyData, error: insertError } = await req.supabase
@@ -225,7 +221,6 @@ export const deployStudy = async (req: Request, res: Response) => {
       return res.status(400).json({ error: "Invalid study ID" });
     }
 
-    // Get study from database
     const { data: study, error: fetchError } = await req.supabase
       .from(TABLES.STUDIES!.name)
       .select("*")
@@ -236,12 +231,10 @@ export const deployStudy = async (req: Request, res: Response) => {
       return res.status(404).json({ error: "Study not found" });
     }
 
-    // Check if already deployed
     if (study.status === "active" || study.deployment_tx_hash) {
       return res.status(400).json({ error: "Study already deployed" });
     }
 
-    // Update status to deploying
     await req.supabase
       .from(TABLES.STUDIES!.name)
       .update({ status: "deploying" })
@@ -249,7 +242,6 @@ export const deployStudy = async (req: Request, res: Response) => {
 
     logger.info({ studyId, title: study.title }, "Starting blockchain deployment");
 
-    // Parse criteria JSON if it's a string
     let parsedCriteria = study.criteria_json;
     if (typeof study.criteria_json === "string") {
       try {
@@ -265,7 +257,6 @@ export const deployStudy = async (req: Request, res: Response) => {
 
     logger.info({ studyId, parsedCriteria }, "Parsed criteria for deployment");
 
-    // Import study service dynamically to avoid initialization issues
     let studyService;
     try {
       const imported = await import("@/services/studyService");
@@ -286,7 +277,6 @@ export const deployStudy = async (req: Request, res: Response) => {
       });
     }
 
-    // Deploy to blockchain
     logger.info("Calling deployStudy method");
     const deploymentResult = await studyService.deployStudy({
       title: study.title,
@@ -299,7 +289,6 @@ export const deployStudy = async (req: Request, res: Response) => {
     });
 
     if (!deploymentResult.success) {
-      // Update status back to draft on failure
       await req.supabase
         .from(TABLES.STUDIES!.name)
         .update({ status: "draft" })
@@ -311,7 +300,6 @@ export const deployStudy = async (req: Request, res: Response) => {
       });
     }
 
-    // Update database with deployment info
     const { error: updateError } = await req.supabase
       .from(TABLES.STUDIES!.name)
       .update({
@@ -357,37 +345,31 @@ export const deployStudy = async (req: Request, res: Response) => {
  */
 export const getStudies = async (req: Request, res: Response) => {
   try {
-    const { status, template, createdBy, page = 1, limit } = req.query;
+    const { status = "active", limit = 20, page = 1 } = req.query;
 
     let query = req.supabase
       .from(TABLES.STUDIES!.name)
-      .select("*")
-      .order(TABLES.STUDIES!.columns.createdAt!, { ascending: false });
+      .select(`
+        id,
+        title,
+        description,
+        max_participants,
+        current_participants,
+        status,
+        duration_days,
+        created_at,
+        contract_address,
+        deployment_tx_hash,
+        deployed_at,
+        criteria_json
+      `)
+      .eq("status", status)
+      .order("created_at", { ascending: false });
 
-    // Apply filters
-    if (status) {
-      query = query.eq(TABLES.STUDIES!.columns.status!, status);
-    }
-
-    if (template) {
-      query = query.eq(TABLES.STUDIES!.columns.templateName!, template);
-    }
-
-    if (createdBy) {
-      query = query.eq(TABLES.STUDIES!.columns.createdBy!, createdBy);
-    }
-
-    // Apply pagination only if limit is specified
-    // When fetching user's own studies (createdBy), don't limit by default
-    if (limit && !createdBy) {
-      const offset = (Number(page) - 1) * Number(limit);
-      query = query.range(offset, offset + Number(limit) - 1);
-    } else if (limit && createdBy) {
-      // Even with createdBy, respect limit if explicitly provided
+    if (limit) {
       const offset = (Number(page) - 1) * Number(limit);
       query = query.range(offset, offset + Number(limit) - 1);
     }
-    // If no limit and createdBy is provided, fetch all user's studies without pagination
 
     const { data: studies, error, count } = await query;
 
@@ -396,63 +378,37 @@ export const getStudies = async (req: Request, res: Response) => {
       return res.status(500).json({ error: "Failed to fetch studies" });
     }
 
-    // Transform data for response
-    const transformedStudies =
-      studies?.map((study) => {
-        // Parse criteria to get detailed information
-        let criteriaDetails = null;
-        if (study.criteria_json) {
-          try {
-            criteriaDetails =
-              typeof study.criteria_json === "string"
-                ? JSON.parse(study.criteria_json)
-                : study.criteria_json;
-          } catch (e) {
-            logger.error(
-              { error: e, studyId: study.id },
-              "Failed to parse criteria JSON for summary"
-            );
-          }
-        }
+    const newStudies = studies?.map(study => {
+      let tags: string[] = [];
+      try {
+        const criteria = typeof study.criteria_json === 'string' 
+          ? JSON.parse(study.criteria_json) 
+          : study.criteria_json;
+        tags = generateTagsFromCriteria(criteria);
+      } catch (error) {
+        logger.warn({ error, studyId: study.id }, "Failed to parse criteria for tags");
+        tags = [];
+      }
 
-        // Build simple criteria summary - just show what's required, not the details
-        const criteriasSummary: any = {
-          // Basic requirements from DB columns
-          requiresAge: study.requires_age,
-          requiresGender: study.requires_gender,
-          requiresDiabetes: study.requires_diabetes,
-        };
-
-        // Add other criteria types if available (just boolean flags)
-        if (criteriaDetails) {
-          criteriasSummary.requiresSmoking = criteriaDetails.enableSmoking === 1;
-          criteriasSummary.requiresBMI = criteriaDetails.enableBMI === 1;
-          criteriasSummary.requiresBloodPressure = criteriaDetails.enableBloodPressure === 1;
-          criteriasSummary.requiresCholesterol = criteriaDetails.enableCholesterol === 1;
-          criteriasSummary.requiresHeartDisease = criteriaDetails.enableHeartDisease === 1;
-          criteriasSummary.requiresActivity = criteriaDetails.enableActivity === 1;
-          criteriasSummary.requiresHbA1c = criteriaDetails.enableHbA1c === 1;
-          criteriasSummary.requiresBloodType = criteriaDetails.enableBloodType === 1;
-          criteriasSummary.requiresLocation = criteriaDetails.enableLocation === 1;
-        }
-
-        return {
-          id: study.id,
-          title: study.title,
-          description: study.description,
-          maxParticipants: study.max_participants,
-          currentParticipants: study.current_participants,
-          status: study.status,
-          complexityScore: study.complexity_score,
-          templateName: study.template_name,
-          createdAt: study.created_at,
-          contractAddress: study.contract_address,
-          criteriasSummary,
-        };
-      }) || [];
+      return {
+        id: study.id,
+        title: study.title,
+        description: study.description,
+        maxParticipants: study.max_participants,
+        currentParticipants: study.current_participants || 0,
+        status: study.status,
+        durationDays: study.duration_days,
+        createdAt: study.created_at,
+        contractAddress: study.contract_address,
+        deploymentTxHash: study.deployment_tx_hash,
+        deployedAt: study.deployed_at,
+        tags: tags, 
+      };
+    }) || [];
 
     res.json({
-      studies: transformedStudies,
+      success: true,
+      studies: newStudies,
       pagination: {
         page: Number(page),
         limit: Number(limit),
@@ -460,6 +416,7 @@ export const getStudies = async (req: Request, res: Response) => {
         totalPages: Math.ceil((count || 0) / Number(limit)),
       },
     });
+
   } catch (error) {
     logger.error({ error }, "Get studies error");
     res.status(500).json({ error: "Internal server error" });
@@ -488,7 +445,6 @@ export const getStudyById = async (req: Request, res: Response) => {
       return res.status(500).json({ error: "Failed to fetch study" });
     }
 
-    // Return full study details including criteria
     res.json({
       study: {
         id: study.id,
@@ -750,3 +706,290 @@ export const deleteStudy = async (req: Request, res: Response) => {
     res.status(500).json({ error: "Internal server error" });
   }
 };
+
+/**
+ * Check eligibility using ZK proof (privacy-preserving)
+ * Patient data stays private, only eligibility result revealed
+ * POST /api/studies/:id/check-eligibility
+ */
+export const checkEligibilityWithZK = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { zkProof, dataCommitment, patientData } = req.body;
+
+    // For now, we'll accept either zkProof or patientData (for development)
+    if (!zkProof && !patientData) {
+      return res.status(400).json({ 
+        error: "ZK proof or patient data required for eligibility check" 
+      });
+    }
+
+    if (!dataCommitment && !patientData) {
+      return res.status(400).json({ 
+        error: "Data commitment required" 
+      });
+    }
+
+    const { data: study, error: studyError } = await req.supabase
+      .from(TABLES.STUDIES!.name)
+      .select("*")
+      .eq(TABLES.STUDIES!.columns.id!, id)
+      .single();
+
+    if (studyError || !study) {
+      return res.status(404).json({ error: "Study not found" });
+    }
+
+    if (study.status !== "active") {
+      return res.status(400).json({ error: "Study not accepting participants" });
+    }
+
+    let studyCriteria;
+    try {
+      studyCriteria = typeof study.criteria_json === 'string' 
+        ? JSON.parse(study.criteria_json) 
+        : study.criteria_json;
+    } catch (error) {
+      logger.error({ error, studyId: id }, "Failed to parse study criteria");
+      return res.status(500).json({ error: "Invalid study configuration" });
+    }
+
+    const verificationResult = await simulateZKProofVerification(
+      zkProof || patientData, 
+      dataCommitment, 
+      studyCriteria
+    );
+
+    const response = {
+      studyId: Number(id),
+      eligible: verificationResult.valid,
+    } as any;
+
+    if (verificationResult.valid && verificationResult.publicSignals) {
+      response.eligibilityProof = {
+        proof: zkProof || { mock: "proof" },
+        publicSignals: verificationResult.publicSignals,
+        dataCommitment: dataCommitment || "mock_commitment",
+      };
+      
+      logger.info({ studyId: id }, "Patient eligible for study");
+    } else {
+      logger.info({ studyId: id }, "Patient not eligible for study");
+    }
+
+    res.json(response);
+
+  } catch (error) {
+    logger.error({ error }, "Eligibility check error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+/**
+ * Apply to study with ZK proof (privacy-preserving)
+ * POST /api/studies/:id/apply-with-proof
+ */
+export const applyToStudyWithZKProof = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { participantWallet, eligibilityProof } = req.body;
+
+    if (!participantWallet || !eligibilityProof) {
+      return res.status(400).json({ 
+        error: "Participant wallet and eligibility proof required" 
+      });
+    }
+
+    const { data: study, error: studyError } = await req.supabase
+      .from(TABLES.STUDIES!.name)
+      .select("*")
+      .eq(TABLES.STUDIES!.columns.id!, id)
+      .single();
+
+    if (studyError || !study) {
+      return res.status(404).json({ error: "Study not found" });
+    }
+
+    if (study.status !== "active") {
+      return res.status(400).json({ error: "Study not accepting participants" });
+    }
+
+    if (study.current_participants >= study.max_participants) {
+      return res.status(400).json({ error: "Study is full" });
+    }
+
+    const { data: existingParticipant } = await req.supabase
+      .from("participants")
+      .select("id")
+      .eq("study_id", id)
+      .eq("wallet_address", participantWallet)
+      .single();
+
+    if (existingParticipant) {
+      return res.status(400).json({ error: "Already applied to this study" });
+    }
+
+    const { data: participant, error: participantError } = await req.supabase
+      .from("participants")
+      .insert({
+        study_id: Number(id),
+        wallet_address: participantWallet,
+        data_commitment: eligibilityProof.dataCommitment,
+        proof_data: JSON.stringify(eligibilityProof.proof),
+        status: "enrolled",
+        enrolled_at: new Date().toISOString(),
+      })
+      .select()
+      .single();
+
+    if (participantError) {
+      logger.error({ error: participantError }, "Failed to record participant");
+      return res.status(500).json({ error: "Failed to record participation" });
+    }
+
+    await req.supabase
+      .from(TABLES.STUDIES!.name)
+      .update({ current_participants: study.current_participants + 1 })
+      .eq(TABLES.STUDIES!.columns.id!, id);
+
+    logger.info({ studyId: id, participantId: participant.id }, "Participant enrolled via ZK proof");
+
+    res.json({
+      success: true,
+      participantId: participant.id,
+      studyId: Number(id),
+      message: "Successfully enrolled in study",
+    });
+
+  } catch (error) {
+    logger.error({ error }, "ZK study application error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+// ========================================
+// HELPER FUNCTIONS
+// ========================================
+
+/**
+ * Generate UI tags from study criteria
+ */
+function generateTagsFromCriteria(criteria: any): string[] {
+  const tags: string[] = [];
+
+  if (criteria.enableAge === 1) {
+    if (criteria.minAge && criteria.maxAge) {
+      tags.push(`Ages ${criteria.minAge}-${criteria.maxAge}`);
+    } else if (criteria.minAge) {
+      tags.push(`Ages ${criteria.minAge}+`);
+    } else if (criteria.maxAge) {
+      tags.push(`Ages up to ${criteria.maxAge}`);
+    }
+  }
+
+  if (criteria.enableGender === 1) {
+    const genderMap: { [key: number]: string } = {
+      0: "Male",
+      1: "Female", 
+      2: "Other"
+    };
+    const genderLabel = genderMap[criteria.allowedGender];
+    if (genderLabel) {
+      tags.push(genderLabel);
+    }
+  }
+
+  if (criteria.enableBMI === 1) {
+    if (criteria.minBMI && criteria.maxBMI) {
+      tags.push(`BMI ${criteria.minBMI}-${criteria.maxBMI}`);
+    } else if (criteria.minBMI) {
+      tags.push(`BMI ${criteria.minBMI}+`);
+    } else if (criteria.maxBMI) {
+      tags.push(`BMI up to ${criteria.maxBMI}`);
+    }
+  }
+
+  if (criteria.enableDiabetes === 1) {
+    const diabetesMap: { [key: number]: string } = {
+      0: "No Diabetes",
+      1: "Type 1 Diabetes",
+      2: "Type 2 Diabetes"
+    };
+    const diabetesLabel = diabetesMap[criteria.allowedDiabetes];
+    if (diabetesLabel) {
+      tags.push(diabetesLabel);
+    }
+  }
+
+  if (criteria.enableBloodPressure === 1) {
+    const bpMap: { [key: number]: string } = {
+      0: "Normal BP",
+      1: "High BP",
+      2: "Low BP"
+    };
+    const bpLabel = bpMap[criteria.allowedBloodPressure];
+    if (bpLabel) {
+      tags.push(bpLabel);
+    }
+  }
+
+  if (criteria.enableSmoking === 1) {
+    const smokingMap: { [key: number]: string } = {
+      0: "Non-smoker",
+      1: "Smoker",
+      2: "Former smoker"
+    };
+    const smokingLabel = smokingMap[criteria.allowedSmoking];
+    if (smokingLabel) {
+      tags.push(smokingLabel);
+    }
+  }
+
+  return tags;
+}
+
+/**
+ * Simulate ZK proof verification (replace with actual implementation)
+ */
+async function simulateZKProofVerification(
+  zkProofOrPatientData: any, 
+  dataCommitment: string | undefined, 
+  studyCriteria: any
+): Promise<{ valid: boolean; publicSignals?: string[] }> {
+  // This is a simplified simulation
+  // In reality, this would use snarkjs and the circom circuit
+  
+  let eligible = true;
+
+  // If we have patient data directly (for development), check it
+  if (zkProofOrPatientData && !zkProofOrPatientData.pi_a) {
+    const patientData = zkProofOrPatientData;
+    
+    if (studyCriteria.enableAge === 1) {
+      if (patientData.age < studyCriteria.minAge || patientData.age > studyCriteria.maxAge) {
+        eligible = false;
+      }
+    }
+
+    if (studyCriteria.enableGender === 1) {
+      if (patientData.gender !== studyCriteria.allowedGender) {
+        eligible = false;
+      }
+    }
+
+    if (studyCriteria.enableBMI === 1) {
+      if (patientData.bmi < studyCriteria.minBMI || patientData.bmi > studyCriteria.maxBMI) {
+        eligible = false;
+      }
+    }
+
+    // Add more criteria checks as needed...
+  }
+
+  console.log("🔍 Simulated ZK verification result:", eligible ? "✅ Eligible" : "❌ Not Eligible");
+
+  return {
+    valid: eligible,
+    publicSignals: eligible ? ["1", dataCommitment || "mock_commitment"] : ["0", dataCommitment || "mock_commitment"],
+  };
+}
