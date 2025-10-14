@@ -126,11 +126,10 @@ const CustomNavbar = () => {
   
   const closeMobileMenu = () => setIsMobileMenuOpen(false);
 
-  // Close mobile menu when resizing to desktop
   useEffect(() => {
     const handleResize = () => {
-      // lg breakpoint is 1024px in Tailwind
-      if (window.innerWidth >= 1024) {
+      const lgBreakpoint = 1024;
+      if (window.innerWidth >= lgBreakpoint) {
         setIsMobileMenuOpen(false);
       }
     };
