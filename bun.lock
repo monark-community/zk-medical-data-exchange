@@ -25,6 +25,7 @@
         "eslint": "^9.34.0",
         "eslint-config-next": "^15.5.2",
         "eslint-config-prettier": "^10.1.8",
+        "globals": "^16.4.0",
       },
       "peerDependencies": {
         "typescript": "^5.9.2",
