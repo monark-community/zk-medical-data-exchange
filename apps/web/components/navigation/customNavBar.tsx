@@ -47,7 +47,6 @@ const CustomNavbar = () => {
   const { login, isAuthenticating } = useWeb3AuthLogin();
   const pathname = usePathname();
 
-  // TODO : is this really necessary?
   const hasSessionTokens = typeof window !== "undefined" && 
     localStorage.getItem("session_token") && 
     localStorage.getItem("wallet_address");
@@ -58,7 +57,7 @@ const CustomNavbar = () => {
   const logoLink = isAuthenticated ? "/dashboard" : "/";
   
   return (
-    <nav className="bg-white shadow-sm border-b">
+    <nav className="bg-white border-b border-gray-200">
       <div className="container mx-auto px-4 py-4 sm:px-6 lg:px-8">
         <div className="relative flex items-center">
           <div className="flex items-center flex-1">
@@ -72,7 +71,7 @@ const CustomNavbar = () => {
             </Link>
           </div>
           
-          <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2">
+          <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-4">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = pathname === item.path;
@@ -98,7 +97,7 @@ const CustomNavbar = () => {
             {isAuthenticated ? (
               <UserMenu />
             ) : (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-4">
                 <Link href="/how-it-works">
                   <Button variant="outline" size="sm">
                     How It Works
