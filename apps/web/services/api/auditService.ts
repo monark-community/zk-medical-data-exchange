@@ -201,6 +201,54 @@ export const getAuditRecord = async (recordId: number): Promise<AuditResponse> =
   return response.data;
 };
 
+/**
+ * Log file access (view or download) audit record
+ */
+export const logFileAccess = async (
+  userAddress: string,
+  encryptedCID: string,
+  accessType: "view" | "download",
+  success: boolean = true,
+  resourceType?: string,
+  metadata?: Record<string, any>
+): Promise<{ success: boolean; data?: any; error?: string }> => {
+  const requestId = Math.random().toString(36).substring(7);
+
+  console.log(`[AUDIT] Starting ${accessType} log request ${requestId}`, {
+    userAddress,
+    encryptedCID: encryptedCID.substring(0, 10) + "...",
+    accessType,
+    success,
+    resourceType,
+    timestamp: new Date().toISOString(),
+  });
+
+  try {
+    const response = await apiClient.post("/audit/log-access", {
+      userAddress,
+      encryptedCID,
+      accessType,
+      success,
+      resourceType,
+      metadata: {
+        timestamp: Date.now(),
+        userAgent: navigator.userAgent,
+        requestId,
+        ...metadata,
+      },
+    });
+
+    console.log(`[AUDIT] Successfully logged ${accessType} request ${requestId}`, response.data);
+    return response.data;
+  } catch (error: any) {
+    console.error(`[AUDIT] Error logging ${accessType} request ${requestId}:`, error);
+    return {
+      success: false,
+      error: error.response?.data?.error || error.message || "Failed to log file access",
+    };
+  }
+};
+
 // ========================================
 // UTILITY FUNCTIONS
 // ========================================
@@ -238,17 +286,20 @@ export const getSuccessStatusClass = (success: boolean): string => {
 /**
  * Get CSS class for user profile
  */
+/**
+ * Get CSS class for profile badge styling
+ */
 export const getProfileClass = (profile: UserProfile): string => {
   switch (profile) {
     case UserProfile.RESEARCHER:
-      return "text-blue-600 bg-blue-50 border-blue-200";
+      return "text-blue-700 border-blue-200";
     case UserProfile.DATA_SELLER:
-      return "text-green-600 bg-green-50 border-green-200";
+      return "text-green-700 border-green-200";
     case UserProfile.ADMIN:
-      return "text-purple-600 bg-purple-50 border-purple-200";
+      return "text-red-700 border-red-200";
     case UserProfile.COMMON:
-      return "text-gray-600 bg-gray-50 border-gray-200";
+      return "text-purple-700 border-purple-200";
     default:
-      return "text-gray-600 bg-gray-50 border-gray-200";
+      return "text-gray-700 border-gray-200";
   }
 };

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { ipfsDownload } from "@/services/storage";
 import { decryptWithKey } from "@/utils/encryption";
 import { MedicalData } from "@/interfaces/medicalData";
+import { logFileAccess } from "@/services/api/auditService";
 
 export default function FilesSection({
   walletAddress,
@@ -43,28 +44,91 @@ export default function FilesSection({
     }
   };
 
-  const downloadContent = async (cid: string) => {
-    const decrypted = await getFileContent(cid);
-    if (!decrypted) return;
+  const downloadContent = async (cid: string, resourceType: string) => {
+    if (!walletAddress) return;
 
-    const blob = new Blob([decrypted], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `medical_data_${cid}.json`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    let success = false;
+    let fileSize = 0;
+
+    try {
+      const decrypted = await getFileContent(cid);
+      if (!decrypted) return;
+
+      const blob = new Blob([decrypted], { type: "text/plain" });
+      fileSize = blob.size;
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `medical_data_${cid}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      success = true;
+    } catch (error) {
+      console.error("Failed to download content:", error);
+      success = false;
+    } finally {
+      // Log the file access audit record
+      try {
+        await logFileAccess(
+          walletAddress,
+          cid, // encrypted CID
+          "download",
+          success,
+          resourceType,
+          {
+            fileSize,
+            mimeType: "application/json",
+          }
+        );
+      } catch (auditError) {
+        console.error("Failed to log file download audit:", auditError);
+        // Don't prevent the download if audit logging fails
+      }
+    }
   };
 
-  const displayContent = async (cid: string) => {
-    const decrypted = await getFileContent(cid);
-    if (!decrypted) return;
+  const displayContent = async (cid: string, resourceType: string) => {
+    if (!walletAddress) return;
 
-    const blob = new Blob([decrypted], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    window.open(url, "_blank");
+    let success = false;
+    let fileSize = 0;
+
+    try {
+      const decrypted = await getFileContent(cid);
+      if (!decrypted) return;
+
+      const blob = new Blob([decrypted], { type: "text/plain" });
+      fileSize = blob.size;
+      const url = URL.createObjectURL(blob);
+      window.open(url, "_blank");
+
+      success = true;
+    } catch (error) {
+      console.error("Failed to view content:", error);
+      success = false;
+    } finally {
+      // Log the file access audit record
+      try {
+        await logFileAccess(
+          walletAddress,
+          cid, // encrypted CID
+          "view",
+          success,
+          resourceType,
+          {
+            fileSize,
+            mimeType: "application/json",
+            viewMethod: "browser_tab",
+          }
+        );
+      } catch (auditError) {
+        console.error("Failed to log file view audit:", auditError);
+        // Don't prevent the view if audit logging fails
+      }
+    }
   };
 
   if (!walletAddress) return <div>No wallet connected</div>;
@@ -94,10 +158,16 @@ export default function FilesSection({
                     <strong>Uploaded:</strong> {new Date(data.createdAt).toLocaleString()}
                   </p>
                 </div>
-                <Button onClick={() => displayContent(data.encryptedCid)} disabled={!aesKey}>
+                <Button
+                  onClick={() => displayContent(data.encryptedCid, data.resourceType)}
+                  disabled={!aesKey}
+                >
                   View Content
                 </Button>
-                <Button onClick={() => downloadContent(data.encryptedCid)} disabled={!aesKey}>
+                <Button
+                  onClick={() => downloadContent(data.encryptedCid, data.resourceType)}
+                  disabled={!aesKey}
+                >
                   Download Content
                 </Button>
               </div>

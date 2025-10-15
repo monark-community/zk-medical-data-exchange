@@ -5,8 +5,10 @@
  */
 
 import { createPublicClient, createWalletClient, http } from "viem";
+import type { PublicClient, WalletClient } from "viem";
 import { sepolia } from "viem/chains";
 import { privateKeyToAccount } from "viem/accounts";
+import type { PrivateKeyAccount } from "viem/accounts";
 import logger from "@/utils/logger";
 import { Config } from "@/config/config";
 import { AUDIT_TRAIL_ABI } from "@/contracts";
@@ -56,9 +58,10 @@ export interface AuditLogEntry {
 }
 
 class AuditService {
-  private publicClient: any;
-  private walletClient: any;
-  private account: any;
+  private publicClient: PublicClient;
+  private walletClient: WalletClient;
+  private account: PrivateKeyAccount;
+  private transactionQueue: Promise<any> = Promise.resolve();
 
   constructor() {
     const privateKey = Config.SEPOLIA_PRIVATE_KEY;
@@ -90,9 +93,28 @@ class AuditService {
   }
 
   /**
-   * Log an action to blockchain and database
+   * Log an action to blockchain and database with transaction queuing
    */
   async logAction(
+    entry: AuditLogEntry
+  ): Promise<{ success: boolean; txHash?: string; error?: string }> {
+    // Add this transaction to the queue to prevent race conditions
+    this.transactionQueue = this.transactionQueue
+      .then(async () => {
+        return this.processLogAction(entry);
+      })
+      .catch(async (error) => {
+        logger.error({ error }, "Error in transaction queue, continuing with next transaction");
+        return this.processLogAction(entry);
+      });
+
+    return this.transactionQueue;
+  }
+
+  /**
+   * Process individual log action (called from queue)
+   */
+  private async processLogAction(
     entry: AuditLogEntry
   ): Promise<{ success: boolean; txHash?: string; error?: string }> {
     try {
@@ -152,7 +174,7 @@ class AuditService {
   }
 
   /**
-   * Log to blockchain for immutability
+   * Log to blockchain for immutability with retry logic
    */
   private async logToBlockchain(
     user: string,
@@ -165,27 +187,94 @@ class AuditService {
     metadata: string
   ): Promise<string> {
     const auditTrailAddress = Config.AUDIT_TRAIL_ADDRESS;
+    const maxRetries = 3;
+    let lastError: any;
 
-    const txHash = await this.walletClient.writeContract({
-      address: auditTrailAddress as `0x${string}`,
-      abi: AUDIT_TRAIL_ABI,
-      functionName: "logAction",
-      args: [
-        user as `0x${string}`,
-        userProfile,
-        actionType,
-        resource,
-        action,
-        dataHash as `0x${string}`,
-        success,
-        metadata,
-      ],
-    });
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        logger.debug(
+          {
+            user,
+            action,
+            attempt,
+            maxRetries,
+          },
+          "Attempting blockchain transaction"
+        );
 
-    // Wait for confirmation
-    await this.publicClient.waitForTransactionReceipt({ hash: txHash });
+        const txHash = await this.walletClient.writeContract({
+          address: auditTrailAddress as `0x${string}`,
+          abi: AUDIT_TRAIL_ABI,
+          functionName: "logAction",
+          args: [
+            user as `0x${string}`,
+            userProfile,
+            actionType,
+            resource,
+            action,
+            dataHash as `0x${string}`,
+            success,
+            metadata,
+          ],
+          account: this.account,
+          chain: sepolia,
+        });
 
-    return txHash;
+        // Wait for confirmation with timeout
+        const receipt = await Promise.race([
+          this.publicClient.waitForTransactionReceipt({
+            hash: txHash,
+            timeout: 60000, // 60 second timeout
+          }),
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error("Transaction confirmation timeout")), 60000)
+          ),
+        ]);
+
+        logger.info(
+          {
+            user,
+            action,
+            txHash,
+            attempt,
+          },
+          "Blockchain transaction confirmed"
+        );
+
+        return txHash;
+      } catch (error: any) {
+        lastError = error;
+        logger.warn(
+          {
+            error: error.message,
+            user,
+            action,
+            attempt,
+            maxRetries,
+          },
+          `Blockchain transaction attempt ${attempt} failed`
+        );
+
+        // Don't retry on certain errors
+        if (
+          error.message?.includes("insufficient funds") ||
+          error.message?.includes("gas required exceeds allowance")
+        ) {
+          throw error;
+        }
+
+        // Wait before retrying (exponential backoff)
+        if (attempt < maxRetries) {
+          const delay = Math.pow(2, attempt) * 1000; // 2s, 4s, 8s
+          await new Promise((resolve) => setTimeout(resolve, delay));
+        }
+      }
+    }
+
+    // If all retries failed, throw the last error
+    throw new Error(
+      `Blockchain transaction failed after ${maxRetries} attempts: ${lastError.message}`
+    );
   }
 
   /**
@@ -373,13 +462,13 @@ class AuditService {
    */
   async logDataUpload(
     userAddress: string,
-    fileName: string,
+    resourceType: string,
     encryptedCID: string,
     success: boolean,
     metadata?: Record<string, any>
   ) {
     const enrichedMetadata = {
-      fileName,
+      resourceType,
       encryptedCID,
       uploadTimestamp: Date.now(),
       ...metadata,
@@ -389,8 +478,8 @@ class AuditService {
       user: userAddress,
       userProfile: UserProfile.DATA_SELLER,
       actionType: ActionType.DATA_UPLOAD,
-      resource: `file:${fileName}`,
-      action: `Upload file: ${fileName}`,
+      resource: resourceType,
+      action: `Upload file: ${resourceType}`,
       success,
       metadata: enrichedMetadata,
     });
@@ -401,13 +490,13 @@ class AuditService {
    */
   async logDataDeletion(
     userAddress: string,
-    fileName: string,
+    resourceType: string,
     encryptedCID: string,
     success: boolean,
     metadata?: Record<string, any>
   ) {
     const enrichedMetadata = {
-      fileName,
+      resourceType,
       encryptedCID,
       deletionTimestamp: Date.now(),
       ...metadata,
@@ -417,8 +506,38 @@ class AuditService {
       user: userAddress,
       userProfile: UserProfile.DATA_SELLER,
       actionType: ActionType.DATA_DELETED,
-      resource: `file:${fileName}`,
-      action: `Delete file: ${fileName}`,
+      resource: resourceType,
+      action: `Delete file: ${resourceType}`,
+      success,
+      metadata: enrichedMetadata,
+    });
+  }
+
+  /**
+   * Log data access/view operation with encrypted CID
+   */
+  async logDataAccess(
+    userAddress: string,
+    encryptedCID: string,
+    accessType: "view" | "download",
+    success: boolean,
+    resourceType?: string,
+    metadata?: Record<string, any>
+  ) {
+    const enrichedMetadata = {
+      encryptedCID,
+      accessType,
+      resourceType,
+      accessTimestamp: Date.now(),
+      ...metadata,
+    };
+
+    return this.logAction({
+      user: userAddress,
+      userProfile: UserProfile.DATA_SELLER,
+      actionType: ActionType.DATA_ACCESS,
+      resource: resourceType || accessType,
+      action: `${accessType === "view" ? "View" : "Download"} file: ${resourceType || "data"}`,
       success,
       metadata: enrichedMetadata,
     });

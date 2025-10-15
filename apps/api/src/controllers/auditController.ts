@@ -371,3 +371,96 @@ export const getAuditInfo = async (req: Request, res: Response): Promise<void> =
     });
   }
 };
+
+/**
+ * Log file access or download audit record
+ * POST /api/audit/log-access
+ */
+export const logFileAccess = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { userAddress, encryptedCID, accessType, success, resourceType, metadata } = req.body;
+
+    // Validate required fields
+    if (!userAddress || !encryptedCID || !accessType) {
+      res.status(400).json({
+        success: false,
+        error: "Missing required fields: userAddress, encryptedCID, accessType",
+      });
+      return;
+    }
+
+    // Validate user address format
+    if (!userAddress.match(/^0x[a-fA-F0-9]{40}$/)) {
+      res.status(400).json({
+        success: false,
+        error: "Invalid user address format",
+      });
+      return;
+    }
+
+    // Validate access type
+    if (!["view", "download"].includes(accessType)) {
+      res.status(400).json({
+        success: false,
+        error: "Invalid access type. Must be 'view' or 'download'",
+      });
+      return;
+    }
+
+    // Log the file access
+    const result = await auditService.logDataAccess(
+      userAddress,
+      encryptedCID,
+      accessType,
+      success !== false, // Default to true if not specified
+      resourceType,
+      metadata || {}
+    );
+
+    if (result.success) {
+      logger.info(
+        {
+          userAddress,
+          accessType,
+          txHash: result.txHash,
+        },
+        "File access logged successfully"
+      );
+
+      res.json({
+        success: true,
+        data: {
+          txHash: result.txHash,
+          message: `Data ${accessType} logged successfully`,
+        },
+      });
+    } else {
+      logger.error(
+        {
+          userAddress,
+          accessType,
+          error: result.error,
+        },
+        "Failed to log file access"
+      );
+
+      res.status(500).json({
+        success: false,
+        error: result.error || "Failed to log file access",
+      });
+    }
+  } catch (error) {
+    logger.error(
+      {
+        error,
+        body: req.body,
+      },
+      "Failed to log file access"
+    );
+
+    res.status(500).json({
+      success: false,
+      error: "Internal server error while logging file access",
+    });
+  }
+};

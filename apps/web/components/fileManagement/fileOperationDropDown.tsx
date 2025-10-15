@@ -18,6 +18,7 @@ import { decryptWithKey } from "@/utils/encryption";
 import { MedicalData } from "@/interfaces/medicalData";
 import { ipfsDelete, ipfsDownload } from "@/services/storage";
 import { deleteCID } from "@/services/api";
+import { logFileAccess } from "@/services/api/auditService";
 const FileOperationDropDown = ({
   walletAddress,
   aesKey,
@@ -43,27 +44,90 @@ const FileOperationDropDown = ({
   };
 
   const downloadContent = async (cid: string) => {
-    const decryptedContent = await getFileContent(cid);
-    if (!decryptedContent) return;
+    if (!walletAddress) return;
 
-    const blob = new Blob([decryptedContent], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `medical_data_${cid}.json`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    let success = false;
+    let fileSize = 0;
+
+    try {
+      const decryptedContent = await getFileContent(cid);
+      if (!decryptedContent) return;
+
+      const blob = new Blob([decryptedContent], { type: "text/plain" });
+      fileSize = blob.size;
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `medical_data_${cid}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      success = true;
+    } catch (error) {
+      console.error("Failed to download content:", error);
+      success = false;
+    } finally {
+      // Log the file access audit record
+      try {
+        await logFileAccess(
+          walletAddress,
+          cid, // encrypted CID
+          "download",
+          success,
+          data.resourceType,
+          {
+            fileSize,
+            mimeType: "application/json",
+          }
+        );
+      } catch (auditError) {
+        console.error("Failed to log file download audit:", auditError);
+        // Don't prevent the download if audit logging fails
+      }
+    }
   };
 
   const displayContent = async (cid: string) => {
-    const decrypted = await getFileContent(cid);
-    if (!decrypted) return;
+    if (!walletAddress) return;
 
-    const blob = new Blob([decrypted], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    window.open(url, "_blank");
+    let success = false;
+    let fileSize = 0;
+
+    try {
+      const decrypted = await getFileContent(cid);
+      if (!decrypted) return;
+
+      const blob = new Blob([decrypted], { type: "text/plain" });
+      fileSize = blob.size;
+      const url = URL.createObjectURL(blob);
+      window.open(url, "_blank");
+
+      success = true;
+    } catch (error) {
+      console.error("Failed to view content:", error);
+      success = false;
+    } finally {
+      // Log the file access audit record
+      try {
+        await logFileAccess(
+          walletAddress,
+          cid, // encrypted CID
+          "view",
+          success,
+          data.resourceType,
+          {
+            fileSize,
+            mimeType: "application/json",
+            viewMethod: "browser_tab",
+          }
+        );
+      } catch (auditError) {
+        console.error("Failed to log file view audit:", auditError);
+        // Don't prevent the view if audit logging fails
+      }
+    }
   };
 
   const deleteContent = async (cid: string) => {

@@ -43,7 +43,7 @@ export const uploadCID = async (req: Request, res: Response) => {
     auditService
       .logDataUpload(
         wallet_address,
-        resource_type || "unknown_file", // Use resource_type as filename fallback
+        resource_type || "unknown_file", // Use resource_type for audit logging
         encrypted_cid,
         true,
         {
@@ -233,7 +233,7 @@ export const deleteCID = async (req: Request, res: Response) => {
     auditService
       .logDataDeletion(
         wallet_address,
-        "data_file", // Generic filename since we don't have the original filename
+        "data_file", // Generic resource type for audit logging
         encrypted_cid,
         true,
         {
