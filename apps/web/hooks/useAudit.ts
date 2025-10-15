@@ -216,7 +216,7 @@ export const useAudit = ({
     if (timeSinceLastRefresh < REFRESH_COOLDOWN_MS) {
       const remainingTime = Math.ceil((REFRESH_COOLDOWN_MS - timeSinceLastRefresh) / 1000);
       setRefreshCooldownSeconds(remainingTime);
-      setError(`Please wait ${remainingTime} seconds before refreshing again`);
+      setError(`Please wait before refreshing again`);
       return;
     }
 
