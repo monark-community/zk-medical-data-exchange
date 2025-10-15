@@ -25,20 +25,12 @@ export const uploadCID = async (req: Request, res: Response) => {
 
       // Log failed upload attempt (non-blocking)
       auditService
-        .logAction({
-          user: wallet_address,
-          userProfile: UserProfile.DATA_SELLER,
-          actionType: ActionType.DATA_UPLOAD,
-          resource: `data_vault`,
-          action: "upload_data",
-          success: false,
-          metadata: {
-            resource_type,
-            error: insertResult.error.message,
-            userAgent,
-            ipAddress,
-            duration: Date.now() - startTime,
-          },
+        .logDataUpload(wallet_address, resource_type || "unknown_file", encrypted_cid, false, {
+          resource_type,
+          error: insertResult.error.message,
+          userAgent,
+          ipAddress,
+          duration: Date.now() - startTime,
         })
         .catch((error) => {
           logger.error({ error }, "Failed to log audit event for failed upload");
@@ -49,23 +41,18 @@ export const uploadCID = async (req: Request, res: Response) => {
 
     // Log successful upload (non-blocking)
     auditService
-      .logAction({
-        user: wallet_address,
-        userProfile: UserProfile.DATA_SELLER,
-        actionType: ActionType.DATA_UPLOAD,
-        resource: `data_vault`,
-        action: "upload_data",
-        success: true,
-        metadata: {
+      .logDataUpload(
+        wallet_address,
+        resource_type || "unknown_file", // Use resource_type as filename fallback
+        encrypted_cid,
+        true,
+        {
           resource_type,
           userAgent,
           ipAddress,
           duration: Date.now() - startTime,
-        },
-        sensitiveData: {
-          encrypted_cid: encrypted_cid.substring(0, 10) + "...", // Partial CID for audit
-        },
-      })
+        }
+      )
       .catch((error) => {
         logger.error({ error }, "Failed to log audit event for successful upload");
       });
@@ -244,22 +231,17 @@ export const deleteCID = async (req: Request, res: Response) => {
 
     // Log successful data deletion (non-blocking)
     auditService
-      .logAction({
-        user: wallet_address,
-        userProfile: UserProfile.DATA_SELLER,
-        actionType: ActionType.DATA_DELETED,
-        resource: "data_vault",
-        action: "delete_data",
-        success: true,
-        metadata: {
+      .logDataDeletion(
+        wallet_address,
+        "data_file", // Generic filename since we don't have the original filename
+        encrypted_cid,
+        true,
+        {
           userAgent,
           ipAddress,
           duration: Date.now() - startTime,
-        },
-        sensitiveData: {
-          encrypted_cid: encrypted_cid.substring(0, 10) + "...",
-        },
-      })
+        }
+      )
       .catch((error) => {
         logger.error({ error }, "Failed to log audit event for successful delete");
       });

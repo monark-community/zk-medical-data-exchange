@@ -369,6 +369,62 @@ class AuditService {
   }
 
   /**
+   * Log data upload operation with encrypted CID
+   */
+  async logDataUpload(
+    userAddress: string,
+    fileName: string,
+    encryptedCID: string,
+    success: boolean,
+    metadata?: Record<string, any>
+  ) {
+    const enrichedMetadata = {
+      fileName,
+      encryptedCID,
+      uploadTimestamp: Date.now(),
+      ...metadata,
+    };
+
+    return this.logAction({
+      user: userAddress,
+      userProfile: UserProfile.DATA_SELLER,
+      actionType: ActionType.DATA_UPLOAD,
+      resource: `file:${fileName}`,
+      action: `Upload file: ${fileName}`,
+      success,
+      metadata: enrichedMetadata,
+    });
+  }
+
+  /**
+   * Log data deletion operation with encrypted CID
+   */
+  async logDataDeletion(
+    userAddress: string,
+    fileName: string,
+    encryptedCID: string,
+    success: boolean,
+    metadata?: Record<string, any>
+  ) {
+    const enrichedMetadata = {
+      fileName,
+      encryptedCID,
+      deletionTimestamp: Date.now(),
+      ...metadata,
+    };
+
+    return this.logAction({
+      user: userAddress,
+      userProfile: UserProfile.DATA_SELLER,
+      actionType: ActionType.DATA_DELETED,
+      resource: `file:${fileName}`,
+      action: `Delete file: ${fileName}`,
+      success,
+      metadata: enrichedMetadata,
+    });
+  }
+
+  /**
    * Get user actions for a specific profile, including COMMON actions
    * Uses the new contract function that combines profile-specific and common actions
    */
