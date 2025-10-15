@@ -18,7 +18,7 @@ const DashboardTabs = ({
   const { currentProfile } = useProfile();
 
   return (
-    <Tabs defaultValue="Overview" className="w-full">
+    <Tabs defaultValue="overview" className="w-full">
       <TabsList className="w-full h-10">
         <TabsTrigger value="overview">Overview</TabsTrigger>
         {/* Only show Data Vault tab for Data Sellers */}
