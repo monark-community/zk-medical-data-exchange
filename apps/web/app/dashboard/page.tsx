@@ -8,12 +8,42 @@ import DashboardTabs from "./components/dashboardTabs";
 import { useAccount } from "wagmi";
 
 import AccountOverview from "./components/accountOverview";
-import { useAESKey } from "@/hooks/useAESKey";
+import { generateAESKey } from "@/utils/encryption";
+import { deriveKeyFromWallet } from "@/utils/walletKey";
+import { addAESKeyToStore, getAESKey } from "@/services/storage";
+import { useEffect, useState } from "react";
 
 export default function Dashboard() {
   const { isConnected } = useProtectedRoute();
   const account = useAccount();
-  const { aesKey } = useAESKey(account);
+  const [aesKey, setAESKey] = useState<string | null>(null);
+
+  useEffect(() => {
+    const initKey = async () => {
+      if (!account.address) {
+        console.log("No wallet address available yet");
+        return;
+      }
+
+      try {
+        const existingKey = getAESKey(account.address);
+        if (existingKey) {
+          console.log("Using existing AES key from cache");
+          setAESKey(existingKey);
+          return;
+        }
+
+        // If no valid key, derive a new one
+        console.log("Deriving new AES key for address:", account.address);
+        const key = generateAESKey(await deriveKeyFromWallet());
+        setAESKey(key);
+        addAESKeyToStore(key, account.address); // ✅ Include wallet address!
+      } catch (err) {
+        console.error("Failed to derive AES key:", err);
+      }
+    };
+    initKey();
+  }, [account.address]); // ✅ Re-run when wallet address changes
 
   if (!isConnected) {
     return null;

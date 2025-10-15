@@ -7,7 +7,6 @@ import {
   participateInStudy,
   deployStudy,
   deleteStudy,
-  checkEligibilityWithZK,
   applyToStudyWithZKProof,
 } from "@/controllers/studyController";
 
@@ -272,55 +271,6 @@ router.delete("/:id", deleteStudy);
  *         description: Participant already enrolled in this study
  */
 router.post("/:id/participants", participateInStudy);
-
-/**
- * @swagger
- * /studies/{id}/check-eligibility:
- *   post:
- *     summary: Check eligibility using ZK proof (privacy-preserving)
- *     parameters:
- *       - name: id
- *         in: path
- *         required: true
- *         schema:
- *           type: integer
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               zkProof:
- *                 type: object
- *                 description: Zero-knowledge proof (optional for development)
- *               dataCommitment:
- *                 type: string
- *                 description: Cryptographic commitment of patient data
- *               patientData:
- *                 type: object
- *                 description: Patient medical data (for development - will be replaced by ZK proof)
- *     responses:
- *       200:
- *         description: Eligibility check result
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 studyId:
- *                   type: integer
- *                 eligible:
- *                   type: boolean
- *                 eligibilityProof:
- *                   type: object
- *                   description: Proof data for application (only if eligible)
- *       400:
- *         description: Invalid request data
- *       404:
- *         description: Study not found
- */
-router.post("/:id/check-eligibility", checkEligibilityWithZK);
 
 /**
  * @swagger

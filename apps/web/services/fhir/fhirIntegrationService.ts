@@ -53,11 +53,9 @@ export const processFHIRData = (fhirData: any): ExtractedMedicalData => {
       }
     }
   }
-  // Handle individual FHIR resources
   else if (fhirData.resourceType) {
     allExtractedData = extractZKValuesFromFHIR(fhirData);
   }
-  // Handle array of resources
   else if (Array.isArray(fhirData)) {
     for (const resource of fhirData) {
       if (resource.resourceType) {

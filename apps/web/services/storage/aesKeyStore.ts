@@ -28,7 +28,6 @@ export function addAESKeyToStore(key: string, walletAddress?: string) {
  * Retrieve AES key from memory cache if valid
  */
 export function getAESKey(currentWalletAddress?: string): string | null {
-  // Check if we have a valid memory cache
   if (aesKey && keyTimestamp) {
     const now = Date.now();
     const isValidTime = now - keyTimestamp < CACHE_DURATION;
@@ -37,7 +36,6 @@ export function getAESKey(currentWalletAddress?: string): string | null {
     if (isValidTime && isValidAddress) {
       return aesKey;
     } else {
-      // Cache expired or wrong address, clear it
       clearAESKey();
     }
   }

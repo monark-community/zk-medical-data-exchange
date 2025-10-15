@@ -192,49 +192,6 @@ export const deleteStudy = async (studyId: number, walletId: string) => {
 };
 
 /**
- * Check eligibility for a study using ZK proof or medical data (privacy-preserving)
- * Patients can only learn if they're eligible AFTER providing real medical data
- */
-export const checkStudyEligibility = async (
-  studyId: number,
-  request: EligibilityCheckRequest
-): Promise<EligibilityCheckResponse> => {
-  try {
-    const response = await apiClient.post(`/studies/${studyId}/check-eligibility`, request);
-    return response.data;
-  } catch (error: any) {
-    throw new Error(error.response?.data?.error || error.message || "Eligibility check failed");
-  }
-};
-
-/**
- * Apply to a study using ZK proof
- */
-export const applyToStudyWithZK = async (
-  studyId: number,
-  zkProof: {
-    proof: string;
-    publicSignals: string[];
-    dataCommitment?: string;
-  },
-  walletAddress: string
-): Promise<ParticipationResult> => {
-  try {
-    const response = await apiClient.post(`/studies/${studyId}/apply-with-proof`, {
-      participantWallet: walletAddress,
-      eligibilityProof: {
-        proof: zkProof.proof,
-        publicSignals: zkProof.publicSignals,
-        dataCommitment: zkProof.dataCommitment || `commitment_${walletAddress}_${studyId}`
-      }
-    });
-    return response.data;
-  } catch (error: any) {
-    throw new Error(error.response?.data?.error || error.message || "Application failed");
-  }
-};
-
-/**
  * Participate in a study (legacy method - consider deprecating)
  */
 export const participateInStudy = async (

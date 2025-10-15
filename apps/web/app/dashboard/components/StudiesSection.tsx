@@ -6,7 +6,10 @@ import { Plus, BookOpen, Users, Activity, Loader2, AlertTriangle } from "lucide-
 import { useAccount } from "wagmi";
 import StudyCreationDialog from "@/components/StudyCreationDialog";
 import { useStudies } from "@/hooks/useStudies";
-import { deleteStudy, checkStudyEligibility, applyToStudyWithZK } from "@/services/api/studyService";
+import { deleteStudy} from "@/services/api/studyService";
+import { getAggregatedMedicalData } from "@/services/core/medicalDataAggregator";
+import { validateMedicalDataForCommitment } from "@/services/zk/commitmentGenerator";
+import { SecureStudyApplicationService } from "@/services/core/secureStudyApplication";
 import StudiesList from "./StudiesList";
 
 export default function StudiesSection() {
@@ -18,7 +21,7 @@ export default function StudiesSection() {
 
   const handleStudyCreated = () => {
     console.log("Study created successfully!");
-    refetch(); // Refresh the studies list
+    refetch(); 
   };
 
   const handleDeleteStudy = async (studyId: number) => {
@@ -76,28 +79,31 @@ export default function StudiesSection() {
     setApplyingStudyId(studyId);
 
     try {
-      const mockMedicalData = {
-        age: 30,
-        gender: 1 as const, // 0: male, 1: female, 2: other
-        bmi: 25.0,
-        smokingStatus: 0 as const, // 0: never, 1: former, 2: current
-        hasHeartDisease: false,
-      };
-
-      await checkStudyEligibility(studyId, {
-        medicalData: mockMedicalData
-      });
-
-      const mockZkProof = {
-        proof: `proof_${walletAddress}_${studyId}_${Date.now()}`,
-        publicSignals: [`${studyId}`, walletAddress.slice(2, 10)],
-        dataCommitment: `commitment_${walletAddress}_${studyId}`
-      };
-
-      await applyToStudyWithZK(studyId, mockZkProof, walletAddress);
+      console.log("Starting secure study application process...");
       
-      alert("Successfully applied to study!");
-      refetch(); 
+      const zkReadyMedicalData = await getAggregatedMedicalData(walletAddress);
+      if (!zkReadyMedicalData) {
+        throw new Error("No medical data available. Please upload your medical information to apply for studies.");
+      }
+
+      const validation = validateMedicalDataForCommitment(zkReadyMedicalData);
+      if (!validation.isValid) {
+        alert(`⚠️ Please complete your medical profile first.\n\nMissing data: ${validation.missingFields.join(', ')}\n\nGo to the "Medical Data" tab to upload missing information.`);
+        return;
+      }
+
+      const result = await SecureStudyApplicationService.applyToStudy(
+        studyId,
+        zkReadyMedicalData,
+        walletAddress
+      );
+
+      if (result.success) {
+        alert(`✅ ${result.message}`);
+        refetch();
+      } else {
+        throw new Error(result.message);
+      } 
       
     } catch (error: any) {
       console.error("Error applying to study:", error);

@@ -707,83 +707,83 @@ export const deleteStudy = async (req: Request, res: Response) => {
   }
 };
 
-/**
- * Check eligibility using ZK proof (privacy-preserving)
- * Patient data stays private, only eligibility result revealed
- * POST /api/studies/:id/check-eligibility
- */
-export const checkEligibilityWithZK = async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
-    const { zkProof, dataCommitment, patientData } = req.body;
+// /**
+//  * Check eligibility using ZK proof (privacy-preserving)
+//  * Patient data stays private, only eligibility result revealed
+//  * POST /api/studies/:id/check-eligibility
+//  */
+// export const checkEligibilityWithZK = async (req: Request, res: Response) => {
+//   try {
+//     const { id } = req.params;
+//     const { zkProof, dataCommitment, patientData } = req.body;
 
-    // For now, we'll accept either zkProof or patientData (for development)
-    if (!zkProof && !patientData) {
-      return res.status(400).json({ 
-        error: "ZK proof or patient data required for eligibility check" 
-      });
-    }
+//     // For now, we'll accept either zkProof or patientData (for development)
+//     if (!zkProof && !patientData) {
+//       return res.status(400).json({ 
+//         error: "ZK proof or patient data required for eligibility check" 
+//       });
+//     }
 
-    if (!dataCommitment && !patientData) {
-      return res.status(400).json({ 
-        error: "Data commitment required" 
-      });
-    }
+//     if (!dataCommitment && !patientData) {
+//       return res.status(400).json({ 
+//         error: "Data commitment required" 
+//       });
+//     }
 
-    const { data: study, error: studyError } = await req.supabase
-      .from(TABLES.STUDIES!.name)
-      .select("*")
-      .eq(TABLES.STUDIES!.columns.id!, id)
-      .single();
+//     const { data: study, error: studyError } = await req.supabase
+//       .from(TABLES.STUDIES!.name)
+//       .select("*")
+//       .eq(TABLES.STUDIES!.columns.id!, id)
+//       .single();
 
-    if (studyError || !study) {
-      return res.status(404).json({ error: "Study not found" });
-    }
+//     if (studyError || !study) {
+//       return res.status(404).json({ error: "Study not found" });
+//     }
 
-    if (study.status !== "active") {
-      return res.status(400).json({ error: "Study not accepting participants" });
-    }
+//     if (study.status !== "active") {
+//       return res.status(400).json({ error: "Study not accepting participants" });
+//     }
 
-    let studyCriteria;
-    try {
-      studyCriteria = typeof study.criteria_json === 'string' 
-        ? JSON.parse(study.criteria_json) 
-        : study.criteria_json;
-    } catch (error) {
-      logger.error({ error, studyId: id }, "Failed to parse study criteria");
-      return res.status(500).json({ error: "Invalid study configuration" });
-    }
+//     let studyCriteria;
+//     try {
+//       studyCriteria = typeof study.criteria_json === 'string' 
+//         ? JSON.parse(study.criteria_json) 
+//         : study.criteria_json;
+//     } catch (error) {
+//       logger.error({ error, studyId: id }, "Failed to parse study criteria");
+//       return res.status(500).json({ error: "Invalid study configuration" });
+//     }
 
-    const verificationResult = await simulateZKProofVerification(
-      zkProof || patientData, 
-      dataCommitment, 
-      studyCriteria
-    );
+//     const verificationResult = await simulateZKProofVerification(
+//       zkProof || patientData, 
+//       dataCommitment, 
+//       studyCriteria
+//     );
 
-    const response = {
-      studyId: Number(id),
-      eligible: verificationResult.valid,
-    } as any;
+//     const response = {
+//       studyId: Number(id),
+//       eligible: verificationResult.valid,
+//     } as any;
 
-    if (verificationResult.valid && verificationResult.publicSignals) {
-      response.eligibilityProof = {
-        proof: zkProof || { mock: "proof" },
-        publicSignals: verificationResult.publicSignals,
-        dataCommitment: dataCommitment || "mock_commitment",
-      };
+//     if (verificationResult.valid && verificationResult.publicSignals) {
+//       response.eligibilityProof = {
+//         proof: zkProof || { mock: "proof" },
+//         publicSignals: verificationResult.publicSignals,
+//         dataCommitment: dataCommitment || "mock_commitment",
+//       };
       
-      logger.info({ studyId: id }, "Patient eligible for study");
-    } else {
-      logger.info({ studyId: id }, "Patient not eligible for study");
-    }
+//       logger.info({ studyId: id }, "Patient eligible for study");
+//     } else {
+//       logger.info({ studyId: id }, "Patient not eligible for study");
+//     }
 
-    res.json(response);
+//     res.json(response);
 
-  } catch (error) {
-    logger.error({ error }, "Eligibility check error");
-    res.status(500).json({ error: "Internal server error" });
-  }
-};
+//   } catch (error) {
+//     logger.error({ error }, "Eligibility check error");
+//     res.status(500).json({ error: "Internal server error" });
+//   }
+// };
 
 /**
  * Apply to study with ZK proof
@@ -946,50 +946,4 @@ function generateTagsFromCriteria(criteria: any): string[] {
   }
 
   return tags;
-}
-
-/**
- * Simulate ZK proof verification (replace with actual implementation)
- */
-async function simulateZKProofVerification(
-  zkProofOrPatientData: any, 
-  dataCommitment: string | undefined, 
-  studyCriteria: any
-): Promise<{ valid: boolean; publicSignals?: string[] }> {
-  // This is a simplified simulation
-  // In reality, this would use snarkjs and the circom circuit
-  
-  let eligible = true;
-
-  // If we have patient data directly (for development), check it
-  if (zkProofOrPatientData && !zkProofOrPatientData.pi_a) {
-    const patientData = zkProofOrPatientData;
-    
-    if (studyCriteria.enableAge === 1) {
-      if (patientData.age < studyCriteria.minAge || patientData.age > studyCriteria.maxAge) {
-        eligible = false;
-      }
-    }
-
-    if (studyCriteria.enableGender === 1) {
-      if (patientData.gender !== studyCriteria.allowedGender) {
-        eligible = false;
-      }
-    }
-
-    if (studyCriteria.enableBMI === 1) {
-      if (patientData.bmi < studyCriteria.minBMI || patientData.bmi > studyCriteria.maxBMI) {
-        eligible = false;
-      }
-    }
-
-    // Add more criteria checks as needed...
-  }
-
-  console.log("🔍 Simulated ZK verification result:", eligible ? "✅ Eligible" : "❌ Not Eligible");
-
-  return {
-    valid: eligible,
-    publicSignals: eligible ? ["1", dataCommitment || "mock_commitment"] : ["0", dataCommitment || "mock_commitment"],
-  };
 }
