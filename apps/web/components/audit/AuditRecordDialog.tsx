@@ -5,7 +5,7 @@
 
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -14,7 +14,20 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, XCircle, Shield, Clock, Hash, Database, User, FileText } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  CheckCircle,
+  XCircle,
+  Shield,
+  Clock,
+  Hash,
+  Database,
+  User,
+  FileText,
+  ChevronDown,
+  ChevronUp,
+  Copy,
+} from "lucide-react";
 import {
   AuditRecord,
   getProfileName,
@@ -31,6 +44,9 @@ interface AuditRecordDialogProps {
 }
 
 const AuditRecordDialog: React.FC<AuditRecordDialogProps> = ({ record, open, onOpenChange }) => {
+  const [isMetadataExpanded, setIsMetadataExpanded] = useState(false);
+  const [copiedMetadata, setCopiedMetadata] = useState(false);
+
   if (!record) return null;
 
   const formatMetadata = (metadata: string) => {
@@ -42,13 +58,30 @@ const AuditRecordDialog: React.FC<AuditRecordDialogProps> = ({ record, open, onO
     }
   };
 
+  const handleCopyMetadata = async () => {
+    try {
+      await navigator.clipboard.writeText(formatMetadata(record.metadata));
+      setCopiedMetadata(true);
+      setTimeout(() => setCopiedMetadata(false), 2000);
+    } catch (error) {
+      console.error("Failed to copy metadata:", error);
+    }
+  };
+
+  const formattedMetadata = formatMetadata(record.metadata);
+  const isLargeMetadata = formattedMetadata.length > 500;
+  const shouldTruncate = !isMetadataExpanded && isLargeMetadata;
+  const displayMetadata = shouldTruncate
+    ? formattedMetadata.substring(0, 500) + "..."
+    : formattedMetadata;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="!max-w-6xl !w-[85vw] max-h-[80vh] overflow-y-auto"
-        style={{ maxWidth: "min(1152px, 85vw)", width: "85vw" }}
+        className="!max-w-6xl !w-[90vw] max-h-[85vh] overflow-hidden flex flex-col"
+        style={{ maxWidth: "min(1152px, 90vw)", width: "90vw" }}
       >
-        <DialogHeader>
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle className="flex items-center space-x-3 text-xl">
             <div className="bg-gradient-to-r from-blue-100 to-indigo-100 p-2 rounded-full">
               <Database className="h-5 w-5 text-blue-600" />
@@ -61,7 +94,7 @@ const AuditRecordDialog: React.FC<AuditRecordDialogProps> = ({ record, open, onO
           <DialogDescription>Complete audit trail information for this action</DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6 mt-6">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden space-y-6 mt-6 px-1">
           {/* Status Section */}
           <div className="bg-gradient-to-r from-slate-50 to-blue-50/30 p-4 rounded-xl border border-slate-200/50">
             <div className="flex items-center justify-between">
@@ -192,15 +225,50 @@ const AuditRecordDialog: React.FC<AuditRecordDialogProps> = ({ record, open, onO
 
           {/* Metadata Section */}
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-slate-800 flex items-center space-x-2">
-              <Database className="h-5 w-5 text-purple-600" />
-              <span>Metadata</span>
-            </h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-slate-800 flex items-center space-x-2">
+                <Database className="h-5 w-5 text-purple-600" />
+                <span>Metadata</span>
+              </h3>
+              <div className="flex items-center space-x-2">
+                {isLargeMetadata && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsMetadataExpanded(!isMetadataExpanded)}
+                    className="text-xs"
+                  >
+                    {isMetadataExpanded ? (
+                      <>
+                        <ChevronUp className="h-3 w-3 mr-1" />
+                        Show Less
+                      </>
+                    ) : (
+                      <>
+                        <ChevronDown className="h-3 w-3 mr-1" />
+                        Show More
+                      </>
+                    )}
+                  </Button>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCopyMetadata}
+                  className="text-xs"
+                >
+                  <Copy className="h-3 w-3 mr-1" />
+                  {copiedMetadata ? "Copied!" : "Copy"}
+                </Button>
+              </div>
+            </div>
 
-            <div className="bg-slate-900 rounded-lg p-4 overflow-x-auto">
-              <pre className="text-sm text-green-400 font-mono whitespace-pre-wrap">
-                {formatMetadata(record.metadata)}
-              </pre>
+            <div className="bg-slate-900 rounded-lg border border-slate-800 overflow-hidden">
+              <div className={`p-4 overflow-auto ${isMetadataExpanded ? "max-h-96" : "max-h-48"}`}>
+                <pre className="text-sm text-green-400 font-mono whitespace-pre-wrap break-words">
+                  {displayMetadata}
+                </pre>
+              </div>
             </div>
           </div>
         </div>
