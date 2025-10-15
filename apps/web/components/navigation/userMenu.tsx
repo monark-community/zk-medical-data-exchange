@@ -17,11 +17,14 @@ import { useAccount } from "wagmi";
 import { useWeb3AuthDisconnect } from "@web3auth/modal/react";
 import { useProfile } from "@/contexts/ProfileContext";
 import { UserProfile } from "@/services/api/auditService";
+
+import { useRouter } from "next/navigation";
 const UserMenu = () => {
   const { address } = useAccount();
   const { disconnect } = useWeb3AuthDisconnect();
   const { currentProfile, setProfile, getProfileDisplayName } = useProfile();
 
+  const router = useRouter();
   const handleProfileSwitch = () => {
     const newProfile =
       currentProfile === UserProfile.DATA_SELLER ? UserProfile.RESEARCHER : UserProfile.DATA_SELLER;
@@ -51,7 +54,7 @@ const UserMenu = () => {
       <DropdownMenuContent className="w-56" align="end">
         <DropdownMenuLabel>Current view: {getProfileDisplayName(currentProfile)}</DropdownMenuLabel>
         <DropdownMenuGroup>
-          <DropdownMenuItem>
+          <DropdownMenuItem onClick={() => router.push("/profile")}>
             <User />
             Profile
           </DropdownMenuItem>
