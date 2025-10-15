@@ -24,8 +24,6 @@ import {
   Database,
   User,
   FileText,
-  ChevronDown,
-  ChevronUp,
   Copy,
 } from "lucide-react";
 import {
@@ -44,7 +42,6 @@ interface AuditRecordDialogProps {
 }
 
 const AuditRecordDialog: React.FC<AuditRecordDialogProps> = ({ record, open, onOpenChange }) => {
-  const [isMetadataExpanded, setIsMetadataExpanded] = useState(false);
   const [copiedMetadata, setCopiedMetadata] = useState(false);
 
   if (!record) return null;
@@ -69,11 +66,6 @@ const AuditRecordDialog: React.FC<AuditRecordDialogProps> = ({ record, open, onO
   };
 
   const formattedMetadata = formatMetadata(record.metadata);
-  const isLargeMetadata = formattedMetadata.length > 500;
-  const shouldTruncate = !isMetadataExpanded && isLargeMetadata;
-  const displayMetadata = shouldTruncate
-    ? formattedMetadata.substring(0, 500) + "..."
-    : formattedMetadata;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -146,7 +138,9 @@ const AuditRecordDialog: React.FC<AuditRecordDialogProps> = ({ record, open, onO
               <div className="space-y-3 bg-white/50 p-4 rounded-lg border border-slate-200/50">
                 <div>
                   <label className="text-sm font-medium text-slate-600">Action</label>
-                  <div className="text-slate-800 font-semibold mt-1">{record.action}</div>
+                  <div className="mt-1">
+                    <div className="text-slate-800 font-semibold break-words">{record.action}</div>
+                  </div>
                 </div>
 
                 <div>
@@ -160,8 +154,10 @@ const AuditRecordDialog: React.FC<AuditRecordDialogProps> = ({ record, open, onO
 
                 <div>
                   <label className="text-sm font-medium text-slate-600">Resource</label>
-                  <div className="text-slate-800 font-mono text-sm bg-slate-100/50 px-3 py-2 rounded mt-1 break-all">
-                    {record.resource}
+                  <div className="mt-1">
+                    <div className="text-slate-800 font-semibold text-sm break-all">
+                      {record.resource}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -231,26 +227,6 @@ const AuditRecordDialog: React.FC<AuditRecordDialogProps> = ({ record, open, onO
                 <span>Metadata</span>
               </h3>
               <div className="flex items-center space-x-2">
-                {isLargeMetadata && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setIsMetadataExpanded(!isMetadataExpanded)}
-                    className="text-xs"
-                  >
-                    {isMetadataExpanded ? (
-                      <>
-                        <ChevronUp className="h-3 w-3 mr-1" />
-                        Show Less
-                      </>
-                    ) : (
-                      <>
-                        <ChevronDown className="h-3 w-3 mr-1" />
-                        Show More
-                      </>
-                    )}
-                  </Button>
-                )}
                 <Button
                   variant="outline"
                   size="sm"
@@ -264,9 +240,9 @@ const AuditRecordDialog: React.FC<AuditRecordDialogProps> = ({ record, open, onO
             </div>
 
             <div className="bg-slate-900 rounded-lg border border-slate-800 overflow-hidden">
-              <div className={`p-4 overflow-auto ${isMetadataExpanded ? "max-h-96" : "max-h-48"}`}>
+              <div className="p-4 overflow-auto">
                 <pre className="text-sm text-green-400 font-mono whitespace-pre-wrap break-words">
-                  {displayMetadata}
+                  {formattedMetadata}
                 </pre>
               </div>
             </div>

@@ -147,7 +147,10 @@ const AuditTable: React.FC<AuditTableProps> = ({
               {/* Action Column */}
               <TableCell className="py-4 px-6">
                 <div className="space-y-1">
-                  <div className="font-semibold text-slate-800 text-sm group-hover:text-slate-900 transition-colors">
+                  <div
+                    className="font-semibold text-slate-800 text-sm group-hover:text-slate-900 transition-colors"
+                    title={record.action}
+                  >
                     {record.action}
                   </div>
                   <div className="text-xs text-slate-500 font-medium bg-slate-100/50 px-2 py-0.5 rounded-md inline-block">
@@ -172,9 +175,9 @@ const AuditTable: React.FC<AuditTableProps> = ({
 
               {/* Resource Column */}
               <TableCell className="py-4 px-6">
-                <div className="max-w-32">
+                <div>
                   <div
-                    className="truncate text-sm font-medium text-slate-700 bg-slate-100/30 px-3 py-1.5 rounded-lg border border-slate-200/50"
+                    className="text-sm font-medium text-slate-700 bg-slate-100/30 px-3 py-1.5 rounded-lg border border-slate-200/50 break-all"
                     title={record.resource}
                   >
                     {record.resource}

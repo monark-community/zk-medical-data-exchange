@@ -5,6 +5,7 @@ import {
   getAuditRecord,
   getAllUserActions,
   getAuditInfo,
+  logFileAccess,
 } from "@/controllers/auditController";
 
 const router = Router();
@@ -176,6 +177,79 @@ router.get(
   "/user/:userAddress/profile/:profile/actions/paginated",
   getUserActionsByProfilePaginated
 );
+
+/**
+ * @swagger
+ * /audit/log-access:
+ *   post:
+ *     summary: Log file access or download audit record
+ *     description: Records when a user views or downloads a file
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - userAddress
+ *               - encryptedCID
+ *               - accessType
+ *             properties:
+ *               userAddress:
+ *                 type: string
+ *                 pattern: '^0x[a-fA-F0-9]{40}$'
+ *                 description: User's wallet address
+ *                 example: "0x742d35Cc6635C0532925a3b8D97C6b009af2af9f"
+ *               encryptedCID:
+ *                 type: string
+ *                 description: Encrypted IPFS CID of the file
+ *                 example: "encrypted_QmY7Yh4UquoXHLPFo2XbhXkhBvFoPwmQUSa92pxnxjQuPU"
+ *               accessType:
+ *                 type: string
+ *                 enum: [view, download]
+ *                 description: Type of file access
+ *                 example: "view"
+ *               resourceType:
+ *                 type: string
+ *                 description: Optional FHIR resource type of the accessed data
+ *                 example: "Patient"
+ *               success:
+ *                 type: boolean
+ *                 description: Whether the access was successful
+ *                 default: true
+ *               metadata:
+ *                 type: object
+ *                 description: Additional metadata about the access
+ *                 properties:
+ *                   fileSize:
+ *                     type: number
+ *                   mimeType:
+ *                     type: string
+ *                   userAgent:
+ *                     type: string
+ *     responses:
+ *       200:
+ *         description: File access logged successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     txHash:
+ *                       type: string
+ *                     message:
+ *                       type: string
+ *       400:
+ *         description: Invalid request data
+ *       500:
+ *         description: Internal server error
+ */
+router.post("/log-access", logFileAccess);
 
 /**
  * @swagger

@@ -10,6 +10,7 @@ import { Upload, Loader2 } from "lucide-react";
 import eventBus from "@/lib/eventBus";
 import { ipfsUpload } from "@/services/storage";
 import { uploadMedicalData } from "@/services/api";
+
 export default function UploadSection({
   account,
   aesKey,
@@ -44,6 +45,7 @@ export default function UploadSection({
 
         if (!fileSelected || !input.files) return;
         const file = input.files[0];
+        // Generate simplified filename: just show original name in UI, use simplified for API
         setUploadedFileName(file.name);
         setUploadedFile(file);
         setChecking(true);
