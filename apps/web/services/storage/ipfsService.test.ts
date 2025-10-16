@@ -3,7 +3,6 @@ import { describe, it, expect, spyOn, mock } from "bun:test";
 mock.module("@/config/config", () => ({
   Config: {
     APP_API_URL: "http://localhost:3001",
-    APP_API_KEY: "test-api-key",
     PINATA_JWT: "test-pinata-jwt-token",
     WEB3AUTH_CLIENT_ID: "test-web3auth-client-id",
     APP_SALT: "0dsfwsaf2na8mc80a8efv8qpo",

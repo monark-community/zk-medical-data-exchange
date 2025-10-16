@@ -12,6 +12,13 @@ const router = Router();
  *     tags: [User]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: walletAddress
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The wallet address of the user
  *     responses:
  *       200:
  *         description: User retrieved successfully
@@ -20,17 +27,18 @@ const router = Router();
  *             schema:
  *               type: object
  *               properties:
- *                 id
+ *                 id:
  *                   type: string
- *                 username
+ *                 username:
  *                   type: string
- *                 createdAt
+ *                 createdAt:
  *                   type: string
  *       401:
  *         description: Unauthorized - Invalid token
  *       500:
  *         description: Internal server error
  */
+
 router.get("/:walletAddress", getUserById);
 
 export default router;
