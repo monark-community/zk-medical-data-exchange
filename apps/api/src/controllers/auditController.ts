@@ -1,5 +1,6 @@
 import type { Request, Response } from "express";
 import { auditService, UserProfile, ActionType } from "@/services/auditService";
+import { isValidEthereumAddress } from "@/utils/address";
 import logger from "@/utils/logger";
 
 /**
@@ -16,7 +17,7 @@ export const getUserActionsByProfile = async (req: Request, res: Response): Prom
     const { limit = "20" } = req.query;
 
     // Validate user address format
-    if (!userAddress || !userAddress.match(/^0x[a-fA-F0-9]{40}$/)) {
+    if (!isValidEthereumAddress(userAddress)) {
       res.status(400).json({
         success: false,
         error: "Invalid user address format",
@@ -100,7 +101,7 @@ export const getUserActionsByProfilePaginated = async (
     const { offset = "0", limit = "20", latestFirst = "true" } = req.query;
 
     // Validate user address format
-    if (!userAddress || !userAddress.match(/^0x[a-fA-F0-9]{40}$/)) {
+    if (!isValidEthereumAddress(userAddress)) {
       res.status(400).json({
         success: false,
         error: "Invalid user address format",
@@ -283,7 +284,7 @@ export const getAllUserActions = async (req: Request, res: Response): Promise<vo
     const { limit = "20" } = req.query;
 
     // Validate user address format
-    if (!userAddress || !userAddress.match(/^0x[a-fA-F0-9]{40}$/)) {
+    if (!isValidEthereumAddress(userAddress)) {
       res.status(400).json({
         success: false,
         error: "Invalid user address format",
@@ -390,7 +391,7 @@ export const logFileAccess = async (req: Request, res: Response): Promise<void> 
     }
 
     // Validate user address format
-    if (!userAddress.match(/^0x[a-fA-F0-9]{40}$/)) {
+    if (!isValidEthereumAddress(userAddress)) {
       res.status(400).json({
         success: false,
         error: "Invalid user address format",

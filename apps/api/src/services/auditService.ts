@@ -130,9 +130,6 @@ class AuditService {
         ...entry.metadata,
       };
 
-      //   // Log to database first (faster, for immediate access)
-      //   await this.logToDatabase(entry, dataHash, metadata);
-
       // Log to blockchain (for immutability)
       const txHash = await this.logToBlockchain(
         entry.user,
@@ -289,7 +286,6 @@ class AuditService {
     const encoder = new TextEncoder();
     const data = encoder.encode(dataString);
 
-    // Create hash (using a simple implementation - in production use proper crypto)
     let hash = 0;
     for (let i = 0; i < data.length; i++) {
       const char = data[i]!; // Non-null assertion since we know i is within bounds
@@ -307,14 +303,14 @@ class AuditService {
    */
   async getUserActions(userAddress: string, limit: number = 100): Promise<any[]> {
     try {
-      const auditTrailAddress = Config.AUDIT_TRAIL_ADDRESS;
+      const auditTrailAddress = Config.AUDIT_TRAIL_ADDRESS as `0x${string}`;
 
-      const actions = await this.publicClient.readContract({
+      const actions = (await this.publicClient.readContract({
         address: auditTrailAddress,
         abi: AUDIT_TRAIL_ABI,
         functionName: "getUserActions",
         args: [userAddress as `0x${string}`],
-      });
+      })) as bigint[];
 
       const latestActions = actions.slice(-limit); // Get latest actions
 
@@ -335,16 +331,17 @@ class AuditService {
     limit: number = 100
   ): Promise<any[]> {
     try {
-      const auditTrailAddress = Config.AUDIT_TRAIL_ADDRESS;
+      const auditTrailAddress = Config.AUDIT_TRAIL_ADDRESS as `0x${string}`;
 
-      const actions = await this.publicClient.readContract({
+      const actions = (await this.publicClient.readContract({
         address: auditTrailAddress,
         abi: AUDIT_TRAIL_ABI,
         functionName: "getUserLatestActions",
         args: [userAddress as `0x${string}`, userProfile, BigInt(limit)],
-      });
+      })) as bigint[];
 
-      return actions;
+      // Convert BigInt values to numbers for JSON serialization
+      return this.convertBigIntToNumber(actions);
     } catch (error) {
       logger.error({ error, userAddress, userProfile }, "Failed to get user latest actions");
       return [];
@@ -356,14 +353,14 @@ class AuditService {
    */
   async getAuditRecord(recordId: number): Promise<any | null> {
     try {
-      const auditTrailAddress = Config.AUDIT_TRAIL_ADDRESS;
+      const auditTrailAddress = Config.AUDIT_TRAIL_ADDRESS as `0x${string}`;
 
-      const record = await this.publicClient.readContract({
+      const record = (await this.publicClient.readContract({
         address: auditTrailAddress,
         abi: AUDIT_TRAIL_ABI,
         functionName: "auditRecords",
         args: [BigInt(recordId)],
-      });
+      })) as any;
 
       // Convert BigInt values to numbers for JSON serialization
       return this.convertBigIntToNumber(record);
@@ -553,18 +550,18 @@ class AuditService {
     limit: number = 100
   ): Promise<any[]> {
     try {
-      const auditTrailAddress = Config.AUDIT_TRAIL_ADDRESS;
+      const auditTrailAddress = Config.AUDIT_TRAIL_ADDRESS as `0x${string}`;
 
-      const actions = await this.publicClient.readContract({
+      const actions = (await this.publicClient.readContract({
         address: auditTrailAddress,
         abi: AUDIT_TRAIL_ABI,
         functionName: "getUserActionsForProfile",
         args: [userAddress as `0x${string}`, userProfile],
-      });
+      })) as bigint[];
 
       // Since the contract returns in ascending order (oldest first),
       // we reverse to get latest first and take the last N records
-      const actionsArray = Array.from(actions).reverse();
+      const actionsArray = [...actions].reverse();
       const limitedActions = actionsArray.slice(0, limit);
 
       // Convert BigInt values to numbers for JSON serialization
@@ -586,10 +583,10 @@ class AuditService {
     latestFirst: boolean = true
   ): Promise<{ records: any[]; total: number }> {
     try {
-      const auditTrailAddress = Config.AUDIT_TRAIL_ADDRESS;
+      const auditTrailAddress = Config.AUDIT_TRAIL_ADDRESS as `0x${string}`;
 
       // First, get the array of record IDs and total count
-      const [recordIds, total] = await this.publicClient.readContract({
+      const result = (await this.publicClient.readContract({
         address: auditTrailAddress,
         abi: AUDIT_TRAIL_ABI,
         functionName: "getUserActionsForProfilePaginated",
@@ -600,17 +597,19 @@ class AuditService {
           BigInt(limit),
           latestFirst,
         ],
-      });
+      })) as [bigint[], bigint];
+
+      const [recordIds, total] = result;
 
       // Then, fetch full details for each record ID
       const recordDetailsPromises = recordIds.map(async (recordId: bigint) => {
         try {
-          const recordData = await this.publicClient.readContract({
+          const recordData = (await this.publicClient.readContract({
             address: auditTrailAddress,
             abi: AUDIT_TRAIL_ABI,
             functionName: "auditRecords",
             args: [recordId],
-          });
+          })) as any;
 
           // Map the tuple result to our expected interface
           const [
