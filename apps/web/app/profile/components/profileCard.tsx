@@ -10,6 +10,7 @@ import { useProfile } from "@/contexts/ProfileContext";
 import { getUser } from "@/services/api/userService";
 import { useAccount } from "wagmi";
 import { User } from "@/interfaces/user";
+import EditProfileDialog from "./editProfileDialog";
 
 const ProfileCard = () => {
   const formatWalletAddress = (address: string) => {
@@ -167,7 +168,7 @@ const ProfileCard = () => {
 
           {/* Footer Buttons */}
           <div className="flex gap-3 mt-8 pt-6 border-t">
-            <Button className="bg-blue-600 hover:bg-blue-700">Edit Profile</Button>
+            <EditProfileDialog />
             <Button variant="outline">Privacy Settings</Button>
             <Button variant="outline">Download Data</Button>
           </div>
