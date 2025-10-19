@@ -7,6 +7,9 @@ import { Settings, Activity } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ProfileCardProps } from "@/interfaces/profile";
 import { useProfile } from "@/contexts/ProfileContext";
+import { getUser } from "@/services/api/userService";
+import { useAccount } from "wagmi";
+import { User } from "@/interfaces/user";
 
 const ProfileCard = () => {
   const formatWalletAddress = (address: string) => {
@@ -14,15 +17,45 @@ const ProfileCard = () => {
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
   };
   const { currentProfile, getProfileDisplayName } = useProfile();
+  const { address } = useAccount();
+  const [user, setUser] = React.useState<User>({ id: "", username: "", createdAt: "" });
+  const [profileCardInfo, setProfileCardInfo] = React.useState<ProfileCardProps | null>(null);
 
-  let profileCardInfo: ProfileCardProps = {
-    walletAddress: "0x1234567890abcdef1234567890abcdef12345678",
-    userAlias: "Monark Cura",
-    accountType: getProfileDisplayName(currentProfile),
-    dataContributions: 12,
-    earnings: 247.5,
-    privacyScore: 100,
-  };
+  React.useEffect(() => {
+    if (!address) return;
+
+    let isMounted = true;
+
+    (async () => {
+      try {
+        const userData = await getUser(address);
+        if (isMounted) setUser(userData);
+      } catch (error) {
+        console.error("Failed to fetch user data:", error);
+      }
+    })();
+
+    return () => {
+      isMounted = false; // cancel state update if component unmounts
+    };
+  }, [address]);
+  React.useEffect(() => {
+    if (user && currentProfile) {
+      setProfileCardInfo({
+        walletAddress: user.id,
+        userAlias: user.username,
+        accountType: getProfileDisplayName(currentProfile),
+        createdAt: user.createdAt,
+        dataContributions: 12,
+        earnings: 247.5,
+        privacyScore: 100,
+      });
+    }
+  }, [user, currentProfile, getProfileDisplayName]);
+
+  if (!profileCardInfo) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <div className="w-full max-w-4xl mx-auto">
@@ -37,7 +70,9 @@ const ProfileCard = () => {
             </Avatar>
             {/* User Info */}
             <div className="flex-1">
-              <h1 className="text-3xl font-bold mb-2">{profileCardInfo.userAlias}</h1>
+              <h1 className="text-3xl font-bold mb-2 break-words break-all">
+                {profileCardInfo.userAlias}
+              </h1>
               <p className="text-blue-100 mb-3">
                 {formatWalletAddress(profileCardInfo.walletAddress || "")}
               </p>

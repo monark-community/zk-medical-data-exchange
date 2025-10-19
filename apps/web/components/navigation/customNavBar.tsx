@@ -3,12 +3,13 @@ import React from "react";
 import { Shield, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import UserMenu from "./userMenu";
 
 const CustomNavbar = () => {
   let isCurrentlyDashboard = usePathname() === "/dashboard";
   let isCurrentlyGovernance = usePathname() === "/governance";
+  const router = useRouter();
   return (
     <nav className="bg-white shadow-sm border-b">
       <div className=" container mx-auto px-4 py-4 sm:px-6 lg:px-8">
@@ -26,6 +27,7 @@ const CustomNavbar = () => {
               className="text-md"
               variant={isCurrentlyDashboard ? "outline" : "ghost"}
               size="lg"
+              onClick={() => router.push("/dashboard")}
             >
               <Users /> Dashboard
             </Button>
