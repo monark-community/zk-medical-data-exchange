@@ -14,9 +14,20 @@ import {
 
 import EditProfileField from "./editProfileField";
 
-const EditProfileDialog = () => {
+interface EditProfileDialogProps {
+  onProfileUpdate: () => void;
+}
+
+const EditProfileDialog = ({ onProfileUpdate }: EditProfileDialogProps) => {
+  const [open, setOpen] = React.useState(false);
+
+  const handleSuccess = () => {
+    setOpen(false);
+    onProfileUpdate();
+  };
+
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button className="bg-blue-600 hover:bg-blue-700">Edit Profile</Button>
       </DialogTrigger>
@@ -25,7 +36,7 @@ const EditProfileDialog = () => {
           <DialogTitle>Edit Profile</DialogTitle>
           <DialogDescription>Update your username and profile picture</DialogDescription>
         </DialogHeader>
-        <EditProfileField />
+        <EditProfileField onSuccess={handleSuccess} />
         <DialogFooter className="sm:justify-start">
           <DialogClose asChild>
             <Button className="bg-red-600 hover:bg-red-700">cancel</Button>

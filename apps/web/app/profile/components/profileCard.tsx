@@ -22,24 +22,20 @@ const ProfileCard = () => {
   const [user, setUser] = React.useState<User>({ id: "", username: "", createdAt: "" });
   const [profileCardInfo, setProfileCardInfo] = React.useState<ProfileCardProps | null>(null);
 
-  React.useEffect(() => {
+  const fetchUserData = React.useCallback(async () => {
     if (!address) return;
 
-    let isMounted = true;
-
-    (async () => {
-      try {
-        const userData = await getUser(address);
-        if (isMounted) setUser(userData);
-      } catch (error) {
-        console.error("Failed to fetch user data:", error);
-      }
-    })();
-
-    return () => {
-      isMounted = false; // cancel state update if component unmounts
-    };
+    try {
+      const userData = await getUser(address);
+      setUser(userData);
+    } catch (error) {
+      console.error("Failed to fetch user data:", error);
+    }
   }, [address]);
+
+  React.useEffect(() => {
+    fetchUserData();
+  }, [fetchUserData]);
   React.useEffect(() => {
     if (user && currentProfile) {
       setProfileCardInfo({
@@ -168,7 +164,7 @@ const ProfileCard = () => {
 
           {/* Footer Buttons */}
           <div className="flex gap-3 mt-8 pt-6 border-t">
-            <EditProfileDialog />
+            <EditProfileDialog onProfileUpdate={fetchUserData} />
             <Button variant="outline">Privacy Settings</Button>
             <Button variant="outline">Download Data</Button>
           </div>

@@ -7,7 +7,11 @@ import { Input } from "@/components/ui/input";
 import { updateUser } from "@/services/api/userService";
 import { useAccount } from "wagmi";
 
-const EditProfileField = () => {
+interface EditProfileFieldProps {
+  onSuccess: () => void;
+}
+
+const EditProfileField = ({ onSuccess }: EditProfileFieldProps) => {
   const { address: walletAddress } = useAccount();
 
   return (
@@ -37,6 +41,9 @@ const EditProfileField = () => {
 
             console.log("User updated successfully:", updatedUser);
             alert("Changes saved successfully!");
+
+            // Close dialog and refresh profile data
+            onSuccess();
           } catch (error) {
             console.error("Error updating profile:", error);
             alert("An error occurred while saving changes.");
