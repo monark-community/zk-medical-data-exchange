@@ -18,3 +18,26 @@ export const getUser = async (walletAddress: string): Promise<User> => {
     throw error;
   }
 };
+
+export const updateUser = async (
+  walletAddress: string,
+  updatedInfo: Partial<User>
+): Promise<User> => {
+  try {
+    if (!walletAddress) throw new Error("Missing wallet address");
+    if (!updatedInfo) throw new Error("Missing updated user information");
+
+    const response = await apiClient.patch(`/users/${walletAddress}`, updatedInfo);
+    const updatedUser = response.data;
+
+    // Adapt keys if needed (depends on your backend response shape)
+    return {
+      id: updatedUser.id,
+      username: updatedUser.username,
+      createdAt: updatedUser.created_at,
+    };
+  } catch (error: any) {
+    console.error("Error in updateUser:", error?.response?.data || error.message);
+    throw error;
+  }
+};
