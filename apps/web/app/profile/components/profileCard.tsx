@@ -37,7 +37,7 @@ const ProfileCard = () => {
     fetchUserData();
   }, [fetchUserData]);
   React.useEffect(() => {
-    if (user && currentProfile) {
+    if (user) {
       setProfileCardInfo({
         walletAddress: user.id,
         userAlias: user.username,
