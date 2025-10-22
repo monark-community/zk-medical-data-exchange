@@ -50,6 +50,23 @@ const ProfileCard = () => {
     }
   }, [user, currentProfile, getProfileDisplayName]);
 
+  const exportUserData = async () => {
+    if (!address) return;
+
+    try {
+      const userData = await getUser(address);
+      const json = JSON.stringify(userData, null, 2);
+      const blob = new Blob([json], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "user_data.json";
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Failed to export user data:", error);
+    }
+  };
   if (!profileCardInfo) {
     return <div>Loading...</div>;
   }
@@ -172,7 +189,9 @@ const ProfileCard = () => {
           <div className="flex gap-3 mt-8 pt-6 border-t">
             <EditProfileDialog onProfileUpdate={fetchUserData} />
             <Button variant="outline">Privacy Settings</Button>
-            <Button variant="outline">Download Data</Button>
+            <Button variant="outline" onClick={exportUserData}>
+              Download Data
+            </Button>
           </div>
         </CardContent>
       </Card>
