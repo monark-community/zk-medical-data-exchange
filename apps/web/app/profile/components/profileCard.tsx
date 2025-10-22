@@ -188,7 +188,9 @@ const ProfileCard = () => {
           {/* Footer Buttons */}
           <div className="flex gap-3 mt-8 pt-6 border-t">
             <EditProfileDialog onProfileUpdate={fetchUserData} />
-            <Button variant="outline">Privacy Settings</Button>
+            <Button variant="outline" disabled>
+              Privacy Settings
+            </Button>
             <Button variant="outline" onClick={exportUserData}>
               Download Data
             </Button>
