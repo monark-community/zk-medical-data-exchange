@@ -11,7 +11,7 @@ function toUserDTO(user: { id: string; username: string | null; created_at: stri
   return {
     id: user.id,
     username: user.username,
-    createdAt: user.created_at, // prefer camelCase in API
+    createdAt: user.created_at,
   };
 }
 
@@ -27,7 +27,7 @@ export async function getUserById(req: Request, res: Response) {
 
     // Business/data access lives in the service:
     const user = await getUserByWalletAddress(req.supabase, walletAddress);
-
+    logger?.info({ user }, "User get");
     if (!user) {
       logger?.info({ walletAddress }, "User not found in getUser");
       return res.status(404).json({ error: "User not found" });

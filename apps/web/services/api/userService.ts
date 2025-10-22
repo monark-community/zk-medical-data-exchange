@@ -11,7 +11,7 @@ export const getUser = async (walletAddress: string): Promise<User> => {
     return {
       id: user.id,
       username: user.username,
-      createdAt: user.created_at,
+      createdAt: user.createdAt,
     };
   } catch (error: any) {
     console.error("Error in getUser:", error?.response?.data || error.message);

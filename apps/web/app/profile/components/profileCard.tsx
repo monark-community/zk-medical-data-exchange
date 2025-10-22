@@ -121,6 +121,12 @@ const ProfileCard = () => {
                   </label>
                   <p className="text-gray-800">{profileCardInfo.accountType}</p>
                 </div>
+                <div>
+                  <label className="text-sm font-semibold text-gray-600 mb-2 block">
+                    Account Creation Date
+                  </label>
+                  <p className="text-gray-800">{profileCardInfo.createdAt}</p>
+                </div>
               </div>
             </div>
 
