@@ -5,3 +5,4 @@
 
 export * from "./studyService";
 export * from "./dataVaultService";
+export * from "./auditService";
