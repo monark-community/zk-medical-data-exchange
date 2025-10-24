@@ -32,12 +32,12 @@ export default function Provider({
   web3authInitialState: IWeb3AuthState | undefined;
 }) {
   return (
-    <WagmiProvider>
-      <Web3AuthProvider config={web3AuthContextConfig} initialState={web3authInitialState}>
+    <Web3AuthProvider config={web3AuthContextConfig} initialState={web3authInitialState}>
+      <WagmiProvider>
         <QueryClientProvider client={queryClient}>
           <ProfileProvider>{children}</ProfileProvider>
         </QueryClientProvider>
-      </Web3AuthProvider>
-    </WagmiProvider>
+      </WagmiProvider>
+    </Web3AuthProvider>
   );
 }
