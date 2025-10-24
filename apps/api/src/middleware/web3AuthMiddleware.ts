@@ -46,7 +46,7 @@ declare global {
 
 export function verifyWeb3AuthToken(req: Request, res: Response, next: NextFunction): void {
   const authHeader = req.headers.authorization;
-
+  console.log("PASS1 WEB3AUTH");
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
     logger.warn("No authorization header or invalid format");
     res.status(401).json({
@@ -55,6 +55,8 @@ export function verifyWeb3AuthToken(req: Request, res: Response, next: NextFunct
     });
     return;
   }
+
+  console.log("PASS2 WEB3AUTH");
 
   const token = authHeader.split(" ")[1];
 
@@ -66,6 +68,8 @@ export function verifyWeb3AuthToken(req: Request, res: Response, next: NextFunct
     });
     return;
   }
+
+  console.log("PASS3 WEB3AUTH");
 
   let decodedPreview: { header: jwt.JwtHeader; payload: Web3AuthUser } | null;
   try {
@@ -90,6 +94,8 @@ export function verifyWeb3AuthToken(req: Request, res: Response, next: NextFunct
     return;
   }
 
+  console.log("PASS4 WEB3AUTH");
+
   jwt.verify(
     token,
     getKey,
@@ -112,6 +118,8 @@ export function verifyWeb3AuthToken(req: Request, res: Response, next: NextFunct
         });
         return;
       }
+
+      console.log("PASS5 WEB3AUTH");
 
       if (!decoded || typeof decoded === "string") {
         logger.error("Invalid token payload");
@@ -140,6 +148,8 @@ export function verifyWeb3AuthToken(req: Request, res: Response, next: NextFunct
         return;
       }
 
+      console.log("PASS6 WEB3AUTH");
+
       if (
         !web3AuthUser.wallets ||
         web3AuthUser.wallets.length === 0 ||
@@ -152,6 +162,8 @@ export function verifyWeb3AuthToken(req: Request, res: Response, next: NextFunct
         });
         return;
       }
+
+      console.log("PASS7 WEB3AUTH");
 
       const allowedAudiences = Config.IS_LOCAL_MODE
         ? ["localhost", "127.0.0.1"]
@@ -179,6 +191,8 @@ export function verifyWeb3AuthToken(req: Request, res: Response, next: NextFunct
         });
         return;
       }
+
+      console.log("PASS8 WEB3AUTH");
 
       const walletAddress = web3AuthUser.wallets[0].address;
       const walletType = web3AuthUser.wallets[0].type;
