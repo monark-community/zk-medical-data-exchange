@@ -14,10 +14,8 @@ export async function verifyAuthentication(req: Request, res: Response): Promise
     logger.info("Authentication verification endpoint called");
 
     const web3AuthUser = req.web3AuthUser;
-    console.log("PASS1 VERAUTH");
     if (!web3AuthUser) {
       logger.error("Web3AuthUser not found in request after middleware verification");
-      console.log("PASS2 VERAUTH");
       // Log failed authentication attempt (non-blocking)
       auditService
         .logAuthentication("unknown", false, {
@@ -37,7 +35,6 @@ export async function verifyAuthentication(req: Request, res: Response): Promise
       return;
     }
 
-    console.log("PASS3 VERAUTH");
     logger.debug(
       {
         hasWallets: (web3AuthUser.wallets ?? []).length > 0,
@@ -53,7 +50,6 @@ export async function verifyAuthentication(req: Request, res: Response): Promise
     if (!isUserCreated) {
       await createUser(req, res, walletAddress);
     }
-    console.log("PASS4 VERAUTH");
     // Log successful authentication (non-blocking)
     auditService
       .logAuthentication(walletAddress, true, {
@@ -73,8 +69,6 @@ export async function verifyAuthentication(req: Request, res: Response): Promise
       },
       "Session created successfully"
     );
-
-    console.log("PASS5 VERAUTH");
 
     res.status(200).json({
       success: true,
