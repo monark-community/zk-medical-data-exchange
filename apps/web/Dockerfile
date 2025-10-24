@@ -1,4 +1,4 @@
-FROM oven/bun:latest
+FROM oven/bun:1.2.21
 
 ARG NEXT_PUBLIC_APP_API_URL
 ARG NEXT_PUBLIC_APP_API_KEY
