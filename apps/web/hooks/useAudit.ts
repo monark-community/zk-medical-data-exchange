@@ -256,8 +256,8 @@ export const useAudit = ({
       const cacheKey = getCacheKey(page);
 
       // Check if page is already cached in memory
-      if (pageCache.has(cacheKey)) {
-        const cachedData = pageCache.get(cacheKey)!;
+      const cachedData = pageCache.get(cacheKey);
+      if (cachedData) {
         setRecords(cachedData.records);
         setPagination(cachedData.pagination);
         return;
