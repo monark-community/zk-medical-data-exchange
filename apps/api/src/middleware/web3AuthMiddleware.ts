@@ -46,7 +46,6 @@ declare global {
 
 export function verifyWeb3AuthToken(req: Request, res: Response, next: NextFunction): void {
   const authHeader = req.headers.authorization;
-
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
     logger.warn("No authorization header or invalid format");
     res.status(401).json({
