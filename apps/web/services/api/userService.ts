@@ -7,7 +7,6 @@ export const getUser = async (walletAddress: string): Promise<User> => {
     const response = await apiClient.get(`/users/${walletAddress}`);
     const user = response.data;
 
-    // Adapt keys if needed (depends on your backend response shape)
     return {
       id: user.id,
       username: user.username,
@@ -30,7 +29,6 @@ export const updateUser = async (
     const response = await apiClient.patch(`/users/${walletAddress}`, updatedInfo);
     const updatedUser = response.data;
 
-    // Adapt keys if needed (depends on your backend response shape)
     return {
       id: updatedUser.id,
       username: updatedUser.username,

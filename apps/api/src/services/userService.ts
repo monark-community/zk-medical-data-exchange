@@ -77,7 +77,6 @@ export async function getUserByWalletAddress(
   supabase: SupabaseClient,
   walletAddress: string
 ): Promise<UserRow | null> {
-  // Keep the selection tight; no "*"
   const { data, error } = await supabase
     .from(USERS!.name!)
     .select("id, username, created_at")
