@@ -7,9 +7,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import React from "react";
 import { Config } from "@/config/config";
 import { ProfileProvider } from "@/contexts/ProfileContext";
-import { createConfig, http } from "wagmi";
-import { sepolia } from "wagmi/chains";
-import { injected } from "wagmi/connectors";
 
 const clientId =
   Config.WEB3AUTH_CLIENT_ID ??
@@ -27,14 +24,6 @@ const web3AuthContextConfig: Web3AuthContextConfig = {
   },
 };
 
-const config = createConfig({
-  chains: [sepolia],
-  connectors: [injected()],
-  transports: {
-    [sepolia.id]: http(),
-  },
-});
-
 export default function Provider({
   children,
   web3authInitialState,
@@ -45,7 +34,7 @@ export default function Provider({
   return (
     <Web3AuthProvider config={web3AuthContextConfig} initialState={web3authInitialState}>
       <QueryClientProvider client={queryClient}>
-        <WagmiProvider config={config}>
+        <WagmiProvider>
           <ProfileProvider>{children}</ProfileProvider>
         </WagmiProvider>
       </QueryClientProvider>
