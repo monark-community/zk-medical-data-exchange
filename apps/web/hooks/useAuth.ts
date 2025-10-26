@@ -4,6 +4,7 @@ import { useWeb3AuthConnect, useWeb3Auth, useIdentityToken } from "@web3auth/mod
 import { useRouter } from "next/navigation";
 import { useEffect, useCallback, useState } from "react";
 import { Config } from "@/config/config";
+import { usePathname } from "next/navigation";
 import axios from "axios";
 
 function hasSessionTokens() {
@@ -16,9 +17,11 @@ function hasSessionTokens() {
 export function useAuthRedirect() {
   const { isConnected } = useWeb3AuthConnect();
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
-    if (isConnected && hasSessionTokens()) {
+    const allowedPaths = ["/", "/research", "/breakthrough", "/how-it-works"];
+    if (isConnected && hasSessionTokens() && allowedPaths.includes(pathname)) {
       router.push("/dashboard");
     }
   }, [isConnected, router]);
