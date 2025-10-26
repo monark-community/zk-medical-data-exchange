@@ -21,7 +21,8 @@ export function useAuthRedirect() {
 
   useEffect(() => {
     const allowedPaths = ["/", "/research", "/breakthrough", "/how-it-works"];
-    if (isConnected && hasSessionTokens() && allowedPaths.includes(pathname)) {
+    const isCalledFromVisitorPage = allowedPaths.includes(pathname);
+    if (isConnected && hasSessionTokens() && isCalledFromVisitorPage) {
       router.push("/dashboard");
     }
   }, [isConnected, router]);
