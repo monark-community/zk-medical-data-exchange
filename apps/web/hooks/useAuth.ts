@@ -25,7 +25,7 @@ export function useAuthRedirect() {
     if (isConnected && hasSessionTokens() && isCalledFromVisitorPage) {
       router.push("/dashboard");
     }
-  }, [isConnected, router]);
+  }, [isConnected, router, pathname]);
 
   return { isConnected: isConnected && hasSessionTokens() };
 }
