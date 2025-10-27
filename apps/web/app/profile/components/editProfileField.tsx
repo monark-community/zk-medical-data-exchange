@@ -17,6 +17,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Spinner } from "@/components/ui/spinner";
+import { notifyUserUpdated } from "@/utils/userEvents";
 interface EditProfileFieldProps {
   onSuccess: () => void;
 }
@@ -43,6 +44,7 @@ const EditProfileField = ({ onSuccess }: EditProfileFieldProps) => {
       openResultAlertDialog();
       await updateUser(walletAddress, { username: pendingUsername });
       setIsWaitingUsernameChange(false);
+      notifyUserUpdated();
       setError(null);
     } catch (error) {
       console.error("Error updating profile:", error);
@@ -118,13 +120,13 @@ const EditProfileField = ({ onSuccess }: EditProfileFieldProps) => {
       />
       <AlertDialog open={isAlertDialogOpen}>
         {isWaitingUsernameChange ? (
-          <AlertDialogContent className="flex justify-center items-center p-16">
-            <Spinner className="w-12 h-12" />
+          <AlertDialogContent className="flex justify-center items-center p-16 ">
+            <Spinner className="size-12 text-blue-600" />
           </AlertDialogContent>
         ) : (
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>{error ? "Error" : "Success"}</AlertDialogTitle>
+              <AlertDialogTitle className="">{error ? "Error" : "Success"}</AlertDialogTitle>
               <AlertDialogDescription>
                 {error ? error : "Your changes have been saved."}
               </AlertDialogDescription>

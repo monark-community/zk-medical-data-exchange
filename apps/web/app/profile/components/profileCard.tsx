@@ -9,8 +9,8 @@ import { ProfileCardProps } from "@/interfaces/profile";
 import { useProfile } from "@/contexts/ProfileContext";
 import { getUser } from "@/services/api/userService";
 import { useAccount } from "wagmi";
-import { User } from "@/interfaces/user";
 import EditProfileDialog from "./editProfileDialog";
+import { useUser } from "@/hooks/useUser";
 
 const ProfileCard = () => {
   const formatWalletAddress = (address: string) => {
@@ -19,23 +19,9 @@ const ProfileCard = () => {
   };
   const { currentProfile, getProfileDisplayName } = useProfile();
   const { address } = useAccount();
-  const [user, setUser] = React.useState<User>({ id: "", username: "", createdAt: "" });
+  const { user, refetchUser } = useUser();
   const [profileCardInfo, setProfileCardInfo] = React.useState<ProfileCardProps | null>(null);
 
-  const fetchUserData = React.useCallback(async () => {
-    if (!address) return;
-
-    try {
-      const userData = await getUser(address);
-      setUser(userData);
-    } catch (error) {
-      console.error("Failed to fetch user data:", error);
-    }
-  }, [address]);
-
-  React.useEffect(() => {
-    fetchUserData();
-  }, [fetchUserData]);
   React.useEffect(() => {
     if (user) {
       setProfileCardInfo({
@@ -187,7 +173,7 @@ const ProfileCard = () => {
 
           {/* Footer Buttons */}
           <div className="flex gap-3 mt-8 pt-6 border-t">
-            <EditProfileDialog onProfileUpdate={fetchUserData} />
+            <EditProfileDialog onProfileUpdate={refetchUser} />
             <Button variant="outline" disabled>
               Privacy Settings
             </Button>

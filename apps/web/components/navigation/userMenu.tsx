@@ -19,11 +19,12 @@ import { useProfile } from "@/contexts/ProfileContext";
 import { UserProfile } from "@/services/api/auditService";
 
 import { useRouter } from "next/navigation";
+import { useUser } from "@/hooks/useUser";
 const UserMenu = () => {
   const { address } = useAccount();
   const { disconnect } = useWeb3AuthDisconnect();
   const { currentProfile, setProfile, getProfileDisplayName } = useProfile();
-
+  const { user } = useUser();
   const router = useRouter();
   const handleProfileSwitch = () => {
     const newProfile =
@@ -44,7 +45,7 @@ const UserMenu = () => {
             </span>
           </span>
           <div className="flex flex-col items-start">
-            <span className="text-sm font-medium">Monark Cura</span>
+            <span className="text-sm font-medium">{user.username}</span>
             <span className="text-xs text-gray-500">
               {address ? `${address.slice(0, 6)}...${address.slice(-4)}` : "No wallet connected"}
             </span>
