@@ -6,13 +6,57 @@ import { Field, FieldDescription, FieldGroup, FieldLabel, FieldSet } from "@/com
 import { Input } from "@/components/ui/input";
 import { updateUser } from "@/services/api/userService";
 import { useAccount } from "wagmi";
-
+import ConfirmEditUsernameDialog from "./confirmEditUsernameDialog";
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Spinner } from "@/components/ui/spinner";
 interface EditProfileFieldProps {
   onSuccess: () => void;
 }
 
 const EditProfileField = ({ onSuccess }: EditProfileFieldProps) => {
   const { address: walletAddress } = useAccount();
+  const [isDialogOpen, setIsDialogOpen] = React.useState(false);
+  const [isAlertDialogOpen, setIsAlertDialogOpen] = React.useState(false);
+  const [isWaitingUsernameChange, setIsWaitingUsernameChange] = React.useState(false);
+  const [pendingUsername, setPendingUsername] = React.useState("");
+  const [error, setError] = React.useState<string | null>(null);
+  const openResultAlertDialog = () => {
+    setIsAlertDialogOpen(true);
+  };
+
+  const handleConfirmUpdate = async () => {
+    try {
+      if (!walletAddress) {
+        setError("Wallet address not found. Please log in again.");
+        setIsAlertDialogOpen(true);
+        return;
+      }
+      setIsWaitingUsernameChange(true);
+      openResultAlertDialog();
+      await updateUser(walletAddress, { username: pendingUsername });
+      setIsWaitingUsernameChange(false);
+      setError(null);
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      setError("An error occurred while saving changes.");
+      setIsAlertDialogOpen(true);
+    }
+  };
+
+  const handleAlertClose = () => {
+    setIsAlertDialogOpen(false);
+    if (!error) {
+      onSuccess();
+    }
+  };
 
   return (
     <div className="w-full max-w-md">
@@ -20,34 +64,14 @@ const EditProfileField = ({ onSuccess }: EditProfileFieldProps) => {
         onSubmit={async (e) => {
           e.preventDefault();
           const username = (document.getElementById("edit-username") as HTMLInputElement).value;
-          const repeatUsername = (document.getElementById("repeat-username") as HTMLInputElement)
-            .value;
 
-          if (username !== repeatUsername) {
-            alert("Usernames do not match!");
+          if (!walletAddress) {
+            setError("Wallet address not found. Please log in again.");
             return;
           }
 
-          try {
-            // Get wallet address from localStorage
-
-            if (!walletAddress) {
-              alert("Wallet address not found. Please log in again.");
-              return;
-            }
-
-            // Call updateUser function with the updated username
-            const updatedUser = await updateUser(walletAddress, { username });
-
-            console.log("User updated successfully:", updatedUser);
-            alert("Changes saved successfully!");
-
-            // Close dialog and refresh profile data
-            onSuccess();
-          } catch (error) {
-            console.error("Error updating profile:", error);
-            alert("An error occurred while saving changes.");
-          }
+          setPendingUsername(username);
+          setIsDialogOpen(true);
         }}
       >
         <FieldGroup>
@@ -63,16 +87,7 @@ const EditProfileField = ({ onSuccess }: EditProfileFieldProps) => {
                   title="Username must be 4-10 characters long, can include letters and underscores, no spaces or special characters."
                 />
               </Field>
-              <Field>
-                <FieldLabel htmlFor="repeat-username">Repeat Username</FieldLabel>
-                <Input
-                  id="repeat-username"
-                  placeholder="Repeat your new username"
-                  required
-                  pattern="^[a-zA-Z_]{4,10}$"
-                  title="Username must be 4-10 characters long, can include letters and underscores, no spaces or special characters."
-                />
-              </Field>
+
               <Field>
                 <FieldDescription>
                   Both usernames must match and follow the pattern: 4-10 letters, no spaces or
@@ -91,6 +106,35 @@ const EditProfileField = ({ onSuccess }: EditProfileFieldProps) => {
           </Field>
         </FieldGroup>
       </form>
+
+      <ConfirmEditUsernameDialog
+        open={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        onConfirm={handleConfirmUpdate}
+        onCancel={() => {
+          setError(null);
+          setPendingUsername("");
+        }}
+      />
+      <AlertDialog open={isAlertDialogOpen}>
+        {isWaitingUsernameChange ? (
+          <AlertDialogContent className="flex justify-center items-center p-16">
+            <Spinner className="w-12 h-12" />
+          </AlertDialogContent>
+        ) : (
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{error ? "Error" : "Success"}</AlertDialogTitle>
+              <AlertDialogDescription>
+                {error ? error : "Your changes have been saved."}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={handleAlertClose}>Ok</AlertDialogCancel>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        )}
+      </AlertDialog>
     </div>
   );
 };
