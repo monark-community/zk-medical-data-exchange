@@ -13,7 +13,7 @@ import {
 
 interface ConfirmEditUsernameDialogProps {
   open: boolean;
-  onOpenChange: (isOpen: boolean) => void;
+  onOpenChange: () => void;
   onConfirm: () => void;
   onCancel?: () => void;
 }
@@ -26,12 +26,12 @@ const ConfirmEditUsernameDialog = ({
 }: ConfirmEditUsernameDialogProps) => {
   const handleConfirm = () => {
     onConfirm();
-    onOpenChange(false);
+    onOpenChange();
   };
 
   const handleCancel = () => {
     onCancel?.();
-    onOpenChange(false);
+    onOpenChange();
   };
 
   return (

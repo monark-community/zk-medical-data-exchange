@@ -22,7 +22,7 @@ const ProfileCard = () => {
   const { address } = useAccount();
   const { user, refetchUser } = useUser();
   const [profileCardInfo, setProfileCardInfo] = React.useState<ProfileCardProps | null>(null);
-
+  const [isWaitingForExportData, setIsWaitingForExportData] = React.useState(false);
   React.useEffect(() => {
     if (user) {
       setProfileCardInfo({
@@ -41,6 +41,7 @@ const ProfileCard = () => {
     if (!address) return;
 
     try {
+      setIsWaitingForExportData(true);
       const userData = await getUser(address);
       const json = JSON.stringify(userData, null, 2);
       const blob = new Blob([json], { type: "application/json" });
@@ -52,6 +53,8 @@ const ProfileCard = () => {
       URL.revokeObjectURL(url);
     } catch (error) {
       console.error("Failed to export user data:", error);
+    } finally {
+      setIsWaitingForExportData(false);
     }
   };
   if (!profileCardInfo) {
@@ -175,8 +178,8 @@ const ProfileCard = () => {
             <Button variant="outline" disabled>
               Privacy Settings
             </Button>
-            <Button variant="outline" onClick={exportUserData}>
-              Download Data
+            <Button variant="outline" disabled={isWaitingForExportData} onClick={exportUserData}>
+              {isWaitingForExportData ? "Exporting..." : "Download Data"}
             </Button>
           </div>
         </CardContent>
