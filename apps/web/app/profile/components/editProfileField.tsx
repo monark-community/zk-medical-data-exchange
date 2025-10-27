@@ -96,11 +96,6 @@ const EditProfileField = ({ onSuccess }: EditProfileFieldProps) => {
                   special characters.
                 </FieldDescription>
               </Field>
-              {/* <Field>
-                <FieldLabel htmlFor="change-profile-pic">Profile Picture</FieldLabel>
-                <Input id="change-profile-pic" type="file" accept="image/*" />
-                <FieldDescription>Upload a new profile picture</FieldDescription>
-              </Field> */}
             </FieldGroup>
           </FieldSet>
           <Field orientation="horizontal">
