@@ -20,6 +20,7 @@ import { UserProfile } from "@/services/api/auditService";
 
 import { useRouter } from "next/navigation";
 import { useUser } from "@/hooks/useUser";
+import ProfileAvatar from "../profileAvatar";
 const UserMenu = () => {
   const { address } = useAccount();
   const { disconnect } = useWeb3AuthDisconnect();
@@ -39,11 +40,7 @@ const UserMenu = () => {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="outline">
-          <span className="relative flex shrink-0 overflow-hidden rounded-full w-6 h-6">
-            <span className="flex h-full w-full items-center justify-center rounded-full bg-muted text-xs bg-gradient-to-br from-blue-500 to-teal-500 text-white">
-              MC
-            </span>
-          </span>
+          <ProfileAvatar size={32} radius={48} />
           <div className="flex flex-col items-start">
             <span className="text-sm font-medium">{user.username}</span>
             <span className="text-xs text-gray-500">

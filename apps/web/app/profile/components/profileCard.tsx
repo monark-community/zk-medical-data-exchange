@@ -4,13 +4,14 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Settings, Activity } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+
 import { ProfileCardProps } from "@/interfaces/profile";
 import { useProfile } from "@/contexts/ProfileContext";
 import { getUser } from "@/services/api/userService";
 import { useAccount } from "wagmi";
 import EditProfileDialog from "./editProfileDialog";
 import { useUser } from "@/hooks/useUser";
+import ProfileAvatar from "@/components/profileAvatar";
 
 const ProfileCard = () => {
   const formatWalletAddress = (address: string) => {
@@ -64,10 +65,7 @@ const ProfileCard = () => {
         <CardHeader className="bg-gradient-to-r from-blue-600 to-teal-500 p-8 text-white">
           <div className="flex items-start gap-6">
             {/* Avatar */}
-            <Avatar className="w-24 h-24 border-4 border-white">
-              <AvatarImage src="/avatar.png" />
-              <AvatarFallback>MC</AvatarFallback>
-            </Avatar>
+            <ProfileAvatar size={96} radius={48} />
             {/* User Info */}
             <div className="flex-1">
               <h1 className="text-3xl font-bold mb-2 break-words break-all">
