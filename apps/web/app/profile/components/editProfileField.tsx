@@ -106,7 +106,7 @@ const EditProfileField = ({ onSuccess }: EditProfileFieldProps) => {
 
       <ConfirmEditUsernameDialog
         open={isDialogOpen}
-        onOpenChange={setIsDialogOpen}
+        onOpenChange={() => setIsDialogOpen(false)}
         onConfirm={handleConfirmUpdate}
         onCancel={() => {
           setError(null);
