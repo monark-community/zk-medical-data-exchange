@@ -6,7 +6,7 @@ const router = Router();
 /**
  * @swagger
  * /api/user/{walletAddress}:
- *   post:
+ *   get:
  *     summary: Get user by wallet address
  *     description: Retrieves user information by wallet address
  *     tags: [User]

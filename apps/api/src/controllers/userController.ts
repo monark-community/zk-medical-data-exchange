@@ -17,7 +17,6 @@ function toUserDTO(user: { id: string; username: string | null; created_at: stri
 
 export async function getUserById(req: Request, res: Response) {
   const { walletAddress } = req.params;
-
   try {
     if (!walletAddress) {
       return res.status(400).json({ error: "walletAddress is undefined" });
