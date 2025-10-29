@@ -4,7 +4,7 @@ import { apiClient } from "@/services/core/apiClient";
 export const getUser = async (walletAddress: string): Promise<User> => {
   try {
     if (!walletAddress) throw new Error("Missing wallet address");
-    const response = await apiClient.get(`/users/${walletAddress}`);
+    const response = await apiClient.get(`/user/${walletAddress}`);
     const user = response.data;
 
     return {
@@ -26,7 +26,7 @@ export const updateUser = async (
     if (!walletAddress) throw new Error("Missing wallet address");
     if (!updatedInfo) throw new Error("Missing updated user information");
 
-    const response = await apiClient.patch(`/users/${walletAddress}`, updatedInfo);
+    const response = await apiClient.patch(`/user/${walletAddress}`, updatedInfo);
     const updatedUser = response.data;
 
     return {
