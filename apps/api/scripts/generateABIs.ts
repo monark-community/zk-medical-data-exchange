@@ -111,6 +111,11 @@ function generateABIs(): void {
       export: "MEDICAL_ELIGIBILITY_VERIFIER_ABI",
       path: "MedicalEligibilityVerifier.sol/Groth16Verifier.json",
     },
+    {
+      name: "AuditTrail",
+      export: "AUDIT_TRAIL_ABI",
+      path: "audit/AuditTrail.sol/AuditTrail.json",
+    },
   ];
 
   for (const contract of contracts) {

@@ -1,5 +1,5 @@
 /**
- * Blockchain Service for API Backend
+ * Study Service for API Backend
  * Handles StudyFactory contract interactions on Sepolia testnet
  */
 
@@ -11,7 +11,7 @@ import logger from "@/utils/logger";
 import { Config } from "@/config/config";
 import { STUDY_FACTORY_ABI } from "../contracts/generated";
 
-export interface BlockchainDeploymentParams {
+export interface StudyDeploymentParams {
   title: string;
   description: string;
   maxParticipants: number;
@@ -21,7 +21,7 @@ export interface BlockchainDeploymentParams {
   criteria: StudyCriteria;
 }
 
-export interface BlockchainDeploymentResult {
+export interface StudyDeploymentResult {
   success: boolean;
   studyId?: number;
   studyAddress?: string;
@@ -30,7 +30,7 @@ export interface BlockchainDeploymentResult {
   error?: string;
 }
 
-class BlockchainService {
+class StudyService {
   private walletClient: any;
   private publicClient: any;
   private account: any;
@@ -73,7 +73,7 @@ class BlockchainService {
         deployer: this.account.address,
         studyFactory: Config.STUDY_FACTORY_ADDRESS,
       },
-      "Blockchain service initialized"
+      "Study service initialized"
     );
   }
 
@@ -200,14 +200,14 @@ class BlockchainService {
   /**
    * Deploy study to StudyFactory contract
    */
-  async deployStudy(params: BlockchainDeploymentParams): Promise<BlockchainDeploymentResult> {
+  async deployStudy(params: StudyDeploymentParams): Promise<StudyDeploymentResult> {
     try {
       logger.info(
         {
           title: params.title,
           maxParticipants: params.maxParticipants,
         },
-        "Starting blockchain deployment"
+        "Starting study deployment"
       );
 
       let contractCriteria;
@@ -521,4 +521,4 @@ class BlockchainService {
 }
 
 // Export singleton instance
-export const blockchainService = new BlockchainService();
+export const studyService = new StudyService();
