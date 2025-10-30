@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useProtectedRoute } from "@/hooks/useAuth";
 
 import CustomNavbar from "@/components/navigation/customNavBar";
@@ -9,27 +8,12 @@ import DashboardTabs from "./components/dashboardTabs";
 import { useAccount } from "wagmi";
 
 import AccountOverview from "./components/accountOverview";
-import { generateAESKey } from "@/utils/encryption";
-import { deriveKeyFromWallet } from "@/utils/walletKey";
-import { addAESKeyToStore } from "@/services/storage";
+import { useAESKey } from "@/hooks/useAESKey";
 
 export default function Dashboard() {
   const { isConnected } = useProtectedRoute();
   const account = useAccount();
-  const [aesKey, setAESKey] = useState<string | null>(null);
-
-  useEffect(() => {
-    const initKey = async () => {
-      try {
-        const key = generateAESKey(await deriveKeyFromWallet());
-        setAESKey(key);
-        addAESKeyToStore(key);
-      } catch (err) {
-        console.error("Failed to derive AES key:", err);
-      }
-    };
-    initKey();
-  }, []);
+  const { aesKey } = useAESKey(account);
 
   if (!isConnected) {
     return null;
