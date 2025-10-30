@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { fetchCIDs } from "@/services/api/dataVaultService";
 import { Button } from "@/components/ui/button";
-import { ipfsDownload } from "@/services/storage";
+import { ipfsDownload } from "@/services/api/ipfsService";
 import { decryptWithKey } from "@/utils/encryption";
 import { MedicalData } from "@/interfaces/medicalData";
 import { logFileAccess } from "@/services/api/auditService";
@@ -36,6 +36,7 @@ export default function FilesSection({
     try {
       const decryptedCid = decryptWithKey(cid, aesKey);
       const content = await ipfsDownload(decryptedCid);
+      console.log("heyyyy");
       const decryptedContent = decryptWithKey(content, aesKey);
       return decryptedContent;
     } catch (error) {

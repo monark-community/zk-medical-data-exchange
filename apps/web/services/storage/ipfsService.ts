@@ -12,8 +12,8 @@ export const ipfsApiClient = axios.create({
   },
 });
 
-const setBaseUrlForOperation = (operation: 'upload' | 'management') => {
-  if (operation === 'upload') {
+const setBaseUrlForOperation = (operation: "upload" | "management") => {
+  if (operation === "upload") {
     ipfsApiClient.defaults.baseURL = "https://uploads.pinata.cloud/v3";
   } else {
     ipfsApiClient.defaults.baseURL = "https://api.pinata.cloud/v3";
@@ -61,23 +61,26 @@ const manageCacheSize = (): void => {
  */
 export const ipfsUpload = async (file_content: string): Promise<string> => {
   try {
-    setBaseUrlForOperation('upload');
-    
+    setBaseUrlForOperation("upload");
+
     const randomId = Math.random().toString(36).substring(2, 10);
 
     const formData = new FormData();
-    const blob = new Blob([file_content], { type: 'application/json' });
+    const blob = new Blob([file_content], { type: "application/json" });
 
-    formData.append('file', blob, `data-${randomId}.json`);
-    formData.append('network', 'public');
-    formData.append('name', `data-${randomId}`);
-    formData.append('keyvalues', JSON.stringify({
-      contentType: "encrypted"
-    }));
+    formData.append("file", blob, `data-${randomId}.json`);
+    formData.append("network", "public");
+    formData.append("name", `data-${randomId}`);
+    formData.append(
+      "keyvalues",
+      JSON.stringify({
+        contentType: "encrypted",
+      })
+    );
 
     const response = await ipfsApiClient.post("/files", formData, {
       headers: {
-        'Content-Type': 'multipart/form-data',
+        "Content-Type": "multipart/form-data",
       },
     });
 
@@ -101,58 +104,18 @@ export const ipfsUpload = async (file_content: string): Promise<string> => {
 };
 
 /**
- * Downloads text content from IPFS using the Pinata gateway.
- *
- * @param cid - The IPFS Content Identifier of the file to download.
- * @param options - Optional settings for download operation.
- * @returns A Promise that resolves to the file contents as a string.
- * @throws Will throw an error if the fetch request fails or the response is not OK.
- */
-export const ipfsDownload = async (cid: string): Promise<string> => {
-  if (contentCache[cid]) {
-    console.log(`Cache hit for CID: ${cid}`);
-    contentCache[cid].lastAccessed = Date.now();
-    return contentCache[cid].content;
-  }
-
-  console.log(`Cache miss for CID: ${cid}. Downloading from IPFS gateway.`);
-
-  try {
-    const response = await ipfsGatewayClient.get(`/ipfs/${cid}`);
-    const content = response.data;
-
-    if (typeof content === "string" && content.length <= MAX_CONTENT_SIZE) {
-      manageCacheSize();
-      contentCache[cid] = {
-        content: content,
-        lastAccessed: Date.now(),
-      };
-    }
-
-    return content;
-  } catch (error) {
-    console.error("Error downloading from IPFS gateway:", error);
-    throw new Error(
-      `Failed to download from IPFS: ${error instanceof Error ? error.message : "Unknown error"}`
-    );
-  }
-};
-
-/**
  * Deletes a file from Pinata IPFS storage using the file's CID.
- * 
+ *
  * @param cid - The IPFS Content Identifier (CID) of the file to delete
  * @returns A Promise that resolves to an object containing success status and message
  * @throws Will throw an error if the file is not found or if deletion fails
  */
-export const ipfsDelete = async (
-  cid: string,
-): Promise<{ success: boolean; message: string }> => {
+export const ipfsDelete = async (cid: string): Promise<{ success: boolean; message: string }> => {
   try {
-    setBaseUrlForOperation('management');
-    
-    const network = 'public'; // We use 'public' for mainnet files
-    
+    setBaseUrlForOperation("management");
+
+    const network = "public"; // We use 'public' for mainnet files
+
     const searchResponse = await ipfsApiClient.get(`/files/${network}`, {
       params: {
         cid: cid,
@@ -183,7 +146,7 @@ export const ipfsDelete = async (
       const message = error.response?.data?.error || error.message;
 
       if (status === 401 || status === 403) {
-        throw new Error('Invalid or insufficient permissions for Pinata JWT token');
+        throw new Error("Invalid or insufficient permissions for Pinata JWT token");
       }
 
       if (status === 404) {
@@ -192,7 +155,7 @@ export const ipfsDelete = async (
 
       throw new Error(`Failed to delete file: ${message}`);
     }
-    
+
     throw error;
   }
-}
+};

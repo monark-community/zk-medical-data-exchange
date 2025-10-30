@@ -16,7 +16,8 @@ import { EllipsisVertical } from "lucide-react";
 import { decryptWithKey } from "@/utils/encryption";
 
 import { MedicalData } from "@/interfaces/medicalData";
-import { ipfsDelete, ipfsDownload } from "@/services/storage";
+import { ipfsDelete } from "@/services/storage";
+import { ipfsDownload } from "@/services/api/ipfsService";
 import { deleteCID } from "@/services/api";
 import { logFileAccess } from "@/services/api/auditService";
 const FileOperationDropDown = ({
