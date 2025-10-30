@@ -1,8 +1,15 @@
 import type { Request, Response } from "express";
 import logger from "@/utils/logger";
 import { TABLES } from "@/constants/db";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 const { USERS } = TABLES;
+
+export type UserRow = {
+  id: string;
+  username: string | null;
+  created_at: string;
+};
 
 export async function checkIfUserExists(
   req: Request,
@@ -64,4 +71,56 @@ export async function createUser(
     res.status(500).json({ error: "Internal server error" });
     return false;
   }
+}
+
+export async function getUserByWalletAddress(
+  supabase: SupabaseClient,
+  walletAddress: string
+): Promise<UserRow | null> {
+  const { data, error } = await supabase
+    .from(USERS!.name!)
+    .select("id, username, created_at")
+    .eq(USERS!.columns.id!, walletAddress)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Supabase query failed: ${error.message}`);
+  }
+
+  return data ?? null;
+}
+
+export async function updateUserByWalletAddress(
+  supabase: SupabaseClient,
+  walletAddress: string,
+  updateData: { username?: string }
+): Promise<UserRow | null> {
+  // Validate username if provided
+  if (updateData.username !== undefined) {
+    const username = updateData.username.trim();
+
+    // Validate username format, just in case: 4-10 characters, letters and underscores only
+    const usernameRegex = /^[a-zA-Z_]{4,10}$/;
+    if (!usernameRegex.test(username)) {
+      throw new Error(
+        "Invalid username format. Must be 4-10 characters long, letters and underscores only."
+      );
+    }
+  }
+
+  // Update the user
+  const { data, error } = await supabase
+    .from(USERS!.name!)
+    .update({
+      [USERS!.columns.username!]: updateData.username,
+    })
+    .eq(USERS!.columns.id!, walletAddress)
+    .select("id, username, created_at")
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Failed to update user: ${error.message}`);
+  }
+
+  return data ?? null;
 }
