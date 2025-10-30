@@ -11,8 +11,11 @@
     "test:study-flow": "ts-node scripts/testStudyFlow.ts"
   },
   "dependencies": {
+    "@dicebear/collection": "^9.2.4",
+    "@dicebear/core": "^9.2.4",
     "@lighthouse-web3/sdk": "^0.4.2",
     "@radix-ui/react-select": "^2.2.6",
+    "@radix-ui/react-separator": "^1.1.7",
     "@radix-ui/react-slot": "^1.2.3",
     "@radix-ui/react-tabs": "^1.1.13",
     "@supabase/ssr": "^0.7.0",
