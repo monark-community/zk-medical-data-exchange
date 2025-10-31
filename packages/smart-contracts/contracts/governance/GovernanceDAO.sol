@@ -89,6 +89,32 @@ contract GovernanceDAO {
         uint256 newPeriod,
         address indexed updatedBy
     );
+    
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Only owner can call this function");
+        _;
+    }
+    
+    modifier proposalExists(uint256 proposalId) {
+        require(proposalId < proposalCount, "Proposal does not exist");
+        _;
+    }
+    
+    modifier votingActive(uint256 proposalId) {
+        require(proposals[proposalId].state == ProposalState.Active, "Voting is not active");
+        require(block.timestamp >= proposals[proposalId].startTime, "Voting hasn't started");
+        require(block.timestamp <= proposals[proposalId].endTime, "Voting has ended");
+        _;
+    }
+    
+    modifier hasNotVoted(uint256 proposalId) {
+        require(!hasVoted[proposalId][msg.sender], "Already voted on this proposal");
+        _;
+    }
+    
+    constructor() {
+        owner = msg.sender;
+    }
 
 }
     
