@@ -159,5 +159,68 @@ contract GovernanceDAO {
         return proposalId;
     }
 
+    function vote(uint256 proposalId, VoteChoice choice) 
+        external
+        proposalExists(proposalId)
+        votingActive(proposalId)
+        hasNotVoted(proposalId)
+    {
+        require(choice != VoteChoice.None, "Invalid vote choice");
+        
+        hasVoted[proposalId][msg.sender] = true;
+        votes[proposalId][msg.sender] = choice;
+        
+        if (choice == VoteChoice.For) {
+            proposals[proposalId].votesFor++;
+        } else if (choice == VoteChoice.Against) {
+            proposals[proposalId].votesAgainst++;
+        } else if (choice == VoteChoice.Abstain) {
+            proposals[proposalId].votesAbstain++;
+        }
+        
+        proposals[proposalId].totalVoters++;
+        
+        userVotes[msg.sender].push(proposalId);
+        userVoteCount[msg.sender]++;
+        totalVotesCast++;
+        
+        emit VoteCast(proposalId, msg.sender, choice, block.timestamp);
+    }
+
+    function finalizeProposal(uint256 proposalId) 
+        external 
+        proposalExists(proposalId)
+    {
+        Proposal storage proposal = proposals[proposalId];
+        
+        require(proposal.state == ProposalState.Active, "Proposal not active");
+        require(block.timestamp > proposal.endTime, "Voting period not ended");
+        
+        ProposalState newState = proposal.votesFor > proposal.votesAgainst 
+            ? ProposalState.Passed 
+            : ProposalState.Failed;
+        
+        proposal.state = newState;
+        
+        emit ProposalStateChanged(proposalId, newState, block.timestamp);
+    }
+    
+    function executeProposal(uint256 proposalId)
+        external
+        onlyOwner
+        proposalExists(proposalId)
+    {
+        Proposal storage proposal = proposals[proposalId];
+        
+        require(proposal.state == ProposalState.Passed, "Proposal must be passed");
+        require(!proposal.executed, "Already executed");
+        
+        proposal.executed = true;
+        proposal.state = ProposalState.Executed;
+        
+        emit ProposalExecuted(proposalId, msg.sender, block.timestamp);
+    }
+
+
 }
     
