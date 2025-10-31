@@ -7,7 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { useRouter } from "next/navigation";
 import { useWeb3AuthLogin } from "@/hooks/useAuth";
 
-const HeroSection = () => {
+const Hero = () => {
   const router = useRouter();
 
   const { login, isAuthenticating } = useWeb3AuthLogin();
@@ -99,4 +99,4 @@ const HeroSection = () => {
   );
 };
 
-export default HeroSection;
+export default Hero;
