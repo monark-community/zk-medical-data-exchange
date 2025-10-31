@@ -116,5 +116,48 @@ contract GovernanceDAO {
         owner = msg.sender;
     }
 
+    function createProposal(
+        string memory title,
+        string memory description,
+        ProposalCategory category
+    ) external returns (uint256) {
+        require(bytes(title).length > 0, "Title cannot be empty");
+        require(bytes(description).length > 0, "Description cannot be empty");
+        
+        uint256 proposalId = proposalCount;
+        uint256 startTime = block.timestamp;
+        uint256 endTime = startTime + votingPeriod;
+        
+        proposals[proposalId] = Proposal({
+            id: proposalId,
+            title: title,
+            description: description,
+            category: category,
+            proposer: msg.sender,
+            startTime: startTime,
+            endTime: endTime,
+            votesFor: 0,
+            votesAgainst: 0,
+            votesAbstain: 0,
+            totalVoters: 0,
+            executed: false,
+            state: ProposalState.Active
+        });
+        
+        userProposals[msg.sender].push(proposalId);
+        proposalCount++;
+        
+        emit ProposalCreated(
+            proposalId,
+            msg.sender,
+            title,
+            category,
+            startTime,
+            endTime
+        );
+        
+        return proposalId;
+    }
+
 }
     
