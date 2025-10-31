@@ -338,5 +338,19 @@ contract GovernanceDAO {
         return (proposalCount, active, totalVotesCast, 0);
     }
 
+    function setVotingPeriod(uint256 newPeriod) external onlyOwner {
+        require(newPeriod >= 1 days, "Voting period must be at least 1 day");
+        require(newPeriod <= 30 days, "Voting period cannot exceed 30 days");
+        
+        uint256 oldPeriod = votingPeriod;
+        votingPeriod = newPeriod;
+        
+        emit VotingPeriodUpdated(oldPeriod, newPeriod, msg.sender);
+    }
+    
+    function renounceOwnership() external onlyOwner {
+        owner = address(0);
+    }
+
 }
     
