@@ -221,6 +221,122 @@ contract GovernanceDAO {
         emit ProposalExecuted(proposalId, msg.sender, block.timestamp);
     }
 
+    function getProposal(uint256 proposalId) 
+        external 
+        view 
+        proposalExists(proposalId)
+        returns (Proposal memory) 
+    {
+        return proposals[proposalId];
+    }
+    
+    function getProposalState(uint256 proposalId)
+        external
+        view
+        proposalExists(proposalId)
+        returns (ProposalState)
+    {
+        Proposal memory proposal = proposals[proposalId];
+        
+        if (proposal.state == ProposalState.Active && block.timestamp > proposal.endTime) {
+            return proposal.votesFor > proposal.votesAgainst 
+                ? ProposalState.Passed 
+                : ProposalState.Failed;
+        }
+        
+        return proposal.state;
+    }
+    
+    function getHasVoted(uint256 proposalId, address voter)
+        external
+        view
+        proposalExists(proposalId)
+        returns (bool)
+    {
+        return hasVoted[proposalId][voter];
+    }
+    
+    function getVote(uint256 proposalId, address voter)
+        external
+        view
+        proposalExists(proposalId)
+        returns (VoteChoice)
+    {
+        return votes[proposalId][voter];
+    }
+    
+    function getUserProposals(address user)
+        external
+        view
+        returns (uint256[] memory)
+    {
+        return userProposals[user];
+    }
+    
+    function getUserVotes(address user)
+        external
+        view
+        returns (uint256[] memory)
+    {
+        return userVotes[user];
+    }
+    
+    function getVotingStats(uint256 proposalId)
+        external
+        view
+        proposalExists(proposalId)
+        returns (
+            uint256 votesFor,
+            uint256 votesAgainst,
+            uint256 votesAbstain,
+            uint256 totalVoters
+        )
+    {
+        Proposal memory proposal = proposals[proposalId];
+        return (
+            proposal.votesFor,
+            proposal.votesAgainst,
+            proposal.votesAbstain,
+            proposal.totalVoters
+        );
+    }
+    
+    function getTimeRemaining(uint256 proposalId)
+        external
+        view
+        proposalExists(proposalId)
+        returns (uint256)
+    {
+        Proposal memory proposal = proposals[proposalId];
+        
+        if (block.timestamp >= proposal.endTime) {
+            return 0;
+        }
+        
+        return proposal.endTime - block.timestamp;
+    }
+    
+    function getPlatformStats()
+        external
+        view
+        returns (
+            uint256 totalProposals,
+            uint256 activeProposals,
+            uint256 totalVotes,
+            uint256 uniqueVoters
+        )
+    {
+        uint256 active = 0;
+        
+        for (uint256 i = 0; i < proposalCount; i++) {
+            if (proposals[i].state == ProposalState.Active && 
+                block.timestamp <= proposals[i].endTime) {
+                active++;
+            }
+        }
+        
+        return (proposalCount, active, totalVotesCast, 0);
+    }
 
 }
     
