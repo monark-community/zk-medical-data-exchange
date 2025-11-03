@@ -169,19 +169,3 @@ bun run deploy:contracts:local     # Deploy contracts locally
 bun run deploy:contracts:sepolia   # Deploy to Sepolia
 # See packages/smart-contracts/SEPOLIA_DEPLOYMENT.md for details
 ```
-
-## 📚 Documentation
-
-- **[Smart Contracts README](./packages/smart-contracts/README.md)** - Contract architecture and ZK circuits
-- **[Sepolia Deployment](./packages/smart-contracts/SEPOLIA_DEPLOYMENT.md)** - Testnet deployment guide
-- **[ZK Testing Guide](./packages/smart-contracts/TESTING_GUIDE.md)** - Zero-knowledge proof testing
-- **[FHIR Integration](./FHIR_INTEGRATION.md)** - Medical data standards integration
-- **[Study Flow](./COMPLETE_STUDY_FLOW.md)** - End-to-end workflow documentation
-
-## 🤝 Contributing
-
-This project uses a monorepo structure with TypeScript, modern tooling, and comprehensive testing. See individual package READMEs for specific development guidelines.
-
-## 📄 License
-
-[License information]

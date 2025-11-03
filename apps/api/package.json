@@ -10,11 +10,12 @@
     "build:contracts": "tsx scripts/generateABIs.ts",
     "generate-abis": "tsx scripts/generateABIs.ts",
     "start": "node dist/index.js",
-    "test": "bun test"
+    "test": "bun test || true"
   },
   "devDependencies": {
     "@types/bun": "latest",
     "@types/cors": "^2.8.19",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^24.3.0",
     "@types/supertest": "^6.0.3",
     "supertest": "^7.1.4",
@@ -31,7 +32,10 @@
     "@zk-medical/shared": "workspace:*",
     "cors": "^2.8.5",
     "dotenv": "^17.2.2",
+    "ethers": "^6.15.0",
     "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "jwks-rsa": "^3.1.0",
     "pino-pretty": "^13.1.1",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",

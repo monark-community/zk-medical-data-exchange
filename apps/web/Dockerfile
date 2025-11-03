@@ -1,6 +1,5 @@
-FROM oven/bun:latest
+FROM oven/bun:1.2.21
 
-WORKDIR /web
 ARG NEXT_PUBLIC_APP_API_URL
 ARG NEXT_PUBLIC_APP_API_KEY
 ARG NEXT_PUBLIC_PINATA_JWT_TOKEN
@@ -11,11 +10,20 @@ ENV NEXT_PUBLIC_APP_API_KEY=$NEXT_PUBLIC_APP_API_KEY
 ENV NEXT_PUBLIC_WEB3AUTH_CLIENT_ID=$NEXT_PUBLIC_WEB3AUTH_CLIENT_ID
 ENV NEXT_PUBLIC_PINATA_JWT_TOKEN=$NEXT_PUBLIC_PINATA_JWT_TOKEN
 
-COPY package.json ./
+WORKDIR /workspace
 
+COPY ./package.json ./bun.lock ./
+
+COPY ./packages/shared ./packages/shared
+COPY ./packages/smart-contracts ./packages/smart-contracts
+COPY ./apps/web/package.json ./apps/web/package.json
+COPY ./apps/api/package.json ./apps/api/package.json
+
+WORKDIR /workspace
 RUN bun install
 
-COPY . ./
+WORKDIR /workspace/apps/web
+COPY ./apps/web/ ./
 
 RUN bun run build
 

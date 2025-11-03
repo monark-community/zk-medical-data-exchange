@@ -26,6 +26,9 @@ export const Config = {
   LOG_LEVEL: process.env.LOG_LEVEL || "info",
   APP_API_KEY: requireEnv("APP_API_KEY"),
 
+  // Web3Auth
+  SESSION_SECRET: requireEnv("SESSION_SECRET"),
+
   // Supabase
   SUPABASE_URL: requireEnv("SUPABASE_URL"),
   SUPABASE_KEY: requireEnv("SUPABASE_ANON_KEY"),
@@ -37,4 +40,5 @@ export const Config = {
   // Smart Contract Addresses
   STUDY_FACTORY_ADDRESS: requireEnv("STUDY_FACTORY_ADDRESS"),
   ZK_VERIFIER_ADDRESS: requireEnv("ZK_VERIFIER_ADDRESS"),
+  AUDIT_TRAIL_ADDRESS: requireEnv("AUDIT_TRAIL_ADDRESS"),
 };
