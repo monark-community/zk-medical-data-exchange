@@ -6,6 +6,7 @@ import Hero from "@/app/landing/components/hero";
 import Features from "@/app/landing/components/features";
 import Statistics from "@/app/landing/components/statistics";
 import Breakthroughs from "@/app/landing/components/breakthroughs";
+import Footer from "@/components/footer";
 
 export default function LandingPage() {
   return (
@@ -17,6 +18,7 @@ export default function LandingPage() {
         <Statistics />
         <Breakthroughs />
       </div>
+      <Footer />
     </div>
   );
 }
