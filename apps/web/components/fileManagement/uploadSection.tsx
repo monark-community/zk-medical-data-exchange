@@ -8,7 +8,7 @@ import { encryptWithKey } from "@/utils/encryption";
 import RecordTypeSelect from "@/components/fileManagement/recordTypeSelect";
 import { Upload, Loader2 } from "lucide-react";
 import eventBus from "@/lib/eventBus";
-import { ipfsUpload } from "@/services/storage";
+import { ipfsUpload } from "@/services/api/ipfsService";
 import { uploadMedicalData } from "@/services/api";
 
 export default function UploadSection({
@@ -129,12 +129,13 @@ export default function UploadSection({
                   try {
                     const content = await uploadedFile.text();
                     const encryptedContent = encryptWithKey(content, aesKey);
-                    const cid = await ipfsUpload(encryptedContent);
-                    const encryptedCid = encryptWithKey(cid, aesKey);
+                    const uploadResponse = await ipfsUpload(encryptedContent);
+                    const encryptedCid = encryptWithKey(uploadResponse.cid, aesKey);
                     const result = await uploadMedicalData(
                       account.address,
                       encryptedCid,
-                      recordType
+                      recordType,
+                      uploadResponse.fileId
                     );
 
                     if (result) {

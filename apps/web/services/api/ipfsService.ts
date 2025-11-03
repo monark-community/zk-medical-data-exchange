@@ -10,6 +10,11 @@ interface CacheEntry {
   lastAccessed: number;
 }
 
+type UploadResponse = {
+  cid: string;
+  fileId: string;
+};
+
 const contentCache: Record<string, CacheEntry> = {};
 
 /**
@@ -33,35 +38,44 @@ const manageCacheSize = (): void => {
   }
 };
 
-/**
- * Uploads encrypted content by delegating to your backend API.
- * The backend should persist and return the resulting CID.
- *
- * POST /ipfs/upload
- * body: { file_content: string }
- * res:  { cid: string }
- */
-export const ipfsUpload = async (file_content: string): Promise<string> => {
+export const ipfsUpload = async (file_content: string): Promise<UploadResponse> => {
   try {
-    const response = await apiClient.post("/ipfs/upload", { file_content });
-    const cid: string = response.data?.cid;
+    const filename = `data-${Date.now()}.json`;
+    const mime = "application/json";
+    const presign = await apiClient.get("/ipfs", {
+      params: { filename, mime, expires: 60, maxSize: 50_000_000 },
+    });
 
-    if (!cid) {
-      throw new Error("Upload response missing CID");
+    const signedUrl: string = presign.data?.url;
+    if (!signedUrl) throw new Error("Missing signed upload URL");
+
+    const blob = new Blob([file_content], { type: mime });
+    const file = new File([blob], filename, { type: mime });
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const uploadResp = await fetch(signedUrl, { method: "POST", body: formData });
+    if (!uploadResp.ok) {
+      const errText = await uploadResp.text().catch(() => "");
+      throw new Error(errText || `Upload failed with ${uploadResp.status}`);
     }
 
-    // Cache small payloads locally for instant subsequent reads
-    if (typeof file_content === "string" && file_content.length <= MAX_CONTENT_SIZE) {
+    const json = await uploadResp.json().catch(() => ({} as any));
+    const cid: string = json?.data?.cid;
+    const fileId: string = json?.data?.id;
+
+    if (!cid || !fileId) throw new Error("Upload response missing CID or File ID");
+
+    if (file_content.length <= MAX_CONTENT_SIZE) {
       manageCacheSize();
-      contentCache[cid] = {
-        content: file_content,
-        lastAccessed: Date.now(),
-      };
+      contentCache[cid] = { content: file_content, lastAccessed: Date.now() };
     }
 
-    return cid;
+    return {
+      cid,
+      fileId,
+    };
   } catch (error: any) {
-    console.error("Error uploading via API:", error);
     throw new Error(
       `Failed to upload: ${error?.response?.data?.error || error.message || "Unknown error"}`
     );
@@ -101,17 +115,13 @@ export const ipfsDownload = async (cid: string): Promise<string> => {
   }
 };
 
-/**
- * Deletes stored content (and any backend mapping) via your API.
- *
- * DELETE /ipfs
- * body: { cid: string }
- * res:  { success: boolean; message?: string }
- */
-export const ipfsDelete = async (cid: string): Promise<{ success: boolean; message: string }> => {
+export const ipfsDelete = async (
+  cid: string,
+  fileId: string
+): Promise<{ success: boolean; message: string }> => {
   try {
     const response = await apiClient.delete("/ipfs", {
-      data: { cid },
+      data: { file_id: fileId },
     });
 
     // Clear cache
