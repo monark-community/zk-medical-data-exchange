@@ -1,8 +1,10 @@
 import jwt from "jsonwebtoken";
 import jwksClient from "jwks-rsa";
 import type { Request, Response, NextFunction } from "express";
+
 import logger from "@/utils/logger";
 import { Config } from "@/config/config";
+import { getAddress } from "ethers";
 
 const METAMASK_JWKS_URI = "https://authjs.web3auth.io/jwks";
 
@@ -179,8 +181,20 @@ export function verifyWeb3AuthToken(req: Request, res: Response, next: NextFunct
         return;
       }
 
-      const walletAddress = web3AuthUser.wallets[0].address;
-      const walletType = web3AuthUser.wallets[0].type;
+      // Convert all wallet addresses to checksum format
+      if (web3AuthUser.wallets && Array.isArray(web3AuthUser.wallets)) {
+        web3AuthUser.wallets = web3AuthUser.wallets.map((wallet) => ({
+          ...wallet,
+          address: getAddress(wallet.address),
+        }));
+      }
+
+      let walletAddress = undefined;
+      let walletType = undefined;
+      if (web3AuthUser.wallets && web3AuthUser.wallets[0]) {
+        walletAddress = web3AuthUser.wallets[0].address;
+        walletType = web3AuthUser.wallets[0].type;
+      }
 
       logger.info(
         {

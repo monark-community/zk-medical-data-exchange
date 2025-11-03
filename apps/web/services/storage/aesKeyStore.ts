@@ -32,7 +32,7 @@ export function getAESKey(currentWalletAddress?: string): string | null {
   if (aesKey && keyTimestamp) {
     const now = Date.now();
     const isValidTime = now - keyTimestamp < CACHE_DURATION;
-    const isValidAddress = !currentWalletAddress || cachedAddress === currentWalletAddress;
+    const isValidAddress = currentWalletAddress && cachedAddress === currentWalletAddress;
 
     if (isValidTime && isValidAddress) {
       return aesKey;

@@ -17,11 +17,16 @@ import { useAccount } from "wagmi";
 import { useWeb3AuthDisconnect } from "@web3auth/modal/react";
 import { useProfile } from "@/contexts/ProfileContext";
 import { UserProfile } from "@/services/api/auditService";
+
+import { useRouter } from "next/navigation";
+import { useUser } from "@/hooks/useUser";
+import ProfileAvatar from "../profileAvatar";
 const UserMenu = () => {
   const { address } = useAccount();
   const { disconnect } = useWeb3AuthDisconnect();
   const { currentProfile, setProfile, getProfileDisplayName } = useProfile();
-
+  const { user } = useUser();
+  const router = useRouter();
   const handleProfileSwitch = () => {
     const newProfile =
       currentProfile === UserProfile.DATA_SELLER ? UserProfile.RESEARCHER : UserProfile.DATA_SELLER;
@@ -35,13 +40,9 @@ const UserMenu = () => {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="outline">
-          <span className="relative flex shrink-0 overflow-hidden rounded-full w-6 h-6">
-            <span className="flex h-full w-full items-center justify-center rounded-full bg-muted text-xs bg-gradient-to-br from-blue-500 to-teal-500 text-white">
-              MC
-            </span>
-          </span>
+          <ProfileAvatar size={32} radius={48} />
           <div className="flex flex-col items-start">
-            <span className="text-sm font-medium">Monark Cura</span>
+            <span className="text-sm font-medium">{user.username}</span>
             <span className="text-xs text-gray-500">
               {address ? `${address.slice(0, 6)}...${address.slice(-4)}` : "No wallet connected"}
             </span>
@@ -51,7 +52,7 @@ const UserMenu = () => {
       <DropdownMenuContent className="w-56" align="end">
         <DropdownMenuLabel>Current view: {getProfileDisplayName(currentProfile)}</DropdownMenuLabel>
         <DropdownMenuGroup>
-          <DropdownMenuItem>
+          <DropdownMenuItem onClick={() => router.push("/profile")}>
             <User />
             Profile
           </DropdownMenuItem>

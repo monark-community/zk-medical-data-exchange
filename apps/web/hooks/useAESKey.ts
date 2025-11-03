@@ -9,8 +9,8 @@ import { getAESKey, addAESKeyToStore } from "@/services/storage";
 import { deriveKeyFromWallet } from "@/utils/walletKey";
 import { generateAESKey } from "@/utils/encryption";
 
-export function useAESKey() {
-  const { address, isConnected } = useAccount();
+export function useAESKey(account: ReturnType<typeof useAccount>) {
+  const { address, isConnected } = account;
   const [aesKey, setAESKey] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -24,13 +24,11 @@ export function useAESKey() {
 
     try {
       // Try cached key first (unless forcing refresh)
-      if (!forceRefresh) {
-        const cachedKey = getAESKey(address);
-        if (cachedKey) {
-          setAESKey(cachedKey);
-          setIsLoading(false);
-          return cachedKey;
-        }
+      const cachedKey = getAESKey(address);
+      if (!forceRefresh && cachedKey) {
+        setAESKey(cachedKey);
+        setIsLoading(false);
+        return cachedKey;
       }
 
       // Request new signature and generate key

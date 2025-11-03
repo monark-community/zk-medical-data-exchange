@@ -21,7 +21,10 @@ const NAV_CONFIG = {
 };
 
 const Logo = ({ href }: { href: string }) => (
-  <Link href={href} className="flex items-center cursor-pointer hover:opacity-80 transition-opacity">
+  <Link
+    href={href}
+    className="flex items-center cursor-pointer hover:opacity-80 transition-opacity"
+  >
     <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-teal-600 rounded-lg flex items-center justify-center">
       <Shield className="text-white w-5 h-5" />
     </div>
@@ -31,11 +34,11 @@ const Logo = ({ href }: { href: string }) => (
   </Link>
 );
 
-const NavLink = ({ 
+const NavLink = ({
   item,
   isActive,
   onClick,
-  className = ""
+  className = "",
 }: {
   item: { label: string; path: string; icon: any };
   isActive: boolean;
@@ -44,8 +47,8 @@ const NavLink = ({
 }) => {
   const Icon = item.icon;
   const baseStyles = "flex items-center rounded-lg transition-all duration-200";
-  const activeStyles = isActive 
-    ? "bg-blue-50 text-blue-600 font-medium" 
+  const activeStyles = isActive
+    ? "bg-blue-50 text-blue-600 font-medium"
     : "text-gray-600 hover:text-blue-600 hover:bg-gray-50";
 
   return (
@@ -62,13 +65,13 @@ const NavLink = ({
   );
 };
 
-const AuthButtons = ({ 
-  isAuthenticated, 
-  isAuthenticating, 
-  login, 
+const AuthButtons = ({
+  isAuthenticated,
+  isAuthenticating,
+  login,
   onMobileClick,
-  isMobile = false 
-}: { 
+  isMobile = false,
+}: {
   isAuthenticated: boolean;
   isAuthenticating: boolean;
   login: () => void;
@@ -87,7 +90,7 @@ const AuthButtons = ({
 
   const buttonSize = isMobile ? "default" : "sm";
   const buttonClass = isMobile ? "w-full" : "";
-  
+
   return (
     <div className={`flex ${isMobile ? "flex-col" : "items-center"} gap-3`}>
       <Link href="/how-it-works" onClick={onMobileClick}>
@@ -95,7 +98,7 @@ const AuthButtons = ({
           How It Works
         </Button>
       </Link>
-      <Button 
+      <Button
         size={buttonSize}
         onClick={() => {
           login();
@@ -116,14 +119,15 @@ const CustomNavbar = () => {
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const hasSessionTokens = typeof window !== "undefined" && 
-    localStorage.getItem("session_token") && 
+  const hasSessionTokens =
+    typeof window !== "undefined" &&
+    localStorage.getItem("session_token") &&
     localStorage.getItem("wallet_address");
-  
+
   const isAuthenticated = !!(isConnected && hasSessionTokens);
   const navItems = isAuthenticated ? NAV_CONFIG.private : NAV_CONFIG.public;
   const logoLink = isAuthenticated ? "/dashboard" : "/";
-  
+
   const closeMobileMenu = () => setIsMobileMenuOpen(false);
 
   useEffect(() => {
@@ -134,10 +138,10 @@ const CustomNavbar = () => {
       }
     };
 
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
-  
+
   return (
     <nav className="bg-white border-b border-gray-200">
       <div className="container mx-auto px-4 py-4 sm:px-6 lg:px-8">
@@ -146,7 +150,7 @@ const CustomNavbar = () => {
           <div className="flex items-center flex-1">
             <Logo href={logoLink} />
           </div>
-          
+
           {/* Desktop Navigation */}
           <div className="hidden lg:flex absolute left-1/2 -translate-x-1/2 items-center gap-2">
             {navItems.map((item) => (
