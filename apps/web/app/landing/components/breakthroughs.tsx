@@ -43,10 +43,10 @@ const Breakthroughs = () => {
     <section className="pb-20">
       <div className="container mx-auto px-10 sm:px-20">
         <div className="text-center mb-12">
-            <h3 className="text-3xl font-bold text-gray-900 mb-4">
+            <h3 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
             AI-Powered Breakthroughs
             </h3>
-            <p className="text-lg text-gray-600 max-w-3xl mx-auto">
+            <p className="text-md sm:text-lg md:text-xl text-gray-600 max-w-3xl mx-auto">
             Leveraging anonymized datasets from our community, AI has unlocked unprecedented medical discoveries and accelerated research timelines.
             </p>
         </div>
@@ -61,9 +61,9 @@ const Breakthroughs = () => {
                     <Icon className="w-6 h-6 text-white" />
                   </div>
                   <div className="flex-1">
-                    <h4 className="text-xl font-semibold text-gray-900 mb-2">{breakthrough.title}</h4>
-                    <p className="text-gray-600 mb-3">{breakthrough.description}</p>
-                    <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gradient-to-r ${breakthrough.gradient} text-white`}>
+                    <h4 className="text-lg md:text-xl font-semibold text-gray-900 mb-2">{breakthrough.title}</h4>
+                    <p className="text-sm md:text-md text-gray-600 mb-3">{breakthrough.description}</p>
+                    <div className={`inline-flex items-center px-3 py-1 rounded-full text-xs sm:text-sm font-medium bg-gradient-to-r ${breakthrough.gradient} text-white`}>
                       <span>{breakthrough.impact}</span>
                     </div>
                   </div>
