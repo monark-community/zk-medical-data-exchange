@@ -8,9 +8,9 @@ import StudyCreationDialog from "@/components/StudyCreationDialog";
 import { useStudies } from "@/hooks/useStudies";
 import { deleteStudy} from "@/services/api/studyService";
 import { getAggregatedMedicalData } from "@/services/core/medicalDataAggregator";
-import { validateMedicalDataForCommitment } from "@/services/zk/commitmentGenerator";
-import { SecureStudyApplicationService } from "@/services/core/secureStudyApplication";
+import { StudyApplicationService } from "@/services/core/studyApplication";
 import StudiesList from "./StudiesList";
+import { convertToZkReady } from "@/services/fhir";
 
 export default function StudiesSection() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -80,19 +80,23 @@ export default function StudiesSection() {
 
     try {
       console.log("Starting secure study application process...");
-      
-      const zkReadyMedicalData = await getAggregatedMedicalData(walletAddress);
+
+      const data = await getAggregatedMedicalData(walletAddress);
+
+      console.log("Aggregated medical data retrieved for study application:", data);
+
+      if (!data || Object.keys(data).length === 0) {
+        //TODO better UX
+        throw new Error("No medical data available for study application.");
+      }
+
+      const zkReadyMedicalData = convertToZkReady(data);
       if (!zkReadyMedicalData) {
-        throw new Error("No medical data available. Please upload your medical information to apply for studies.");
+        //TODO better UX
+        throw new Error("No valid medical data available for study application.");
       }
 
-      const validation = validateMedicalDataForCommitment(zkReadyMedicalData);
-      if (!validation.isValid) {
-        alert(`⚠️ Please complete your medical profile first.\n\nMissing data: ${validation.missingFields.join(', ')}\n\nGo to the "Medical Data" tab to upload missing information.`);
-        return;
-      }
-
-      const result = await SecureStudyApplicationService.applyToStudy(
+      const result = await StudyApplicationService.applyToStudy(
         studyId,
         zkReadyMedicalData,
         walletAddress

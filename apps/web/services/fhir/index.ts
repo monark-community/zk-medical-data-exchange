@@ -1,14 +1,10 @@
-/**
- * FHIR Services
- * Medical data processing and FHIR standard compliance
- */
+export * from "./types";
 
 export * from "./fhirToZkMappings";
-export * from "./fhirIntegrationService";
+export * from "./fhirDataExtractor";
 
-// Convenience exports for commonly used functions
 export {
-  extractZKValuesFromFHIR,
+  convertToZkReady as extractZKValuesFromFHIR,
   fhirGenderToZK,
   fhirBloodTypeToZK,
   fhirSmokingStatusToZK,
@@ -19,9 +15,6 @@ export {
 } from "./fhirToZkMappings";
 
 export {
-  processFHIRForStudy,
-  getFHIRProcessingSummary,
   validateFHIRData,
-  processFHIRData,
-  checkStudyEligibility,
-} from "./fhirIntegrationService";
+  extractFHIRData as processFHIRData,
+} from "./fhirDataExtractor";

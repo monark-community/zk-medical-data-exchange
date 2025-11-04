@@ -1,5 +1,5 @@
-import { AggregatedMedicalData } from "@/services/core/medicalDataAggregator";
 import { poseidon3, poseidon7 } from "poseidon-lite";
+import { ExtractedMedicalData } from "../fhir/types";
 
 /**
  * Generates a secure data commitment using Poseidon hash
@@ -10,7 +10,7 @@ import { poseidon3, poseidon7 } from "poseidon-lite";
  * @returns Poseidon hash commitment as hex string
  */
 export const generateDataCommitment = (
-  medicalData: AggregatedMedicalData, 
+  medicalData: ExtractedMedicalData, 
   salt: number
 ): BigInt => {
   const normalizedData = normalizeMedicalDataForCircuit(medicalData);
@@ -58,27 +58,6 @@ export const generateDataCommitment = (
 };
 
 /**
- * Validates that medical data is complete for commitment generation
- */
-export const validateMedicalDataForCommitment = (
-  medicalData: AggregatedMedicalData
-): { isValid: boolean; missingFields: string[] } => {
-  const requiredFields = ['age', 'gender', 'bmi', 'smokingStatus', 'hasHeartDisease'];
-  const missingFields: string[] = [];
-  
-  for (const field of requiredFields) {
-    if (medicalData[field as keyof AggregatedMedicalData] === undefined) {
-      missingFields.push(field);
-    }
-  }
-  
-  return {
-    isValid: missingFields.length === 0,
-    missingFields
-  };
-};
-
-/**
  * Generates a cryptographically secure salt for commitment
  */
 export const generateSecureSalt = (): number => {
@@ -89,21 +68,21 @@ export const generateSecureSalt = (): number => {
  * Normalizes medical data to match circuit input requirements
  * Ensures all fields are in the correct format and range expected by ZK circuit
  */
-const normalizeMedicalDataForCircuit = (medicalData: AggregatedMedicalData) => {
+const normalizeMedicalDataForCircuit = (medicalData: ExtractedMedicalData) => {
   return {
-    age: medicalData.age || 0,
-    gender: medicalData.gender || 1, // Default to female
-    region: medicalData.regions?.[0] || 1, // Use first region or default to North America
-    cholesterol: medicalData.cholesterol || 0,
-    bmi: Math.round((medicalData.bmi || 0) * 10), // Circuit expects BMI * 10 as integer
-    bloodType: medicalData.bloodType || 1, // Default blood type
-    systolicBP: medicalData.systolicBP || 0,
-    diastolicBP: medicalData.diastolicBP || 0,
-    hba1c: Math.round((medicalData.hba1c || 0) * 10), // Circuit expects HbA1c * 10 as integer
-    smokingStatus: medicalData.smokingStatus || 0, // 0 = never smoked
-    activityLevel: medicalData.activityLevel || 1, // Default activity level
-    diabetesStatus: medicalData.diabetesStatus || 0, // 0 = no diabetes
-    heartDiseaseHistory: medicalData.hasHeartDisease ? 1 : 0, // Convert boolean to number
+    age: medicalData.age!,
+    gender: medicalData.gender!,
+    region: medicalData.regions[0],
+    cholesterol: medicalData.cholesterol!,
+    bmi: Math.round(medicalData.bmi! * 10), // Circuit expects BMI * 10 as integer
+    bloodType: medicalData.bloodType!,
+    systolicBP: medicalData.systolicBP!,
+    diastolicBP: medicalData.diastolicBP!,
+    hba1c: Math.round(medicalData.hba1c! * 10), // Circuit expects HbA1c * 10 as integer
+    smokingStatus: medicalData.smokingStatus!,
+    activityLevel: medicalData.activityLevel!,
+    diabetesStatus: medicalData.diabetesStatus!,
+    heartDiseaseHistory: medicalData.heartDiseaseStatus!,
   };
 };
 

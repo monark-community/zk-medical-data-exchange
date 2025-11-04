@@ -1,13 +1,14 @@
 /**
- * Secure Study Application Service
+ * Study Application Service
  * Implements client-side ZK proof generation with minimal server trust
  */
 
-import { AggregatedMedicalData } from "@/services/core/medicalDataAggregator";
-import { generateDataCommitment, generateSecureSalt } from "@/services/zk/commitmentGenerator";
+//import { generateDataCommitment, generateSecureSalt } from "@/services/zk/commitmentGenerator";
 import { generateZKProof } from "@/services/zk/zkProofGenerator";
 import { StudyCriteria } from "@zk-medical/shared";
 import { apiClient } from "@/services/core/apiClient";
+import { AggregatedMedicalData, ExtractedMedicalData } from "../fhir/types";
+import { generateDataCommitment, generateSecureSalt } from "../zk/commitmentGenerator";
 
 /**
  * Study application request (only non-sensitive data)
@@ -25,32 +26,33 @@ export interface StudyApplicationRequest {
 }
 
 /**
- * Secure study application process - all sensitive operations on client
+ * Study application process - all sensitive operations on client
  */
-export class SecureStudyApplicationService {
+export class StudyApplicationService {
   /**
    * Complete study application process with client-side ZK proof generation
    * 
    * @param studyId - ID of study to apply to
-   * @param medicalData - Patient's medical data (NEVER sent to server)
+   * @param medicalData - Patient's medical data
    * @param walletAddress - Patient's wallet address
    */
   static async applyToStudy(
     studyId: number,
-    medicalData: AggregatedMedicalData,
+    medicalData: ExtractedMedicalData,
     walletAddress: string
   ): Promise<{ success: boolean; message: string }> {
     try {
       console.log("🔒 Starting secure study application process...");
 
-      console.log("📋 Fetching study criteria (public data)...");
+      console.log("📋 Fetching study criteria");
       const studyCriteria = await this.getStudyCriteria(studyId);
       
-      console.log("🔐 Generating data commitment (client-side)...");
+      console.log("🔐 Generating data commitment...");
       const salt = generateSecureSalt();
+      console.log("Generating data commitment with data:", medicalData);
       const dataCommitment = generateDataCommitment(medicalData, salt);
       
-      console.log("⚡ Generating ZK proof (client-side)...");
+      console.log("⚡ Generating ZK proof...");
       const { proof, publicSignals, isEligible } = await generateZKProof(
         medicalData,
         studyCriteria,
@@ -92,21 +94,22 @@ export class SecureStudyApplicationService {
   }
   
   /**
-   * Fetch study criteria (public data - safe to get from server)
+   * Fetch study criteria 
    */
   private static async getStudyCriteria(studyId: number): Promise<StudyCriteria> {
+    console.log("Fetching criteria for study ID:", studyId);
     try {
       const response = await apiClient.get(`/studies/${studyId}/criteria`);
+      console.log("Study criteria fetched:", response.data);
       return response.data;
     } catch (error) {
       console.error("Failed to fetch study criteria:", error);
-      // Fallback to mock criteria for development
-      return this.getMockStudyCriteria();
+      throw new Error("Failed to fetch study criteria from server");
     }
   }
   
   /**
-   * Submit application with proof (no sensitive medical data)
+   * Submit application with proof 
    */
   private static async submitApplication(request: StudyApplicationRequest): Promise<void> {
     try {
@@ -121,45 +124,5 @@ export class SecureStudyApplicationService {
       console.error("Failed to submit application:", error);
       throw new Error("Failed to submit study application to blockchain");
     }
-  }
-  
-  /**
-   * Mock study criteria for development
-   */
-  private static getMockStudyCriteria(): StudyCriteria {
-    return {
-      enableAge: 1,
-      minAge: 18,
-      maxAge: 65,
-      enableBMI: 1,
-      minBMI: 180, // 18.0 * 10
-      maxBMI: 350, // 35.0 * 10
-      enableGender: 0,
-      allowedGender: 0,
-      enableCholesterol: 0,
-      minCholesterol: 0,
-      maxCholesterol: 0,
-      enableBloodType: 0,
-      allowedBloodTypes: [0, 0, 0, 0] as const,
-      enableLocation: 0,
-      allowedRegions: [0, 0, 0, 0] as const,
-      enableBloodPressure: 0,
-      minSystolic: 0,
-      maxSystolic: 0,
-      minDiastolic: 0,
-      maxDiastolic: 0,
-      enableHbA1c: 0,
-      minHbA1c: 0,
-      maxHbA1c: 0,
-      enableSmoking: 0,
-      allowedSmoking: 0,
-      enableActivity: 0,
-      minActivityLevel: 0,
-      maxActivityLevel: 0,
-      enableDiabetes: 0,
-      allowedDiabetes: 0,
-      enableHeartDisease: 0,
-      allowedHeartDisease: 0,
-    };
   }
 }

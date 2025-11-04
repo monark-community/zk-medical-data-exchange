@@ -25,6 +25,7 @@ export const createStudy = async (req: Request, res: Response) => {
   let creatorAddress = "";
 
   try {
+    logger.info({ userId: req.body.createdBy }, "POST /studies");
     const {
       title,
       description,
@@ -211,6 +212,8 @@ export const deployStudy = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
+    logger.info({ studyId: id }, "POST /studies/:id/deploy");
+
     if (!id) {
       return res.status(400).json({ error: "Study ID is required" });
     }
@@ -347,6 +350,9 @@ export const getStudies = async (req: Request, res: Response) => {
   try {
     const { status = "active", limit = 20, page = 1 } = req.query;
 
+    logger.info({ status, limit, page }, "GET /api/studies");
+
+    
     let query = req.supabase
       .from(TABLES.STUDIES!.name)
       .select(`
@@ -431,6 +437,8 @@ export const getStudyById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
+    logger.info({ studyId: id }, "GET /api/studies/:id");
+
     const { data: study, error } = await req.supabase
       .from(TABLES.STUDIES!.name)
       .select("*")
@@ -474,6 +482,51 @@ export const getStudyById = async (req: Request, res: Response) => {
 };
 
 /**
+ * Get study criteria
+ * GET /api/studies/:id/criteria
+ *
+ */
+export const getStudyCriteria = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    logger.info({ studyId: id }, "GET /api/studies/:id/criteria");
+
+    const { data: criteria, error } = await req.supabase
+      .from(TABLES.STUDIES!.name)
+      .select("criteria_json")
+      .eq(TABLES.STUDIES!.columns.id!, id)
+      .single();
+
+    if (error) {
+      if (error.code === "PGRST116") {
+        logger.warn({ studyId: id, errorCode: error.code }, "Study not found");
+        return res.status(404).json({ error: "Study not found" });
+      }
+      logger.error({ error, studyId: id, errorCode: error.code }, "Failed to fetch study criteria");
+      return res.status(500).json({ error: "Failed to fetch study criteria" });
+    }
+
+    logger.info({ studyId: id }, "Study criteria fetched successfully");
+    
+    res.json({
+      success: true,
+      criteria: criteria.criteria_json,
+    });
+  } catch (error) {
+    logger.error({ 
+      error: error instanceof Error ? {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      } : error,
+      studyId: req.params.id 
+    }, "Get study criteria error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+/**
  * Update study status (e.g., when deployed to blockchain)
  * PATCH /api/studies/:id
  */
@@ -481,6 +534,8 @@ export const updateStudy = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const { status, contractAddress, deploymentTxHash } = req.body;
+
+    logger.info({ studyId: id, status, contractAddress }, "PATCH /api/studies/:id");
 
     const updates: any = {};
 
@@ -525,6 +580,8 @@ export const participateInStudy = async (req: Request, res: Response) => {
     const { id } = req.params;
     const { participantWallet, proofJson, publicInputsJson, matchedCriteria, eligibilityScore } =
       req.body;
+
+    logger.info({ studyId: id, participantWallet }, "POST /api/studies/:id/participants");
 
     if (!participantWallet) {
       return res.status(400).json({ error: "Participant wallet address is required" });
@@ -621,6 +678,8 @@ export const deleteStudy = async (req: Request, res: Response) => {
     const { id } = req.params;
     const { walletId } = req.body;
 
+    logger.info({ studyId: id, walletId }, "DELETE /studies/:id");
+
     if (!id) {
       return res.status(400).json({ error: "Study ID is required" });
     }
@@ -635,7 +694,6 @@ export const deleteStudy = async (req: Request, res: Response) => {
       return res.status(400).json({ error: "Invalid study ID" });
     }
 
-    // Check if study exists and get creator info
     const { data: existingStudy, error: fetchError } = await req.supabase
       .from(TABLES.STUDIES!.name)
       .select("id, title, status, created_by")
@@ -646,7 +704,6 @@ export const deleteStudy = async (req: Request, res: Response) => {
       return res.status(404).json({ error: "Study not found" });
     }
 
-    // Verify that the wallet requesting deletion is the creator
     if (existingStudy.created_by?.toLowerCase() !== walletId.toLowerCase()) {
       return res.status(403).json({
         error: "Unauthorized",
@@ -900,6 +957,10 @@ function generateTagsFromCriteria(criteria: any): string[] {
   }
 
   if (criteria.enableBMI === 1) {
+
+    criteria.minBMI = criteria.minBMI ? criteria.minBMI / 10 : null;
+    criteria.maxBMI = criteria.maxBMI ? criteria.maxBMI / 10 : null;
+
     if (criteria.minBMI && criteria.maxBMI) {
       tags.push(`BMI ${criteria.minBMI}-${criteria.maxBMI}`);
     } else if (criteria.minBMI) {

@@ -1,15 +1,3 @@
-/**
- * FHIR to ZK Circuit Mappings
- * This service maps FHIR standard values to numeric values used in ZK circuits
- *
- * FHIR Resources that contain medical criteria:
- * - Patient: demographics (gender, birthDate for age calculation)
- * - Observation: vitals, lab values (cholesterol, BMI, blood pressure, HbA1c, smoking status, activity)
- * - Condition: medical conditions (diabetes, heart disease)
- *
- * Uses centralized medical data constants for consistency across the application
- */
-
 import {
   FHIR_GENDER_CODES,
   FHIR_BLOOD_TYPE_SNOMED,
@@ -27,6 +15,7 @@ import {
   HEART_DISEASE_VALUES,
   REGION_VALUES,
 } from "@/constants/medicalDataConstants";
+import { AggregatedMedicalData, ExtractedMedicalData } from "./types";
 
 // TODO: [LT] Verify when generating zkproof if everything in this file is actually useful/needed
 
@@ -200,73 +189,72 @@ export const fhirHeartDiseaseToZK = (heartCode: string, conditionText?: string):
 // ACTIVITY LEVEL MAPPINGS (FHIR Observation)
 // ========================================
 
-/**
- * Maps FHIR physical activity observations to ZK circuit values
- * Based on LOINC codes for physical activity assessments
- */
-export const fhirActivityLevelToZK = (activityCode: string, value?: number): number => {
-  // LOINC codes for physical activity with value-based mapping
-  if (activityCode === "68516-4" && value !== undefined) {
-    // Exercise minutes per week
-    if (value < 30) return ACTIVITY_LEVEL_VALUES.SEDENTARY;
-    if (value < 150) return ACTIVITY_LEVEL_VALUES.LIGHTLY_ACTIVE;
-    if (value < 300) return ACTIVITY_LEVEL_VALUES.MODERATELY_ACTIVE;
-    if (value < 420) return ACTIVITY_LEVEL_VALUES.VERY_ACTIVE;
-    return ACTIVITY_LEVEL_VALUES.EXTREMELY_ACTIVE;
-  }
+// /**
+//  * Maps FHIR physical activity observations to ZK circuit values
+//  * Based on LOINC codes for physical activity assessments
+//  */
+// export const fhirActivityLevelToZK = (activityCode: string, value?: number): number => {
+//   if (activityCode === "68516-4" && value !== undefined) {
+//     // Exercise minutes per week
+//     if (value < 30) return ACTIVITY_LEVEL_VALUES.SEDENTARY;
+//     if (value < 150) return ACTIVITY_LEVEL_VALUES.LIGHTLY_ACTIVE;
+//     if (value < 300) return ACTIVITY_LEVEL_VALUES.MODERATELY_ACTIVE;
+//     if (value < 420) return ACTIVITY_LEVEL_VALUES.VERY_ACTIVE;
+//     return ACTIVITY_LEVEL_VALUES.EXTREMELY_ACTIVE;
+//   }
 
-  if (activityCode === "89574-8" && value !== undefined) {
-    // Steps per day
-    if (value < 5000) return ACTIVITY_LEVEL_VALUES.SEDENTARY;
-    if (value < 7500) return ACTIVITY_LEVEL_VALUES.LIGHTLY_ACTIVE;
-    if (value < 10000) return ACTIVITY_LEVEL_VALUES.MODERATELY_ACTIVE;
-    if (value < 12500) return ACTIVITY_LEVEL_VALUES.VERY_ACTIVE;
-    return ACTIVITY_LEVEL_VALUES.EXTREMELY_ACTIVE;
-  }
+//   if (activityCode === "89574-8" && value !== undefined) {
+//     // Steps per day
+//     if (value < 5000) return ACTIVITY_LEVEL_VALUES.SEDENTARY;
+//     if (value < 7500) return ACTIVITY_LEVEL_VALUES.LIGHTLY_ACTIVE;
+//     if (value < 10000) return ACTIVITY_LEVEL_VALUES.MODERATELY_ACTIVE;
+//     if (value < 12500) return ACTIVITY_LEVEL_VALUES.VERY_ACTIVE;
+//     return ACTIVITY_LEVEL_VALUES.EXTREMELY_ACTIVE;
+//   }
 
-  // Text-based activity level mapping
-  if (activityCode) {
-    const lowerCode = activityCode.toLowerCase();
+//   // Text-based activity level mapping
+//   if (activityCode) {
+//     const lowerCode = activityCode.toLowerCase();
 
-    if (
-      lowerCode.includes("sedentary") ||
-      lowerCode.includes("inactive") ||
-      lowerCode.includes("low")
-    ) {
-      return ACTIVITY_LEVEL_VALUES.SEDENTARY;
-    }
-    if (
-      lowerCode.includes("light") ||
-      lowerCode.includes("mild") ||
-      lowerCode.includes("occasional")
-    ) {
-      return ACTIVITY_LEVEL_VALUES.LIGHTLY_ACTIVE;
-    }
-    if (
-      lowerCode.includes("moderate") ||
-      lowerCode.includes("regular") ||
-      lowerCode.includes("average")
-    ) {
-      return ACTIVITY_LEVEL_VALUES.MODERATELY_ACTIVE;
-    }
-    if (
-      lowerCode.includes("high") ||
-      lowerCode.includes("vigorous") ||
-      lowerCode.includes("frequent")
-    ) {
-      return ACTIVITY_LEVEL_VALUES.VERY_ACTIVE;
-    }
-    if (
-      lowerCode.includes("extreme") ||
-      lowerCode.includes("intense") ||
-      lowerCode.includes("athlete")
-    ) {
-      return ACTIVITY_LEVEL_VALUES.EXTREMELY_ACTIVE;
-    }
-  }
+//     if (
+//       lowerCode.includes("sedentary") ||
+//       lowerCode.includes("inactive") ||
+//       lowerCode.includes("low")
+//     ) {
+//       return ACTIVITY_LEVEL_VALUES.SEDENTARY;
+//     }
+//     if (
+//       lowerCode.includes("light") ||
+//       lowerCode.includes("mild") ||
+//       lowerCode.includes("occasional")
+//     ) {
+//       return ACTIVITY_LEVEL_VALUES.LIGHTLY_ACTIVE;
+//     }
+//     if (
+//       lowerCode.includes("moderate") ||
+//       lowerCode.includes("regular") ||
+//       lowerCode.includes("average")
+//     ) {
+//       return ACTIVITY_LEVEL_VALUES.MODERATELY_ACTIVE;
+//     }
+//     if (
+//       lowerCode.includes("high") ||
+//       lowerCode.includes("vigorous") ||
+//       lowerCode.includes("frequent")
+//     ) {
+//       return ACTIVITY_LEVEL_VALUES.VERY_ACTIVE;
+//     }
+//     if (
+//       lowerCode.includes("extreme") ||
+//       lowerCode.includes("intense") ||
+//       lowerCode.includes("athlete")
+//     ) {
+//       return ACTIVITY_LEVEL_VALUES.EXTREMELY_ACTIVE;
+//     }
+//   }
 
-  return ACTIVITY_LEVEL_VALUES.MODERATELY_ACTIVE; // Default to moderate activity
-};
+//   return -1; 
+// };
 
 // ========================================
 // REGION/LOCATION MAPPINGS
@@ -291,7 +279,7 @@ export const fhirLocationToZK = (country?: string, continent?: string, address?:
     if (region && !regions.includes(region)) regions.push(region);
   }
 
-  return regions.length > 0 ? regions : [REGION_VALUES.NORTH_AMERICA]; // Default to North America
+  return regions;
 };
 
 // ========================================
@@ -337,99 +325,52 @@ export const extractObservationValue = (
   return null;
 };
 
+
+
 /**
  * Main function to extract ZK-compatible values from FHIR resources
  */
-export const extractZKValuesFromFHIR = (
-  fhirResource: any
-): Partial<{
-  age: number;
-  gender: number;
-  bloodType: number;
-  smokingStatus: number;
-  activityLevel: number;
-  diabetesStatus: number;
-  heartDiseaseStatus: number;
-  regions: number[];
-  cholesterol: number;
-  bmi: number;
-  systolicBP: number;
-  diastolicBP: number;
-  hba1c: number;
-}> => {
-  const values: any = {};
+export const convertToZkReady = (
+  medicalData: AggregatedMedicalData
+): ExtractedMedicalData => {
+  const values: ExtractedMedicalData = {};
 
-  // Handle Patient resource
-  if (fhirResource.resourceType === "Patient") {
-    if (fhirResource.birthDate) {
-      values.age = calculateAgeFromFHIR(fhirResource.birthDate);
-    }
-    if (fhirResource.gender) {
-      values.gender = fhirGenderToZK(fhirResource.gender);
-    }
-    if (fhirResource.address) {
-      values.regions = fhirLocationToZK(
-        fhirResource.address[0]?.country,
-        undefined,
-        fhirResource.address[0]
-      );
-    }
-  }
+  values.age = medicalData.age?.value;
+  values.gender = medicalData.sexAtBirth ? fhirGenderToZK(medicalData.sexAtBirth) : undefined;
+  values.bmi = medicalData.bmi?.value;
+  values.cholesterol = medicalData.cholesterol?.value;
+  values.systolicBP = medicalData.systolicBP?.value;
+  values.diastolicBP = medicalData.diastolicBP?.value;
+  values.hba1c = medicalData.hba1c?.value;
+  values.bloodType = medicalData.bloodType?.code as number | undefined;
+  values.smokingStatus = medicalData.smokingStatus?.code as number | undefined;
+  values.regions = medicalData.country
+    ? fhirLocationToZK(medicalData.country, undefined, undefined)
+    : undefined;
+  values.activityLevel = medicalData.activityLevel?.value;
+  //TODO: Change when condition handling is enabled
+  values.diabetesStatus = DIABETES_VALUES.NO_DIABETES;
+  values.heartDiseaseStatus = HEART_DISEASE_VALUES.NO_HISTORY;
 
-  // Handle Observation resource
-  if (fhirResource.resourceType === "Observation") {
-    const code = fhirResource.code?.coding?.[0]?.code;
-    const obsValue = extractObservationValue(fhirResource);
+  // // Handle Condition resource
+  // if (medicalData.resourceType === "Condition") {
+  //   const code = medicalData.code?.coding?.[0]?.code;
+  //   const text = medicalData.code?.text || medicalData.code?.coding?.[0]?.display;
 
-    if (code && obsValue) {
-      // Map common LOINC codes to our criteria
-      switch (code) {
-        case "2085-9": // Cholesterol, HDL
-        case "2089-1": // Cholesterol, LDL
-        case "14647-2": // Cholesterol, total
-          values.cholesterol = obsValue.value;
-          break;
-        case "39156-5": // BMI
-          values.bmi = obsValue.value;
-          break;
-        case "8480-6": // Systolic BP
-          values.systolicBP = obsValue.value;
-          break;
-        case "8462-4": // Diastolic BP
-          values.diastolicBP = obsValue.value;
-          break;
-        case "4548-4": // HbA1c
-        case "17856-6": // HbA1c (IFCC)
-          values.hba1c = obsValue.value;
-          break;
-        case "72166-2": // Tobacco smoking status
-          values.smokingStatus = fhirSmokingStatusToZK(
-            fhirResource.valueCodeableConcept?.coding?.[0]?.code || ""
-          );
-          break;
-      }
-    }
-  }
+  //   if (code) {
+  //     // Check for diabetes codes
+  //     const diabetesResult = fhirDiabetesToZK(code, text);
+  //     if (diabetesResult > 0) {
+  //       values.diabetesStatus = diabetesResult;
+  //     }
 
-  // Handle Condition resource
-  if (fhirResource.resourceType === "Condition") {
-    const code = fhirResource.code?.coding?.[0]?.code;
-    const text = fhirResource.code?.text || fhirResource.code?.coding?.[0]?.display;
-
-    if (code) {
-      // Check for diabetes codes
-      const diabetesResult = fhirDiabetesToZK(code, text);
-      if (diabetesResult > 0) {
-        values.diabetesStatus = diabetesResult;
-      }
-
-      // Check for heart disease codes
-      const heartResult = fhirHeartDiseaseToZK(code, text);
-      if (heartResult > 0) {
-        values.heartDiseaseStatus = heartResult;
-      }
-    }
-  }
+  //     // Check for heart disease codes
+  //     const heartResult = fhirHeartDiseaseToZK(code, text);
+  //     if (heartResult > 0) {
+  //       values.heartDiseaseStatus = heartResult;
+  //     }
+  //   }
+  // }
 
   return values;
 };

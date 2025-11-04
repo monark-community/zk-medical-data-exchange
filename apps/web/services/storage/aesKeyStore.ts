@@ -19,9 +19,6 @@ export function addAESKeyToStore(key: string, walletAddress?: string) {
   aesKey = key;
   cachedAddress = walletAddress || null;
   keyTimestamp = Date.now();
-
-  // Security Note: We intentionally do NOT store in localStorage/sessionStorage
-  // to prevent XSS attacks from accessing encryption keys
 }
 
 /**
@@ -38,6 +35,8 @@ export function getAESKey(currentWalletAddress?: string): string | null {
     } else {
       clearAESKey();
     }
+  } else {
+    console.log("ℹ️ No cached key found. Please check that you are connected with your wallet.");
   }
 
   return null;

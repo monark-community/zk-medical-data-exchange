@@ -1,39 +1,21 @@
 import { useAccount } from "wagmi";
 import { fetchCIDs } from "@/services/api/dataVaultService";
-import { processFHIRData, type ExtractedMedicalData } from "@/services/fhir/fhirIntegrationService";
+import { extractFHIRData, validateFHIR } from "@/services/fhir/fhirDataExtractor";
 import { ipfsDownload } from "../storage";
 import { decryptWithKey } from "@/utils/encryption";
 import { getAESKey, addAESKeyToStore } from "@/services/storage";
 import { deriveKeyFromWallet } from "@/utils/walletKey";
 import { generateAESKey } from "@/utils/encryption";
-
-/**
- * Medical data structure expected by ZK circuits
- */
-export interface AggregatedMedicalData {
-  age: number;
-  gender: number; 
-  bmi: number;
-  smokingStatus: number; 
-  hasHeartDisease: boolean;
-  bloodType?: number;
-  cholesterol?: number;
-  systolicBP?: number;
-  diastolicBP?: number;
-  hba1c?: number;
-  diabetesStatus?: number;
-  activityLevel?: number;
-  regions?: number[];
-}
+import { AggregatedMedicalData, FHIRDatatype } from "../fhir";
 
 /**
  * Aggregates medical data from all sources for a given wallet address.
  *
  * @param walletAddress - The wallet address to fetch medical data for.
- * @returns A Promise that resolves to the aggregated medical data in ZK-compatible format, or null if no data is found.
+ * @returns A Promise that resolves to the aggregated medical data in ZK-compatible format.
  * @throws Will throw an error if wallet address is missing or if the aggregation process fails.
  */
-export const getAggregatedMedicalData = async (walletAddress?: string): Promise<AggregatedMedicalData | null> => {
+export const getAggregatedMedicalData = async (walletAddress?: string): Promise<AggregatedMedicalData> => {
   if (!walletAddress) {
     throw new Error("Wallet address is required to aggregate medical data");
   }
@@ -44,8 +26,7 @@ export const getAggregatedMedicalData = async (walletAddress?: string): Promise<
     
     if (medicalDataCIDs.length === 0) {
         console.warn("No medical data found for wallet:", walletAddress);
-        //TODO what to do
-        return null;
+        return {};
     }
 
     let aesKey = getAESKey(walletAddress);
@@ -60,67 +41,93 @@ export const getAggregatedMedicalData = async (walletAddress?: string): Promise<
       console.log("Using cached AES key for wallet:", walletAddress);
     }
 
-    const allFHIRData: any[] = [];
+    const consolidatedData: AggregatedMedicalData = {};
+    const errors: Array<{ cid: string; error: Error }> = [];
+    let successCount = 0;
     
     for (const medicalData of medicalDataCIDs) {
       try {
-        console.log(`Decrypting FHIR data for CID: ${medicalData.encryptedCid}`);
-        const decryptedCid = decryptWithKey(medicalData.encryptedCid, aesKey);
-        const content = await ipfsDownload(decryptedCid);
-        const fhirData = JSON.parse(content);
-        allFHIRData.push(fhirData);
-        console.log(`Successfully retrieved and parsed FHIR data for CID: ${medicalData.encryptedCid}`);
+        const decryptedCid: string = decryptWithKey(medicalData.encryptedCid, aesKey);
+        const content: string = await ipfsDownload(decryptedCid);
+        const decryptedContent: string = decryptWithKey(content, aesKey);
+        const parsed = JSON.parse(decryptedContent);
+        validateFHIR(parsed);
+        const fhirResource: FHIRDatatype = parsed as FHIRDatatype;
+        const aggregatedData: AggregatedMedicalData = extractFHIRData(fhirResource);
+        console.log(`Aggregated ressource`, aggregatedData);
+        
+        mergeAggregatedData(consolidatedData, aggregatedData);
+        successCount++;
+        
       } catch (error) {
-        console.error(`Failed to decrypt/retrieve data for CID ${medicalData.encryptedCid}:`, error);
+        const errorObj = error instanceof Error ? error : new Error(String(error));
+        errors.push({ cid: medicalData.encryptedCid, error: errorObj });
+        console.error(`Failed to decrypt/retrieve data for CID ${medicalData.encryptedCid}:`, errorObj);
       }
     }
 
-    console.log(`Processing total of ${allFHIRData.length} FHIR resources for aggregation`);
-
-    let consolidatedData: ExtractedMedicalData = {};
+    console.log(`Processed ${medicalDataCIDs.length} CIDs: ${successCount} succeeded, ${errors.length} failed`);
     
-    for (const fhirResource of allFHIRData) {
-      try {
-        const extractedData = processFHIRData(fhirResource);
-        consolidatedData = { ...consolidatedData, ...extractedData };
-      } catch (error) {
-        console.error("Failed to process FHIR resource:", error);
-      }
+    if (errors.length > 0) {
+      console.warn("Failed CIDs:", errors.map(e => ({ cid: e.cid, message: e.error.message })));
     }
 
-    const zkCompatibleData = convertToZKFormat(consolidatedData);
+    if (Object.keys(consolidatedData).length === 0) {
+      if (errors.length === medicalDataCIDs.length) {
+        throw new Error(
+          `Failed to decrypt all medical data records (${errors.length} total). ` +
+          `First error: ${errors[0].error.message}`
+        );
+      }
+      console.warn("No valid medical data extracted after processing all FHIR resources");
+    }
 
-    console.log("Successfully aggregated medical data:", zkCompatibleData);
-    return zkCompatibleData;
+    console.log("Successfully aggregated medical data:", consolidatedData);
+    return consolidatedData;
 
   } catch (error) {
     console.error("Error aggregating medical data:", error);
-    throw new Error(`Failed to aggregate medical data: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    throw error;
   }
 };
 
 /**
- * Converts extracted FHIR data to the format expected by ZK circuits
+ * Intelligently merges two AggregatedMedicalData objects.
+ * Prefers values with more recent effectiveDate when conflicts occur.
  */
-const convertToZKFormat = (extractedData: ExtractedMedicalData): AggregatedMedicalData => {
-  return {
-    age: extractedData.age || 30, // Default age if not available
-    gender: extractedData.gender || 1, // Default to female if not specified
-    bmi: extractedData.bmi || 25.0,
-    smokingStatus: extractedData.smokingStatus || 0, // Default to never smoked
-    hasHeartDisease: (extractedData.heartDiseaseStatus || 0) > 0,
+function mergeAggregatedData(target: AggregatedMedicalData, source: AggregatedMedicalData): void {
+  const mergeCodedValue = (
+    targetVal: typeof target[keyof AggregatedMedicalData],
+    sourceVal: typeof source[keyof AggregatedMedicalData]
+  ) => {
+    if (!targetVal) return sourceVal;
+    if (!sourceVal) return targetVal;
     
-    // Optional fields
-    ...(extractedData.bloodType && { bloodType: extractedData.bloodType }),
-    ...(extractedData.cholesterol && { cholesterol: extractedData.cholesterol }),
-    ...(extractedData.systolicBP && { systolicBP: extractedData.systolicBP }),
-    ...(extractedData.diastolicBP && { diastolicBP: extractedData.diastolicBP }),
-    ...(extractedData.hba1c && { hba1c: extractedData.hba1c }),
-    ...(extractedData.diabetesStatus && { diabetesStatus: extractedData.diabetesStatus }),
-    ...(extractedData.activityLevel && { activityLevel: extractedData.activityLevel }),
-    ...(extractedData.regions && { regions: extractedData.regions }),
+    const targetDate = (targetVal as any).effectiveDate;
+    const sourceDate = (sourceVal as any).effectiveDate;
+    
+    if (targetDate && sourceDate) {
+      return new Date(sourceDate) > new Date(targetDate) ? sourceVal : targetVal;
+    }
+    
+    if (sourceDate) return sourceVal;
+    if (targetDate) return targetVal;
+    
+    return sourceVal;
   };
-};
+
+  (Object.keys(source) as Array<keyof AggregatedMedicalData>).forEach(key => {
+    if (source[key] !== undefined) {
+      if (Array.isArray(source[key])) {
+        target[key] = Array.from(new Set([...(target[key] as any[] || []), ...source[key] as any[]])) as any;
+      } else if (typeof source[key] === 'object' && source[key] !== null) {
+        (target as any)[key] = mergeCodedValue(target[key], source[key]);
+      } else {
+        (target as any)[key] = source[key];
+      }
+    }
+  });
+}
 
 /**
  * Hook version that automatically uses the current wallet address

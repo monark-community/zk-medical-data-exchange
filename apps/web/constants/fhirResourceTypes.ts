@@ -3,6 +3,7 @@ export const FhirResourceType = {
   BUNDLE: "Bundle",
   CAPABILITY_STATEMENT: "CapabilityStatement",
   CODE_SYSTEM: "CodeSystem",
+  CONDITION: "Condition",
   OBSERVATION: "Observation",
   OPERATION_DEFINITION: "OperationDefinition",
   OPERATION_OUTCOME: "OperationOutcome",

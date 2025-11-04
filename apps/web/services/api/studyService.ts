@@ -5,7 +5,6 @@
 
 import { apiClient } from "@/services/core/apiClient";
 import { StudyCriteria } from "@zk-medical/shared";
-import { processFHIRForStudy } from "@/services/fhir";
 
 // ========================================
 // TYPES
@@ -83,33 +82,6 @@ export interface ParticipationResult {
     proof: string;
     publicSignals: string[];
   };
-}
-
-export interface EligibilityCheckRequest {
-  medicalData?: {
-    age?: number;
-    gender?: 0 | 1 | 2;
-    bmi?: number;
-    cholesterol?: number;
-    diabetesType?: 0 | 1 | 2 | 3 | 4; 
-    smokingStatus?: 0 | 1 | 2; 
-    systolicBP?: number;
-    diastolicBP?: number;
-    hasHeartDisease?: boolean;
-    activityLevel?: number;
-    hba1c?: number;
-    bloodType?: string;
-    location?: string;
-  };
-  zkProof?: {
-    proof: string;
-    publicSignals: string[];
-  };
-}
-
-export interface EligibilityCheckResponse {
-  eligible: boolean;
-  message: string;
 }
 
 // ========================================
@@ -191,56 +163,33 @@ export const deleteStudy = async (studyId: number, walletId: string) => {
   return data;
 };
 
-/**
- * Participate in a study (legacy method - consider deprecating)
- */
-export const participateInStudy = async (
-  studyId: number,
-  fhirData: any,
-  walletAddress: string
-): Promise<ParticipationResult> => {
-  try {
-    const study = await getStudyDetails(studyId);
+// /**
+//  * Participate in a study (legacy method - consider deprecating)
+//  */
+// export const participateInStudy = async (
+//   studyId: number,
+//   fhirData: any,
+//   walletAddress: string
+// ): Promise<ParticipationResult> => {
+//   try {
+//     const study = await getStudyDetails(studyId);
 
-    const processedData = await processFHIRForStudy(fhirData, study.eligibilityCriteria);
+//     const processedData = await processFHIRForStudy(fhirData, study.eligibilityCriteria);
 
-    const response = await apiClient.post(`/studies/${studyId}/participants`, {
-      fhirData: processedData,
-      walletAddress,
-    });
+//     const response = await apiClient.post(`/studies/${studyId}/participants`, {
+//       fhirData: processedData,
+//       walletAddress,
+//     });
 
-    return response.data;
-  } catch (error: any) {
-    throw new Error(error.response?.data?.error || error.message || "Participation failed");
-  }
-};
+//     return response.data;
+//   } catch (error: any) {
+//     throw new Error(error.response?.data?.error || error.message || "Participation failed");
+//   }
+// };
 
 // ========================================
 // BUSINESS LOGIC FUNCTIONS
 // ========================================
-
-/**
- * Check patient eligibility for a study using privacy-preserving approach
- * NOTE: This function now uses the server-side eligibility check to prevent criteria gaming
- */
-export const checkPatientEligibilityForStudy = async (
-  studyId: number,
-  medicalData: EligibilityCheckRequest["medicalData"]
-): Promise<{
-  eligible: boolean;
-  message: string;
-}> => {
-  try {
-    const result = await checkStudyEligibility(studyId, { medicalData });
-    
-    return {
-      eligible: result.eligible,
-      message: result.message,
-    };
-  } catch (error: any) {
-    throw new Error(`Eligibility check failed: ${error.message}`);
-  }
-};
 
 /**
  * Format study criteria for display
