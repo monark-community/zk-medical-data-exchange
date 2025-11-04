@@ -1,4 +1,4 @@
-import { FHIRDatatype } from "../types";
+import { FHIRDatatype } from "./fhirDatatype";
 
 /**
  * FHIR Patient resource

@@ -1,12 +1,13 @@
 import { useAccount } from "wagmi";
 import { fetchCIDs } from "@/services/api/dataVaultService";
 import { extractFHIRData, validateFHIR } from "@/services/fhir/fhirDataExtractor";
-import { ipfsDownload } from "../storage";
 import { decryptWithKey } from "@/utils/encryption";
 import { getAESKey, addAESKeyToStore } from "@/services/storage";
 import { deriveKeyFromWallet } from "@/utils/walletKey";
 import { generateAESKey } from "@/utils/encryption";
-import { AggregatedMedicalData, FHIRDatatype } from "../fhir";
+import { FHIRDatatype } from "../fhir";
+import { AggregatedMedicalData } from "../fhir/types/aggregatedMedicalData";
+import { ipfsDownload } from "../api/ipfsService";
 
 /**
  * Aggregates medical data from all sources for a given wallet address.

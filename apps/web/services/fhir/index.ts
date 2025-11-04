@@ -1,4 +1,4 @@
-export * from "./types";
+export * from "./types/fhirDatatype";
 
 export * from "./fhirToZkMappings";
 export * from "./fhirDataExtractor";

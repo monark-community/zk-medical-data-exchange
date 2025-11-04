@@ -1,39 +1,4 @@
-/**
- * FHIR Type Definitions
- * Shared types for FHIR data processing
- */
-
-/**
- * Generic FHIR resource type
- * All FHIR resources have a resourceType field
- */
-export interface FHIRDatatype {
-  resourceType: string;
-  [key: string]: any;
-}
-
-/**
- * FHIR Bundle structure
- */
-export interface FHIRBundle extends FHIRDatatype {
-  resourceType: "Bundle";
-  entry?: Array<{
-    resource?: FHIRDatatype;
-    [key: string]: any;
-  }>;
-}
-
-
-
-export interface CodedValue<T> {
-  value: T;                             // the actual number/string/bool
-  effectiveDate?: string;               // ISO date the fact was measured/recorded
-  unit?: string;                        // UCUM (e.g., "kg/m2", "mm[Hg]", "mg/dL", "%")
-  code?: string;                        // LOINC/SNOMED/ICD code for the fact
-  codeSystem?: "LOINC" | "SNOMED" | "ICD10" | "ICD9" | "UCUM" | "Other";
-  source?: "issuer" | "patient" | "device" | "derived";
-  issuerId?: string;                    // DID or org reference (from Provenance)
-}
+import { CodedValue } from "@/services/fhir/types/codedValue";
 
 export interface AggregatedMedicalData {
   // Identity-lite (no PHI), demographics
@@ -86,20 +51,4 @@ export interface AggregatedMedicalData {
   // Optional commitments (if you want to keep them alongside data)
   dataRoot?: string;                    // Merkle root of attested data used
   paramsHash?: string;                  // commitment to study thresholds used for proof
-}
-
-export interface ExtractedMedicalData {
-  age?: number;
-  gender?: number;
-  bmi?: number;
-  cholesterol?: number;
-  systolicBP?: number;
-  diastolicBP?: number;
-  smokingStatus?: number;
-  regions?: number[];
-  bloodType?: number;
-  hba1c?: number;
-  activityLevel?: number;
-  diabetesStatus?: number;
-  heartDiseaseStatus?: number;
 }

@@ -15,7 +15,8 @@ import {
   HEART_DISEASE_VALUES,
   REGION_VALUES,
 } from "@/constants/medicalDataConstants";
-import { AggregatedMedicalData, ExtractedMedicalData } from "./types";
+import { AggregatedMedicalData } from "./types/aggregatedMedicalData";
+import { ExtractedMedicalData } from "./types/extractedMedicalData";
 
 // TODO: [LT] Verify when generating zkproof if everything in this file is actually useful/needed
 

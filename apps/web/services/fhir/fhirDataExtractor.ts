@@ -1,12 +1,12 @@
 import { 
   FHIRDatatype, 
-  AggregatedMedicalData,
-  CodedValue,
-  ExtractedMedicalData
-} from "@/services/fhir/types";
+} from "@/services/fhir/types/fhirDatatype";
 import { FhirResourceType } from "@/constants/fhirResourceTypes";
-import { FHIRObservation } from "./types/fhirobservation";
+import { ExtractedMedicalData } from "./types/extractedMedicalData";
+import { AggregatedMedicalData } from "./types/aggregatedMedicalData";
 import { FHIRPatient } from "./types/fhirpatient";
+import { FHIRObservation } from "./types/fhirobservation";
+import { CodedValue } from "./types/codedValue";
 
 export interface FHIRDataBundle {
   resources: any[];

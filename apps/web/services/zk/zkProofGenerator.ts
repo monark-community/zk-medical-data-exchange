@@ -3,13 +3,12 @@
  * Handles zero-knowledge proof generation for medical data eligibility
  */
 
-import { AggregatedMedicalData } from "@/services/core/medicalDataAggregator";
 import { StudyCriteria } from "@zk-medical/shared";
 
 // Import snarkjs for proof generation
 // @ts-ignore - snarkjs doesn't have proper TypeScript definitions
 import * as snarkjs from "snarkjs";
-
+import { AggregatedMedicalData } from "../fhir/types/aggregatedMedicalData";
 /**
  * ZK Proof structure expected by smart contract
  */

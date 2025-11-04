@@ -1,5 +1,5 @@
 import { poseidon3, poseidon7 } from "poseidon-lite";
-import { ExtractedMedicalData } from "../fhir/types";
+import { ExtractedMedicalData } from "../fhir/types/fhirDatatype";
 
 /**
  * Generates a secure data commitment using Poseidon hash
