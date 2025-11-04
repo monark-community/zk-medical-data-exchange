@@ -11,13 +11,13 @@ interface UseStudiesResult {
   refetch: () => void;
 }
 
-export function useStudies(walletAddress?: string): UseStudiesResult {
+export function useStudies(walletAddress?: string, fetchAll = false): UseStudiesResult {
   const [studies, setStudies] = useState<StudySummary[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchStudies = async () => {
-    if (!walletAddress) {
+    if (!fetchAll && !walletAddress) {
       setStudies([]);
       setIsLoading(false);
       return;
@@ -27,13 +27,20 @@ export function useStudies(walletAddress?: string): UseStudiesResult {
     setError(null);
 
     try {
-      console.log("Fetching studies for wallet:", walletAddress);
-      const response = await getStudies({
-        createdBy: walletAddress,
-        // No limit - API will return all user's studies
-      });
-      console.log("Received studies:", response.studies?.length || 0, "studies");
-      setStudies(response.studies || []);
+      if (fetchAll) {
+        console.log("Fetching all studies");
+        const response = await getStudies({
+        });
+        console.log("Received studies:", response.studies?.length || 0, "studies");
+        setStudies(response.studies || []);
+      } else {
+        console.log("Fetching studies for wallet:", walletAddress);
+        const response = await getStudies({
+          createdBy: walletAddress,
+        });
+        console.log("Received studies:", response.studies?.length || 0, "studies");
+        setStudies(response.studies || []);
+      }
     } catch (err) {
       console.error("Error fetching studies:", err);
       setError(err instanceof Error ? err.message : "Failed to fetch studies");
@@ -45,7 +52,7 @@ export function useStudies(walletAddress?: string): UseStudiesResult {
 
   useEffect(() => {
     fetchStudies();
-  }, [walletAddress]);
+  }, [walletAddress, fetchAll]);
 
   const refetchWithDelay = async () => {
     // Small delay to ensure the deletion is processed on the server
