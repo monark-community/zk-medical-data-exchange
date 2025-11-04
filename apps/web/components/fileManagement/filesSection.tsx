@@ -14,7 +14,7 @@ import {
   flexRender,
 } from "@tanstack/react-table";
 import { ChevronLeft, ChevronRight, HeartPulse } from "lucide-react";
-import FileSkeletonCard from "@/app/dashboard/components/fileSkeletonCard";
+import FileSkeletonCard from "@/app/dashboard/components/FileSkeletonCard";
 import eventBus from "@/lib/eventBus";
 import { fetchCIDs } from "@/services/api";
 
