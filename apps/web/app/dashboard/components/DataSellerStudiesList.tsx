@@ -48,7 +48,7 @@ export default function DataSellerStudiesList({
                   }}
                   disabled={!walletAddress}
                   className="h-7 px-3 text-green-600 hover:text-green-700 hover:bg-green-50 border-green-200"
-                  title={!walletAddress ? "Connect wallet to apply" : "Apply to study"}
+                  title={walletAddress ? "Apply to study" : "Connect wallet to apply"}
                 >
                   <UserPlus className="h-3 w-3 mr-1" />
                   Apply
