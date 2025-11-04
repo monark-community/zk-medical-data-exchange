@@ -1,7 +1,6 @@
 /**
  * Storage Services
- * Data storage, encryption, and file management
+ * Data storage and encryption
  */
 
 export * from "./aesKeyStore";
-export * from "./ipfsService";

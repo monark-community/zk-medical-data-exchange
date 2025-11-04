@@ -12,6 +12,13 @@ const router = Router();
  *     tags: [User]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: walletAddress
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The wallet address of the user
  *     responses:
  *       200:
  *         description: User retrieved successfully
@@ -31,6 +38,7 @@ const router = Router();
  *       500:
  *         description: Internal server error
  */
+
 router.get("/:walletAddress", getUserById);
 
 /**

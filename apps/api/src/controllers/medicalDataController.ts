@@ -6,7 +6,7 @@ import { auditService, UserProfile, ActionType } from "@/services/auditService";
 const { DATA_VAULT } = TABLES;
 
 export const uploadCID = async (req: Request, res: Response) => {
-  const { wallet_address, encrypted_cid, resource_type } = req.body;
+  const { wallet_address, encrypted_cid, resource_type, file_id } = req.body;
   const startTime = Date.now();
   const userAgent = req.get("User-Agent") || "";
   const ipAddress = req.ip || req.socket?.remoteAddress || "";
@@ -18,6 +18,7 @@ export const uploadCID = async (req: Request, res: Response) => {
       [DATA_VAULT!.columns.walletAddress!]: wallet_address,
       [DATA_VAULT!.columns.encryptedCid!]: encrypted_cid,
       [DATA_VAULT!.columns.resourceType!]: resource_type,
+      [DATA_VAULT!.columns.fileId!]: file_id,
     });
 
     if (insertResult.error) {
@@ -100,7 +101,7 @@ export const downloadCIDs = async (req: Request, res: Response) => {
       .select(
         `${DATA_VAULT!.columns.encryptedCid}, ${DATA_VAULT!.columns.resourceType}, ${
           DATA_VAULT!.columns.createdAt
-        }`
+        }, ${DATA_VAULT!.columns.fileId}`
       )
       .eq(DATA_VAULT!.columns.walletAddress!, wallet_address);
 
