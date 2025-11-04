@@ -16,7 +16,8 @@ import { EllipsisVertical } from "lucide-react";
 import { decryptWithKey } from "@/utils/encryption";
 
 import { MedicalData } from "@/interfaces/medicalData";
-import { ipfsDelete, ipfsDownload } from "@/services/storage";
+import { ipfsDelete } from "@/services/api/ipfsService";
+import { ipfsDownload } from "@/services/api/ipfsService";
 import { deleteCID } from "@/services/api";
 import { logFileAccess } from "@/services/api/auditService";
 const FileOperationDropDown = ({
@@ -130,11 +131,11 @@ const FileOperationDropDown = ({
     }
   };
 
-  const deleteContent = async (cid: string) => {
+  const deleteContent = async (cid: string, fileId: string) => {
     if (!aesKey || !walletAddress) return;
     try {
       const decryptedCid = decryptWithKey(cid, aesKey);
-      await ipfsDelete(decryptedCid);
+      await ipfsDelete(decryptedCid, fileId);
       await deleteCID(walletAddress!, cid);
       alert("File deleted successfully.");
       setMedicalData((prev) => prev.filter((item) => item.encryptedCid !== cid));
@@ -163,7 +164,7 @@ const FileOperationDropDown = ({
           <DropdownMenuSeparator />
           <DropdownMenuItem
             variant="destructive"
-            onClick={() => deleteContent(data.encryptedCid)}
+            onClick={() => deleteContent(data.encryptedCid, data.fileId)}
             disabled={!aesKey}
           >
             Delete Content
