@@ -17,7 +17,7 @@ export function verifySessionToken(req: Request, res: Response, next: NextFuncti
     logger.debug({ decoded }, "Session token verified successfully");
     next();
   } catch (err) {
-    logger.error({ err }, "Session token verification failed");
+    logger.error({ err }, "Invalid or expired session token");
     res.status(401).json({ error: "Unauthorized", message: "Invalid or expired session token" });
   }
 }

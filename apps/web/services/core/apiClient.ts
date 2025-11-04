@@ -21,21 +21,26 @@ apiClient.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Add response interceptor to handle errors consistently
 apiClient.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
+    const status = error.response?.status;
+
     // Log the error for debugging
     console.error("API Error:", {
       url: error.config?.url,
       method: error.config?.method,
-      status: error.response?.status,
+      status,
       statusText: error.response?.statusText,
       data: error.response?.data,
       message: error.message,
     });
 
-    // Re-throw the error to maintain existing error handling
+    if (status === 401) {
+      localStorage.removeItem("session_token");
+      window.location.href = "/";
+    }
+
     return Promise.reject(error);
   }
 );
