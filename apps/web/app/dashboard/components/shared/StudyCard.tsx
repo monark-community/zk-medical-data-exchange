@@ -1,6 +1,6 @@
 import { StudySummary } from "@/services/api/studyService";
 import { Users, Calendar, ChevronRight } from "lucide-react";
-import StudyCriteriaBadges from "./StudyCriteriaBadges";
+import StudyCriteriaBadges from "@/app/dashboard/components/shared/StudyCriteriaBadges";
 
 interface StudyCardProps {
   study: StudySummary;

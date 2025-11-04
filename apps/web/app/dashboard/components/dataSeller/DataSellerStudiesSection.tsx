@@ -3,11 +3,11 @@
 import { BookOpen } from "lucide-react";
 import { useAccount } from "wagmi";
 import { useStudies } from "@/hooks/useStudies";
-import DataSellerStudiesList from "./DataSellerStudiesList";
-import StudySectionHeader from "../shared/StudySectionHeader";
-import StudyStatsCards from "../shared/StudyStatsCards";
-import StudiesContainer from "../shared/StudiesContainer";
-import { calculateStudyStats } from "../shared/StudyUtils";
+import DataSellerStudiesList from "@/app/dashboard/components/dataSeller/DataSellerStudiesList";
+import StudySectionHeader from "@/app/dashboard/components/shared/StudySectionHeader";
+import StudyStatsCards from "@/app/dashboard/components/shared/StudyStatsCards";
+import StudiesContainer from "@/app/dashboard/components/shared/StudiesContainer";
+import { calculateStudyStats } from "@/app/dashboard/components/shared/StudyUtils";
 
 export default function DataSellerStudiesSection() {
   const { address: walletAddress } = useAccount();

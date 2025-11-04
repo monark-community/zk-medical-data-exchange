@@ -1,6 +1,6 @@
 import { StudySummary } from "@/services/api/studyService";
-import StudyCard from "./StudyCard";
-import { getStudyStatusColor } from "./StudyUtils";
+import StudyCard from "@/app/dashboard/components/shared/StudyCard";
+import { getStudyStatusColor } from "@/app/dashboard/components/shared/StudyUtils";
 
 interface StudiesListProps {
   studies: StudySummary[];

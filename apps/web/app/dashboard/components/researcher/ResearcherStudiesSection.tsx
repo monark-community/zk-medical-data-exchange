@@ -7,11 +7,11 @@ import { useAccount } from "wagmi";
 import StudyCreationDialog from "@/components/StudyCreationDialog";
 import { useStudies } from "@/hooks/useStudies";
 import { deleteStudy } from "@/services/api/studyService";
-import StudiesList from "./researcher/ResearcherStudiesList";
-import StudySectionHeader from "./shared/StudySectionHeader";
-import StudyStatsCards from "./shared/StudyStatsCards";
-import StudiesContainer from "./shared/StudiesContainer";
-import { calculateStudyStats } from "./shared/StudyUtils";
+import ResearcherStudiesList from "@/app/dashboard/components/researcher/ResearcherStudiesList";
+import StudySectionHeader from "@/app/dashboard/components/shared/StudySectionHeader";
+import StudyStatsCards from "@/app/dashboard/components/shared/StudyStatsCards";
+import StudiesContainer from "@/app/dashboard/components/shared/StudiesContainer";
+import { calculateStudyStats } from "@/app/dashboard/components/shared/StudyUtils";
 
 export default function ResearcherStudiesSection() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -113,7 +113,7 @@ export default function ResearcherStudiesSection() {
             ),
           }}
         >
-          <StudiesList
+          <ResearcherStudiesList
             studies={studies}
             onDeleteStudy={handleDeleteStudy}
             deletingStudyId={deletingStudyId}
