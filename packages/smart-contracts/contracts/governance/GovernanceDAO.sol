@@ -6,8 +6,7 @@ contract GovernanceDAO {
     enum VoteChoice { 
         None,
         For,
-        Against,
-        Abstain
+        Against
     }
     
     enum ProposalState {
@@ -22,7 +21,8 @@ contract GovernanceDAO {
         Economics,
         Privacy,
         Governance,
-        Policy
+        Policy,
+        Other
     }
     
     struct Proposal {
@@ -35,7 +35,6 @@ contract GovernanceDAO {
         uint256 endTime;
         uint256 votesFor;
         uint256 votesAgainst;
-        uint256 votesAbstain;
         uint256 totalVoters;
         bool executed;
         ProposalState state;
@@ -138,7 +137,6 @@ contract GovernanceDAO {
             endTime: endTime,
             votesFor: 0,
             votesAgainst: 0,
-            votesAbstain: 0,
             totalVoters: 0,
             executed: false,
             state: ProposalState.Active
@@ -174,8 +172,6 @@ contract GovernanceDAO {
             proposals[proposalId].votesFor++;
         } else if (choice == VoteChoice.Against) {
             proposals[proposalId].votesAgainst++;
-        } else if (choice == VoteChoice.Abstain) {
-            proposals[proposalId].votesAbstain++;
         }
         
         proposals[proposalId].totalVoters++;
@@ -288,7 +284,6 @@ contract GovernanceDAO {
         returns (
             uint256 votesFor,
             uint256 votesAgainst,
-            uint256 votesAbstain,
             uint256 totalVoters
         )
     {
@@ -296,7 +291,6 @@ contract GovernanceDAO {
         return (
             proposal.votesFor,
             proposal.votesAgainst,
-            proposal.votesAbstain,
             proposal.totalVoters
         );
     }
