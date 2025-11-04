@@ -1,6 +1,6 @@
 "use client";
 
-import { useProtectedRoute } from "@/hooks/useAuth";
+import { useAuthRedirect } from "@/hooks/useAuth";
 
 import CustomNavbar from "@/components/navigation/customNavBar";
 import DashboardTabs from "./components/dashboardTabs";
@@ -11,7 +11,7 @@ import AccountOverview from "./components/accountOverview";
 import { useAESKey } from "@/hooks/useAESKey";
 
 export default function Dashboard() {
-  const { isConnected } = useProtectedRoute();
+  const { isConnected } = useAuthRedirect();
   const account = useAccount();
   const { aesKey } = useAESKey(account);
 
