@@ -4,8 +4,8 @@ import { useProtectedRoute } from "@/hooks/useAuth";
 import CustomNavbar from "@/components/navigation/customNavBar";
 import { useAccount } from "wagmi";
 import { useAESKey } from "@/hooks/useAESKey";
-import AccountOverview from "./components/AccountOverview";
-import DashboardTabs from "./components/DashboardTabs";
+import AccountOverview from "./components/dataSeller/AccountOverview";
+import DashboardTabs from "./components/shared/DashboardTabs";
 
 export default function Dashboard() {
   const { isConnected } = useProtectedRoute();

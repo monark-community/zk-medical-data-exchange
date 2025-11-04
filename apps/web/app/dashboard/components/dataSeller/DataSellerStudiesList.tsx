@@ -1,7 +1,7 @@
 import { StudySummary } from "@/services/api/studyService";
 import { UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import StudiesList from "./shared/StudiesList";
+import StudiesList from "../shared/StudiesList";
 
 interface DataSellerStudiesListProps {
   studies: StudySummary[];

@@ -5,10 +5,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Config, UseAccountReturnType } from "wagmi";
 import { useProfile } from "@/contexts/ProfileContext";
 import { UserProfile } from "@/services/api/auditService";
-import DataSellerStudiesSection from "./DataSellerStudiesSection";
+import DataSellerStudiesSection from "../dataSeller/DataSellerStudiesSection";
 import PrivacySection from "./PrivacySection";
-import ResearcherStudiesSection from "./ResearcherStudiesSection";
-import DataVaultSection from "./DataVaultSection";
+import DataVaultSection from "../dataSeller/DataVaultSection";
+import ResearcherStudiesSection from "../researcher/ResearcherStudiesSection";
 
 const DashboardTabs = ({
   account,

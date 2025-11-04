@@ -7,7 +7,7 @@ import { useAccount } from "wagmi";
 import StudyCreationDialog from "@/components/StudyCreationDialog";
 import { useStudies } from "@/hooks/useStudies";
 import { deleteStudy } from "@/services/api/studyService";
-import StudiesList from "./ResearcherStudiesList";
+import StudiesList from "./researcher/ResearcherStudiesList";
 import StudySectionHeader from "./shared/StudySectionHeader";
 import StudyStatsCards from "./shared/StudyStatsCards";
 import StudiesContainer from "./shared/StudiesContainer";
