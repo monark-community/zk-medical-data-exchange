@@ -84,3 +84,21 @@ export async function updateUser(req: Request, res: Response) {
     return res.status(500).json({ error: "Internal server error" });
   }
 }
+
+export async function getUserStats(req: Request, res: Response) {
+  const { walletAddress, profile } = req.params;
+  try {
+    if (!walletAddress) {
+      return res.status(400).json({ error: "walletAddress is undefined" });
+    }
+    if (!profile) {
+      return res.status(400).json({ error: "profile is undefined" });
+    }
+    logger.info({ walletAddress, profile }, "getUserStats called");
+
+    // TODO: [LT] Implement user statistics retrieval
+  } catch (err: any) {
+    logger.error({ err, walletAddress, profile }, "Unexpected error in getUserStats");
+    return res.status(500).json({ error: "Internal server error" });
+  }
+}
