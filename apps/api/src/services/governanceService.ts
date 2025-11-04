@@ -6,9 +6,13 @@
 import { createWalletClient, createPublicClient, http, decodeEventLog } from "viem";
 import { sepolia } from "viem/chains";
 import { privateKeyToAccount } from "viem/accounts";
+import { createClient } from "@supabase/supabase-js";
 import logger from "@/utils/logger";
 import { Config } from "@/config/config";
 import { GOVERNANCE_DAO_ABI } from "@/contracts/generated";
+import { TABLES } from "@/constants/db";
+
+const { USERS } = TABLES;
 
 // Enums matching Solidity contract
 export enum VoteChoice {
@@ -409,6 +413,7 @@ class GovernanceService {
     try {
       logger.info("Fetching platform stats");
 
+      // Get blockchain stats
       const stats = await this.publicClient.readContract({
         address: this.contractAddress as `0x${string}`,
         abi: GOVERNANCE_DAO_ABI,
@@ -419,16 +424,37 @@ class GovernanceService {
       const activeProposals = Number(stats[1]);
       const totalVotes = Number(stats[2]);
 
-      const avgParticipation = totalProposals > 0 ? (totalVotes / totalProposals / 100) * 100 : 0;
+      // Get total registered users from database
+      const supabase = createClient(Config.SUPABASE_URL, Config.SUPABASE_KEY, {
+        auth: { persistSession: false },
+      });
 
-      const uniqueVoters = Math.floor(totalVotes / 2);
+      const { count: totalUsers, error: countError } = await supabase
+        .from(USERS?.name || "users")
+        .select("*", { count: "exact", head: true });
+
+      if (countError) {
+        logger.error({ error: countError }, "Failed to fetch user count from database");
+      }
+
+      // Calculate average participation: (avg votes per proposal / total users) * 100
+      const avgVotesPerProposal = totalProposals > 0 ? totalVotes / totalProposals : 0;
+      const avgParticipation =
+        totalUsers && totalUsers > 0
+          ? Math.min(100, (avgVotesPerProposal / totalUsers) * 100)
+          : 0;
+
+      // Use database user count as active voters (registered users who can vote)
+      // Note: The smart contract doesn't track unique voters across proposals,
+      // so we use total registered users as a proxy for potential active voters
+      const uniqueVoters = totalUsers || 0;
 
       const platformStats: PlatformStats = {
         totalProposals,
         activeProposals,
         totalVotes,
         uniqueVoters,
-        avgParticipation: Math.min(100, avgParticipation),
+        avgParticipation: Math.round(avgParticipation * 100) / 100, // Round to 2 decimals
         votingPower: totalVotes,
       };
 
