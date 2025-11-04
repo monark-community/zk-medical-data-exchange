@@ -3,37 +3,12 @@
  * Handles GovernanceDAO contract interactions on Sepolia testnet
  */
 
-import { createWalletClient, createPublicClient, http, parseAbi, decodeEventLog } from "viem";
+import { createWalletClient, createPublicClient, http, decodeEventLog } from "viem";
 import { sepolia } from "viem/chains";
 import { privateKeyToAccount } from "viem/accounts";
 import logger from "@/utils/logger";
 import { Config } from "@/config/config";
-
-const GOVERNANCE_DAO_ABI = parseAbi([
-  "function createProposal(string title, string description, uint8 category) external returns (uint256)",
-  "function vote(uint256 proposalId, uint8 choice) external",
-  "function finalizeProposal(uint256 proposalId) external",
-  "function executeProposal(uint256 proposalId) external",
-  
-  "function getProposal(uint256 proposalId) external view returns (tuple(uint256 id, string title, string description, uint8 category, address proposer, uint256 startTime, uint256 endTime, uint256 votesFor, uint256 votesAgainst, uint256 totalVoters, bool executed, uint8 state))",
-  "function getProposalState(uint256 proposalId) external view returns (uint8)",
-  "function getHasVoted(uint256 proposalId, address voter) external view returns (bool)",
-  "function getVote(uint256 proposalId, address voter) external view returns (uint8)",
-  "function getUserProposals(address user) external view returns (uint256[])",
-  "function getUserVotes(address user) external view returns (uint256[])",
-  "function getVotingStats(uint256 proposalId) external view returns (uint256 votesFor, uint256 votesAgainst, uint256 totalVoters)",
-  "function getTimeRemaining(uint256 proposalId) external view returns (uint256)",
-  "function getPlatformStats() external view returns (uint256 totalProposals, uint256 activeProposals, uint256 totalVotes, uint256 uniqueVoters)",
-  
-  "function proposalCount() external view returns (uint256)",
-  "function votingPeriod() external view returns (uint256)",
-  "function totalVotesCast() external view returns (uint256)",
-  "function userVoteCount(address user) external view returns (uint256)",
-  
-  "event ProposalCreated(uint256 indexed proposalId, address indexed proposer, string title, uint8 category, uint256 startTime, uint256 endTime)",
-  "event VoteCast(uint256 indexed proposalId, address indexed voter, uint8 choice, uint256 timestamp)",
-  "event ProposalStateChanged(uint256 indexed proposalId, uint8 newState, uint256 timestamp)",
-]);
+import { GOVERNANCE_DAO_ABI } from "@/contracts/generated";
 
 // Enums matching Solidity contract
 export enum VoteChoice {
