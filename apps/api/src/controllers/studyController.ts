@@ -416,7 +416,7 @@ export const getStudies = async (req: Request, res: Response) => {
         }
 
         // Build simple criteria summary - just show what's required, not the details
-        const criteriasSummary: any = {
+        const studyCriteriaSummary: any = {
           // Basic requirements from DB columns
           requiresAge: study.requires_age,
           requiresGender: study.requires_gender,
@@ -425,15 +425,15 @@ export const getStudies = async (req: Request, res: Response) => {
 
         // Add other criteria types if available (just boolean flags)
         if (criteriaDetails) {
-          criteriasSummary.requiresSmoking = criteriaDetails.enableSmoking === 1;
-          criteriasSummary.requiresBMI = criteriaDetails.enableBMI === 1;
-          criteriasSummary.requiresBloodPressure = criteriaDetails.enableBloodPressure === 1;
-          criteriasSummary.requiresCholesterol = criteriaDetails.enableCholesterol === 1;
-          criteriasSummary.requiresHeartDisease = criteriaDetails.enableHeartDisease === 1;
-          criteriasSummary.requiresActivity = criteriaDetails.enableActivity === 1;
-          criteriasSummary.requiresHbA1c = criteriaDetails.enableHbA1c === 1;
-          criteriasSummary.requiresBloodType = criteriaDetails.enableBloodType === 1;
-          criteriasSummary.requiresLocation = criteriaDetails.enableLocation === 1;
+          studyCriteriaSummary.requiresSmoking = criteriaDetails.enableSmoking === 1;
+          studyCriteriaSummary.requiresBMI = criteriaDetails.enableBMI === 1;
+          studyCriteriaSummary.requiresBloodPressure = criteriaDetails.enableBloodPressure === 1;
+          studyCriteriaSummary.requiresCholesterol = criteriaDetails.enableCholesterol === 1;
+          studyCriteriaSummary.requiresHeartDisease = criteriaDetails.enableHeartDisease === 1;
+          studyCriteriaSummary.requiresActivity = criteriaDetails.enableActivity === 1;
+          studyCriteriaSummary.requiresHbA1c = criteriaDetails.enableHbA1c === 1;
+          studyCriteriaSummary.requiresBloodType = criteriaDetails.enableBloodType === 1;
+          studyCriteriaSummary.requiresLocation = criteriaDetails.enableLocation === 1;
         }
 
         return {
@@ -447,7 +447,7 @@ export const getStudies = async (req: Request, res: Response) => {
           templateName: study.template_name,
           createdAt: study.created_at,
           contractAddress: study.contract_address,
-          criteriasSummary,
+          criteriasSummary: studyCriteriaSummary,
         };
       }) || [];
 
