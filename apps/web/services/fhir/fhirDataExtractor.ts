@@ -2,11 +2,12 @@ import {
   FHIRDatatype, 
 } from "@/services/fhir/types/fhirDatatype";
 import { FhirResourceType } from "@/constants/fhirResourceTypes";
-import { ExtractedMedicalData } from "./types/extractedMedicalData";
-import { AggregatedMedicalData } from "./types/aggregatedMedicalData";
-import { FHIRPatient } from "./types/fhirpatient";
-import { FHIRObservation } from "./types/fhirobservation";
-import { CodedValue } from "./types/codedValue";
+import { ExtractedMedicalData } from "@/services/fhir/types/extractedMedicalData";
+import { AggregatedMedicalData } from "@/services/fhir/types/aggregatedMedicalData";
+import { FHIRPatient } from "@/services/fhir/types/fhirpatient";
+import { FHIRObservation } from "@/services/fhir/types/fhirobservation";
+import { CodedValue } from "@/services/fhir/types/codedValue";
+import { fhirBloodTypeToZK } from "@/services/fhir/fhirToZkMappings";
 
 export interface FHIRDataBundle {
   resources: any[];
@@ -21,19 +22,6 @@ export interface StudyEligibilityResult {
   extractedData: ExtractedMedicalData;
   zkReadyValues: { [key: string]: number | number[] };
 }
-
-/**
- * Helper function to map smoking codes to readable values
- */
-const mapSmokingCode = (code: string): "never" | "former" | "current" | "unknown" => {
-  const smokingMap: Record<string, "never" | "former" | "current" | "unknown"> = {
-    "266919005": "never",
-    "8517006": "former",
-    "77176002": "current",
-    "266927001": "unknown"
-  };
-  return smokingMap[code] || "unknown";
-};
 
 function mapActivityLevel(snomedCode: string): number | undefined {
   switch (snomedCode) {
@@ -52,27 +40,6 @@ function mapActivityLevel(snomedCode: string): number | undefined {
       return undefined;
   }
 }
-
-/**
- * Helper function to map SNOMED blood type codes to numeric values
- * Based on common blood type encoding: 0=A+, 1=A-, 2=B+, 3=B-, 4=AB+, 5=AB-, 6=O+, 7=O-
- * 
- * Only maps complete blood types (ABO + Rh factor) from LOINC 882-1.
- * Returns undefined for ABO-only codes (LOINC 883-9) to avoid false matches in eligibility checks.
- */
-const mapBloodTypeCode = (code: string): number | undefined => {
-  const bloodTypeMap: Record<string, number> = {
-    "112144000": 0,  // Blood group A Rh(D) positive (A+)
-    "112149005": 1,  // Blood group A Rh(D) negative (A-)
-    "112146003": 2,  // Blood group B Rh(D) positive (B+)
-    "112151009": 3,  // Blood group B Rh(D) negative (B-)
-    "112143006": 4,  // Blood group AB Rh(D) positive (AB+)
-    "112148002": 5,  // Blood group AB Rh(D) negative (AB-)
-    "112145004": 6,  // Blood group O Rh(D) positive (O+)
-    "112150005": 7,  // Blood group O Rh(D) negative (O-)
-  };
-  return bloodTypeMap[code];
-};
 
 /**
  * Process FHIR Patient resource
@@ -171,7 +138,7 @@ const processObservation = (observation: FHIRObservation, aggregated: Aggregated
         };
       }
       else if (loincCode === "882-1") {
-        const bloodTypeValue = mapBloodTypeCode(code);
+        const bloodTypeValue = fhirBloodTypeToZK(code);
         if (bloodTypeValue !== undefined) {
           aggregated.bloodType = {
             value: bloodTypeValue,
