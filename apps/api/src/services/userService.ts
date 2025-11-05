@@ -205,7 +205,6 @@ export async function getUserStatsForResearcher(
     logger.error({ error: studiesError, walletAddress }, "Failed to get studies");
   }
 
-  // Calculate active and completed based on created_at + duration_days
   const now = new Date();
   let nActiveStudies = 0;
   let nCompletedStudies = 0;
