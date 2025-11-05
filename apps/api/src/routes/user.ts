@@ -5,7 +5,56 @@ const router = Router();
 
 /**
  * @swagger
- * /api/user/{walletAddress}:
+ * /user/stats/{walletAddress}/{profile}:
+ *   get:
+ *     summary: Get user statistics
+ *     description: Retrieves statistics for a user based on wallet address and profile type
+ *     tags: [User]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: walletAddress
+ *         required: true
+ *         schema:
+ *           type: string
+ *           pattern: '^0x[a-fA-F0-9]{40}$'
+ *         description: Ethereum wallet address (0x...)
+ *       - in: path
+ *         name: profile
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum: [DATA_SELLER, RESEARCHER]
+ *         description: User profile type
+ *     responses:
+ *       200:
+ *         description: User statistics retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 nActiveStudies:
+ *                   type: number
+ *                 nCompletedStudies:
+ *                   type: number
+ *                 nMedicalFiles:
+ *                   type: number
+ *                 totalEarnings:
+ *                   type: number
+ *       400:
+ *         description: Bad request - Invalid wallet address or profile
+ *       401:
+ *         description: Unauthorized - Invalid token
+ *       500:
+ *         description: Internal server error
+ */
+router.get("/stats/:walletAddress/:profile", getUserStats);
+
+/**
+ * @swagger
+ * /user/{walletAddress}:
  *   get:
  *     summary: Get user by wallet address
  *     description: Retrieves user information by wallet address
@@ -43,7 +92,7 @@ router.get("/:walletAddress", getUserById);
 
 /**
  * @swagger
- * /api/user/{walletAddress}:
+ * /user/{walletAddress}:
  *   patch:
  *     summary: Update user information
  *     description: Updates user information by wallet address
@@ -92,35 +141,5 @@ router.get("/:walletAddress", getUserById);
  *         description: Internal server error
  */
 router.patch("/:walletAddress", updateUser);
-
-/**
- * @swagger
- * /api/user/stats/{walletAddress}/{profile}:
- *   get:
- *     summary: Get user statistics
- *     description: Retrieves statistics for a user based on wallet address and profile type
- *     tags: [User]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: walletAddress
- *         required: true
- *         schema:
- *           type: string
- *       - in: path
- *         name: profile
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: User statistics retrieved successfully
- *       401:
- *         description: Unauthorized - Invalid token
- *       500:
- *         description: Internal server error
- */
-router.get("/stats/:walletAddress/:profile", getUserStats);
 
 export default router;

@@ -27,7 +27,7 @@ router.get("/", (req, res) => {
 router.use("/auth", authRoutes);
 router.use("/medical-data", verifySessionToken, medicalDataRoutes);
 router.use("/studies", verifySessionToken, studyRoutes);
-router.use("/user", verifySessionToken, userRoutes);
+router.use("/user", userRoutes);
 router.use("/audit", verifySessionToken, auditRoutes);
 router.use("/ipfs", verifySessionToken, ipfsRoutes);
 

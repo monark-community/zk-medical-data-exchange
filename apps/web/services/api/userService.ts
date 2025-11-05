@@ -1,5 +1,22 @@
 import { User } from "@/interfaces/user";
 import { apiClient } from "@/services/core/apiClient";
+import { UserProfile } from "@zk-medical/shared";
+
+export interface DataSellerStats {
+  nActiveStudies: number;
+  nCompletedStudies: number;
+  nMedicalFiles: number;
+  totalEarnings: number;
+}
+
+export interface ResearcherStats {
+  nActiveStudies: number;
+  nParticipantsEnrolled: number;
+  nCompletedStudies: number;
+  totalSpent: number;
+}
+
+export type UserStats = DataSellerStats | ResearcherStats;
 
 export const getUser = async (walletAddress: string): Promise<User> => {
   try {
@@ -36,6 +53,24 @@ export const updateUser = async (
     };
   } catch (error: any) {
     console.error("Error in updateUser:", error?.response?.data || error.message);
+    throw error;
+  }
+};
+
+export const getUserStats = async (
+  walletAddress: string,
+  profile: UserProfile
+): Promise<UserStats> => {
+  try {
+    if (!walletAddress) throw new Error("Missing wallet address");
+
+    // Convert UserProfile enum to string
+    const profileString = UserProfile[profile];
+
+    const response = await apiClient.get(`/user/stats/${walletAddress}/${profileString}`);
+    return response.data;
+  } catch (error: any) {
+    console.error("Error in getUserStats:", error?.response?.data || error.message);
     throw error;
   }
 };

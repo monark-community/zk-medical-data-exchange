@@ -3,7 +3,7 @@ import logger from "@/utils/logger";
 import { TABLES } from "@/constants/db";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-const { USERS } = TABLES;
+const { USERS, STUDY_PARTICIPATIONS, DATA_VAULT, STUDIES } = TABLES;
 
 export type UserRow = {
   id: string;
@@ -123,4 +123,123 @@ export async function updateUserByWalletAddress(
   }
 
   return data ?? null;
+}
+
+export async function getUserStatsForDataSeller(
+  supabase: SupabaseClient,
+  walletAddress: string
+): Promise<{
+  nActiveStudies: number;
+  nCompletedStudies: number;
+  nMedicalFiles: number;
+  totalEarnings: number;
+}> {
+  // Get all study participations to calculate active/completed
+  const { data: participations, error: participationsError } = await supabase
+    .from(STUDY_PARTICIPATIONS!.name!)
+    .select("*, studies!inner(created_at, duration_days)")
+    .eq(STUDY_PARTICIPATIONS!.columns.participantWallet!, walletAddress);
+
+  if (participationsError) {
+    logger.error(
+      { error: participationsError, walletAddress },
+      "Failed to get study participations"
+    );
+  }
+
+  // Calculate active and completed based on created_at + duration_days
+  const now = new Date();
+  let nActiveStudies = 0;
+  let nCompletedStudies = 0;
+
+  if (participations) {
+    for (const participation of participations) {
+      const study = participation.studies as { created_at: string; duration_days: number };
+      const createdAt = new Date(study.created_at);
+      const endDate = new Date(createdAt);
+      endDate.setDate(endDate.getDate() + study.duration_days);
+
+      if (now <= endDate) {
+        nActiveStudies++;
+      } else {
+        nCompletedStudies++;
+      }
+    }
+  }
+
+  const { count: nMedicalFiles, error: medicalError } = await supabase
+    .from(DATA_VAULT!.name!)
+    .select("*", { count: "exact", head: true })
+    .eq(DATA_VAULT!.columns.walletAddress!, walletAddress);
+
+  if (medicalError) {
+    logger.error({ error: medicalError, walletAddress }, "Failed to get medical files count");
+  }
+  // TODO [LT]: Implement when we have this data
+  const totalEarnings = 0;
+
+  return {
+    nActiveStudies: nActiveStudies ?? 0,
+    nCompletedStudies: nCompletedStudies ?? 0,
+    nMedicalFiles: nMedicalFiles ?? 0,
+    totalEarnings: totalEarnings ?? 0,
+  };
+}
+
+export async function getUserStatsForResearcher(
+  supabase: SupabaseClient,
+  walletAddress: string
+): Promise<{
+  nActiveStudies: number;
+  nParticipantsEnrolled: number;
+  nCompletedStudies: number;
+  totalSpent: number;
+}> {
+  // Get all studies created by this researcher to calculate active/completed
+  const { data: studies, error: studiesError } = await supabase
+    .from(STUDIES!.name!)
+    .select("created_at, duration_days, status")
+    .eq(STUDIES!.columns.createdBy!, walletAddress);
+
+  if (studiesError) {
+    logger.error({ error: studiesError, walletAddress }, "Failed to get studies");
+  }
+
+  // Calculate active and completed based on created_at + duration_days
+  const now = new Date();
+  let nActiveStudies = 0;
+  let nCompletedStudies = 0;
+
+  if (studies) {
+    for (const study of studies) {
+      const createdAt = new Date(study.created_at);
+      const endDate = new Date(createdAt);
+      endDate.setDate(endDate.getDate() + study.duration_days);
+      if (now <= endDate || study.status === "active") {
+        nActiveStudies++;
+      } else {
+        nCompletedStudies++;
+      }
+    }
+  }
+
+  // Total number of participants enrolled across all researcher's studies
+  const { count: nParticipantsEnrolled, error: participantsError } = await supabase
+    .from(STUDY_PARTICIPATIONS!.name!)
+    .select("*, studies!inner(*)", { count: "exact", head: true })
+    .eq("studies.created_by", walletAddress);
+
+  if (participantsError) {
+    logger.error({ error: participantsError, walletAddress }, "Failed to get participants count");
+  }
+
+  // TODO: [LT] Implement when we have payment/budget tracking
+  const totalSpent = 0;
+
+  return {
+    nActiveStudies: nActiveStudies ?? 0,
+    nParticipantsEnrolled: nParticipantsEnrolled ?? 0,
+    nCompletedStudies: nCompletedStudies ?? 0,
+    totalSpent: totalSpent ?? 0,
+  };
 }

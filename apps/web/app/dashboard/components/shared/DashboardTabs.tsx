@@ -21,9 +21,8 @@ const DashboardTabs = ({
   const { currentProfile } = useProfile();
 
   return (
-    <Tabs defaultValue="overview" className="w-full">
+    <Tabs defaultValue="dataVault" className="w-full">
       <TabsList className="w-full h-10">
-        <TabsTrigger value="overview">Overview</TabsTrigger>
         {/* Only show Data Vault tab for Data Sellers */}
         {currentProfile === UserProfile.DATA_SELLER && (
           <TabsTrigger value="dataVault">Data Vault</TabsTrigger>
@@ -31,7 +30,6 @@ const DashboardTabs = ({
         <TabsTrigger value="studies">Studies</TabsTrigger>
         <TabsTrigger value="privacy">Privacy</TabsTrigger>
       </TabsList>
-      <TabsContent value="overview"></TabsContent>
       {/* Only render Data Vault content for Data Sellers */}
       {currentProfile === UserProfile.DATA_SELLER && (
         <TabsContent value="dataVault">
