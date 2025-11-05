@@ -41,6 +41,8 @@ export const fhirGenderToZK = (fhirGender: string): number => {
  * FHIR uses SNOMED CT codes for blood types
  */
 export const fhirBloodTypeToZK = (fhirBloodType: string): number => {
+  console.log("Mapping FHIR blood type:", fhirBloodType);
+  
   // Check SNOMED CT codes first
   if (FHIR_BLOOD_TYPE_SNOMED[fhirBloodType as keyof typeof FHIR_BLOOD_TYPE_SNOMED]) {
     return FHIR_BLOOD_TYPE_SNOMED[fhirBloodType as keyof typeof FHIR_BLOOD_TYPE_SNOMED];
@@ -51,7 +53,7 @@ export const fhirBloodTypeToZK = (fhirBloodType: string): number => {
     return FHIR_BLOOD_TYPE_TEXT[fhirBloodType as keyof typeof FHIR_BLOOD_TYPE_TEXT];
   }
 
-  return 0; // Unknown blood type
+  return -1; // Unknown blood type
 };
 
 // ========================================
@@ -63,18 +65,16 @@ export const fhirBloodTypeToZK = (fhirBloodType: string): number => {
  * FHIR uses SNOMED CT codes for smoking status
  */
 export const fhirSmokingStatusToZK = (smokingCode: string): number => {
-  // Check SNOMED CT codes first
   if (FHIR_SMOKING_SNOMED[smokingCode as keyof typeof FHIR_SMOKING_SNOMED]) {
     return FHIR_SMOKING_SNOMED[smokingCode as keyof typeof FHIR_SMOKING_SNOMED];
   }
 
-  // Check text representations
   const lowerCode = smokingCode.toLowerCase();
   if (FHIR_SMOKING_TEXT[lowerCode as keyof typeof FHIR_SMOKING_TEXT]) {
     return FHIR_SMOKING_TEXT[lowerCode as keyof typeof FHIR_SMOKING_TEXT];
   }
 
-  return SMOKING_VALUES.ANY; // Default to 'any' if unknown
+  return SMOKING_VALUES.ANY;
 };
 
 // ========================================
@@ -343,8 +343,8 @@ export const convertToZkReady = (
   values.systolicBP = medicalData.systolicBP?.value;
   values.diastolicBP = medicalData.diastolicBP?.value;
   values.hba1c = medicalData.hba1c?.value;
-  values.bloodType = medicalData.bloodType?.code as number | undefined;
-  values.smokingStatus = medicalData.smokingStatus?.code as number | undefined;
+  values.bloodType = medicalData.bloodType?.code ? fhirBloodTypeToZK(medicalData.bloodType.code) : undefined;
+  values.smokingStatus = medicalData.smokingStatus?.code ? fhirSmokingStatusToZK(medicalData.smokingStatus.code) : undefined;
   values.regions = medicalData.country
     ? fhirLocationToZK(medicalData.country, undefined, undefined)
     : undefined;
