@@ -7,8 +7,8 @@
 import { generateZKProof } from "@/services/zk/zkProofGenerator";
 import { StudyCriteria } from "@zk-medical/shared";
 import { apiClient } from "@/services/core/apiClient";
-import { AggregatedMedicalData, ExtractedMedicalData } from "../fhir/types/fhirDatatype";
-import { generateDataCommitment, generateSecureSalt } from "../zk/commitmentGenerator";
+import { generateDataCommitment, generateSecureSalt } from "@/services/zk/commitmentGenerator";
+import { ExtractedMedicalData } from "@/services/fhir/types/extractedMedicalData";
 
 /**
  * Study application request (only non-sensitive data)
