@@ -215,7 +215,7 @@ export async function getUserStatsForResearcher(
       const createdAt = new Date(study.created_at);
       const endDate = new Date(createdAt);
       endDate.setDate(endDate.getDate() + study.duration_days);
-      if (now <= endDate || study.status === "active") {
+      if (now <= endDate && study.status === "active") {
         nActiveStudies++;
       } else {
         nCompletedStudies++;
