@@ -28,17 +28,12 @@ export function useStudies(walletAddress?: string, fetchAll = false): UseStudies
 
     try {
       if (fetchAll) {
-        console.log("Fetching all studies");
-        const response = await getStudies({
-        });
-        console.log("Received studies:", response.studies?.length || 0, "studies");
+        const response = await getStudies({});
         setStudies(response.studies || []);
       } else {
-        console.log("Fetching studies for wallet:", walletAddress);
         const response = await getStudies({
           createdBy: walletAddress,
         });
-        console.log("Received studies:", response.studies?.length || 0, "studies");
         setStudies(response.studies || []);
       }
     } catch (err) {
@@ -57,7 +52,6 @@ export function useStudies(walletAddress?: string, fetchAll = false): UseStudies
   const refetchWithDelay = async () => {
     // Small delay to ensure the deletion is processed on the server
     setTimeout(() => {
-      console.log("Refetching studies after deletion...");
       fetchStudies();
     }, 500);
   };
