@@ -121,13 +121,13 @@ export const FHIR_GENDER_CODES = {
  */
 export const FHIR_BLOOD_TYPE_SNOMED = {
   "278149003": BLOOD_TYPE_VALUES.A_POSITIVE, // A+
-  "278148006": BLOOD_TYPE_VALUES.A_NEGATIVE, // A-
-  "278152006": BLOOD_TYPE_VALUES.B_POSITIVE, // B+
-  "278151004": BLOOD_TYPE_VALUES.B_NEGATIVE, // B-
-  "278154007": BLOOD_TYPE_VALUES.AB_POSITIVE, // AB+
-  "278153001": BLOOD_TYPE_VALUES.AB_NEGATIVE, // AB-
-  "278155008": BLOOD_TYPE_VALUES.O_POSITIVE, // O+
-  "278156009": BLOOD_TYPE_VALUES.O_NEGATIVE, // O-
+  "278152006": BLOOD_TYPE_VALUES.A_NEGATIVE, // A-
+  "278150003": BLOOD_TYPE_VALUES.B_POSITIVE, // B+
+  "278153001": BLOOD_TYPE_VALUES.B_NEGATIVE, // B-
+  "278151004": BLOOD_TYPE_VALUES.AB_POSITIVE, // AB+
+  "278154007": BLOOD_TYPE_VALUES.AB_NEGATIVE, // AB-
+  "278147001": BLOOD_TYPE_VALUES.O_POSITIVE, // O+
+  "278148006": BLOOD_TYPE_VALUES.O_NEGATIVE, // O-
 } as const;
 
 /**
@@ -159,9 +159,23 @@ export const FHIR_SMOKING_SNOMED = {
   "266919005": SMOKING_VALUES.NEVER_SMOKED, // Never smoked
   "77176002": SMOKING_VALUES.CURRENT_SMOKER, // Current smoker
   "8517006": SMOKING_VALUES.FORMER_SMOKER, // Former smoker
-  "428041000124106": SMOKING_VALUES.CURRENT_SMOKER, // Current some day smoker
-  "428061000124105": SMOKING_VALUES.CURRENT_SMOKER, // Current heavy tobacco smoker
+  "428041000124106": SMOKING_VALUES.CURRENT_SMOKER, // Current occasional smoker
+  "449868002": SMOKING_VALUES.CURRENT_SMOKER, // Daily Smoker
+  "8392000": SMOKING_VALUES.NEVER_SMOKED, // Ex-smoker
 } as const;
+
+// /**
+//  * Helper function to map smoking codes to readable values
+//  */
+// const mapSmokingCode = (code: string): "never" | "former" | "current" | "unknown" => {
+//   const smokingMap: Record<string, "never" | "former" | "current" | "unknown"> = {
+//     "266919005": "never",
+//     "8517006": "former",
+//     "77176002": "current",
+//     "266927001": "unknown"
+//   };
+//   return smokingMap[code] || "unknown";
+// };
 
 /**
  * FHIR smoking status text representations to internal values
