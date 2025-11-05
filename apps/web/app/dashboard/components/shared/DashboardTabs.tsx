@@ -2,12 +2,14 @@
 import React from "react";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import DataVaultSection from "./dataVaultSection";
-import StudiesSection from "./StudiesSection";
-import PrivacySection from "./PrivacySection";
 import { Config, UseAccountReturnType } from "wagmi";
 import { useProfile } from "@/contexts/ProfileContext";
 import { UserProfile } from "@/services/api/auditService";
+import DataSellerStudiesSection from "@/app/dashboard/components/dataSeller/DataSellerStudiesSection";
+import PrivacySection from "@/app/dashboard/components/shared/PrivacySection";
+import DataVaultSection from "@/app/dashboard/components/dataSeller/DataVaultSection";
+import ResearcherStudiesSection from "@/app/dashboard/components/researcher/ResearcherStudiesSection";
+
 const DashboardTabs = ({
   account,
   aesKey,
@@ -37,14 +39,9 @@ const DashboardTabs = ({
       )}
       <TabsContent value="studies">
         {currentProfile === UserProfile.RESEARCHER ? (
-          <StudiesSection />
+          <ResearcherStudiesSection />
         ) : (
-          // TODO: [LT] Add studies for data seller component when ready
-          <div className="container mx-auto px-4 py-6">
-            <div className="text-center text-gray-500">
-              Studies section for data sellers is coming soon.
-            </div>
-          </div>
+          <DataSellerStudiesSection />
         )}
       </TabsContent>
       <TabsContent value="privacy">

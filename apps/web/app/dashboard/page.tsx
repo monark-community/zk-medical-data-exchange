@@ -3,9 +3,9 @@
 import { useProtectedRoute } from "@/hooks/useAuth";
 import { useWeb3AuthDisconnect } from "@web3auth/modal/react";
 import { useAccount } from "wagmi";
-
-import AccountOverview from "./components/accountOverview";
 import { useAESKey } from "@/hooks/useAESKey";
+import AccountOverview from "./components/dataSeller/AccountOverview";
+import DashboardTabs from "./components/shared/DashboardTabs";
 
 export default function Dashboard() {
   const { isConnected } = useProtectedRoute();
