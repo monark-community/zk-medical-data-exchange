@@ -311,7 +311,6 @@ export const deployStudy = async (req: Request, res: Response) => {
       });
     }
 
-    // Update database with deployment info
     const { error: updateError } = await req.supabase
       .from(TABLES.STUDIES!.name)
       .update({
@@ -364,7 +363,6 @@ export const getStudies = async (req: Request, res: Response) => {
       .select("*")
       .order(TABLES.STUDIES!.columns.createdAt!, { ascending: false });
 
-    // Apply filters
     if (status) {
       query = query.eq(TABLES.STUDIES!.columns.status!, status);
     }
@@ -377,17 +375,13 @@ export const getStudies = async (req: Request, res: Response) => {
       query = query.eq(TABLES.STUDIES!.columns.createdBy!, createdBy);
     }
 
-    // Apply pagination only if limit is specified
-    // When fetching user's own studies (createdBy), don't limit by default
     if (limit && !createdBy) {
       const offset = (Number(page) - 1) * Number(limit);
       query = query.range(offset, offset + Number(limit) - 1);
     } else if (limit && createdBy) {
-      // Even with createdBy, respect limit if explicitly provided
       const offset = (Number(page) - 1) * Number(limit);
       query = query.range(offset, offset + Number(limit) - 1);
     }
-    // If no limit and createdBy is provided, fetch all user's studies without pagination
 
     const { data: studies, error, count } = await query;
 
@@ -396,10 +390,8 @@ export const getStudies = async (req: Request, res: Response) => {
       return res.status(500).json({ error: "Failed to fetch studies" });
     }
 
-    // Transform data for response
     const transformedStudies =
       studies?.map((study) => {
-        // Parse criteria to get detailed information
         let criteriaDetails = null;
         if (study.criteria_json) {
           try {
@@ -415,15 +407,12 @@ export const getStudies = async (req: Request, res: Response) => {
           }
         }
 
-        // Build simple criteria summary - just show what's required, not the details
         const studyCriteriaSummary: any = {
-          // Basic requirements from DB columns
           requiresAge: study.requires_age,
           requiresGender: study.requires_gender,
           requiresDiabetes: study.requires_diabetes,
         };
 
-        // Add other criteria types if available (just boolean flags)
         if (criteriaDetails) {
           studyCriteriaSummary.requiresSmoking = criteriaDetails.enableSmoking === 1;
           studyCriteriaSummary.requiresBMI = criteriaDetails.enableBMI === 1;
