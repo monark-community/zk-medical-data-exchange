@@ -66,7 +66,7 @@ export default function StudyCard({
       </div>
 
       <StudyCriteriaBadges 
-        studyCriteriaSummary={study.criteriasSummary} 
+        studyCriteriaSummary={study.criteriaSummary} 
         showLabel={showCriteriaLabel}
       />
     </div>
