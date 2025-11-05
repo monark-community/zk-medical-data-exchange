@@ -436,7 +436,7 @@ export const getStudies = async (req: Request, res: Response) => {
           templateName: study.template_name,
           createdAt: study.created_at,
           contractAddress: study.contract_address,
-          criteriasSummary: studyCriteriaSummary,
+          criteriaSummary: studyCriteriaSummary,
         };
       }) || [];
 
