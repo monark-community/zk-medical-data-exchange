@@ -13,6 +13,7 @@
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,
     "noEmit": true,
+    // "resolveJsonModule": true, only for testGovernance.ts
 
     // Best practices
     "strict": true,
