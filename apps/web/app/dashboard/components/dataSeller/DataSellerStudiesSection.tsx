@@ -6,10 +6,15 @@ import { useStudies } from "@/hooks/useStudies";
 import DataSellerStudiesList from "@/app/dashboard/components/dataSeller/DataSellerStudiesList";
 import StudySectionHeader from "@/app/dashboard/components/shared/StudySectionHeader";
 import StudiesContainer from "@/app/dashboard/components/shared/StudiesContainer";
+import { useState } from "react";
+import { getAggregatedMedicalData } from "@/services/core/medicalDataAggregator";
+import { convertToZkReady } from "@/services/fhir";
+import { StudyApplicationService } from "@/services/api";
 
 export default function DataSellerStudiesSection() {
   const { address: walletAddress } = useAccount();
   const { studies, isLoading, error, refetch } = useStudies(undefined, true);
+   const [applyingStudyId, setApplyingStudyId] = useState<number | null>(null);
 
   const handleApplyToStudy = async (studyId: number) => {
     if (!walletAddress) {
@@ -17,14 +22,50 @@ export default function DataSellerStudiesSection() {
       return;
     }
 
-    const study = studies.find((s) => s.id === studyId);
+    if (applyingStudyId === studyId) {
+      return;
+    }
 
-    const confirmMessage = `Do you want to apply to "${study?.title}"?\n\nBy applying, you agree to share your medical data according to the study's privacy requirements.`;
+    setApplyingStudyId(studyId);
 
-    if (window.confirm(confirmMessage)) {
-      console.log(`Applying to study ${studyId}: "${study?.title}"`);
-      // TODO: Implement the actual apply logic here
-      alert("Application functionality coming soon!");
+    try{
+      console.log("Starting secure study application process...");
+
+      const data = await getAggregatedMedicalData(walletAddress);
+
+      console.log("Aggregated medical data retrieved for study application:", data);
+
+      if (!data || Object.keys(data).length === 0) {
+        //TODO better UX
+        throw new Error("No medical data available for study application.");
+      }
+
+      const zkReadyMedicalData = convertToZkReady(data);
+      if (!zkReadyMedicalData) {
+        //TODO better UX
+        throw new Error("No valid medical data available for study application.");
+      }
+
+      const result = await StudyApplicationService.applyToStudy(
+        studyId,
+        zkReadyMedicalData,
+        walletAddress
+      );
+
+      if (result.success) {
+        alert(`✅ ${result.message}`);
+        refetch();
+      } else {
+        throw new Error(result.message);
+      } 
+
+
+    }
+    catch (error: any) {
+      console.error("Error during study application:", error);
+      alert(`❌ Application failed: ${error.message || error}`);
+    } finally {
+      setApplyingStudyId(null);
     }
   };
 
@@ -53,6 +94,7 @@ export default function DataSellerStudiesSection() {
           <DataSellerStudiesList
             studies={studies}
             onApplyToStudy={handleApplyToStudy}
+            applyingStudyId={applyingStudyId}
             walletAddress={walletAddress}
           />
         </StudiesContainer>

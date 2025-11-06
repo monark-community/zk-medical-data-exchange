@@ -3,6 +3,7 @@ import {
   createStudy,
   getStudies,
   getStudyById,
+  getStudyCriteria,
   updateStudy,
   participateInStudy,
   deployStudy,
@@ -99,6 +100,25 @@ router.post("/", createStudy);
  *         description: Study not found
  */
 router.get("/:id", getStudyById);
+
+/**
+ * @swagger
+ * /studies/{id}/criteria:
+ *   get:
+ *     summary: Get study criteria by ID
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Study criteria
+ *       404:
+ *         description: Study not found
+ */
+router.get("/:id/criteria", getStudyCriteria);
 
 /**
  * @swagger

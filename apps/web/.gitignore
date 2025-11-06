@@ -37,3 +37,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# zk circuit files (large files, generate locally)
+/public/circuits/*.wasm
+/public/circuits/*.zkey
+/public/circuits/*.ptau
