@@ -14,6 +14,11 @@ function hasSessionTokens() {
   return token && walletAddress;
 }
 
+function deleteCredentials() {
+  localStorage.removeItem("session_token");
+  localStorage.removeItem("wallet_address");
+}
+
 export function useAuthRedirect() {
   const { isConnected } = useWeb3AuthConnect();
   const router = useRouter();
@@ -22,25 +27,19 @@ export function useAuthRedirect() {
   useEffect(() => {
     const allowedPaths = ["/", "/research", "/breakthrough", "/how-it-works"];
     const isCalledFromVisitorPage = allowedPaths.includes(pathname);
+
+    if (!isConnected || !hasSessionTokens()) {
+      deleteCredentials();
+      router.push("/");
+      return;
+    }
+
     if (isConnected && hasSessionTokens() && isCalledFromVisitorPage) {
       router.push("/dashboard");
     }
   }, [isConnected, router, pathname]);
 
   return { isConnected: isConnected && hasSessionTokens() };
-}
-
-export function useProtectedRoute() {
-  const { isConnected, logout } = useWeb3AuthLogin();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!isConnected || !hasSessionTokens()) {
-      logout();
-    }
-  }, [isConnected, router]);
-
-  return { isConnected };
 }
 
 export function useWeb3AuthLogin() {
@@ -99,8 +98,7 @@ export function useWeb3AuthLogin() {
     } catch (err) {
       console.error("[Auth] ✗ Logout error:", err);
     } finally {
-      localStorage.removeItem("session_token");
-      localStorage.removeItem("wallet_address");
+      deleteCredentials();
       router.push("/");
     }
   }, [web3Auth, router]);

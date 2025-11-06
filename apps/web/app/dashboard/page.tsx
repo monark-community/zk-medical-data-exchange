@@ -1,6 +1,7 @@
 "use client";
 
-import { useProtectedRoute } from "@/hooks/useAuth";
+import { useAuthRedirect } from "@/hooks/useAuth";
+
 import CustomNavbar from "@/components/navigation/customNavBar";
 import { useAccount } from "wagmi";
 import { useAESKey } from "@/hooks/useAESKey";
@@ -8,7 +9,7 @@ import AccountOverview from "./components/dataSeller/AccountOverview";
 import DashboardTabs from "./components/shared/DashboardTabs";
 
 export default function Dashboard() {
-  const { isConnected } = useProtectedRoute();
+  const { isConnected } = useAuthRedirect();
   const account = useAccount();
   const { aesKey } = useAESKey(account);
 
