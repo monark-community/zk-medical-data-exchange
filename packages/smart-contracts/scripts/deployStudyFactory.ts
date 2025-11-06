@@ -28,7 +28,7 @@ async function main() {
     console.log("   Get Sepolia ETH from: https://sepoliafaucet.com/");
   }
 
-  console.log("\n🔄 Step 1: Deploying MedicalEligibilityVerifier...");
+  console.log("\n🔄 Step 1: Deploying Groth16Verifier...");
   const verifierContract = await viem.deployContract("Groth16Verifier");
   console.log(`   ✅ Verifier deployed: ${verifierContract.address}`);
 
@@ -39,7 +39,7 @@ async function main() {
 
   console.log("\n📊 Gas Estimates for Common Operations:");
   console.log(`   StudyFactory deployment: Contract successfully deployed`);
-  console.log(`   MedicalEligibilityVerifier deployment: Contract successfully deployed`);
+  console.log(`   Groth16Verifier deployment: Contract successfully deployed`);
 
   // Set up initial configuration
   console.log("\n🔧 Step 3: Initial Configuration...");

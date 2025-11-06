@@ -9,7 +9,7 @@ import { privateKeyToAccount } from "viem/accounts";
 import type { StudyCriteria } from "@zk-medical/shared";
 import logger from "@/utils/logger";
 import { Config } from "@/config/config";
-import { STUDY_FACTORY_ABI } from "../contracts/generated";
+import { STUDY_FACTORY_ABI, STUDY_ABI } from "../contracts/generated";
 
 export interface StudyDeploymentParams {
   title: string;
@@ -479,6 +479,104 @@ class StudyService {
       return {
         success: false,
         error: error instanceof Error ? error.message : "Unknown deployment error",
+      };
+    }
+  }
+
+  /**
+   * Record study participation on blockchain
+   */
+  async recordParticipation(
+    studyAddress: string,
+    participantWallet: string,
+    proof: { a: [string, string]; b: [[string, string], [string, string]]; c: [string, string] },
+    dataCommitment: string
+  ): Promise<{ success: boolean; transactionHash?: string; error?: string }> {
+    try {
+      logger.info(
+        {
+          studyAddress,
+          participantWallet,
+          dataCommitment,
+          proof,
+        },
+        "Recording study participation on blockchain"
+      );
+
+      // Format proof for contract call with error handling
+      let pA: [bigint, bigint];
+      let pB: [[bigint, bigint], [bigint, bigint]];
+      let pC: [bigint, bigint];
+      let commitment: bigint;
+
+      try {
+        pA = [BigInt(proof.a[0]), BigInt(proof.a[1])];
+        pB = [
+          [BigInt(proof.b[0][0]), BigInt(proof.b[0][1])],
+          [BigInt(proof.b[1][0]), BigInt(proof.b[1][1])],
+        ];
+        pC = [BigInt(proof.c[0]), BigInt(proof.c[1])];
+        commitment = BigInt(dataCommitment);
+        
+        logger.info({ pA, pB, pC, commitment }, "Proof converted to BigInt format");
+      } catch (conversionError) {
+        logger.error({ 
+          error: conversionError, 
+          proof, 
+          dataCommitment 
+        }, "Failed to convert proof to BigInt");
+        throw new Error(`Invalid proof format: ${conversionError instanceof Error ? conversionError.message : 'Unknown error'}`);
+      }
+      
+      // Simulate the transaction first
+      const simulationResult = await this.publicClient.simulateContract({
+        account: this.account,
+        address: studyAddress as `0x${string}`,
+        abi: STUDY_ABI,
+        functionName: "joinStudy",
+        args: [pA, pB, pC, commitment],
+      });
+
+      logger.info(
+        {
+          gasEstimate: simulationResult.request.gas?.toString(),
+        },
+        "Simulation successful"
+      );
+
+      // Execute the transaction
+      const transactionHash = await this.walletClient.writeContract(simulationResult.request);
+
+      logger.info({ transactionHash }, "Participation transaction submitted");
+
+      // Wait for confirmation
+      const receipt = await this.publicClient.waitForTransactionReceipt({
+        hash: transactionHash,
+      });
+
+      if (receipt.status === "reverted") {
+        logger.error({ transactionHash }, "Participation transaction reverted");
+        throw new Error("Transaction reverted - participant may already be enrolled or proof invalid");
+      }
+
+      logger.info(
+        {
+          transactionHash,
+          gasUsed: receipt.gasUsed.toString(),
+          participantWallet,
+        },
+        "Participation recorded on blockchain successfully"
+      );
+
+      return {
+        success: true,
+        transactionHash,
+      };
+    } catch (error) {
+      logger.error({ error, studyAddress, participantWallet }, "Failed to record participation on blockchain");
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error recording participation",
       };
     }
   }

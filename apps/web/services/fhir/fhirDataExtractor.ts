@@ -7,7 +7,6 @@ import { AggregatedMedicalData } from "@/services/fhir/types/aggregatedMedicalDa
 import { FHIRPatient } from "@/services/fhir/types/fhirpatient";
 import { FHIRObservation } from "@/services/fhir/types/fhirobservation";
 import { CodedValue } from "@/services/fhir/types/codedValue";
-import { fhirBloodTypeToZK } from "@/services/fhir/fhirToZkMappings";
 
 export interface FHIRDataBundle {
   resources: any[];
@@ -23,23 +22,21 @@ export interface StudyEligibilityResult {
   zkReadyValues: { [key: string]: number | number[] };
 }
 
-function mapActivityLevel(snomedCode: string): number | undefined {
-  switch (snomedCode) {
-    //Some activity levels have 2 codes mapping to same level.
-    case "160646008": return 0; // Level 0 - No moderate/vigorous activity
-    case "267124003": return 1; // Level 1 - 1–4 mixed activity sessions in 4 weeks
-    case "160647004": return 1; // Level 1 - 1–4 mixed activity sessions in 4 weeks
-    case "160648009": return 2; // Level 2 - 5–11 mixed activity sessions
-    case "160649001": return 3; // Level 3 - ≥12 moderate activity sessions
-    case "160650001": return 4; // Level 4 - ≥12 moderate/vigorous mixed sessions
-    case "267126001": return 4; // Level 4 - ≥12 moderate/vigorous mixed sessions
-    case "160651002": return 5; // Level 5 - ≥12 vigorous activity sessions
-    case "267127005": return 5; // Level 5 - ≥12 vigorous activity sessions
-    default:
-      console.log(`Unhandled SNOMED activity level code: ${snomedCode}`);
-      return undefined;
-  }
-}
+/**
+ * Helper function to determine code system from FHIR system URL
+ */
+const determineCodeSystem = (system?: string): "LOINC" | "SNOMED" | "ICD10" | "ICD9" | "UCUM" | "Other" => {
+  if (!system) return "Other";
+  
+  const lowerSystem = system.toLowerCase();
+  if (lowerSystem.includes("snomed")) return "SNOMED";
+  if (lowerSystem.includes("loinc")) return "LOINC";
+  if (lowerSystem.includes("icd-10") || lowerSystem.includes("icd10")) return "ICD10";
+  if (lowerSystem.includes("icd-9") || lowerSystem.includes("icd9")) return "ICD9";
+  if (lowerSystem.includes("ucum")) return "UCUM";
+  
+  return "Other";
+};
 
 /**
  * Process FHIR Patient resource
@@ -71,9 +68,11 @@ const processPatient = (patient: FHIRPatient, aggregated: AggregatedMedicalData)
  * Process FHIR Observation resource
  */
 const processObservation = (observation: FHIRObservation, aggregated: AggregatedMedicalData): void => {
-  const loincCode = observation.code?.coding?.find(
+  const loincCoding = observation.code?.coding?.find(
     c => c.system === "http://loinc.org" || c.system?.toLowerCase().includes("loinc")
-  )?.code;
+  );
+  const loincCode = loincCoding?.code;
+  const loincSystem = loincCoding?.system;
 
   const effectiveDate = observation.effectiveDateTime || 
                         observation.effectivePeriod?.start || 
@@ -88,7 +87,7 @@ const processObservation = (observation: FHIRObservation, aggregated: Aggregated
         value,
         unit,
         code: loincCode,
-        codeSystem: "LOINC",
+        codeSystem: determineCodeSystem(loincSystem),
         source: "issuer",
         effectiveDate
       };
@@ -118,6 +117,18 @@ const processObservation = (observation: FHIRObservation, aggregated: Aggregated
         case "8867-4": // Heart rate
           aggregated.heartRate = codedValue;
           break;
+        case "41950-7": // Number of days per week engaged in moderate to vigorous physical activity
+        case "89558-1": // Physical activity level (numeric)
+          // For LOINC activity level, store the numeric value
+          aggregated.activityLevel = {
+            value,
+            code: loincCode,
+            codeSystem: determineCodeSystem(loincSystem),
+            source: "patient",
+            effectiveDate,
+            unit
+          };
+          break;
         default:
           console.log(`Unhandled LOINC code: ${loincCode}`);
       }
@@ -125,51 +136,52 @@ const processObservation = (observation: FHIRObservation, aggregated: Aggregated
   }
 
   if (observation.valueCodeableConcept) {
-    const code = observation.valueCodeableConcept.coding?.[0]?.code;
+    const coding = observation.valueCodeableConcept.coding?.[0];
+    const code = coding?.code;
+    const display = coding?.display;
+    const system = coding?.system;
+    const codeSystem = determineCodeSystem(system);
+    
     if (code && loincCode) {
-      // Common LOINC codes: 72166-2 (Tobacco smoking status), 11367-0 (History of tobacco use)
+      // LOINC codes: 72166-2 (Tobacco smoking status), 11367-0 (History of tobacco use)
       if (loincCode === "72166-2" || loincCode === "11367-0") {
         aggregated.smokingStatus = {
-          value: mapSmokingCode(code),
+          value: display || "Unknown", 
           code: code,
-          codeSystem: "SNOMED",
+          codeSystem,
           source: "patient",
           effectiveDate
         };
       }
       else if (loincCode === "882-1") {
-        const bloodTypeValue = fhirBloodTypeToZK(code);
-        if (bloodTypeValue !== undefined) {
-          aggregated.bloodType = {
-            value: bloodTypeValue,
-            code: code,
-            codeSystem: "SNOMED",
-            source: "issuer",
-            effectiveDate
-          };
-        }
+        aggregated.bloodType = {
+          value: display || code, 
+          code: code,
+          codeSystem,
+          source: "issuer",
+          effectiveDate
+        };
       }
       else if (loincCode === "41950-7" || loincCode === "89558-1") {
-        console.log(`Processing physical activity code: ${code}`);
-        const activityValue = mapActivityLevel(code);
-        if (activityValue !== undefined) {
-          aggregated.activityLevel = {
-            value: activityValue,
-            code,
-            codeSystem: "SNOMED",
-            source: "patient",
-            effectiveDate
-          };
-        }
+        // For SNOMED activity level codes (valueCodeableConcept), store display text
+        aggregated.activityLevel = {
+          value: display || "Unknown",
+          code,
+          codeSystem,
+          source: "patient",
+          effectiveDate
+        };
       }
     }
   }
 
   if (observation.component && observation.component.length > 0) {
     for (const component of observation.component) {
-      const componentLoincCode = component.code?.coding?.find(
+      const componentCoding = component.code?.coding?.find(
         c => c.system === "http://loinc.org" || c.system?.toLowerCase().includes("loinc")
-      )?.code;
+      );
+      const componentLoincCode = componentCoding?.code;
+      const componentSystem = componentCoding?.system;
 
       if (component.valueQuantity && componentLoincCode) {
         const value = component.valueQuantity.value;
@@ -180,7 +192,7 @@ const processObservation = (observation: FHIRObservation, aggregated: Aggregated
             value,
             unit,
             code: componentLoincCode,
-            codeSystem: "LOINC",
+            codeSystem: determineCodeSystem(componentSystem),
             source: "issuer",
             effectiveDate
           };
@@ -209,12 +221,6 @@ const processObservation = (observation: FHIRObservation, aggregated: Aggregated
  * 
  * @param resource - FHIR resource to process
  * @param aggregated - AggregatedMedicalData object to populate
- * 
- * @example
- * const aggregated: AggregatedMedicalData = {};
- * processResourceByType(patientResource, aggregated);
- * processResourceByType(observationResource, aggregated);
- * console.log(aggregated.age?.value); // Access extracted age
  */
 export const processResourceByType = (resource: FHIRDatatype, aggregated: AggregatedMedicalData): void => {
   switch (resource.resourceType) {
@@ -250,7 +256,6 @@ const processBundle = (bundle: FHIRDatatype, aggregated: AggregatedMedicalData):
   }
 
   for (const entry of bundle.entry) {
-    console.log("Processing bundle entry:", entry);
     if (entry.resource?.resourceType) {
       try {
         processResourceByType(entry.resource, aggregated);

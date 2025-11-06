@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import "./MedicalEligibilityVerifier.sol";
+import {Groth16Verifier} from "./MedicalEligibilityVerifier.sol";
 
 contract Study {
     // Study criteria that EXACTLY match our enhanced Circom circuit public inputs

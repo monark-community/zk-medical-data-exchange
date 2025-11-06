@@ -509,10 +509,7 @@ export const getStudyCriteria = async (req: Request, res: Response) => {
 
     logger.info({ studyId: id }, "Study criteria fetched successfully");
     
-    res.json({
-      success: true,
-      criteria: criteria.criteria_json,
-    });
+    res.json({ studyCriteria: criteria.criteria_json });
   } catch (error) {
     logger.error({ 
       error: error instanceof Error ? {
@@ -578,20 +575,34 @@ export const updateStudy = async (req: Request, res: Response) => {
 export const participateInStudy = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { participantWallet, proofJson, publicInputsJson, matchedCriteria, eligibilityScore } =
+    const { participantWallet, proofJson, publicInputsJson, dataCommitment, matchedCriteria, eligibilityScore } =
       req.body;
 
-    logger.info({ studyId: id, participantWallet }, "POST /api/studies/:id/participants");
+    logger.info({ 
+      studyId: id, 
+      participantWallet,
+      proofJson,
+      publicInputsJson,
+      dataCommitment 
+    }, "POST /api/studies/:id/participants - Full request data");
 
     if (!participantWallet) {
       return res.status(400).json({ error: "Participant wallet address is required" });
+    }
+
+    if (!proofJson) {
+      return res.status(400).json({ error: "ZK proof is required" });
+    }
+
+    if (!dataCommitment) {
+      return res.status(400).json({ error: "Data commitment is required" });
     }
 
     // Check if study exists and is active
     const { data: study, error: studyError } = await req.supabase
       .from(TABLES.STUDIES!.name)
       .select(
-        getColumns(TABLES.STUDIES!, ["id", "status", "maxParticipants", "currentParticipants"])
+        getColumns(TABLES.STUDIES!, ["id", "status", "maxParticipants", "currentParticipants", "contractAddress"])
       )
       .eq(TABLES.STUDIES!.columns.id!, id)
       .single();
@@ -613,10 +624,10 @@ export const participateInStudy = async (req: Request, res: Response) => {
 
     // Check if already participated
     const { data: existing } = await req.supabase
-      .from(TABLES.STUDY_PARTICIPATION!.name)
-      .select(TABLES.STUDY_PARTICIPATION!.columns.id!)
-      .eq(TABLES.STUDY_PARTICIPATION!.columns.study_id!, id)
-      .eq(TABLES.STUDY_PARTICIPATION!.columns.participant_wallet!, participantWallet)
+      .from(TABLES.STUDY_PARTICIPATIONS!.name)
+      .select(TABLES.STUDY_PARTICIPATIONS!.columns.id!)
+      .eq(TABLES.STUDY_PARTICIPATIONS!.columns.study_id!, id)
+      .eq(TABLES.STUDY_PARTICIPATIONS!.columns.participant_wallet!, participantWallet)
       .single();
 
     if (existing) {
@@ -635,7 +646,7 @@ export const participateInStudy = async (req: Request, res: Response) => {
     };
 
     const { data: participation, error: participationError } = await req.supabase
-      .from(TABLES.STUDY_PARTICIPATION!.name)
+      .from(TABLES.STUDY_PARTICIPATIONS!.name)
       .insert(participationData)
       .select()
       .single();
@@ -651,7 +662,56 @@ export const participateInStudy = async (req: Request, res: Response) => {
       .update({ current_participants: studyData.current_participants + 1 })
       .eq(TABLES.STUDIES!.columns.id!, id);
 
-    logger.info({ studyId: id, participantWallet }, "Participation recorded");
+    // Record participation on blockchain if study has blockchain address
+    let blockchainTxHash = null;
+    if (studyData.contract_address) {
+      try {
+        logger.info({ studyId: id, contractAddress: studyData.contract_address }, "Recording participation on blockchain");
+        
+        const imported = await import("@/services/studyService");
+        const studyServiceInstance = imported.studyService;
+        
+        const blockchainResult = await studyServiceInstance.recordParticipation(
+          studyData.contract_address,
+          participantWallet,
+          proofJson,
+          dataCommitment
+        );
+
+        if (blockchainResult.success) {
+          blockchainTxHash = blockchainResult.transactionHash;
+          logger.info({ 
+            studyId: id, 
+            participantWallet, 
+            txHash: blockchainTxHash 
+          }, "Participation recorded on blockchain successfully");
+          
+          // Update participation record with blockchain transaction hash
+          await req.supabase
+            .from(TABLES.STUDY_PARTICIPATIONS!.name)
+            .update({ blockchain_tx_hash: blockchainTxHash })
+            .eq(TABLES.STUDY_PARTICIPATIONS!.columns.id!, participation.id);
+        } else {
+          logger.error({ 
+            error: blockchainResult.error,
+            studyId: id,
+            participantWallet 
+          }, "Failed to record participation on blockchain - continuing anyway");
+          // Don't fail the entire request if blockchain recording fails
+        }
+      } catch (blockchainError) {
+        logger.error({ 
+          error: blockchainError,
+          studyId: id,
+          participantWallet 
+        }, "Error recording participation on blockchain - continuing anyway");
+        // Don't fail the entire request if blockchain recording fails
+      }
+    } else {
+      logger.info({ studyId: id }, "Study has no blockchain address - skipping blockchain recording");
+    }
+
+    logger.info({ studyId: id, participantWallet, blockchainTxHash }, "Participation recorded");
 
     res.status(201).json({
       success: true,
@@ -660,10 +720,16 @@ export const participateInStudy = async (req: Request, res: Response) => {
         status: participation.status,
         eligibilityScore: participation.eligibility_score,
         recordedAt: participation.eligibility_checked_at,
+        blockchainTxHash: blockchainTxHash,
       },
     });
   } catch (error) {
-    logger.error({ error }, "Participation error");
+    logger.error({ 
+      error, 
+      errorMessage: error instanceof Error ? error.message : String(error),
+      errorStack: error instanceof Error ? error.stack : undefined,
+      body: req.body 
+    }, "Participation error");
     res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -1008,3 +1074,153 @@ function generateTagsFromCriteria(criteria: any): string[] {
 
   return tags;
 }
+
+/**
+ * Get all participations for a specific wallet
+ * GET /api/users/:wallet/participations
+ */
+export const getUserParticipations = async (req: Request, res: Response) => {
+  try {
+    const { wallet } = req.params;
+    const { status, limit = 50, page = 1 } = req.query;
+
+    logger.info({ wallet, status, limit, page }, "GET /api/users/:wallet/participations");
+
+    if (!wallet) {
+      return res.status(400).json({ error: "Wallet address is required" });
+    }
+
+    // Validate wallet address format (basic check)
+    if (!/^0x[a-fA-F0-9]{40}$/.test(wallet)) {
+      return res.status(400).json({ error: "Invalid wallet address format" });
+    }
+
+    let query = req.supabase
+      .from(TABLES.STUDY_PARTICIPATIONS!.name)
+      .select(`
+        id,
+        study_id,
+        participant_wallet,
+        status,
+        eligibility_checked_at,
+        verified_at,
+        eligibility_score,
+        matched_criteria,
+        studies!inner (
+          id,
+          title,
+          description,
+          status,
+          max_participants,
+          current_participants,
+          contract_address
+        )
+      `)
+      .eq(TABLES.STUDY_PARTICIPATIONS!.columns.participantWallet!, wallet)
+      .order("eligibility_checked_at", { ascending: false });
+
+    if (status) {
+      query = query.eq(TABLES.STUDY_PARTICIPATIONS!.columns.status!, status);
+    }
+
+    if (limit) {
+      const offset = (Number(page) - 1) * Number(limit);
+      query = query.range(offset, offset + Number(limit) - 1);
+    }
+
+    const { data: participations, error, count } = await query;
+
+    if (error) {
+      logger.error({ error, wallet }, "Failed to fetch user participations");
+      return res.status(500).json({ error: "Failed to fetch participations" });
+    }
+
+    logger.info({ wallet, count: participations?.length }, "User participations fetched");
+
+    res.json({
+      success: true,
+      participations: participations?.map((p: any) => ({
+        id: p.id,
+        studyId: p.study_id,
+        studyTitle: p.studies?.title,
+        studyDescription: p.studies?.description,
+        studyStatus: p.studies?.status,
+        studyParticipants: {
+          current: p.studies?.current_participants,
+          max: p.studies?.max_participants,
+        },
+        participationStatus: p.status,
+        joinedAt: p.eligibility_checked_at,
+        verifiedAt: p.verified_at,
+        eligibilityScore: p.eligibility_score,
+        matchedCriteria: p.matched_criteria,
+        contractAddress: p.studies?.contract_address,
+      })) || [],
+      pagination: {
+        page: Number(page),
+        limit: Number(limit),
+        total: count || participations?.length || 0,
+      },
+    });
+  } catch (error) {
+    logger.error({ error }, "Get user participations error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+/**
+ * Check if a wallet has participated in a specific study
+ * GET /api/studies/:id/check-participation?wallet=0x...
+ */
+export const checkParticipationStatus = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { wallet } = req.query;
+
+    logger.info({ studyId: id, wallet }, "GET /api/studies/:id/check-participation");
+
+    if (!wallet || typeof wallet !== "string") {
+      return res.status(400).json({ error: "Wallet address is required as query parameter" });
+    }
+
+    // Validate wallet address format
+    if (!/^0x[a-fA-F0-9]{40}$/.test(wallet)) {
+      return res.status(400).json({ error: "Invalid wallet address format" });
+    }
+
+    const { data: participation, error } = await req.supabase
+      .from(TABLES.STUDY_PARTICIPATIONS!.name)
+      .select(`
+        id,
+        status,
+        eligibility_checked_at,
+        verified_at,
+        eligibility_score
+      `)
+      .eq(TABLES.STUDY_PARTICIPATIONS!.columns.studyId!, id)
+      .eq(TABLES.STUDY_PARTICIPATIONS!.columns.participantWallet!, wallet)
+      .single();
+
+    if (error && error.code !== "PGRST116") {
+      // PGRST116 = not found, which is valid (not participated)
+      logger.error({ error, studyId: id, wallet }, "Failed to check participation status");
+      return res.status(500).json({ error: "Failed to check participation status" });
+    }
+
+    const hasParticipated = !!participation;
+
+    res.json({
+      hasParticipated,
+      participation: hasParticipated ? {
+        id: participation.id,
+        status: participation.status,
+        joinedAt: participation.eligibility_checked_at,
+        verifiedAt: participation.verified_at,
+        eligibilityScore: participation.eligibility_score,
+      } : null,
+    });
+  } catch (error) {
+    logger.error({ error }, "Check participation status error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+};

@@ -45,7 +45,6 @@ export const getAggregatedMedicalData = async (walletAddress?: string): Promise<
     const consolidatedData: AggregatedMedicalData = {};
     const errors: Array<{ cid: string; error: Error }> = [];
     let successCount = 0;
-    
     for (const medicalData of medicalDataCIDs) {
       try {
         const decryptedCid: string = decryptWithKey(medicalData.encryptedCid, aesKey);
@@ -83,7 +82,6 @@ export const getAggregatedMedicalData = async (walletAddress?: string): Promise<
       console.warn("No valid medical data extracted after processing all FHIR resources");
     }
 
-    console.log("Successfully aggregated medical data:", consolidatedData);
     return consolidatedData;
 
   } catch (error) {

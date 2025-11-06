@@ -11,7 +11,7 @@ export {
   fhirDiabetesToZK,
   fhirHeartDiseaseToZK,
   fhirActivityLevelToZK,
-  fhirLocationToZK,
+  fhirCountryToZK as fhirLocationToZK,
 } from "./fhirToZkMappings";
 
 export {

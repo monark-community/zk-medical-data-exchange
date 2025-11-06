@@ -43,7 +43,7 @@ async function runSimpleIntegrationTest() {
     // Step 1: Deploy the verifier contract
     console.log("\n🚀 Step 1: Deploying verifier contract...");
     const { viem } = await network.connect();
-    const verifier = await viem.deployContract("Groth16Verifier");
+    const verifier = await viem.deployContract("MedicalEligibilityVerifier");
     console.log(`   ✅ Deployed at: ${verifier.address}`);
 
     // Step 2: Verify the proof

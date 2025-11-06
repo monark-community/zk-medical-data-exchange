@@ -1,4 +1,5 @@
 import { getUserById, updateUser } from "@/controllers/userController";
+import { getUserParticipations } from "@/controllers/studyController";
 import { Router } from "express";
 
 const router = Router();
@@ -93,4 +94,46 @@ router.get("/:walletAddress", getUserById);
  */
 router.patch("/:walletAddress", updateUser);
 
+/**
+ * @swagger
+ * /api/user/{wallet}/participations:
+ *   get:
+ *     summary: Get all studies a user has participated in
+ *     description: Returns all study participations for a given wallet address
+ *     tags: [User]
+ *     parameters:
+ *       - in: path
+ *         name: wallet
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Wallet address (0x...)
+ *         example: "0x742d35Cc6635C0532925a3b8D97C6b009af2af9f"
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [pending, verified, rejected]
+ *         description: Filter by participation status
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 50
+ *         description: Number of results per page
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number
+ *     responses:
+ *       200:
+ *         description: List of user participations
+ *       400:
+ *         description: Invalid wallet address
+ */
+router.get("/:wallet/participations", getUserParticipations);
+
 export default router;
+

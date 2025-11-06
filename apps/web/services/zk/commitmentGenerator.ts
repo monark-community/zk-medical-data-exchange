@@ -1,18 +1,21 @@
 import { poseidon3, poseidon7 } from "poseidon-lite";
-import { ExtractedMedicalData } from "../fhir/types/fhirDatatype";
+import { ExtractedMedicalData } from "@/services/fhir/types/extractedMedicalData";
 
 /**
  * Generates a secure data commitment using Poseidon hash
  * This matches the commitment structure expected by the ZK circuit
  * 
+ * IMPORTANT: Call checkEligibility() BEFORE this function to ensure required fields exist.
+ * This function will throw an error if required fields are missing.
+ * 
  * @param medicalData - Aggregated medical data in ZK-compatible format
- * @param salt - Cryptographically secure random salt
- * @returns Poseidon hash commitment as hex string
+ * @param salt - Cryptographically secure random salt (from generateSecureSalt())
+ * @returns Poseidon hash commitment as BigInt
  */
 export const generateDataCommitment = (
   medicalData: ExtractedMedicalData, 
   salt: number
-): BigInt => {
+): bigint => {
   const normalizedData = normalizeMedicalDataForCircuit(medicalData);
   
   try {
@@ -67,22 +70,39 @@ export const generateSecureSalt = (): number => {
 /**
  * Normalizes medical data to match circuit input requirements
  * Ensures all fields are in the correct format and range expected by ZK circuit
+ * 
+ * IMPORTANT: This function assumes required fields have been validated by checkEligibility().
+ * Optional fields use 0 as sentinel value, but required fields should never be undefined.
+ * 
+ * EXPORTED for use in zkProofGenerator to ensure consistency between commitment and proof
  */
-const normalizeMedicalDataForCircuit = (medicalData: ExtractedMedicalData) => {
+export const normalizeMedicalDataForCircuit = (medicalData: ExtractedMedicalData) => {
+  const age = medicalData.age;
+  const gender = medicalData.gender;
+  const bmi = medicalData.bmi;
+  const smokingStatus = medicalData.smokingStatus;
+  
+  if (age === undefined || gender === undefined || bmi === undefined || smokingStatus === undefined) {
+    throw new Error(
+      'Required fields missing'
+    );
+  }
+  
   return {
-    age: medicalData.age!,
-    gender: medicalData.gender!,
-    region: medicalData.regions[0],
-    cholesterol: medicalData.cholesterol!,
-    bmi: Math.round(medicalData.bmi! * 10), // Circuit expects BMI * 10 as integer
-    bloodType: medicalData.bloodType!,
-    systolicBP: medicalData.systolicBP!,
-    diastolicBP: medicalData.diastolicBP!,
-    hba1c: Math.round(medicalData.hba1c! * 10), // Circuit expects HbA1c * 10 as integer
-    smokingStatus: medicalData.smokingStatus!,
-    activityLevel: medicalData.activityLevel!,
-    diabetesStatus: medicalData.diabetesStatus!,
-    heartDiseaseHistory: medicalData.heartDiseaseStatus!,
+    age,
+    gender,
+    bmi: Math.round(bmi * 10),
+    smokingStatus,
+    
+    region: medicalData.regions?.[0] ?? 0,
+    cholesterol: medicalData.cholesterol ?? 0,
+    systolicBP: medicalData.systolicBP ?? 0,
+    diastolicBP: medicalData.diastolicBP ?? 0,
+    hba1c: medicalData.hba1c ? Math.round(medicalData.hba1c * 10) : 0,
+    bloodType: medicalData.bloodType ?? 0,
+    activityLevel: medicalData.activityLevel ?? 0,
+    diabetesStatus: medicalData.diabetesStatus ?? 0,
+    heartDiseaseHistory: medicalData.heartDiseaseStatus ?? 0,
   };
 };
 

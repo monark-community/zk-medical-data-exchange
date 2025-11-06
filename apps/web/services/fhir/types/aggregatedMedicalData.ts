@@ -36,13 +36,20 @@ export interface AggregatedMedicalData {
   }>;
 
   // Social history / lifestyle
-  smokingStatus?: CodedValue<"never" | "former" | "current" | "unknown"> & {
+  smokingStatus?: CodedValue<string> & {
     code?: string;                      // SNOMED (e.g., 266919005 = Never smoker)
-    codeSystem?: "SNOMED";
+    codeSystem?: "LOINC" | "SNOMED" | "ICD10" | "ICD9" | "UCUM" | "Other";
   };
-  activityLevel?: CodedValue<number>;   // your own scale or a coded concept
 
-  bloodType?: CodedValue<number>;       // if you keep enum; or switch to coded ABO/Rh
+  activityLevel?: CodedValue<string | number> & {
+    code?: string;                      // SNOMED code (e.g., 160646008) or LOINC code (e.g., 41950-7)
+    codeSystem?: "LOINC" | "SNOMED" | "ICD10" | "ICD9" | "UCUM" | "Other";
+  };                                    // String for SNOMED (display text), Number for LOINC (numeric values)
+
+  bloodType?: CodedValue<string> & {
+    code?: string;                      // code for ZK conversion
+    codeSystem?: "LOINC" | "SNOMED" | "ICD10" | "ICD9" | "UCUM" | "Other";
+  };       // Display value (e.g., "A+", "O-"); code for ZK conversion
 
   dataTimestamp?: string;               // min recorded/effective timestamp across included facts
   issuerIds?: string[];                 // unique list of issuers from Provenance

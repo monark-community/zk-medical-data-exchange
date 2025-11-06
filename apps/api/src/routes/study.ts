@@ -9,6 +9,8 @@ import {
   deployStudy,
   deleteStudy,
   applyToStudyWithZKProof,
+  getUserParticipations,
+  checkParticipationStatus,
 } from "@/controllers/studyController";
 
 const router = Router();
@@ -326,4 +328,42 @@ router.post("/:id/participants", participateInStudy);
  */
 router.post("/:id/apply-with-proof", applyToStudyWithZKProof);
 
+/**
+ * @swagger
+ * /studies/{id}/check-participation:
+ *   get:
+ *     summary: Check if a wallet has participated in a study
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Study ID
+ *       - name: wallet
+ *         in: query
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Wallet address to check
+ *         example: "0x742d35Cc6635C0532925a3b8D97C6b009af2af9f"
+ *     responses:
+ *       200:
+ *         description: Participation status returned
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 hasParticipated:
+ *                   type: boolean
+ *                 participation:
+ *                   type: object
+ *                   nullable: true
+ *       400:
+ *         description: Invalid wallet address
+ */
+router.get("/:id/check-participation", checkParticipationStatus);
+
 export default router;
+

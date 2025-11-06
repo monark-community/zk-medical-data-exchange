@@ -77,6 +77,24 @@ export const ACTIVITY_LEVEL_VALUES = {
 } as const;
 
 /**
+ * FHIR activity level SNOMED CT codes to internal values
+ * LOINC codes: 41950-7 (Number of days per week engaged in moderate to vigorous physical activity)
+ *              89558-1 (Physical activity level)
+ * Note: Some activity levels have 2 codes mapping to same level
+ */
+export const FHIR_ACTIVITY_LEVEL_SNOMED = {
+  "160646008": ACTIVITY_LEVEL_VALUES.SEDENTARY, // Level 0 - No moderate/vigorous activity
+  "267124003": ACTIVITY_LEVEL_VALUES.LIGHTLY_ACTIVE, // Level 1 - 1–4 mixed activity sessions in 4 weeks
+  "160647004": ACTIVITY_LEVEL_VALUES.LIGHTLY_ACTIVE, // Level 1 - 1–4 mixed activity sessions in 4 weeks
+  "160648009": ACTIVITY_LEVEL_VALUES.LIGHTLY_ACTIVE, // Level 2 - 5–11 mixed activity sessions
+  "160649001": ACTIVITY_LEVEL_VALUES.MODERATELY_ACTIVE, // Level 3 - ≥12 moderate activity sessions
+  "160650001": ACTIVITY_LEVEL_VALUES.VERY_ACTIVE, // Level 4 - ≥12 moderate/vigorous mixed sessions
+  "267126001": ACTIVITY_LEVEL_VALUES.VERY_ACTIVE, // Level 4 - ≥12 moderate/vigorous mixed sessions
+  "160651002": ACTIVITY_LEVEL_VALUES.EXTREMELY_ACTIVE, // Level 5 - ≥12 vigorous activity sessions
+  "267127005": ACTIVITY_LEVEL_VALUES.EXTREMELY_ACTIVE, // Level 5 - ≥12 vigorous activity sessions
+} as const;
+
+/**
  * Diabetes status value mappings
  * Used in: FHIR Condition, Study criteria, ZK proofs
  */
@@ -163,19 +181,6 @@ export const FHIR_SMOKING_SNOMED = {
   "449868002": SMOKING_VALUES.CURRENT_SMOKER, // Daily Smoker
   "8392000": SMOKING_VALUES.NEVER_SMOKED, // Ex-smoker
 } as const;
-
-// /**
-//  * Helper function to map smoking codes to readable values
-//  */
-// const mapSmokingCode = (code: string): "never" | "former" | "current" | "unknown" => {
-//   const smokingMap: Record<string, "never" | "former" | "current" | "unknown"> = {
-//     "266919005": "never",
-//     "8517006": "former",
-//     "77176002": "current",
-//     "266927001": "unknown"
-//   };
-//   return smokingMap[code] || "unknown";
-// };
 
 /**
  * FHIR smoking status text representations to internal values
