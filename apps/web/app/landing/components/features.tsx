@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Shield, Database, Users, Coins, Eye, Lock } from 'lucide-react';
+import { Shield, Database, Coins, Eye, Lock } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 const FeaturesSection = () => {
@@ -18,28 +18,22 @@ const FeaturesSection = () => {
       gradient: 'from-teal-500 to-teal-600'
     },
     {
-      icon: Users,
-      title: 'Research Matching',
-      description: 'Advanced algorithms match your data with relevant research projects while maintaining complete anonymity.',
-      gradient: 'from-purple-500 to-purple-600'
-    },
-    {
       icon: Coins,
       title: 'Fair Compensation',
       description: 'Earn rewards for contributing to medical research through automated smart contract payments.',
-      gradient: 'from-green-500 to-green-600'
+      gradient: 'from-purple-500 to-purple-600'
     },
     {
       icon: Eye,
       title: 'Transparent Governance',
       description: 'Participate in DAO decisions about platform ethics, research approval, and protocol updates.',
-      gradient: 'from-orange-500 to-orange-600'
+      gradient: 'from-green-500 to-green-600'
     },
     {
       icon: Lock,
       title: 'Consent Management',
       description: 'Granular control over how your data is used with easy-to-revoke permissions and clear terms.',
-      gradient: 'from-red-500 to-red-600'
+      gradient: 'from-orange-500 to-orange-600'
     }
   ];
 

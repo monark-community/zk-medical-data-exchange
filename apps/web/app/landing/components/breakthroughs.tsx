@@ -11,30 +11,30 @@ const Breakthroughs = () => {
   const breakthroughs = [
     {
       icon: Brain,
-      title: 'AI Drug Discovery',
-      description: 'Identified 847 potential compounds for rare disease treatment using our anonymized patient data.',
-      impact: '3x faster discovery',
+      title: 'Breakthrough #1',
+      description: 'Short description of breakthrough #1 goes here, highlighting the key achievement and its significance.',
+      impact: 'Impact Statistic',
       gradient: 'from-indigo-500 to-indigo-600'
     },
     {
       icon: Microscope,
-      title: 'Pattern Recognition',
-      description: 'ML models detected early cancer biomarkers with 94.2% accuracy across diverse populations.',
-      impact: '15 months earlier detection',
+      title: 'Breakthrough #2',
+      description: 'Short description of breakthrough #2 goes here, highlighting the key achievement and its significance.',
+      impact: 'Impact Statistic',
       gradient: 'from-red-500 to-red-600'
     },
     {
       icon: Zap,
-      title: 'Treatment Optimization',
-      description: 'AI algorithms personalized therapy plans, reducing adverse reactions by 68%.',
-      impact: '2.4x better outcomes',
+      title: 'Breakthrough #3',
+      description: 'Short description of breakthrough #3 goes here, highlighting the key achievement and its significance.',
+      impact: 'Impact Statistic',
       gradient: 'from-yellow-500 to-yellow-600'
     },
     {
       icon: Award,
-      title: 'Population Health Insights',
-      description: 'Discovered 23 novel genetic correlations leading to breakthrough preventive protocols.',
-      impact: '40% risk reduction',
+      title: 'Breakthrough #4',
+      description: 'Short description of breakthrough #4 goes here, highlighting the key achievement and its significance.',
+      impact: 'Impact Statistic',
       gradient: 'from-emerald-500 to-emerald-600'
     }
   ];

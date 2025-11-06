@@ -25,10 +25,10 @@ const Hero = () => {
 
   // dummy values : change these stats once real data is available
   const stats = [
-    { value: '10K+', label: 'Data Contributors' },
-    { value: '500+', label: 'Research Projects' },
-    { value: '$2M+', label: 'Distributed Rewards' },
-    { value: '99.9%', label: 'Privacy Guaranteed' }
+    { value: '0+', label: 'Data Contributors' },
+    { value: '0+', label: 'Research Projects' },
+    { value: '$0+', label: 'Distributed Rewards' },
+    { value: '100%', label: 'Privacy Guaranteed' }
   ];
 
   return (

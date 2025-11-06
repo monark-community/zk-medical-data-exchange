@@ -7,16 +7,16 @@ const Statistics = () => {
   const stats = [
     {
       icon: Users,
-      value: '10,247',
+      value: '0+',
       label: 'Active Contributors',
-      change: '+12% this month',
+      change: '+0% this month',
       color: 'text-blue-600'
     },
     {
       icon: Database,
-      value: '2.3M',
+      value: '0+',
       label: 'Data Points Shared',
-      change: '+45% this month',
+      change: '+0% this month',
       color: 'text-teal-600'
     },
     {
@@ -28,9 +28,9 @@ const Statistics = () => {
     },
     {
       icon: TrendingUp,
-      value: '$2.1M',
+      value: '$0+',
       label: 'Rewards Distributed',
-      change: '+23% this month',
+      change: '+0% this month',
       color: 'text-purple-600'
     }
   ];
