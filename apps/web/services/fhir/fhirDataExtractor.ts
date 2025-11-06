@@ -69,7 +69,7 @@ const processPatient = (patient: FHIRPatient, aggregated: AggregatedMedicalData)
  */
 const processObservation = (observation: FHIRObservation, aggregated: AggregatedMedicalData): void => {
   const loincCoding = observation.code?.coding?.find(
-    c => c.system === "http://loinc.org" || c.system?.toLowerCase().includes("loinc")
+    c => c.system?.toLowerCase().includes("loinc")
   );
   const loincCode = loincCoding?.code;
   const loincSystem = loincCoding?.system;
