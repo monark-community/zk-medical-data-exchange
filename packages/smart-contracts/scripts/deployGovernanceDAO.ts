@@ -1,7 +1,7 @@
 import { network } from "hardhat";
 
 async function main() {
-  console.log("🚀 Deploying GovernanceDAO to Sepolia...\n");
+  console.log("Deploying GovernanceDAO to Sepolia...\n");
 
   const { viem } = await network.connect({
     network: "sepolia",
@@ -15,7 +15,7 @@ async function main() {
   const balanceEth = Number(balance) / 1e18;
 
   if (balanceEth < 0.01) {
-    console.log("⚠️  WARNING: Low balance! Get Sepolia ETH from https://sepoliafaucet.com/\n");
+    console.log(" WARNING: Low balance! Get Sepolia ETH from https://sepoliafaucet.com/\n");
   }
 
   const governanceDAO = await viem.deployContract("GovernanceDAO");
@@ -41,6 +41,6 @@ async function main() {
 main()
   .then(() => process.exit(0))
   .catch((error) => {
-    console.error("❌ Deployment failed:", error);
+    console.error("Deployment failed:", error);
     process.exit(1);
   });
