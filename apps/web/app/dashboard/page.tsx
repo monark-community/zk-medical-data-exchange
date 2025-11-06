@@ -8,6 +8,7 @@ import { useAESKey } from "@/hooks/useAESKey";
 import DashboardTabs from "./components/shared/DashboardTabs";
 import { useProfile } from "@/contexts/ProfileContext";
 import { UserProfile } from "@zk-medical/shared";
+import AccountOverview from "./components/dataSeller/AccountOverview";
 
 export default function Dashboard() {
   const { isConnected } = useAuthRedirect();
