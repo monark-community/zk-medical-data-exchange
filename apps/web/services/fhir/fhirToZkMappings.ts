@@ -42,7 +42,7 @@ export const fhirGenderToZK = (fhirGender: string): number => {
  */
 export const fhirBloodTypeToZK = (fhirBloodType: string): number => {
   console.log("Mapping FHIR blood type:", fhirBloodType);
-  
+
   // Check SNOMED CT codes first
   if (FHIR_BLOOD_TYPE_SNOMED[fhirBloodType as keyof typeof FHIR_BLOOD_TYPE_SNOMED]) {
     return FHIR_BLOOD_TYPE_SNOMED[fhirBloodType as keyof typeof FHIR_BLOOD_TYPE_SNOMED];
@@ -269,11 +269,12 @@ export const fhirActivityLevelToZK = (activityCode: string, value?: number): num
     }
   }
 
-  return -1; 
+  return -1;
 };
 
 export const fhirSnomedActivityLevelToZK = (snomedCode: string): number | undefined => {
-  const mappedValue = FHIR_ACTIVITY_LEVEL_SNOMED[snomedCode as keyof typeof FHIR_ACTIVITY_LEVEL_SNOMED];
+  const mappedValue =
+    FHIR_ACTIVITY_LEVEL_SNOMED[snomedCode as keyof typeof FHIR_ACTIVITY_LEVEL_SNOMED];
   return mappedValue;
 };
 
@@ -315,9 +316,7 @@ export const fhirCountryToZK = (country?: string): number[] => {
 /**
  * Main function to extract ZK-compatible values from FHIR resources
  */
-export const convertToZkReady = (
-  medicalData: AggregatedMedicalData
-): ExtractedMedicalData => {
+export const convertToZkReady = (medicalData: AggregatedMedicalData): ExtractedMedicalData => {
   const values: ExtractedMedicalData = {};
 
   values.age = medicalData.age?.value;
@@ -327,27 +326,28 @@ export const convertToZkReady = (
   values.systolicBP = medicalData.systolicBP?.value;
   values.diastolicBP = medicalData.diastolicBP?.value;
   values.hba1c = medicalData.hba1c?.value;
-  values.bloodType = medicalData.bloodType?.code ? fhirBloodTypeToZK(medicalData.bloodType.code) : undefined;
-  values.smokingStatus = medicalData.smokingStatus?.code ? fhirSmokingStatusToZK(medicalData.smokingStatus.code) : undefined;
-  values.regions = medicalData.country
-    ? fhirCountryToZK(medicalData.country)
+  values.bloodType = medicalData.bloodType?.code
+    ? fhirBloodTypeToZK(medicalData.bloodType.code)
     : undefined;
+  values.smokingStatus = medicalData.smokingStatus?.code
+    ? fhirSmokingStatusToZK(medicalData.smokingStatus.code)
+    : undefined;
+  values.regions = medicalData.country ? fhirCountryToZK(medicalData.country) : undefined;
 
-  if(medicalData.activityLevel?.code)
-  {
-    switch(medicalData.activityLevel.codeSystem)
-    {
+  if (medicalData.activityLevel?.code) {
+    switch (medicalData.activityLevel.codeSystem) {
       case "SNOMED":
         values.activityLevel = fhirSnomedActivityLevelToZK(medicalData.activityLevel.code);
         break;
       case "LOINC": {
-        const numericValue = typeof medicalData.activityLevel.value === 'number' 
-          ? medicalData.activityLevel.value 
-          : undefined;
+        const numericValue =
+          typeof medicalData.activityLevel.value === "number"
+            ? medicalData.activityLevel.value
+            : undefined;
         values.activityLevel = fhirObservationToActivityZK(
           medicalData.activityLevel.code,
           undefined,
-          numericValue,
+          numericValue
         );
         break;
       }
@@ -355,9 +355,9 @@ export const convertToZkReady = (
         values.activityLevel = undefined;
     }
   }
-  
+
   values.diabetesStatus = DIABETES_VALUES.NO_DIABETES;
   values.heartDiseaseStatus = HEART_DISEASE_VALUES.NO_HISTORY;
-  
+
   return values;
 };

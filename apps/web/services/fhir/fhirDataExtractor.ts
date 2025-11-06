@@ -1,6 +1,4 @@
-import { 
-  FHIRDatatype, 
-} from "@/services/fhir/types/fhirDatatype";
+import { FHIRDatatype } from "@/services/fhir/types/fhirDatatype";
 import { FhirResourceType } from "@/constants/fhirResourceTypes";
 import { ExtractedMedicalData } from "@/services/fhir/types/extractedMedicalData";
 import { AggregatedMedicalData } from "@/services/fhir/types/aggregatedMedicalData";
@@ -25,7 +23,9 @@ export interface StudyEligibilityResult {
 /**
  * Helper function to determine code system from FHIR system URL
  */
-const determineCodeSystem = (system?: string): "LOINC" | "SNOMED" | "ICD10" | "ICD9" | "UCUM" | "Other" => {
+const determineCodeSystem = (
+  system?: string
+): "LOINC" | "SNOMED" | "ICD10" | "ICD9" | "UCUM" | "Other" => {
   if (!system) return "Other";
 
   const lowerSystem = system.toLowerCase();
@@ -42,7 +42,6 @@ const determineCodeSystem = (system?: string): "LOINC" | "SNOMED" | "ICD10" | "I
  * Process FHIR Patient resource
  */
 const processPatient = (patient: FHIRPatient, aggregated: AggregatedMedicalData): void => {
-
   if (patient.birthDate) {
     const birthDate = new Date(patient.birthDate);
     const today = new Date();
@@ -50,7 +49,7 @@ const processPatient = (patient: FHIRPatient, aggregated: AggregatedMedicalData)
     aggregated.age = {
       value: age,
       effectiveDate: patient.birthDate,
-      source: "patient"
+      source: "patient",
     };
   }
 
@@ -60,23 +59,26 @@ const processPatient = (patient: FHIRPatient, aggregated: AggregatedMedicalData)
 
   if (patient.address && patient.address.length > 0) {
     aggregated.country = patient.address[0].country;
-
   }
 };
 
 /**
  * Process FHIR Observation resource
  */
-const processObservation = (observation: FHIRObservation, aggregated: AggregatedMedicalData): void => {
-  const loincCoding = observation.code?.coding?.find(
-    c => c.system?.toLowerCase().includes("loinc")
+const processObservation = (
+  observation: FHIRObservation,
+  aggregated: AggregatedMedicalData
+): void => {
+  const loincCoding = observation.code?.coding?.find((c) =>
+    c.system?.toLowerCase().includes("loinc")
   );
   const loincCode = loincCoding?.code;
   const loincSystem = loincCoding?.system;
 
-  const effectiveDate = observation.effectiveDateTime || 
-                        observation.effectivePeriod?.start || 
-                        observation.effectiveInstant;
+  const effectiveDate =
+    observation.effectiveDateTime ||
+    observation.effectivePeriod?.start ||
+    observation.effectiveInstant;
 
   if (observation.valueQuantity && loincCode) {
     const value = observation.valueQuantity.value;
@@ -89,7 +91,7 @@ const processObservation = (observation: FHIRObservation, aggregated: Aggregated
         code: loincCode,
         codeSystem: determineCodeSystem(loincSystem),
         source: "issuer",
-        effectiveDate
+        effectiveDate,
       };
 
       switch (loincCode) {
@@ -126,7 +128,7 @@ const processObservation = (observation: FHIRObservation, aggregated: Aggregated
             codeSystem: determineCodeSystem(loincSystem),
             source: "patient",
             effectiveDate,
-            unit
+            unit,
           };
           break;
         default:
@@ -146,30 +148,28 @@ const processObservation = (observation: FHIRObservation, aggregated: Aggregated
       // LOINC codes: 72166-2 (Tobacco smoking status), 11367-0 (History of tobacco use)
       if (loincCode === "72166-2" || loincCode === "11367-0") {
         aggregated.smokingStatus = {
-          value: display || "Unknown", 
+          value: display || "Unknown",
           code: code,
           codeSystem,
           source: "patient",
-          effectiveDate
+          effectiveDate,
         };
-      }
-      else if (loincCode === "882-1") {
+      } else if (loincCode === "882-1") {
         aggregated.bloodType = {
-          value: display || code, 
+          value: display || code,
           code: code,
           codeSystem,
           source: "issuer",
-          effectiveDate
+          effectiveDate,
         };
-      }
-      else if (loincCode === "41950-7" || loincCode === "89558-1") {
+      } else if (loincCode === "41950-7" || loincCode === "89558-1") {
         // For SNOMED activity level codes (valueCodeableConcept), store display text
         aggregated.activityLevel = {
           value: display || "Unknown",
           code,
           codeSystem,
           source: "patient",
-          effectiveDate
+          effectiveDate,
         };
       }
     }
@@ -177,8 +177,8 @@ const processObservation = (observation: FHIRObservation, aggregated: Aggregated
 
   if (observation.component && observation.component.length > 0) {
     for (const component of observation.component) {
-      const componentCoding = component.code?.coding?.find(
-        c => c.system?.toLowerCase().includes("loinc")
+      const componentCoding = component.code?.coding?.find((c) =>
+        c.system?.toLowerCase().includes("loinc")
       );
       const componentLoincCode = componentCoding?.code;
       const componentSystem = componentCoding?.system;
@@ -194,7 +194,7 @@ const processObservation = (observation: FHIRObservation, aggregated: Aggregated
             code: componentLoincCode,
             codeSystem: determineCodeSystem(componentSystem),
             source: "issuer",
-            effectiveDate
+            effectiveDate,
           };
 
           switch (componentLoincCode) {
@@ -213,16 +213,17 @@ const processObservation = (observation: FHIRObservation, aggregated: Aggregated
   }
 };
 
-
-
 /**
  * Resource type processor dispatcher
  * Routes FHIR resources to their specific processor functions
- * 
+ *
  * @param resource - FHIR resource to process
  * @param aggregated - AggregatedMedicalData object to populate
  */
-export const processResourceByType = (resource: FHIRDatatype, aggregated: AggregatedMedicalData): void => {
+export const processResourceByType = (
+  resource: FHIRDatatype,
+  aggregated: AggregatedMedicalData
+): void => {
   switch (resource.resourceType) {
     case FhirResourceType.PATIENT:
       processPatient(resource as FHIRPatient, aggregated);
@@ -265,12 +266,11 @@ const processBundle = (bundle: FHIRDatatype, aggregated: AggregatedMedicalData):
   }
 
   console.log("Aggregated data from bundle:", aggregated);
-
 };
 
 /**
  * Process FHIR data (Bundle or single resource) to extract medical data
- * 
+ *
  * @param fhirData - FHIR Bundle or individual FHIR resource
  * @returns Aggregated medical data
  * @throws Error if FHIR data is invalid
@@ -285,8 +285,7 @@ export const extractFHIRData = (fhirData: FHIRDatatype): AggregatedMedicalData =
 
   if (fhirData.resourceType === "Bundle") {
     processBundle(fhirData, aggregatedData);
-  }
-  else  {
+  } else {
     processResourceByType(fhirData, aggregatedData);
   }
 

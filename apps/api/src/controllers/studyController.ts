@@ -14,8 +14,6 @@ import { auditService } from "@/services/auditService";
 import { studyService } from "@/services/studyService";
 import { SEPOLIA_TESTNET_CHAIN_ID } from "@/constants/blockchain";
 
-
-
 /**
  * Create a new medical study (with database storage)
  * POST /studies
@@ -65,7 +63,7 @@ export const createStudy = async (req: Request, res: Response) => {
       eligibilityCriteria = createCriteria(customCriteria);
       logger.info("Using custom criteria");
     } else {
-      eligibilityCriteria = createCriteria(); 
+      eligibilityCriteria = createCriteria();
       logger.info("Creating open study");
     }
 
@@ -541,8 +539,14 @@ export const updateStudy = async (req: Request, res: Response) => {
 export const participateInStudy = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { participantWallet, proofJson, publicInputsJson, dataCommitment, matchedCriteria, eligibilityScore,  } =
-      req.body;
+    const {
+      participantWallet,
+      proofJson,
+      publicInputsJson,
+      dataCommitment,
+      matchedCriteria,
+      eligibilityScore,
+    } = req.body;
 
     if (!participantWallet) {
       return res.status(400).json({ error: "Participant wallet address is required" });
@@ -639,7 +643,7 @@ export const participateInStudy = async (req: Request, res: Response) => {
         status: participation.status,
         eligibilityScore: participation.eligibility_score,
         recordedAt: participation.eligibility_checked_at,
-        blockchainTxHash
+        blockchainTxHash,
       },
     });
   } catch (error) {
@@ -766,15 +770,20 @@ export const getStudyCriteria = async (req: Request, res: Response) => {
 
     res.json({ studyCriteria: criteria.criteria_json });
   } catch (error) {
-    logger.error({ 
-      error: error instanceof Error ? {
-        message: error.message,
-        stack: error.stack,
-        name: error.name
-      } : error,
-      studyId: req.params.id 
-    }, "Get study criteria error");
+    logger.error(
+      {
+        error:
+          error instanceof Error
+            ? {
+                message: error.message,
+                stack: error.stack,
+                name: error.name,
+              }
+            : error,
+        studyId: req.params.id,
+      },
+      "Get study criteria error"
+    );
     res.status(500).json({ error: "Internal server error" });
   }
 };
-
