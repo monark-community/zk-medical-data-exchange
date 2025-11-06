@@ -235,6 +235,8 @@ const RangeInput = ({
   onMinChange,
   onMaxChange,
   unit = "",
+  absoluteMin,
+  absoluteMax,
 }: {
   label: string;
   minValue: number;
@@ -242,6 +244,8 @@ const RangeInput = ({
   onMinChange: (_value: number) => void;
   onMaxChange: (_value: number) => void;
   unit?: string;
+  absoluteMin?: number;
+  absoluteMax?: number;
 }) => {
   return (
     <div className="space-y-3">
@@ -254,6 +258,8 @@ const RangeInput = ({
               onChange={onMinChange}
               className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 text-center font-medium"
               placeholder="Min"
+              min={absoluteMin}
+              max={absoluteMax}
             />
             {unit && (
               <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded">
@@ -272,6 +278,8 @@ const RangeInput = ({
               onChange={onMaxChange}
               className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 text-center font-medium"
               placeholder="Max"
+              min={absoluteMin}
+              max={absoluteMax}
             />
             {unit && (
               <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded">
@@ -378,7 +386,7 @@ const StudyCreationForm = ({
         studyInfo.durationDays,
         criteria,
         selectedTemplate,
-        walletAddress // Pass wallet address
+        walletAddress
       );
 
       console.log("Study created in database:", result);
@@ -550,6 +558,8 @@ const StudyCreationForm = ({
               onMinChange={(value) => updateCriteria({ minAge: value })}
               onMaxChange={(value) => updateCriteria({ maxAge: value })}
               unit="years"
+              absoluteMin={0}
+              absoluteMax={150}
             />
           </CriteriaField>
 
@@ -588,6 +598,8 @@ const StudyCreationForm = ({
               onMinChange={(value) => updateCriteria({ minBMI: Math.round(value * 10) })}
               onMaxChange={(value) => updateCriteria({ maxBMI: Math.round(value * 10) })}
               unit="kg/m²"
+              absoluteMin={10.0}
+              absoluteMax={80.0}
             />
           </CriteriaField>
 
@@ -604,6 +616,8 @@ const StudyCreationForm = ({
               onMinChange={(value) => updateCriteria({ minCholesterol: value })}
               onMaxChange={(value) => updateCriteria({ maxCholesterol: value })}
               unit="mg/dL"
+              absoluteMin={0}
+              absoluteMax={1000}
             />
           </CriteriaField>
 
@@ -621,6 +635,8 @@ const StudyCreationForm = ({
                 onMinChange={(value) => updateCriteria({ minSystolic: value })}
                 onMaxChange={(value) => updateCriteria({ maxSystolic: value })}
                 unit="mmHg"
+                absoluteMin={70}
+                absoluteMax={250}
               />
               <RangeInput
                 label="Diastolic Pressure"
@@ -629,6 +645,8 @@ const StudyCreationForm = ({
                 onMinChange={(value) => updateCriteria({ minDiastolic: value })}
                 onMaxChange={(value) => updateCriteria({ maxDiastolic: value })}
                 unit="mmHg"
+                absoluteMin={40}
+                absoluteMax={150}
               />
             </div>
           </CriteriaField>
@@ -784,6 +802,8 @@ const StudyCreationForm = ({
               onMinChange={(value) => updateCriteria({ minHbA1c: Math.round(value * 10) })}
               onMaxChange={(value) => updateCriteria({ maxHbA1c: Math.round(value * 10) })}
               unit="%"
+              absoluteMin={4.0}
+              absoluteMax={20.0}
             />
           </CriteriaField>
 
