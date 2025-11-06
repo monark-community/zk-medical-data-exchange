@@ -46,6 +46,7 @@ export const TABLES: Record<string, TableDefinition> = {
       encryptedCid: "encrypted_cid",
       createdAt: "created_at",
       resourceType: "resource_type",
+      fileId: "file_id",
     },
   },
 

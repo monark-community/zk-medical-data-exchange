@@ -22,7 +22,7 @@ export interface StudySummary {
   templateName?: string;
   createdAt: string;
   contractAddress?: string;
-  criteriasSummary: {
+  criteriaSummary: {
     requiresAge: boolean;
     requiresGender: boolean;
     requiresDiabetes: boolean;
