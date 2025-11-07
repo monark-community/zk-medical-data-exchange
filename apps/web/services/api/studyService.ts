@@ -1,11 +1,7 @@
-/**
- * Study Management Service
- * Consolidated service for all study-related operations
- */
-
 import { apiClient } from "@/services/core/apiClient";
 import { StudyCriteria } from "@zk-medical/shared";
-import { processFHIRForStudy } from "@/services/fhir";
+import { ExtractedMedicalData } from "@/services/fhir/types/extractedMedicalData";
+import { checkEligibility, generateDataCommitment, generateSecureSalt, generateZKProof } from "@/services/zk/zkProofGenerator";
 
 // ========================================
 // TYPES
@@ -90,17 +86,6 @@ export interface CreateStudyResponse {
   };
 }
 
-export interface ParticipationResult {
-  success: boolean;
-  participantId?: number;
-  studyId: number;
-  eligibilityProof?: {
-    proof: string;
-    publicSignals: string[];
-  };
-  errors?: string[];
-}
-
 // ========================================
 // CORE API FUNCTIONS
 // ========================================
@@ -181,102 +166,135 @@ export const deleteStudy = async (studyId: number, walletId: string) => {
   return data;
 };
 
-/**
- * Participate in a study
- */
-export const participateInStudy = async (
-  studyId: number,
-  fhirData: any,
-  walletAddress: string
-): Promise<ParticipationResult> => {
-  try {
-    // Get study details first to get criteria
-    const study = await getStudyDetails(studyId);
-
-    // Process FHIR data for the study
-    const processedData = await processFHIRForStudy(fhirData, study.eligibilityCriteria);
-
-    const response = await apiClient.post(`/studies/${studyId}/participants`, {
-      fhirData: processedData,
-      walletAddress,
-    });
-
-    return response.data;
-  } catch (error: any) {
-    throw new Error(error.response?.data?.error || error.message || "Participation failed");
-  }
-};
-
-// ========================================
-// BUSINESS LOGIC FUNCTIONS
-// ========================================
 
 /**
- * Check patient eligibility for a study using FHIR data
- * Note: Simplified implementation - full FHIR processing would be more complex
+ * Study application request 
  */
-export const checkPatientEligibilityForStudy = async (
-  studyId: number,
-  // eslint-disable-next-line no-unused-vars
-  fhirData: any // Intentionally unused in simplified implementation
-): Promise<{
-  eligible: boolean;
-  matchedCriteria: string[];
-  failedCriteria: string[];
-  eligibilityScore: number;
-}> => {
-  try {
-    // Get study details to verify it exists
-    await getStudyDetails(studyId);
-
-    // Simplified implementation - full FHIR processing would be implemented here
-    return {
-      eligible: true,
-      matchedCriteria: ["Basic validation passed"],
-      failedCriteria: [],
-      eligibilityScore: 100,
-    };
-  } catch (error: any) {
-    throw new Error(`Eligibility check failed: ${error.message}`);
-  }
-};
+export interface StudyApplicationRequest {
+  studyId: number;
+  participantWallet: string;
+  proofJson: {
+    a: [string, string];
+    b: [[string, string], [string, string]];
+    c: [string, string];
+  };
+  publicInputsJson: string[];  
+  dataCommitment: string;    
+}
 
 /**
- * Format study criteria for display
+ * Study application process - all sensitive operations on client
  */
-export const formatStudyCriteria = (criteria: StudyCriteria): string[] => {
-  const formatted: string[] = [];
+export class StudyApplicationService {
+  /**
+   * Complete study application process with client-side ZK proof generation
+   * 
+   * @param studyId - ID of study to apply to
+   * @param medicalData - Patient's medical data
+   * @param walletAddress - Patient's wallet address
+   */
+  static async applyToStudy(
+    studyId: number,
+    medicalData: ExtractedMedicalData,
+    walletAddress: string
+  ): Promise<{ success: boolean; message: string }> {
+    try {
+      console.log("Fetching study criteria");
+      const studyCriteria = await this.getStudyCriteria(studyId);
 
-  if (criteria.enableAge) {
-    formatted.push(`Age: ${criteria.minAge}-${criteria.maxAge} years`);
+      console.log("Checking eligibility...");
+      const isEligible = checkEligibility(medicalData, studyCriteria);
+
+      if (!isEligible) {
+        return {
+          success: false,
+          message: "You don't meet the eligibility criteria for this study. Check console for details."
+        };
+      }
+
+      console.log("Eligibility confirmed! Proceeding with commitment and proof generation...");
+
+      console.log("Generating data commitment");
+      const salt = generateSecureSalt();
+      const dataCommitment = generateDataCommitment(medicalData, salt);
+
+      console.log("Generating ZK proof");
+      const { proof, publicSignals } = await generateZKProof(
+        medicalData,
+        studyCriteria,
+        dataCommitment,
+        salt
+      );
+
+      console.log("Submitting application (no sensitive data sent)...");
+      const applicationRequest: StudyApplicationRequest = {
+        studyId,
+        participantWallet: walletAddress,
+        proofJson: proof,
+        publicInputsJson: publicSignals,
+        dataCommitment: dataCommitment.toString()
+      };
+
+      await this.submitApplication(applicationRequest);
+
+      console.log("Study application completed successfully!");
+
+      return {
+        success: true,
+        message: "Successfully applied to study! Your medical data remained private."
+      };
+
+    } catch (error) {
+      console.error("Study application failed:", error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : "Application failed"
+      };
+    }
   }
 
-  if (criteria.enableGender) {
-    // Simple gender mapping
-    const genderLabels = ["Other", "Male", "Female", "Any"];
-    formatted.push(`Gender: ${genderLabels[criteria.allowedGender] || "Specified"}`);
+  /**
+   * Fetch study criteria 
+   */
+  private static async getStudyCriteria(studyId: number): Promise<StudyCriteria> {
+    console.log("Fetching criteria for study ID:", studyId);
+    try {
+      const response = await apiClient.get(`/studies/${studyId}/criteria`);
+      console.log("Study criteria fetched:", response.data);
+      return response.data.studyCriteria;
+    } catch (error) {
+      console.error("Failed to fetch study criteria:", error);
+      throw new Error("Failed to fetch study criteria from server");
+    }
   }
 
-  if (criteria.enableBMI) {
-    formatted.push(`BMI: ${criteria.minBMI}-${criteria.maxBMI}`);
-  }
+  /**
+   * Submit application with proof 
+   */
+  private static async submitApplication(request: StudyApplicationRequest): Promise<void> {
+    try {
+      const response = await apiClient.post(`/studies/${request.studyId}/participants`, request);
 
-  if (criteria.enableCholesterol) {
-    formatted.push(`Cholesterol: ${criteria.minCholesterol}-${criteria.maxCholesterol} mg/dL`);
-  }
+      console.log("Application submitted successfully! Status:", response.status);
+      console.log("Response data:", response.data);
 
-  if (criteria.enableDiabetes) {
-    const diabetesTypes = ["None", "Type 1", "Type 2", "Unspecified", "Pre-diabetes"];
-    formatted.push(`Diabetes: ${diabetesTypes[criteria.allowedDiabetes] || "Specified type"}`);
-  }
+    } catch (error) {
+      console.error("Failed to submit application:", error);
 
-  if (criteria.enableSmoking) {
-    const smokingStatus = ["Never", "Current", "Former", "Any"];
-    formatted.push(`Smoking: ${smokingStatus[criteria.allowedSmoking] || "Specified status"}`);
-  }
+      if (error && typeof error === 'object' && 'response' in error) {
+        const axiosError = error as any;
+        const status = axiosError.response?.status;
+        const errorMessage = axiosError.response?.data?.error || axiosError.message;
 
-  return formatted;
-};
+        console.error(`API Error - Status: ${status}, Message: ${errorMessage}`);
+        throw new Error(`Failed to submit study application: ${errorMessage}`);
+      }
+
+      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+      throw new Error(`Failed to submit study application: ${errorMessage}`);
+    }
+  }
+}
 
 // ========================================
 // REACT HOOKS

@@ -19,16 +19,12 @@ export function addAESKeyToStore(key: string, walletAddress?: string) {
   aesKey = key;
   cachedAddress = walletAddress || null;
   keyTimestamp = Date.now();
-
-  // Security Note: We intentionally do NOT store in localStorage/sessionStorage
-  // to prevent XSS attacks from accessing encryption keys
 }
 
 /**
  * Retrieve AES key from memory cache if valid
  */
 export function getAESKey(currentWalletAddress?: string): string | null {
-  // Check if we have a valid memory cache
   if (aesKey && keyTimestamp) {
     const now = Date.now();
     const isValidTime = now - keyTimestamp < CACHE_DURATION;
@@ -37,7 +33,6 @@ export function getAESKey(currentWalletAddress?: string): string | null {
     if (isValidTime && isValidAddress) {
       return aesKey;
     } else {
-      // Cache expired or wrong address, clear it
       clearAESKey();
     }
   }

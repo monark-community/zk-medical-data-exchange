@@ -1,0 +1,1 @@
+export const SEPOLIA_TESTNET_CHAIN_ID = 11155111;

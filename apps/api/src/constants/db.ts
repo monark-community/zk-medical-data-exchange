@@ -17,14 +17,6 @@ export type TableDefinition = {
  *                 If omitted, all columns in the table will be returned.
  *
  * @returns A string of comma-separated column names suitable for SQL queries.
- *
- * @example
- * getColumns(TABLES.DATA_VAULT);
- * // "id, wallet_address, encrypted_cid, created_at, resource_type"
- *
- * @example
- * getColumns(TABLES.DATA_VAULT, ["id", "walletAddress"]);
- * // "id, wallet_address"
  */
 export const getColumns = (table: TableDefinition, subset?: string[]): string => {
   const keys = subset ?? Object.keys(table.columns);
@@ -90,10 +82,12 @@ export const TABLES: Record<string, TableDefinition> = {
       participantWallet: "participant_wallet",
       proofJson: "proof_json",
       publicInputsJson: "public_inputs_json",
+      dataCommitment: "data_commitment",
       verificationTxHash: "verification_tx_hash",
       status: "status",
       eligibilityCheckedAt: "eligibility_checked_at",
       verifiedAt: "verified_at",
+      enrolledAt: "enrolled_at",
       matchedCriteria: "matched_criteria",
       eligibilityScore: "eligibility_score",
     },

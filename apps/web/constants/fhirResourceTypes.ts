@@ -4,6 +4,7 @@ export const FhirResourceType = {
   CAPABILITY_STATEMENT: "CapabilityStatement",
   CODE_SYSTEM: "CodeSystem",
   OBSERVATION: "Observation",
+  CONDITION: "Condition",
   OPERATION_DEFINITION: "OperationDefinition",
   OPERATION_OUTCOME: "OperationOutcome",
   PARAMETERS: "Parameters",
