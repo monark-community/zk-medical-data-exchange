@@ -356,7 +356,6 @@ export const convertToZkReady = (
     }
   }
   
-  //TODO: Change when condition handling is enabled
   values.diabetesStatus = DIABETES_VALUES.NO_DIABETES;
   values.heartDiseaseStatus = HEART_DISEASE_VALUES.NO_HISTORY;
   

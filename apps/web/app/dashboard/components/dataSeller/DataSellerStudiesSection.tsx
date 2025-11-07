@@ -36,13 +36,11 @@ export default function DataSellerStudiesSection() {
       console.log("Aggregated medical data retrieved for study application:", data);
 
       if (!data || Object.keys(data).length === 0) {
-        //TODO better UX
         throw new Error("No medical data available for study application.");
       }
 
       const zkReadyMedicalData = convertToZkReady(data);
       if (!zkReadyMedicalData) {
-        //TODO better UX
         throw new Error("No valid medical data available for study application.");
       }
 

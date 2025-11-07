@@ -232,7 +232,6 @@ export const processResourceByType = (resource: FHIRDatatype, aggregated: Aggreg
       processObservation(resource as FHIRObservation, aggregated);
       break;
 
-    //TODO: Add more resource types as needed
     case FhirResourceType.CONDITION:
       console.log("Condition resource processing not yet implemented");
       break;
