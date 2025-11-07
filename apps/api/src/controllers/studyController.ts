@@ -277,8 +277,8 @@ export const deployStudy = async (req: Request, res: Response) => {
       title: study.title,
       description: study.description || "",
       maxParticipants: study.max_participants,
-      startDate: Math.floor(Date.now() / 1000) + 60, // Current timestamp + 60 seconds buffer
-      endDate: Math.floor(Date.now() / 1000) + 60 + study.duration_days * 24 * 60 * 60, // Start + duration
+      startDate: Math.floor(Date.now() / 1000) + 300, // Current timestamp + 5 minutes buffer
+      endDate: Math.floor(Date.now() / 1000) + 300 + study.duration_days * 24 * 60 * 60, // Start + duration
       principalInvestigator: study.created_by,
       criteria: parsedCriteria,
     });
