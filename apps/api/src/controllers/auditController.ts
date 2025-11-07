@@ -1,7 +1,8 @@
 import type { Request, Response } from "express";
-import { auditService, UserProfile, ActionType } from "@/services/auditService";
+import { auditService, ActionType } from "@/services/auditService";
 import { isValidEthereumAddress } from "@/utils/address";
 import logger from "@/utils/logger";
+import { UserProfile } from "@zk-medical/shared";
 
 /**
  * Audit Controller - Handles audit trail queries and management

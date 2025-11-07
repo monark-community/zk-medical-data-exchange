@@ -1,7 +1,8 @@
 import type { Request, Response } from "express";
 import { TABLES } from "@/constants/db";
 import logger from "@/utils/logger";
-import { auditService, UserProfile, ActionType } from "@/services/auditService";
+import { auditService, ActionType } from "@/services/auditService";
+import { UserProfile } from "@zk-medical/shared";
 
 const { DATA_VAULT } = TABLES;
 

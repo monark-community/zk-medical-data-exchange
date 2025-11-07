@@ -24,7 +24,7 @@ export default function StudiesContainer({
 }: StudiesContainerProps) {
   return (
     <div className="px-6 pb-6">
-      <div className="max-h-96 overflow-y-auto border rounded-lg bg-gray-50/50">
+      <div className="max-h-[360px] overflow-y-auto border rounded-lg bg-gray-50/50">
         {error ? (
           <div className="p-12 text-center">
             <AlertTriangle className="h-12 w-12 text-red-400 mx-auto mb-4" />

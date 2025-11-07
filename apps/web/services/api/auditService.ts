@@ -5,17 +5,11 @@
  */
 
 import { apiClient } from "@/services/core/apiClient";
+import { UserProfile } from "@zk-medical/shared";
 
 // ========================================
 // TYPES
 // ========================================
-
-export enum UserProfile {
-  RESEARCHER = 0,
-  DATA_SELLER = 1,
-  ADMIN = 2,
-  COMMON = 3,
-}
 
 export enum ActionType {
   // COMMON

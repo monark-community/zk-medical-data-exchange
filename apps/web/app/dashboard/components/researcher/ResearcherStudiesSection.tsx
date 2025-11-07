@@ -9,9 +9,7 @@ import { useStudies } from "@/hooks/useStudies";
 import { deleteStudy } from "@/services/api/studyService";
 import ResearcherStudiesList from "@/app/dashboard/components/researcher/ResearcherStudiesList";
 import StudySectionHeader from "@/app/dashboard/components/shared/StudySectionHeader";
-import StudyStatsCards from "@/app/dashboard/components/shared/StudyStatsCards";
 import StudiesContainer from "@/app/dashboard/components/shared/StudiesContainer";
-import { calculateStudyStats } from "@/app/dashboard/components/shared/StudyUtils";
 
 export default function ResearcherStudiesSection() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -66,8 +64,6 @@ export default function ResearcherStudiesSection() {
     }
   };
 
-  const stats = calculateStudyStats(studies);
-
   return (
     <div className="w-full">
       <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
@@ -83,13 +79,6 @@ export default function ResearcherStudiesSection() {
               Create New Study
             </Button>
           }
-        />
-
-        <StudyStatsCards
-          isLoading={isLoading}
-          totalStudies={stats.totalStudies}
-          totalParticipants={stats.totalParticipants}
-          activeStudies={stats.activeStudies}
         />
 
         <StudiesContainer

@@ -12,13 +12,7 @@ import type { PrivateKeyAccount } from "viem/accounts";
 import logger from "@/utils/logger";
 import { Config } from "@/config/config";
 import { AUDIT_TRAIL_ABI } from "@/contracts";
-
-export enum UserProfile {
-  RESEARCHER,
-  DATA_SELLER,
-  ADMIN,
-  COMMON,
-}
+import { UserProfile } from "@zk-medical/shared";
 
 export enum ActionType {
   // COMMON
@@ -44,7 +38,7 @@ export enum ActionType {
 
 export interface AuditLogEntry {
   user: string;
-  userProfile: UserProfile; // Added profile
+  userProfile: UserProfile;
   actionType: ActionType;
   resource: string;
   action: string;

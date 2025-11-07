@@ -7,12 +7,12 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import {
   getUserActionsByProfilePaginated,
   getAuditInfo,
-  UserProfile,
   AuditRecord,
   PaginationInfo,
   AuditInfoResponse,
 } from "@/services/api/auditService";
 import { useProfile } from "@/contexts/ProfileContext";
+import { UserProfile } from "@zk-medical/shared";
 
 export interface UseAuditOptions {
   userAddress?: string;

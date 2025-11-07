@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useCallback } from "react";
-import { UserProfile } from "@/services/api/auditService";
+import { UserProfile } from "@zk-medical/shared";
 
 interface ProfileContextType {
   currentProfile: UserProfile;
