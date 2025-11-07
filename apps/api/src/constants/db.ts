@@ -73,7 +73,6 @@ export const TABLES: Record<string, TableDefinition> = {
     },
   },
 
-  // TODO: [LT] Review if we have unnecessary/missing columns in this table when implementing participation
   STUDY_PARTICIPATIONS: {
     name: "study_participations",
     columns: {

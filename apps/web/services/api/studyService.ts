@@ -1,7 +1,12 @@
 import { apiClient } from "@/services/core/apiClient";
 import { StudyCriteria } from "@zk-medical/shared";
 import { ExtractedMedicalData } from "@/services/fhir/types/extractedMedicalData";
-import { checkEligibility, generateDataCommitment, generateSecureSalt, generateZKProof } from "@/services/zk/zkProofGenerator";
+import {
+  checkEligibility,
+  generateDataCommitment,
+  generateSecureSalt,
+  generateZKProof,
+} from "@/services/zk/zkProofGenerator";
 
 // ========================================
 // TYPES
@@ -110,6 +115,22 @@ export const getStudies = async (params?: {
 };
 
 /**
+ * Get all studies that a user is enrolled in
+ */
+export const getEnrolledStudies = async (walletAddress: string): Promise<StudySummary[]> => {
+  try {
+    const { data } = await apiClient.get(`/studies/enrolled/${walletAddress}`);
+    return data.studies || [];
+  } catch (error: any) {
+    // If no enrolled studies, return empty array
+    if (error.response?.status === 404 || error.response?.data?.studies === null) {
+      return [];
+    }
+    throw error;
+  }
+};
+
+/**
  * Get detailed information about a specific study
  */
 export const getStudyDetails = async (studyId: number): Promise<StudyDetails> => {
@@ -166,9 +187,8 @@ export const deleteStudy = async (studyId: number, walletId: string) => {
   return data;
 };
 
-
 /**
- * Study application request 
+ * Study application request
  */
 export interface StudyApplicationRequest {
   studyId: number;
@@ -178,8 +198,8 @@ export interface StudyApplicationRequest {
     b: [[string, string], [string, string]];
     c: [string, string];
   };
-  publicInputsJson: string[];  
-  dataCommitment: string;    
+  publicInputsJson: string[];
+  dataCommitment: string;
 }
 
 /**
@@ -188,7 +208,7 @@ export interface StudyApplicationRequest {
 export class StudyApplicationService {
   /**
    * Complete study application process with client-side ZK proof generation
-   * 
+   *
    * @param studyId - ID of study to apply to
    * @param medicalData - Patient's medical data
    * @param walletAddress - Patient's wallet address
@@ -208,7 +228,8 @@ export class StudyApplicationService {
       if (!isEligible) {
         return {
           success: false,
-          message: "You don't meet the eligibility criteria for this study. Check console for details."
+          message:
+            "You don't meet the eligibility criteria for this study. Check console for details.",
         };
       }
 
@@ -232,7 +253,7 @@ export class StudyApplicationService {
         participantWallet: walletAddress,
         proofJson: proof,
         publicInputsJson: publicSignals,
-        dataCommitment: dataCommitment.toString()
+        dataCommitment: dataCommitment.toString(),
       };
 
       await this.submitApplication(applicationRequest);
@@ -241,20 +262,19 @@ export class StudyApplicationService {
 
       return {
         success: true,
-        message: "Successfully applied to study! Your medical data remained private."
+        message: "Successfully applied to study! Your medical data remained private.",
       };
-
     } catch (error) {
       console.error("Study application failed:", error);
       return {
         success: false,
-        message: error instanceof Error ? error.message : "Application failed"
+        message: error instanceof Error ? error.message : "Application failed",
       };
     }
   }
 
   /**
-   * Fetch study criteria 
+   * Fetch study criteria
    */
   private static async getStudyCriteria(studyId: number): Promise<StudyCriteria> {
     console.log("Fetching criteria for study ID:", studyId);
@@ -269,7 +289,7 @@ export class StudyApplicationService {
   }
 
   /**
-   * Submit application with proof 
+   * Submit application with proof
    */
   private static async submitApplication(request: StudyApplicationRequest): Promise<void> {
     try {
@@ -277,11 +297,10 @@ export class StudyApplicationService {
 
       console.log("Application submitted successfully! Status:", response.status);
       console.log("Response data:", response.data);
-
     } catch (error) {
       console.error("Failed to submit application:", error);
 
-      if (error && typeof error === 'object' && 'response' in error) {
+      if (error && typeof error === "object" && "response" in error) {
         const axiosError = error as any;
         const status = axiosError.response?.status;
         const errorMessage = axiosError.response?.data?.error || axiosError.message;
