@@ -38,8 +38,10 @@
     "mitt": "^3.0.1",
     "next": "15.5.2",
     "pino": "^9.11.0",
+    "poseidon-lite": "^0.3.0",
     "react": "19.1.0",
     "react-dom": "19.1.0",
+    "snarkjs": "^0.7.5",
     "tailwind-merge": "^3.3.1",
     "viem": "^2.36.0",
     "wagmi": "^2.16.9"

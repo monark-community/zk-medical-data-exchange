@@ -18,3 +18,11 @@
 
 # Hardhat coverage reports
 /coverage
+
+# ZK Circuit build artifacts
+circuits/build/
+circuits/**/*.zkey
+circuits/**/*.ptau
+circuits/**/*.r1cs
+circuits/**/*.sym
+circuits/**/*.wasm

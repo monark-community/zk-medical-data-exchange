@@ -9,7 +9,7 @@ import { privateKeyToAccount } from "viem/accounts";
 import type { StudyCriteria } from "@zk-medical/shared";
 import logger from "@/utils/logger";
 import { Config } from "@/config/config";
-import { STUDY_FACTORY_ABI } from "../contracts/generated";
+import { STUDY_ABI, STUDY_FACTORY_ABI } from "../contracts/generated";
 
 export interface StudyDeploymentParams {
   title: string;
@@ -43,7 +43,6 @@ class StudyService {
       throw new Error("SEPOLIA_PRIVATE_KEY environment variable is required");
     }
 
-    // Ensure private key is properly formatted with 0x prefix
     const formattedPrivateKey = privateKey.startsWith("0x") ? privateKey : `0x${privateKey}`;
 
     // Validate private key format (should be 64 hex characters + 0x prefix = 66 total)
@@ -85,7 +84,6 @@ class StudyService {
   private formatCriteriaForContract(criteria: StudyCriteria) {
     logger.info({ criteria }, "formatCriteriaForContract called");
 
-    // Helper function to get safe range defaults for disabled criteria
     const getSafeRange = (
       enable: number,
       min: number,
@@ -96,7 +94,6 @@ class StudyService {
       if (enable === 1) {
         return { min: BigInt(min || defaultMin), max: BigInt(max || defaultMax) };
       }
-      // For disabled criteria, use safe defaults that pass validation
       return { min: BigInt(defaultMin), max: BigInt(defaultMax) };
     };
 
@@ -150,7 +147,6 @@ class StudyService {
       500
     );
 
-    // Return as an object matching the struct fields
     return {
       enableAge: BigInt(criteria.enableAge || 0),
       minAge: ageRange.min,
@@ -230,7 +226,6 @@ class StudyService {
         );
       }
 
-      // Check authorization status first
       try {
         const openCreation = await this.publicClient.readContract({
           address: Config.STUDY_FACTORY_ADDRESS,
@@ -251,7 +246,6 @@ class StudyService {
           functionName: "owner",
         });
 
-        // Check if ZK verifier address has code deployed
         const zkVerifierCode = await this.publicClient.getCode({
           address: Config.ZK_VERIFIER_ADDRESS as `0x${string}`,
         });
@@ -287,7 +281,6 @@ class StudyService {
         );
       }
 
-      // Log all parameters before contract call
       logger.info(
         {
           title: params.title,
@@ -302,7 +295,6 @@ class StudyService {
         "Parameters for createStudy contract call"
       );
 
-      // Prepare contract call with simulation
       logger.info("Starting contract simulation");
 
       let request;
@@ -348,17 +340,14 @@ class StudyService {
         );
       }
 
-      // Execute transaction
       const transactionHash = await this.walletClient.writeContract(request);
 
       logger.info({ transactionHash }, "Study deployment transaction submitted");
 
-      // Wait for confirmation
       const receipt = await this.publicClient.waitForTransactionReceipt({
         hash: transactionHash,
       });
 
-      // Parse events to get study ID and address
       logger.info(
         {
           receipt: {
@@ -370,7 +359,6 @@ class StudyService {
         "Transaction receipt received"
       );
 
-      // Check if transaction reverted
       if (receipt.status === "reverted") {
         logger.error(
           {
@@ -450,7 +438,6 @@ class StudyService {
         );
       }
 
-      // Ensure we have the correct StudyCreated event
       if (decodedEvent.eventName !== "StudyCreated") {
         throw new Error(`Expected StudyCreated event, got ${decodedEvent.eventName}`);
       }
@@ -518,7 +505,140 @@ class StudyService {
       };
     }
   }
+
+  async joinBlockchainStudy(
+      contractAddress: string,
+      proofjson: { a: [string, string]; b: [[string, string], [string, string]]; c: [string, string] },
+      participantWallet: string,
+      dataCommitment: string
+    ) {
+      let blockchainTxHash = null;
+      if (contractAddress) {
+        try {
+          const blockchainResult =  await this.sendParticipationToBlockchain(
+            contractAddress,
+            participantWallet,
+            proofjson,
+            dataCommitment
+          );
+
+          if (blockchainResult.success) {
+            blockchainTxHash = blockchainResult.transactionHash;
+            logger.info({ 
+              participantWallet, 
+              txHash: blockchainTxHash 
+            }, "Participation recorded on blockchain successfully");
+          } else {
+            logger.error({ 
+              error: blockchainResult.error,
+              participantWallet 
+            }, "Failed to record participation on blockchain - continuing anyway");
+          }
+            
+        } catch (blockchainError) {
+          logger.error({ 
+            error: blockchainError,
+            participantWallet 
+          }, "Error during blockchain participation recording");
+        }
+      } else {
+        logger.info("Study has no blockchain address - skipping blockchain recording");
+      }
+      
+
+      return blockchainTxHash;
+    }
+
+  async sendParticipationToBlockchain(
+    studyAddress: string,
+    participantWallet: string,
+    proof: { a: [string, string]; b: [[string, string], [string, string]]; c: [string, string] },
+    dataCommitment: string
+  ): Promise<{ success: boolean; transactionHash?: string; error?: string }> {
+    try {
+      logger.info(
+        {
+          studyAddress,
+          participantWallet,
+          dataCommitment,
+          proof,
+        },
+        "Recording study participation on blockchain"
+      );
+
+      let pA: [bigint, bigint];
+      let pB: [[bigint, bigint], [bigint, bigint]];
+      let pC: [bigint, bigint];
+      let commitment: bigint;
+
+      try {
+        pA = [BigInt(proof.a[0]), BigInt(proof.a[1])];
+        pB = [
+          [BigInt(proof.b[0][0]), BigInt(proof.b[0][1])],
+          [BigInt(proof.b[1][0]), BigInt(proof.b[1][1])],
+        ];
+        pC = [BigInt(proof.c[0]), BigInt(proof.c[1])];
+        commitment = BigInt(dataCommitment);
+
+        logger.info({ pA, pB, pC, commitment }, "Proof converted to BigInt format");
+      } catch (conversionError) {
+        logger.error({ 
+          error: conversionError, 
+          proof, 
+          dataCommitment 
+        }, "Failed to convert proof to BigInt");
+        throw new Error(`Invalid proof format: ${conversionError instanceof Error ? conversionError.message : 'Unknown error'}`);
+      }
+
+      const simulationResult = await this.publicClient.simulateContract({
+        account: this.account,
+        address: studyAddress as `0x${string}`,
+        abi: STUDY_ABI,
+        functionName: "joinStudy",
+        args: [pA, pB, pC, commitment],
+      });
+
+      logger.info(
+        {
+          gasEstimate: simulationResult.request.gas?.toString(),
+        },
+        "Simulation successful"
+      );
+
+      const transactionHash = await this.walletClient.writeContract(simulationResult.request);
+
+      logger.info({ transactionHash }, "Participation transaction submitted");
+
+      const receipt = await this.publicClient.waitForTransactionReceipt({
+        hash: transactionHash,
+      });
+
+      if (receipt.status === "reverted") {
+        logger.error({ transactionHash }, "Participation transaction reverted");
+        throw new Error("Transaction reverted - participant may already be enrolled or proof invalid");
+      }
+
+      logger.info(
+        {
+          transactionHash,
+          gasUsed: receipt.gasUsed.toString(),
+          participantWallet,
+        },
+        "Participation recorded on blockchain successfully"
+      );
+
+      return {
+        success: true,
+        transactionHash,
+      };
+    } catch (error) {
+      logger.error({ error, studyAddress, participantWallet }, "Failed to record participation on blockchain");
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error recording participation",
+      };
+    }
+  }
 }
 
-// Export singleton instance
 export const studyService = new StudyService();

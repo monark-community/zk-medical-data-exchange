@@ -9,8 +9,12 @@ import {
 } from "@zk-medical/shared";
 import logger from "@/utils/logger";
 import crypto from "crypto";
-import { TABLES, getColumns } from "@/constants/db";
+import { TABLES } from "@/constants/db";
 import { auditService } from "@/services/auditService";
+import { studyService } from "@/services/studyService";
+import { SEPOLIA_TESTNET_CHAIN_ID } from "@/constants/blockchain";
+
+
 
 /**
  * Create a new medical study (with database storage)
@@ -34,11 +38,9 @@ export const createStudy = async (req: Request, res: Response) => {
       principalInvestigator,
     } = req.body;
 
-    // Use createdBy if provided, otherwise fall back to principalInvestigator
     creatorAddress = createdBy || principalInvestigator;
 
     if (!title) {
-      // Log failed study creation - missing title (non-blocking)
       auditService
         .logStudyCreation(creatorAddress || "unknown", "unknown", false, {
           reason: "missing_title",
@@ -52,7 +54,6 @@ export const createStudy = async (req: Request, res: Response) => {
       return res.status(400).json({ error: "Study title is required" });
     }
 
-    // Determine eligibility criteria
     let eligibilityCriteria: StudyCriteria;
     let actualTemplateName: string | null = null;
 
@@ -64,14 +65,12 @@ export const createStudy = async (req: Request, res: Response) => {
       eligibilityCriteria = createCriteria(customCriteria);
       logger.info("Using custom criteria");
     } else {
-      eligibilityCriteria = createCriteria(); // All defaults (disabled)
+      eligibilityCriteria = createCriteria(); 
       logger.info("Creating open study");
     }
 
-    // Validate the criteria
     const validation = validateCriteria(eligibilityCriteria);
     if (!validation.valid) {
-      // Log failed study creation - invalid criteria (non-blocking)
       auditService
         .logStudyCreation(creatorAddress, "unknown", false, {
           reason: "invalid_criteria",
@@ -89,7 +88,6 @@ export const createStudy = async (req: Request, res: Response) => {
       });
     }
 
-    // Calculate study metrics
     const enabledCount = countEnabledCriteria(eligibilityCriteria);
     const complexity = getStudyComplexity(eligibilityCriteria);
     const criteriaHash = crypto
@@ -97,12 +95,10 @@ export const createStudy = async (req: Request, res: Response) => {
       .update(JSON.stringify(eligibilityCriteria))
       .digest("hex");
 
-    // Extract quick-access criteria fields
     const requiresAge = eligibilityCriteria.enableAge === 1;
     const requiresGender = eligibilityCriteria.enableGender === 1;
     const requiresDiabetes = eligibilityCriteria.enableDiabetes === 1;
 
-    // Save to database using simple field names
     const insertData = {
       title,
       description,
@@ -122,7 +118,7 @@ export const createStudy = async (req: Request, res: Response) => {
       created_by: creatorAddress,
       complexity_score: enabledCount,
       template_name: actualTemplateName,
-      chain_id: 11155111, // Sepolia testnet
+      chain_id: SEPOLIA_TESTNET_CHAIN_ID,
     };
 
     const { data: studyData, error: insertError } = await req.supabase
@@ -134,7 +130,6 @@ export const createStudy = async (req: Request, res: Response) => {
     if (insertError) {
       logger.error({ error: insertError }, "Failed to create study");
 
-      // Log failed study creation - database error (non-blocking)
       auditService
         .logStudyCreation(creatorAddress, "unknown", false, {
           reason: "database_error",
@@ -152,7 +147,6 @@ export const createStudy = async (req: Request, res: Response) => {
 
     logger.info({ studyId: studyData.id, title }, "Study created successfully");
 
-    // Log successful study creation (non-blocking)
     auditService
       .logStudyCreation(creatorAddress, studyData.id.toString(), true, {
         title,
@@ -190,7 +184,6 @@ export const createStudy = async (req: Request, res: Response) => {
   } catch (error) {
     logger.error({ error }, "Study creation error");
 
-    // Log failed study creation - unexpected error (non-blocking)
     auditService
       .logStudyCreation(creatorAddress || "unknown", "unknown", false, {
         reason: "unexpected_error",
@@ -225,7 +218,6 @@ export const deployStudy = async (req: Request, res: Response) => {
       return res.status(400).json({ error: "Invalid study ID" });
     }
 
-    // Get study from database
     const { data: study, error: fetchError } = await req.supabase
       .from(TABLES.STUDIES!.name)
       .select("*")
@@ -236,12 +228,10 @@ export const deployStudy = async (req: Request, res: Response) => {
       return res.status(404).json({ error: "Study not found" });
     }
 
-    // Check if already deployed
     if (study.status === "active" || study.deployment_tx_hash) {
       return res.status(400).json({ error: "Study already deployed" });
     }
 
-    // Update status to deploying
     await req.supabase
       .from(TABLES.STUDIES!.name)
       .update({ status: "deploying" })
@@ -249,7 +239,6 @@ export const deployStudy = async (req: Request, res: Response) => {
 
     logger.info({ studyId, title: study.title }, "Starting blockchain deployment");
 
-    // Parse criteria JSON if it's a string
     let parsedCriteria = study.criteria_json;
     if (typeof study.criteria_json === "string") {
       try {
@@ -265,7 +254,6 @@ export const deployStudy = async (req: Request, res: Response) => {
 
     logger.info({ studyId, parsedCriteria }, "Parsed criteria for deployment");
 
-    // Import study service dynamically to avoid initialization issues
     let studyService;
     try {
       const imported = await import("@/services/studyService");
@@ -286,7 +274,6 @@ export const deployStudy = async (req: Request, res: Response) => {
       });
     }
 
-    // Deploy to blockchain
     logger.info("Calling deployStudy method");
     const deploymentResult = await studyService.deployStudy({
       title: study.title,
@@ -299,7 +286,6 @@ export const deployStudy = async (req: Request, res: Response) => {
     });
 
     if (!deploymentResult.success) {
-      // Update status back to draft on failure
       await req.supabase
         .from(TABLES.STUDIES!.name)
         .update({ status: "draft" })
@@ -477,7 +463,6 @@ export const getStudyById = async (req: Request, res: Response) => {
       return res.status(500).json({ error: "Failed to fetch study" });
     }
 
-    // Return full study details including criteria
     res.json({
       study: {
         id: study.id,
@@ -556,28 +541,32 @@ export const updateStudy = async (req: Request, res: Response) => {
 export const participateInStudy = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { participantWallet, proofJson, publicInputsJson, matchedCriteria, eligibilityScore } =
+    const { participantWallet, proofJson, publicInputsJson, dataCommitment, matchedCriteria, eligibilityScore,  } =
       req.body;
 
     if (!participantWallet) {
       return res.status(400).json({ error: "Participant wallet address is required" });
     }
 
-    // Check if study exists and is active
-    const { data: study, error: studyError } = await req.supabase
+    if (!proofJson) {
+      return res.status(400).json({ error: "ZK proof is required" });
+    }
+
+    if (!dataCommitment) {
+      return res.status(400).json({ error: "Data commitment is required" });
+    }
+
+    const { data: studyData, error: studyError } = await req.supabase
       .from(TABLES.STUDIES!.name)
-      .select(
-        getColumns(TABLES.STUDIES!, ["id", "status", "maxParticipants", "currentParticipants"])
-      )
+      .select("id, status, max_participants, current_participants, contract_address")
       .eq(TABLES.STUDIES!.columns.id!, id)
       .single();
 
-    if (studyError || !study) {
+    logger.info({ data: studyData }, "Fetched study for participation");
+
+    if (studyError || !studyData) {
       return res.status(404).json({ error: "Study not found" });
     }
-
-    // TypeScript type assertion to ensure study is the data object
-    const studyData = study as any;
 
     if (studyData.status !== "active") {
       return res.status(400).json({ error: "Study is not accepting participants" });
@@ -587,7 +576,6 @@ export const participateInStudy = async (req: Request, res: Response) => {
       return res.status(400).json({ error: "Study is full" });
     }
 
-    // Check if already participated
     const { data: existing } = await req.supabase
       .from(TABLES.STUDY_PARTICIPATIONS!.name)
       .select(TABLES.STUDY_PARTICIPATIONS!.columns.id!)
@@ -599,15 +587,16 @@ export const participateInStudy = async (req: Request, res: Response) => {
       return res.status(400).json({ error: "Already participated in this study" });
     }
 
-    // Record participation
     const participationData = {
       study_id: id,
       participant_wallet: participantWallet,
       proof_json: proofJson,
       public_inputs_json: publicInputsJson,
+      data_commitment: dataCommitment,
       matched_criteria: matchedCriteria,
       eligibility_score: eligibilityScore,
       status: proofJson ? "verified" : "pending",
+      enrolled_at: new Date().toISOString(),
     };
 
     const { data: participation, error: participationError } = await req.supabase
@@ -621,21 +610,36 @@ export const participateInStudy = async (req: Request, res: Response) => {
       return res.status(500).json({ error: "Failed to record participation" });
     }
 
-    // Update study participant count
     await req.supabase
       .from(TABLES.STUDIES!.name)
       .update({ current_participants: studyData.current_participants + 1 })
       .eq(TABLES.STUDIES!.columns.id!, id);
 
-    logger.info({ studyId: id, participantWallet }, "Participation recorded");
+    logger.info({ studyId: id, participantWallet }, "Participant successfully enrolled in study");
+
+    const blockchainTxHash = await studyService.joinBlockchainStudy(
+      studyData.contract_address,
+      proofJson,
+      participantWallet,
+      dataCommitment
+    );
+
+    await req.supabase
+      .from(TABLES.STUDY_PARTICIPATIONS!.name)
+      .update({ blockchain_tx_hash: blockchainTxHash })
+      .eq(TABLES.STUDY_PARTICIPATIONS!.columns.id!, participation.id);
 
     res.status(201).json({
       success: true,
+      participantId: participation.id,
+      studyId: Number(id),
+      message: "Successfully enrolled in study",
       participation: {
         id: participation.id,
         status: participation.status,
         eligibilityScore: participation.eligibility_score,
         recordedAt: participation.eligibility_checked_at,
+        blockchainTxHash
       },
     });
   } catch (error) {
@@ -668,7 +672,6 @@ export const deleteStudy = async (req: Request, res: Response) => {
       return res.status(400).json({ error: "Invalid study ID" });
     }
 
-    // Check if study exists and get creator info
     const { data: existingStudy, error: fetchError } = await req.supabase
       .from(TABLES.STUDIES!.name)
       .select("id, title, status, created_by")
@@ -679,7 +682,6 @@ export const deleteStudy = async (req: Request, res: Response) => {
       return res.status(404).json({ error: "Study not found" });
     }
 
-    // Verify that the wallet requesting deletion is the creator
     if (existingStudy.created_by?.toLowerCase() !== walletId.toLowerCase()) {
       return res.status(403).json({
         error: "Unauthorized",
@@ -687,17 +689,12 @@ export const deleteStudy = async (req: Request, res: Response) => {
       });
     }
 
-    // Note: Allow deletion of any study status, including active studies
-    // The creator should have full control over their studies
-
-    // Delete the study
     const { error: deleteError } = await req.supabase
       .from(TABLES.STUDIES!.name)
       .delete()
       .eq(TABLES.STUDIES!.columns.id!, studyId);
 
     if (deleteError) {
-      // Log failed study deletion (non-blocking)
       auditService
         .logStudyDeletion(walletId, studyId.toString(), false, {
           studyTitle: existingStudy.title,
@@ -711,7 +708,6 @@ export const deleteStudy = async (req: Request, res: Response) => {
       return res.status(500).json({ error: "Failed to delete study" });
     }
 
-    // Log successful study deletion (non-blocking)
     auditService
       .logStudyDeletion(walletId, studyId.toString(), true, {
         studyTitle: existingStudy.title,
@@ -739,3 +735,46 @@ export const deleteStudy = async (req: Request, res: Response) => {
     res.status(500).json({ error: "Internal server error" });
   }
 };
+
+/**
+ * Get study criteria
+ * GET /api/studies/:id/criteria
+ *
+ */
+export const getStudyCriteria = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    logger.info({ studyId: id }, "GET /api/studies/:id/criteria");
+
+    const { data: criteria, error } = await req.supabase
+      .from(TABLES.STUDIES!.name)
+      .select("criteria_json")
+      .eq(TABLES.STUDIES!.columns.id!, id)
+      .single();
+
+    if (error) {
+      if (error.code === "PGRST116") {
+        logger.warn({ studyId: id, errorCode: error.code }, "Study not found");
+        return res.status(404).json({ error: "Study not found" });
+      }
+      logger.error({ error, studyId: id, errorCode: error.code }, "Failed to fetch study criteria");
+      return res.status(500).json({ error: "Failed to fetch study criteria" });
+    }
+
+    logger.info({ studyId: id }, "Study criteria fetched successfully");
+
+    res.json({ studyCriteria: criteria.criteria_json });
+  } catch (error) {
+    logger.error({ 
+      error: error instanceof Error ? {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      } : error,
+      studyId: req.params.id 
+    }, "Get study criteria error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+

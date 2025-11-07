@@ -25,7 +25,6 @@ export const uploadCID = async (req: Request, res: Response) => {
     if (insertResult.error) {
       logger.warn({ error: insertResult.error }, "uploadCID insert error");
 
-      // Log failed upload attempt (non-blocking)
       auditService
         .logDataUpload(wallet_address, resource_type || "unknown_file", encrypted_cid, false, {
           resource_type,
@@ -41,11 +40,10 @@ export const uploadCID = async (req: Request, res: Response) => {
       return res.status(500).json({ error: insertResult.error.message });
     }
 
-    // Log successful upload (non-blocking)
     auditService
       .logDataUpload(
         wallet_address,
-        resource_type || "unknown_file", // Use resource_type for audit logging
+        resource_type || "unknown_file", 
         encrypted_cid,
         true,
         {
@@ -67,7 +65,6 @@ export const uploadCID = async (req: Request, res: Response) => {
   } catch (error) {
     logger.error({ error }, "uploadCID unexpected error");
 
-    // Log failed upload attempt (non-blocking)
     auditService
       .logAction({
         user: wallet_address,
@@ -139,7 +136,6 @@ export const deleteCID = async (req: Request, res: Response) => {
     if (checkResult.error) {
       logger.warn({ error: checkResult.error }, "deleteCID check error");
 
-      // Log failed data deletion (non-blocking)
       auditService
         .logAction({
           user: wallet_address,
@@ -169,7 +165,6 @@ export const deleteCID = async (req: Request, res: Response) => {
     if (!checkResult.data || checkResult.data.length === 0) {
       logger.warn({ wallet_address, encrypted_cid }, "Record not found to delete");
 
-      // Log failed data deletion - not found (non-blocking)
       auditService
         .logAction({
           user: wallet_address,
@@ -204,7 +199,6 @@ export const deleteCID = async (req: Request, res: Response) => {
     if (deleteResult.error) {
       logger.warn({ error: deleteResult.error }, "deleteCID delete error");
 
-      // Log failed data deletion (non-blocking)
       auditService
         .logAction({
           user: wallet_address,
@@ -231,11 +225,10 @@ export const deleteCID = async (req: Request, res: Response) => {
       return res.status(500).json({ error: deleteResult.error.message });
     }
 
-    // Log successful data deletion (non-blocking)
     auditService
       .logDataDeletion(
         wallet_address,
-        "data_file", // Generic resource type for audit logging
+        "data_file", 
         encrypted_cid,
         true,
         {
@@ -253,7 +246,6 @@ export const deleteCID = async (req: Request, res: Response) => {
   } catch (error) {
     logger.error({ error }, "deleteCID unexpected error");
 
-    // Log failed data deletion (non-blocking)
     auditService
       .logAction({
         user: wallet_address,
