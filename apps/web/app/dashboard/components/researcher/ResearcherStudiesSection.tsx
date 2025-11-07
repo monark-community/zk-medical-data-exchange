@@ -71,13 +71,17 @@ export default function ResearcherStudiesSection() {
           title="Your Medical Studies"
           icon={<BookOpen className="h-8 w-8" />}
           action={
-            <Button
-              onClick={() => setIsDialogOpen(true)}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2 rounded-lg shadow-sm transition-colors duration-200 flex items-center gap-2"
-            >
-              <Plus className="h-4 w-4" />
-              Create New Study
-            </Button>
+            <div className="relative group">
+              <div className="absolute -inset-1 bg-gradient-to-r from-emerald-600 via-teal-500 to-cyan-600 rounded-lg blur opacity-25 group-hover:opacity-40 transition duration-300"></div>
+              <Button
+                onClick={() => setIsDialogOpen(true)}
+                size="lg"
+                className="relative w-full sm:w-auto bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-700 hover:to-cyan-700 text-white font-semibold px-8 py-6 text-base shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02]"
+              >
+                <Plus className="mr-3 h-5 w-5" />
+                Create New Study
+              </Button>
+            </div>
           }
         />
 
@@ -91,14 +95,16 @@ export default function ResearcherStudiesSection() {
             description:
               "Get started by creating your first medical research study with zero-knowledge privacy.",
             action: (
-              <Button
-                onClick={() => setIsDialogOpen(true)}
-                variant="outline"
-                className="border-blue-600 text-blue-600 hover:bg-blue-50"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Create Your First Study
-              </Button>
+              <div className="relative group inline-block">
+                <div className="absolute -inset-1 bg-gradient-to-r from-emerald-600 via-teal-500 to-cyan-600 rounded-lg blur opacity-20 group-hover:opacity-30 transition duration-300"></div>
+                <Button
+                  onClick={() => setIsDialogOpen(true)}
+                  className="relative bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-700 hover:to-cyan-700 text-white font-semibold px-6 py-3 shadow-md hover:shadow-lg transition-all duration-200"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Your First Study
+                </Button>
+              </div>
             ),
           }}
         >
