@@ -14,8 +14,6 @@ import { auditService } from "@/services/auditService";
 import { studyService } from "@/services/studyService";
 import { SEPOLIA_TESTNET_CHAIN_ID } from "@/constants/blockchain";
 
-
-
 /**
  * Create a new medical study (with database storage)
  * POST /studies
@@ -65,7 +63,7 @@ export const createStudy = async (req: Request, res: Response) => {
       eligibilityCriteria = createCriteria(customCriteria);
       logger.info("Using custom criteria");
     } else {
-      eligibilityCriteria = createCriteria(); 
+      eligibilityCriteria = createCriteria();
       logger.info("Creating open study");
     }
 
@@ -279,8 +277,8 @@ export const deployStudy = async (req: Request, res: Response) => {
       title: study.title,
       description: study.description || "",
       maxParticipants: study.max_participants,
-      startDate: Math.floor(Date.now() / 1000) + 60, // Current timestamp + 60 seconds buffer
-      endDate: Math.floor(Date.now() / 1000) + 60 + study.duration_days * 24 * 60 * 60, // Start + duration
+      startDate: Math.floor(Date.now() / 1000) + 300, // Current timestamp + 5 minutes buffer
+      endDate: Math.floor(Date.now() / 1000) + 300 + study.duration_days * 24 * 60 * 60, // Start + duration
       principalInvestigator: study.created_by,
       criteria: parsedCriteria,
     });
@@ -541,8 +539,14 @@ export const updateStudy = async (req: Request, res: Response) => {
 export const participateInStudy = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { participantWallet, proofJson, publicInputsJson, dataCommitment, matchedCriteria, eligibilityScore,  } =
-      req.body;
+    const {
+      participantWallet,
+      proofJson,
+      publicInputsJson,
+      dataCommitment,
+      matchedCriteria,
+      eligibilityScore,
+    } = req.body;
 
     if (!participantWallet) {
       return res.status(400).json({ error: "Participant wallet address is required" });
@@ -629,6 +633,13 @@ export const participateInStudy = async (req: Request, res: Response) => {
       .update({ blockchain_tx_hash: blockchainTxHash })
       .eq(TABLES.STUDY_PARTICIPATIONS!.columns.id!, participation.id);
 
+    await auditService.logStudyParticipation(participantWallet, String(id), true, {
+      eligibilityScore,
+      matchedCriteria,
+      blockchainTxHash,
+      dataCommitment: dataCommitment.substring(0, 20) + "...",
+    });
+
     res.status(201).json({
       success: true,
       participantId: participation.id,
@@ -639,11 +650,24 @@ export const participateInStudy = async (req: Request, res: Response) => {
         status: participation.status,
         eligibilityScore: participation.eligibility_score,
         recordedAt: participation.eligibility_checked_at,
-        blockchainTxHash
+        blockchainTxHash,
       },
     });
   } catch (error) {
     logger.error({ error }, "Participation error");
+
+    const { id } = req.params;
+    const { participantWallet } = req.body;
+    if (participantWallet && id) {
+      await auditService
+        .logStudyParticipation(participantWallet, String(id), false, {
+          error: error instanceof Error ? error.message : "Unknown error",
+        })
+        .catch((auditError) => {
+          logger.error({ auditError }, "Failed to log failed participation attempt");
+        });
+    }
+
     res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -766,15 +790,20 @@ export const getStudyCriteria = async (req: Request, res: Response) => {
 
     res.json({ studyCriteria: criteria.criteria_json });
   } catch (error) {
-    logger.error({ 
-      error: error instanceof Error ? {
-        message: error.message,
-        stack: error.stack,
-        name: error.name
-      } : error,
-      studyId: req.params.id 
-    }, "Get study criteria error");
+    logger.error(
+      {
+        error:
+          error instanceof Error
+            ? {
+                message: error.message,
+                stack: error.stack,
+                name: error.name,
+              }
+            : error,
+        studyId: req.params.id,
+      },
+      "Get study criteria error"
+    );
     res.status(500).json({ error: "Internal server error" });
   }
 };
-

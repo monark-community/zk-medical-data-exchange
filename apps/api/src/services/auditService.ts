@@ -409,7 +409,7 @@ class AuditService {
       resource: `study_${studyId}`,
       action: "join_study",
       success,
-      sensitiveData: proofData, // Will be hashed for privacy
+      sensitiveData: proofData,
     });
   }
 
