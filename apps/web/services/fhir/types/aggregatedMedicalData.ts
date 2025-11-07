@@ -22,8 +22,8 @@ export interface AggregatedMedicalData {
   // Labs & conditions
   hba1c?: CodedValue<number>;           // % (UCUM "%"), LOINC 4548-4
   cholesterol?: CodedValue<number>;     // mg/dL or mmol/L (state unit), LOINC 2093-3
-  diabetesStatus?: CodedValue<"none" | "type1" | "type2" | "gestational" | "other"> & { code?: string; codeSystem?: "SNOMED" | "ICD10" };
-  hasHeartDisease?: CodedValue<boolean>; // if you keep the boolean, ALSO capture codes below
+  diabetesStatus?: CodedValue<number> & { code?: string; codeSystem?: "LOINC" | "SNOMED" | "ICD10" | "ICD9" | "UCUM" | "Other" };
+  heartDiseaseStatus?: CodedValue<number> & { code?: string; codeSystem?: "LOINC" | "SNOMED" | "ICD10" | "ICD9" | "UCUM" | "Other" }; // if you keep the boolean, ALSO capture codes below
 
   // Diagnoses as codes (auditable, not just booleans)
   diagnoses?: Array<{
