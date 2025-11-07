@@ -1,0 +1,134 @@
+[
+  {
+    "id": 1,
+    "title": "Breakthrough #1",
+    "description": "Short description of the breakthrough.",
+    "industry": "oncology",
+    "authors": [
+      { "name": "Dr. John Doe", "avatar": "", "initials": "JD" },
+      { "name": "Dr. John Doe", "avatar": "", "initials": "JD" },
+      { "name": "Dr. John Doe", "avatar": "", "initials": "JD" }
+    ],
+    "publicationDate": "XXXX-XX-XX",
+    "journal": "Some Journal",
+    "impact": "Description of the impact",
+    "researchPapers": [
+      { "title": "Research Paper #1", "url": "#", "type": "Type" },
+      { "title": "Research Paper #2", "url": "#", "type": "Type" }
+    ],
+    "articles": [
+      { "title": "Article #1", "url": "#", "publication": "Publication" },
+      { "title": "Article #2", "url": "#", "publication": "Publication" }
+    ]
+  },
+  {
+    "id": 2,
+    "title": "Breakthrough #2",
+    "description": "Short description of the breakthrough.",
+    "industry": "oncology",
+    "authors": [
+      { "name": "Dr. John Doe", "avatar": "", "initials": "JD" },
+      { "name": "Dr. John Doe", "avatar": "", "initials": "JD" },
+      { "name": "Dr. John Doe", "avatar": "", "initials": "JD" }
+    ],
+    "publicationDate": "XXXX-XX-XX",
+    "journal": "Some Journal",
+    "impact": "Description of the impact",
+    "researchPapers": [
+      { "title": "Research Paper #1", "url": "#", "type": "Type" },
+      { "title": "Research Paper #2", "url": "#", "type": "Type" }
+    ],
+    "articles": [
+      { "title": "Article #1", "url": "#", "publication": "Publication" },
+      { "title": "Article #2", "url": "#", "publication": "Publication" }
+    ]
+  },
+  {
+    "id": 3,
+    "title": "Breakthrough #3",
+    "description": "Short description of the breakthrough.",
+    "industry": "oncology",
+    "authors": [
+      { "name": "Dr. John Doe", "avatar": "", "initials": "JD" },
+      { "name": "Dr. John Doe", "avatar": "", "initials": "JD" },
+      { "name": "Dr. John Doe", "avatar": "", "initials": "JD" }
+    ],
+    "publicationDate": "XXXX-XX-XX",
+    "journal": "Some Journal",
+    "impact": "Description of the impact",
+    "researchPapers": [
+      { "title": "Research Paper #1", "url": "#", "type": "Type" },
+      { "title": "Research Paper #2", "url": "#", "type": "Type" }
+    ],
+    "articles": [
+      { "title": "Article #1", "url": "#", "publication": "Publication" },
+      { "title": "Article #2", "url": "#", "publication": "Publication" }
+    ]
+  },
+  {
+    "id": 4,
+    "title": "Breakthrough #4",
+    "description": "Short description of the breakthrough.",
+    "industry": "oncology",
+    "authors": [
+      { "name": "Dr. John Doe", "avatar": "", "initials": "JD" },
+      { "name": "Dr. John Doe", "avatar": "", "initials": "JD" },
+      { "name": "Dr. John Doe", "avatar": "", "initials": "JD" }
+    ],
+    "publicationDate": "XXXX-XX-XX",
+    "journal": "Some Journal",
+    "impact": "Description of the impact",
+    "researchPapers": [
+      { "title": "Research Paper #1", "url": "#", "type": "Type" },
+      { "title": "Research Paper #2", "url": "#", "type": "Type" }
+    ],
+    "articles": [
+      { "title": "Article #1", "url": "#", "publication": "Publication" },
+      { "title": "Article #2", "url": "#", "publication": "Publication" }
+    ]
+  },
+  {
+    "id": 5,
+    "title": "Breakthrough #5",
+    "description": "Short description of the breakthrough.",
+    "industry": "oncology",
+    "authors": [
+      { "name": "Dr. John Doe", "avatar": "", "initials": "JD" },
+      { "name": "Dr. John Doe", "avatar": "", "initials": "JD" },
+      { "name": "Dr. John Doe", "avatar": "", "initials": "JD" }
+    ],
+    "publicationDate": "XXXX-XX-XX",
+    "journal": "Some Journal",
+    "impact": "Description of the impact",
+    "researchPapers": [
+      { "title": "Research Paper #1", "url": "#", "type": "Type" },
+      { "title": "Research Paper #2", "url": "#", "type": "Type" }
+    ],
+    "articles": [
+      { "title": "Article #1", "url": "#", "publication": "Publication" },
+      { "title": "Article #2", "url": "#", "publication": "Publication" }
+    ]
+  },
+  {
+    "id": 6,
+    "title": "Breakthrough #6",
+    "description": "Short description of the breakthrough.",
+    "industry": "oncology",
+    "authors": [
+      { "name": "Dr. John Doe", "avatar": "", "initials": "JD" },
+      { "name": "Dr. John Doe", "avatar": "", "initials": "JD" },
+      { "name": "Dr. John Doe", "avatar": "", "initials": "JD" }
+    ],
+    "publicationDate": "XXXX-XX-XX",
+    "journal": "Some Journal",
+    "impact": "Description of the impact",
+    "researchPapers": [
+      { "title": "Research Paper #1", "url": "#", "type": "Type" },
+      { "title": "Research Paper #2", "url": "#", "type": "Type" }
+    ],
+    "articles": [
+      { "title": "Article #1", "url": "#", "publication": "Publication" },
+      { "title": "Article #2", "url": "#", "publication": "Publication" }
+    ]
+  }
+]
