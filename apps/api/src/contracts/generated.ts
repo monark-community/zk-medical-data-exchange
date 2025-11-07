@@ -1078,11 +1078,7 @@ export const STUDY_ABI: ABI = [
   },
   {
     "anonymous": false,
-    "inputs": [
       {
-        "indexed": true,
-        "internalType": "address",
-        "name": "participant",
         "type": "address"
       },
       {

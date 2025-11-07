@@ -60,7 +60,14 @@ contract Study {
     mapping(address => uint256) public participantDataCommitments; // Hash of their private data
     address[] public participantList;
     
+    // 🔒 Anti-Gaming: Store commitment hashes on-chain
+    // Maps: wallet => studyId => commitmentHash
+    // commitmentHash = keccak256(wallet, dataCommitment, challenge)
+    mapping(address => bytes32) public registeredCommitments;
+    mapping(address => uint256) public commitmentTimestamps;
+    
     // Events
+    event CommitmentRegistered(address indexed participant, bytes32 commitmentHash, uint256 timestamp);
     event ParticipantJoined(address indexed participant, uint256 dataCommitment);
     event EligibilityVerified(address indexed participant, bool eligible);
     event ConsentRevoked(address indexed participant, uint256 timestamp);
@@ -80,37 +87,74 @@ contract Study {
     }
     
     /**
+     * @dev Register a commitment on-chain before proof generation
+     * This creates an immutable record that ties wallet + dataCommitment + challenge
+     * Called by backend after verifying the user's signature
+     * 
+     * @param dataCommitment Poseidon hash of medical data
+     * @param challenge Random challenge from backend
+     */
+    function registerCommitment(
+        uint256 dataCommitment,
+        bytes32 challenge
+    ) external {
+        require(registeredCommitments[msg.sender] == bytes32(0), "Commitment already registered");
+        require(!participants[msg.sender], "Already participating in study");
+        
+        bytes32 commitmentHash = keccak256(abi.encodePacked(
+            msg.sender,
+            dataCommitment,
+            challenge
+        ));
+        
+        registeredCommitments[msg.sender] = commitmentHash;
+        commitmentTimestamps[msg.sender] = block.timestamp;
+        
+        emit CommitmentRegistered(msg.sender, commitmentHash, block.timestamp);
+    }
+    
+    /**
      * @dev Main function for patients to join the study using ZK proof
      * @param _pA Groth16 proof point A (G1)
      * @param _pB Groth16 proof point B (G2) 
      * @param _pC Groth16 proof point C (G1)
      * @param dataCommitment Poseidon hash of the patient's private medical data
+     * @param challenge Challenge that was issued during commitment registration
      */
     function joinStudy(
         uint[2] calldata _pA,
         uint[2][2] calldata _pB,
         uint[2] calldata _pC,
-        uint256 dataCommitment
+        uint256 dataCommitment,
+        bytes32 challenge
     ) external {
         require(currentParticipants < maxParticipants, "Study is full");
         require(!participants[msg.sender], "Already participating");
         
-        // Verify the ZK proof - only checks that patient proved they are eligible
-        // The study criteria were used during proof generation (client-side)
-        // Only the eligibility result (1 = eligible, 0 = not eligible) is public
+        bytes32 storedCommitmentHash = registeredCommitments[msg.sender];
+        require(storedCommitmentHash != bytes32(0), "No commitment registered");
+        
+        bytes32 recomputedHash = keccak256(abi.encodePacked(
+            msg.sender,
+            dataCommitment,
+            challenge
+        ));
+        require(recomputedHash == storedCommitmentHash, "Commitment mismatch - data tampering detected");
+        
         uint[1] memory pubSignals = [uint256(1)]; // Expected: eligible = 1
         bool isEligible = zkVerifier.verifyProof(_pA, _pB, _pC, pubSignals);
         
         emit EligibilityVerified(msg.sender, isEligible);
         require(isEligible, "ZK proof verification failed - not eligible");
         
-        // Add participant to study with consent granted by default
         participants[msg.sender] = true;
         hasConsented[msg.sender] = true;
         participantDataCommitments[msg.sender] = dataCommitment;
         participantList.push(msg.sender);
         currentParticipants++;
         activeParticipants++;
+        
+        delete registeredCommitments[msg.sender];
         
         emit ParticipantJoined(msg.sender, dataCommitment);
         emit ConsentGranted(msg.sender, block.timestamp);
@@ -172,5 +216,42 @@ contract Study {
         require(participants[addr], "Not a participant");
         require(hasConsented[addr], "Participant has revoked consent");
         return participantDataCommitments[addr];
+    }
+    
+    /**
+     * @dev Check if a wallet has a registered commitment
+     * @param addr Wallet address to check
+     * @return commitmentHash The stored commitment hash (bytes32(0) if none)
+     * @return timestamp When the commitment was registered
+     */
+    function getRegisteredCommitment(address addr) external view returns (bytes32 commitmentHash, uint256 timestamp) {
+        return (registeredCommitments[addr], commitmentTimestamps[addr]);
+    }
+    
+    /**
+     * @dev Verify if provided data matches a registered commitment
+     * Useful for frontend validation before submitting proof
+     * @param addr Wallet address
+     * @param dataCommitment Data commitment to verify
+     * @param challenge Challenge to verify
+     * @return bool True if matches, false otherwise
+     */
+    function verifyCommitmentMatch(
+        address addr,
+        uint256 dataCommitment,
+        bytes32 challenge
+    ) external view returns (bool) {
+        bytes32 storedHash = registeredCommitments[addr];
+        if (storedHash == bytes32(0)) {
+            return false;
+        }
+        
+        bytes32 recomputedHash = keccak256(abi.encodePacked(
+            addr,
+            dataCommitment,
+            challenge
+        ));
+        
+        return recomputedHash == storedHash;
     }
 }

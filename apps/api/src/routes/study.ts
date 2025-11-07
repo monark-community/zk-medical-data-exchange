@@ -11,6 +11,7 @@ import {
   getEnrolledStudies,
   revokeStudyConsent,
   grantStudyConsent,
+  generateDataCommitmentChallenge,
 } from "@/controllers/studyController";
 
 const router = Router();
@@ -270,6 +271,58 @@ router.post("/:id/deployment", deployStudy);
  *         description: Internal server error
  */
 router.delete("/:id", deleteStudy);
+
+/**
+ * @swagger
+ * /studies/data-commitment:
+ *   post:
+ *     summary: Generate challenge for data commitment
+ *     description: Generate a cryptographic challenge for verifying data commitment before study participation
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - studyId
+ *               - participantWallet
+ *               - dataCommitment
+ *             properties:
+ *               studyId:
+ *                 type: number
+ *                 description: ID of the study to participate in
+ *                 example: 123
+ *               participantWallet:
+ *                 type: string
+ *                 description: Participant's wallet address
+ *                 example: "0x742d35Cc6635C0532925a3b8D97C6b009af2af9f"
+ *                 pattern: "^0x[a-fA-F0-9]{40}$"
+ *               dataCommitment:
+ *                 type: string
+ *                 description: Hash commitment of the participant's medical data
+ *     responses:
+ *       200:
+ *         description: Challenge generated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 challenge:
+ *                   type: string
+ *                 message:
+ *                   type: string
+ *       400:
+ *         description: Invalid request or study not accepting participants
+ *       404:
+ *         description: Study not found
+ *       500:
+ *         description: Internal server error
+ */
+router.post("/data-commitment", generateDataCommitmentChallenge);
 
 /**
  * @swagger
