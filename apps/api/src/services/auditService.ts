@@ -20,6 +20,7 @@ export enum ActionType {
   PROPOSAL_CREATION, // Governance proposal created
   VOTE_CAST, // Vote cast on proposal
   PROPOSAL_REMOVAL, // Governance proposal removed
+  USERNAME_CHANGE, // User changes username/display name
   // RESEARCHER ACTIONS
   STUDY_CREATION, // New study created
   STUDY_STATUS_CHANGE, // Study activated/deactivated
@@ -27,8 +28,8 @@ export enum ActionType {
   PERMISSION_CHANGE, // Permission granted/revoked
   // DATA SELLER ACTIONS
   STUDY_PARTICIPATION, // Patient joins study
-  CONSENT_REVOCATION, // Patient revokes consent for study
   STUDY_CONSENT_REVOKED, // Patient revokes consent
+  STUDY_CONSENT_GRANTED, // Patient grants consent
   DATA_UPLOAD, // Data uploaded to vault
   DATA_ACCESS, // Data accessed/viewed
   DATA_DELETED, // Data deleted from vault
