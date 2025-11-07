@@ -15,6 +15,64 @@ import { studyService } from "@/services/studyService";
 import { SEPOLIA_TESTNET_CHAIN_ID } from "@/constants/blockchain";
 
 /**
+ * Helper function to transform a study object into the API response format
+ */
+const transformStudyForResponse = (study: any, isEnrolled?: boolean) => {
+  let criteriaDetails = null;
+  if (study.criteria_json) {
+    try {
+      criteriaDetails =
+        typeof study.criteria_json === "string"
+          ? JSON.parse(study.criteria_json)
+          : study.criteria_json;
+    } catch (e) {
+      logger.error(
+        { error: e, studyId: study.id },
+        "Failed to parse criteria JSON for study transformation"
+      );
+    }
+  }
+
+  const studyCriteriaSummary: any = {
+    requiresAge: study.requires_age,
+    requiresGender: study.requires_gender,
+    requiresDiabetes: study.requires_diabetes,
+  };
+
+  if (criteriaDetails) {
+    studyCriteriaSummary.requiresSmoking = criteriaDetails.enableSmoking === 1;
+    studyCriteriaSummary.requiresBMI = criteriaDetails.enableBMI === 1;
+    studyCriteriaSummary.requiresBloodPressure = criteriaDetails.enableBloodPressure === 1;
+    studyCriteriaSummary.requiresCholesterol = criteriaDetails.enableCholesterol === 1;
+    studyCriteriaSummary.requiresHeartDisease = criteriaDetails.enableHeartDisease === 1;
+    studyCriteriaSummary.requiresActivity = criteriaDetails.enableActivity === 1;
+    studyCriteriaSummary.requiresHbA1c = criteriaDetails.enableHbA1c === 1;
+    studyCriteriaSummary.requiresBloodType = criteriaDetails.enableBloodType === 1;
+    studyCriteriaSummary.requiresLocation = criteriaDetails.enableLocation === 1;
+  }
+
+  const transformed: any = {
+    id: study.id,
+    title: study.title,
+    description: study.description,
+    maxParticipants: study.max_participants,
+    currentParticipants: study.current_participants,
+    status: study.status,
+    complexityScore: study.complexity_score,
+    templateName: study.template_name,
+    createdAt: study.created_at,
+    contractAddress: study.contract_address,
+    criteriaSummary: studyCriteriaSummary,
+  };
+
+  if (isEnrolled !== undefined) {
+    transformed.isEnrolled = isEnrolled;
+  }
+
+  return transformed;
+};
+
+/**
  * Create a new medical study (with database storage)
  * POST /studies
  */
@@ -374,55 +432,7 @@ export const getStudies = async (req: Request, res: Response) => {
       return res.status(500).json({ error: "Failed to fetch studies" });
     }
 
-    const transformedStudies =
-      studies?.map((study) => {
-        let criteriaDetails = null;
-        if (study.criteria_json) {
-          try {
-            criteriaDetails =
-              typeof study.criteria_json === "string"
-                ? JSON.parse(study.criteria_json)
-                : study.criteria_json;
-          } catch (e) {
-            logger.error(
-              { error: e, studyId: study.id },
-              "Failed to parse criteria JSON for summary"
-            );
-          }
-        }
-
-        const studyCriteriaSummary: any = {
-          requiresAge: study.requires_age,
-          requiresGender: study.requires_gender,
-          requiresDiabetes: study.requires_diabetes,
-        };
-
-        if (criteriaDetails) {
-          studyCriteriaSummary.requiresSmoking = criteriaDetails.enableSmoking === 1;
-          studyCriteriaSummary.requiresBMI = criteriaDetails.enableBMI === 1;
-          studyCriteriaSummary.requiresBloodPressure = criteriaDetails.enableBloodPressure === 1;
-          studyCriteriaSummary.requiresCholesterol = criteriaDetails.enableCholesterol === 1;
-          studyCriteriaSummary.requiresHeartDisease = criteriaDetails.enableHeartDisease === 1;
-          studyCriteriaSummary.requiresActivity = criteriaDetails.enableActivity === 1;
-          studyCriteriaSummary.requiresHbA1c = criteriaDetails.enableHbA1c === 1;
-          studyCriteriaSummary.requiresBloodType = criteriaDetails.enableBloodType === 1;
-          studyCriteriaSummary.requiresLocation = criteriaDetails.enableLocation === 1;
-        }
-
-        return {
-          id: study.id,
-          title: study.title,
-          description: study.description,
-          maxParticipants: study.max_participants,
-          currentParticipants: study.current_participants,
-          status: study.status,
-          complexityScore: study.complexity_score,
-          templateName: study.template_name,
-          createdAt: study.created_at,
-          contractAddress: study.contract_address,
-          criteriaSummary: studyCriteriaSummary,
-        };
-      }) || [];
+    const transformedStudies = studies?.map((study) => transformStudyForResponse(study)) || [];
 
     res.json({
       studies: transformedStudies,
@@ -850,57 +860,8 @@ export const getEnrolledStudies = async (req: Request, res: Response) => {
       return res.status(500).json({ error: "Failed to fetch study details" });
     }
 
-    // Transform studies to match the expected format
     const transformedStudies =
-      studies?.map((study) => {
-        let criteriaDetails = null;
-        if (study.criteria_json) {
-          try {
-            criteriaDetails =
-              typeof study.criteria_json === "string"
-                ? JSON.parse(study.criteria_json)
-                : study.criteria_json;
-          } catch (e) {
-            logger.error(
-              { error: e, studyId: study.id },
-              "Failed to parse criteria JSON for enrolled study"
-            );
-          }
-        }
-
-        const studyCriteriaSummary: any = {
-          requiresAge: study.requires_age,
-          requiresGender: study.requires_gender,
-          requiresDiabetes: study.requires_diabetes,
-        };
-
-        if (criteriaDetails) {
-          studyCriteriaSummary.requiresSmoking = criteriaDetails.enableSmoking === 1;
-          studyCriteriaSummary.requiresBMI = criteriaDetails.enableBMI === 1;
-          studyCriteriaSummary.requiresBloodPressure = criteriaDetails.enableBloodPressure === 1;
-          studyCriteriaSummary.requiresCholesterol = criteriaDetails.enableCholesterol === 1;
-          studyCriteriaSummary.requiresHeartDisease = criteriaDetails.enableHeartDisease === 1;
-          studyCriteriaSummary.requiresActivity = criteriaDetails.enableActivity === 1;
-          studyCriteriaSummary.requiresHbA1c = criteriaDetails.enableHbA1c === 1;
-          studyCriteriaSummary.requiresBloodType = criteriaDetails.enableBloodType === 1;
-          studyCriteriaSummary.requiresLocation = criteriaDetails.enableLocation === 1;
-        }
-
-        return {
-          id: study.id,
-          title: study.title,
-          description: study.description,
-          maxParticipants: study.max_participants,
-          currentParticipants: study.current_participants,
-          status: study.status,
-          complexityScore: study.complexity_score,
-          templateName: study.template_name,
-          createdAt: study.created_at,
-          contractAddress: study.contract_address,
-          criteriaSummary: studyCriteriaSummary,
-          isEnrolled: true, // Always true for this endpoint
-        };
-      }) || [];
+      studies?.map((study) => transformStudyForResponse(study, true)) || [];
 
     logger.info(
       { walletAddress, count: transformedStudies.length },
