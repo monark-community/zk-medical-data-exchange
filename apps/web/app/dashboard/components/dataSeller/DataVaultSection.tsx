@@ -4,6 +4,8 @@ import { Database } from "lucide-react";
 import FilesSection from "@/components/fileManagement/filesSection";
 import { Config, UseAccountReturnType } from "wagmi";
 import UploadSection from "@/components/fileManagement/uploadSection";
+import DashboardSectionHeader from "@/app/dashboard/components/shared/DashboardSectionHeader";
+
 const DataVaultSection = ({
   account,
   aesKey,
@@ -12,17 +14,20 @@ const DataVaultSection = ({
   aesKey: string | null;
 }) => {
   return (
-    <div className="w-full">
+    <div className="w-full space-y-8">
+      <DashboardSectionHeader
+        icon={<Database className="h-8 w-8 text-white" />}
+        title="Your Data Vault"
+        description="Securely encrypted medical records stored in a distributed network"
+        action={<UploadSection account={account} aesKey={aesKey} />}
+      />
+
+      {/* Files Content */}
       <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
-        <div className="header space-y-1.5 p-6 flex flex-row items-center justify-between">
-          <h3 className="text-2xl font-semibold leading-none tracking-tight flex items-center space-x-2">
-            <Database /> <span>Your Data Vault</span>
-          </h3>
-          <UploadSection account={account} aesKey={aesKey} />
-        </div>
         <FilesSection walletAddress={account.address} aesKey={aesKey} />
       </div>
     </div>
   );
 };
+
 export default DataVaultSection;

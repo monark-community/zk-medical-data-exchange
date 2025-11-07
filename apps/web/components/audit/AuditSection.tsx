@@ -16,6 +16,7 @@ import { AuditRecord } from "@/services/api/auditService";
 import AuditTable from "./AuditTable";
 import AuditPagination from "./AuditPagination";
 import AuditRecordDialog from "./AuditRecordDialog";
+import DashboardSectionHeader from "@/app/dashboard/components/shared/DashboardSectionHeader";
 
 interface AuditSectionProps {
   className?: string;
@@ -91,47 +92,25 @@ const AuditSection: React.FC<AuditSectionProps> = ({ className = "" }) => {
 
   return (
     <div className={`space-y-8 ${className}`}>
-      {/* Header */}
-      <div className="relative">
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-indigo-500/10 rounded-xl blur-xl"></div>
-        <Card className="relative border-0 shadow-lg bg-gradient-to-r from-white to-blue-50/50">
-          <CardHeader className="pb-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <div className="relative">
-                  <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg blur opacity-20"></div>
-                  <div className="relative bg-gradient-to-r from-blue-600 to-indigo-600 p-3 rounded-lg">
-                    <Shield className="h-6 w-6 text-white" />
-                  </div>
-                </div>
-                <div>
-                  <CardTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                    Privacy & Audit Center
-                  </CardTitle>
-                  <CardDescription className="text-gray-600 mt-1">
-                    Monitor your data activity and privacy trail on the blockchain
-                  </CardDescription>
-                </div>
-              </div>
-
-              <div className="flex items-center space-x-3">
-                <Button
-                  onClick={handleRefresh}
-                  disabled={isLoading || !canRefresh}
-                  variant="outline"
-                  size="sm"
-                  className="border-blue-200 hover:border-blue-300 hover:bg-blue-50 transition-all duration-200"
-                >
-                  <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />
-                  <span>
-                    {refreshCooldownSeconds > 0 ? `Wait ${refreshCooldownSeconds}s` : "Refresh"}
-                  </span>
-                </Button>
-              </div>
-            </div>
-          </CardHeader>
-        </Card>
-      </div>
+      <DashboardSectionHeader
+        icon={<Shield className="h-8 w-8 text-white" />}
+        title="Privacy & Audit Center"
+        description="Monitor your data activity and privacy trail on the blockchain"
+        action={
+          <Button
+            onClick={handleRefresh}
+            disabled={isLoading || !canRefresh}
+            variant="outline"
+            size="sm"
+            className="border-blue-200 hover:border-blue-300 hover:bg-blue-50 transition-all duration-200"
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />
+            <span>
+              {refreshCooldownSeconds > 0 ? `Wait ${refreshCooldownSeconds}s` : "Refresh"}
+            </span>
+          </Button>
+        }
+      />
 
       {/* Initial Load State - Show when no data has been loaded */}
       {!hasDataLoaded && !isLoading && !error && (

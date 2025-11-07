@@ -8,6 +8,7 @@ import {
   participateInStudy,
   deployStudy,
   deleteStudy,
+  getEnrolledStudies,
 } from "@/controllers/studyController";
 
 const router = Router();
@@ -49,6 +50,38 @@ const router = Router();
  *         description: List of studies
  */
 router.get("/", getStudies);
+
+/**
+ * @swagger
+ * /studies/enrolled/{walletAddress}:
+ *   get:
+ *     summary: Get all studies a user is enrolled in
+ *     description: Retrieves all studies where the user is an enrolled participant
+ *     parameters:
+ *       - name: walletAddress
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *           pattern: "^0x[a-fA-F0-9]{40}$"
+ *         description: Participant's wallet address
+ *         example: "0x742d35Cc6635C0532925a3b8D97C6b009af2af9f"
+ *     responses:
+ *       200:
+ *         description: List of enrolled studies
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 studies:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *       500:
+ *         description: Internal server error
+ */
+router.get("/enrolled/:walletAddress", getEnrolledStudies);
 
 /**
  * @swagger

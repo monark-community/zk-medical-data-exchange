@@ -1,20 +1,41 @@
 "use client";
 
-import { BookOpen } from "lucide-react";
+import { BookOpen, CheckCircle2 } from "lucide-react";
 import { useAccount } from "wagmi";
 import { useStudies } from "@/hooks/useStudies";
 import DataSellerStudiesList from "@/app/dashboard/components/dataSeller/DataSellerStudiesList";
+import EnrolledStudiesList from "@/app/dashboard/components/dataSeller/EnrolledStudiesList";
 import StudySectionHeader from "@/app/dashboard/components/shared/StudySectionHeader";
 import StudiesContainer from "@/app/dashboard/components/shared/StudiesContainer";
-import { useState } from "react";
+import DashboardSectionHeader from "@/app/dashboard/components/shared/DashboardSectionHeader";
+import { useState, useEffect } from "react";
 import { getAggregatedMedicalData } from "@/services/core/medicalDataAggregator";
 import { convertToZkReady } from "@/services/fhir";
-import { StudyApplicationService } from "@/services/api";
+import { StudyApplicationService, getEnrolledStudies } from "@/services/api/studyService";
+
+type ViewMode = "enrolled" | "available";
 
 export default function DataSellerStudiesSection() {
   const { address: walletAddress } = useAccount();
   const { studies, isLoading, error, refetch } = useStudies(undefined, true);
   const [applyingStudyId, setApplyingStudyId] = useState<number | null>(null);
+  const [revokingStudyId, setRevokingStudyId] = useState<number | null>(null);
+  const [enrolledStudies, setEnrolledStudies] = useState<any[]>([]);
+  const [enrolledLoading, setEnrolledLoading] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>("available");
+
+  // Fetch enrolled studies when wallet address changes
+  useEffect(() => {
+    if (walletAddress) {
+      setEnrolledLoading(true);
+      getEnrolledStudies(walletAddress)
+        .then((data) => setEnrolledStudies(data))
+        .catch((error) => console.error("Failed to fetch enrolled studies:", error))
+        .finally(() => setEnrolledLoading(false));
+    } else {
+      setEnrolledStudies([]);
+    }
+  }, [walletAddress]);
 
   const handleApplyToStudy = async (studyId: number) => {
     if (!walletAddress) {
@@ -52,7 +73,13 @@ export default function DataSellerStudiesSection() {
 
       if (result.success) {
         alert(`${result.message}`);
+        // Refetch both all studies and enrolled studies
         refetch();
+        if (walletAddress) {
+          getEnrolledStudies(walletAddress)
+            .then((data) => setEnrolledStudies(data))
+            .catch((error) => console.error("Failed to fetch enrolled studies:", error));
+        }
       } else {
         throw new Error(result.message);
       }
@@ -64,36 +91,177 @@ export default function DataSellerStudiesSection() {
     }
   };
 
-  return (
-    <div className="w-full">
-      <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
-        <StudySectionHeader
-          title="Available Medical Studies"
-          icon={<BookOpen className="h-8 w-8" />}
-          action={
-            <div className="text-sm text-gray-600">Browse studies and apply to participate</div>
-          }
-        />
+  const handleRevokeConsent = async (studyId: number) => {
+    if (!walletAddress) {
+      alert("Wallet not connected");
+      return;
+    }
 
-        <StudiesContainer
-          isLoading={isLoading}
-          error={error}
-          studies={studies}
-          onRetry={refetch}
-          emptyState={{
-            title: "No studies available",
-            description:
-              "There are currently no medical research studies available. Check back later!",
-          }}
-        >
-          <DataSellerStudiesList
-            studies={studies}
-            onApplyToStudy={handleApplyToStudy}
-            applyingStudyId={applyingStudyId}
-            walletAddress={walletAddress}
+    if (revokingStudyId === studyId) {
+      return;
+    }
+
+    setRevokingStudyId(studyId);
+
+    try {
+      console.log("Revoking consent for study:", studyId);
+
+      // TODO: Implement consent revocation API call
+      // For now, just show a placeholder message
+      alert("Consent revocation feature is coming soon!");
+
+      // When implemented, it should:
+      // 1. Call API to update study_participations status to 'revoked'
+      // 2. Optionally call blockchain to record revocation
+      // 3. Refetch enrolled studies list
+
+      // Example implementation:
+      // const result = await revokeStudyConsent(studyId, walletAddress);
+      // if (result.success) {
+      //   alert("Consent revoked successfully");
+      //   if (walletAddress) {
+      //     getEnrolledStudies(walletAddress)
+      //       .then((data) => setEnrolledStudies(data))
+      //       .catch((error) => console.error("Failed to fetch enrolled studies:", error));
+      //   }
+      // }
+    } catch (error: any) {
+      console.error("Error during consent revocation:", error);
+      alert(`Revocation failed: ${error.message || error}`);
+    } finally {
+      setRevokingStudyId(null);
+    }
+  };
+
+  // Filter out enrolled studies from available studies
+  const enrolledStudyIds = new Set(enrolledStudies.map((s) => s.id));
+  const availableStudies = studies.filter((study) => !enrolledStudyIds.has(study.id));
+
+  return (
+    <div className="w-full space-y-8">
+      <DashboardSectionHeader
+        icon={<BookOpen className="h-8 w-8 text-white" />}
+        title="Research Studies"
+        description={
+          viewMode === "available"
+            ? "Discover and apply to participate in medical research"
+            : "Manage your active study participations"
+        }
+      >
+        {/* Sleek Tab Buttons */}
+        <div className="flex space-x-2">
+          <button
+            onClick={() => setViewMode("available")}
+            className={`flex-1 py-3 px-4 rounded-lg font-semibold text-sm transition-all duration-200 flex items-center justify-center space-x-2 ${
+              viewMode === "available"
+                ? "bg-blue-600 text-white shadow-lg scale-105"
+                : "bg-white/60 text-gray-700 hover:bg-white hover:shadow-md"
+            }`}
+          >
+            <BookOpen className="h-5 w-5" />
+            <span>Browse Studies</span>
+            <span
+              className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                viewMode === "available" ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-600"
+              }`}
+            >
+              {availableStudies.length}
+            </span>
+          </button>
+          <button
+            onClick={() => setViewMode("enrolled")}
+            className={`flex-1 py-3 px-4 rounded-lg font-semibold text-sm transition-all duration-200 flex items-center justify-center space-x-2 ${
+              viewMode === "enrolled"
+                ? "bg-emerald-600 text-white shadow-lg scale-105"
+                : "bg-white/60 text-gray-700 hover:bg-white hover:shadow-md"
+            }`}
+          >
+            <CheckCircle2 className="h-5 w-5" />
+            <span>My Enrolled Studies</span>
+            <span
+              className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                viewMode === "enrolled" ? "bg-emerald-500 text-white" : "bg-gray-200 text-gray-600"
+              }`}
+            >
+              {enrolledStudies.length}
+            </span>
+          </button>
+        </div>
+      </DashboardSectionHeader>
+
+      {/* Available Studies View */}
+      {viewMode === "available" && (
+        <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
+          <StudySectionHeader
+            title="Available Medical Studies"
+            icon={<BookOpen className="h-8 w-8 text-blue-600" />}
+            action={
+              <div className="flex items-center space-x-2">
+                <span className="text-xs font-medium text-gray-500">Showing</span>
+                <span className="text-sm font-semibold text-blue-600">
+                  {availableStudies.length} {availableStudies.length === 1 ? "study" : "studies"}
+                </span>
+              </div>
+            }
           />
-        </StudiesContainer>
-      </div>
+
+          <StudiesContainer
+            isLoading={isLoading}
+            error={error}
+            studies={availableStudies}
+            onRetry={refetch}
+            emptyState={{
+              title: "No studies available",
+              description:
+                "There are currently no medical research studies available. Check back later!",
+            }}
+          >
+            <DataSellerStudiesList
+              studies={availableStudies}
+              onApplyToStudy={handleApplyToStudy}
+              applyingStudyId={applyingStudyId}
+              walletAddress={walletAddress}
+            />
+          </StudiesContainer>
+        </div>
+      )}
+
+      {/* Enrolled Studies View */}
+      {viewMode === "enrolled" && (
+        <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
+          <StudySectionHeader
+            title="My Enrolled Studies"
+            icon={<CheckCircle2 className="h-8 w-8 text-emerald-600" />}
+            action={
+              <div className="flex items-center space-x-2">
+                <span className="text-xs font-medium text-gray-500">Active</span>
+                <span className="text-sm font-semibold text-emerald-600">
+                  {enrolledStudies.length} {enrolledStudies.length === 1 ? "study" : "studies"}
+                </span>
+              </div>
+            }
+          />
+
+          <StudiesContainer
+            isLoading={isLoading || enrolledLoading}
+            error={error}
+            studies={enrolledStudies}
+            onRetry={refetch}
+            emptyState={{
+              title: "No enrolled studies",
+              description:
+                "You haven't joined any studies yet. Browse available studies to get started!",
+            }}
+          >
+            <EnrolledStudiesList
+              studies={enrolledStudies}
+              onRevokeConsent={handleRevokeConsent}
+              revokingStudyId={revokingStudyId}
+              walletAddress={walletAddress}
+            />
+          </StudiesContainer>
+        </div>
+      )}
     </div>
   );
 }
