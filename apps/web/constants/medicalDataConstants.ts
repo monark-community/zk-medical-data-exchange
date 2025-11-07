@@ -20,7 +20,7 @@ export const GENDER_VALUES = {
   FEMALE: 2,
   OTHER: 0,
   UNKNOWN: 0,
-  ANY: 0, // For study criteria only - matches contract (0=any, 1=male, 2=female)
+  ANY: 0,
 } as const;
 
 /**

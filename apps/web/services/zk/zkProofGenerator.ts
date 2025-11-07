@@ -373,7 +373,6 @@ export function checkEligibility(
   const scaledHbA1c = medicalData.hba1c !== undefined ? Math.round(medicalData.hba1c * 10) : undefined;
   const scaledBMI = medicalData.bmi !== undefined ? Math.round(medicalData.bmi * 10) : undefined;
 
-  // Define all validation checks
   const validations: Array<{ enabled: boolean; check: () => ValidationResult }> = [
     {
       enabled: Boolean(studyCriteria.enableAge),
