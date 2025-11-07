@@ -4,29 +4,26 @@ import { ExtractedMedicalData } from "@/services/fhir/types/extractedMedicalData
 /**
  * Generates a secure data commitment using Poseidon hash
  * This matches the commitment structure expected by the ZK circuit
- * 
+ *
  * IMPORTANT: Call checkEligibility() BEFORE this function to ensure required fields exist.
  * This function will throw an error if required fields are missing.
- * 
+ *
  * @param medicalData - Aggregated medical data in ZK-compatible format
  * @param salt - Cryptographically secure random salt (from generateSecureSalt())
  * @returns Poseidon hash commitment as BigInt
  */
-export const generateDataCommitment = (
-  medicalData: ExtractedMedicalData, 
-  salt: number
-): bigint => {
+export const generateDataCommitment = (medicalData: ExtractedMedicalData, salt: number): bigint => {
   const normalizedData = normalizeMedicalDataForCircuit(medicalData);
 
   try {
     const commitment1Inputs = [
       normalizedData.age,
-      normalizedData.gender, 
+      normalizedData.gender,
       normalizedData.region,
       normalizedData.cholesterol,
       normalizedData.bmi,
       normalizedData.bloodType,
-      salt
+      salt,
     ];
 
     const commitment2Inputs = [
@@ -36,11 +33,11 @@ export const generateDataCommitment = (
       normalizedData.smokingStatus,
       normalizedData.activityLevel,
       normalizedData.diabetesStatus,
-      normalizedData.heartDiseaseHistory
+      normalizedData.heartDiseaseHistory,
     ];
 
-    const commitment1InputsBigInt = commitment1Inputs.map(x => BigInt(x));
-    const commitment2InputsBigInt = commitment2Inputs.map(x => BigInt(x));
+    const commitment1InputsBigInt = commitment1Inputs.map((x) => BigInt(x));
+    const commitment2InputsBigInt = commitment2Inputs.map((x) => BigInt(x));
 
     const commitment1 = poseidon7(commitment1InputsBigInt);
     const commitment2 = poseidon7(commitment2InputsBigInt);
@@ -48,15 +45,18 @@ export const generateDataCommitment = (
 
     console.log("Data commitment generated:");
     console.log("├─ Commitment 1 inputs:", commitment1Inputs);
-    console.log("├─ Commitment 2 inputs:", commitment2Inputs); 
+    console.log("├─ Commitment 2 inputs:", commitment2Inputs);
     console.log("├─ Final inputs:", [commitment1, commitment2, salt]);
     console.log("└─ Final commitment:", finalCommitmentHash);
 
     return finalCommitmentHash;
-
   } catch (error) {
     console.error("Failed to generate data commitment:", error);
-    throw new Error(`Data commitment generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    throw new Error(
+      `Data commitment generation failed: ${
+        error instanceof Error ? error.message : "Unknown error"
+      }`
+    );
   }
 };
 

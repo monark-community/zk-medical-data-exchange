@@ -15,6 +15,64 @@ import { studyService } from "@/services/studyService";
 import { SEPOLIA_TESTNET_CHAIN_ID } from "@/constants/blockchain";
 
 /**
+ * Helper function to transform a study object into the API response format
+ */
+const transformStudyForResponse = (study: any, isEnrolled?: boolean) => {
+  let criteriaDetails = null;
+  if (study.criteria_json) {
+    try {
+      criteriaDetails =
+        typeof study.criteria_json === "string"
+          ? JSON.parse(study.criteria_json)
+          : study.criteria_json;
+    } catch (e) {
+      logger.error(
+        { error: e, studyId: study.id },
+        "Failed to parse criteria JSON for study transformation"
+      );
+    }
+  }
+
+  const studyCriteriaSummary: any = {
+    requiresAge: study.requires_age,
+    requiresGender: study.requires_gender,
+    requiresDiabetes: study.requires_diabetes,
+  };
+
+  if (criteriaDetails) {
+    studyCriteriaSummary.requiresSmoking = criteriaDetails.enableSmoking === 1;
+    studyCriteriaSummary.requiresBMI = criteriaDetails.enableBMI === 1;
+    studyCriteriaSummary.requiresBloodPressure = criteriaDetails.enableBloodPressure === 1;
+    studyCriteriaSummary.requiresCholesterol = criteriaDetails.enableCholesterol === 1;
+    studyCriteriaSummary.requiresHeartDisease = criteriaDetails.enableHeartDisease === 1;
+    studyCriteriaSummary.requiresActivity = criteriaDetails.enableActivity === 1;
+    studyCriteriaSummary.requiresHbA1c = criteriaDetails.enableHbA1c === 1;
+    studyCriteriaSummary.requiresBloodType = criteriaDetails.enableBloodType === 1;
+    studyCriteriaSummary.requiresLocation = criteriaDetails.enableLocation === 1;
+  }
+
+  const transformed: any = {
+    id: study.id,
+    title: study.title,
+    description: study.description,
+    maxParticipants: study.max_participants,
+    currentParticipants: study.current_participants,
+    status: study.status,
+    complexityScore: study.complexity_score,
+    templateName: study.template_name,
+    createdAt: study.created_at,
+    contractAddress: study.contract_address,
+    criteriaSummary: studyCriteriaSummary,
+  };
+
+  if (isEnrolled !== undefined) {
+    transformed.isEnrolled = isEnrolled;
+  }
+
+  return transformed;
+};
+
+/**
  * Create a new medical study (with database storage)
  * POST /studies
  */
@@ -374,55 +432,7 @@ export const getStudies = async (req: Request, res: Response) => {
       return res.status(500).json({ error: "Failed to fetch studies" });
     }
 
-    const transformedStudies =
-      studies?.map((study) => {
-        let criteriaDetails = null;
-        if (study.criteria_json) {
-          try {
-            criteriaDetails =
-              typeof study.criteria_json === "string"
-                ? JSON.parse(study.criteria_json)
-                : study.criteria_json;
-          } catch (e) {
-            logger.error(
-              { error: e, studyId: study.id },
-              "Failed to parse criteria JSON for summary"
-            );
-          }
-        }
-
-        const studyCriteriaSummary: any = {
-          requiresAge: study.requires_age,
-          requiresGender: study.requires_gender,
-          requiresDiabetes: study.requires_diabetes,
-        };
-
-        if (criteriaDetails) {
-          studyCriteriaSummary.requiresSmoking = criteriaDetails.enableSmoking === 1;
-          studyCriteriaSummary.requiresBMI = criteriaDetails.enableBMI === 1;
-          studyCriteriaSummary.requiresBloodPressure = criteriaDetails.enableBloodPressure === 1;
-          studyCriteriaSummary.requiresCholesterol = criteriaDetails.enableCholesterol === 1;
-          studyCriteriaSummary.requiresHeartDisease = criteriaDetails.enableHeartDisease === 1;
-          studyCriteriaSummary.requiresActivity = criteriaDetails.enableActivity === 1;
-          studyCriteriaSummary.requiresHbA1c = criteriaDetails.enableHbA1c === 1;
-          studyCriteriaSummary.requiresBloodType = criteriaDetails.enableBloodType === 1;
-          studyCriteriaSummary.requiresLocation = criteriaDetails.enableLocation === 1;
-        }
-
-        return {
-          id: study.id,
-          title: study.title,
-          description: study.description,
-          maxParticipants: study.max_participants,
-          currentParticipants: study.current_participants,
-          status: study.status,
-          complexityScore: study.complexity_score,
-          templateName: study.template_name,
-          createdAt: study.created_at,
-          contractAddress: study.contract_address,
-          criteriaSummary: studyCriteriaSummary,
-        };
-      }) || [];
+    const transformedStudies = studies?.map((study) => transformStudyForResponse(study)) || [];
 
     res.json({
       studies: transformedStudies,
@@ -803,6 +813,76 @@ export const getStudyCriteria = async (req: Request, res: Response) => {
         studyId: req.params.id,
       },
       "Get study criteria error"
+    );
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+/**
+ * Get all studies that a user is enrolled in
+ * GET /api/studies/enrolled/:walletAddress
+ */
+export const getEnrolledStudies = async (req: Request, res: Response) => {
+  try {
+    const { walletAddress } = req.params;
+
+    logger.info({ walletAddress }, "GET /api/studies/enrolled/:walletAddress");
+
+    // First, get all study IDs the user is enrolled in
+    const { data: participations, error: participationError } = await req.supabase
+      .from(TABLES.STUDY_PARTICIPATIONS!.name)
+      .select(TABLES.STUDY_PARTICIPATIONS!.columns.studyId!)
+      .eq(TABLES.STUDY_PARTICIPATIONS!.columns.participantWallet!, walletAddress);
+    // TODO: [LT] Add has consented check when present
+
+    if (participationError) {
+      logger.error({ error: participationError, walletAddress }, "Failed to fetch participations");
+      return res.status(500).json({ error: "Failed to fetch enrolled studies" });
+    }
+
+    if (!participations || participations.length === 0) {
+      logger.info({ walletAddress }, "No enrolled studies found");
+      return res.json({ studies: [] });
+    }
+
+    // Extract study IDs
+    const studyIds = participations.map((p: any) => p.study_id);
+
+    // Fetch the full study details for all enrolled studies
+    const { data: studies, error: studiesError } = await req.supabase
+      .from(TABLES.STUDIES!.name)
+      .select("*")
+      .in(TABLES.STUDIES!.columns.id!, studyIds)
+      .order(TABLES.STUDIES!.columns.createdAt!, { ascending: false });
+
+    if (studiesError) {
+      logger.error({ error: studiesError, walletAddress }, "Failed to fetch study details");
+      return res.status(500).json({ error: "Failed to fetch study details" });
+    }
+
+    const transformedStudies =
+      studies?.map((study) => transformStudyForResponse(study, true)) || [];
+
+    logger.info(
+      { walletAddress, count: transformedStudies.length },
+      "Enrolled studies fetched successfully"
+    );
+
+    res.json({ studies: transformedStudies });
+  } catch (error) {
+    logger.error(
+      {
+        error:
+          error instanceof Error
+            ? {
+                message: error.message,
+                stack: error.stack,
+                name: error.name,
+              }
+            : error,
+        walletAddress: req.params.walletAddress,
+      },
+      "Get enrolled studies error"
     );
     res.status(500).json({ error: "Internal server error" });
   }
