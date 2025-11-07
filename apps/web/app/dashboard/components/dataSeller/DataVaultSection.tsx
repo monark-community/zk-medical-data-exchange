@@ -6,13 +6,13 @@ import { Config, UseAccountReturnType } from "wagmi";
 import UploadSection from "@/components/fileManagement/uploadSection";
 import DashboardSectionHeader from "@/app/dashboard/components/shared/DashboardSectionHeader";
 
-const DataVaultSection = ({
+export default function DataVaultSection({
   account,
   aesKey,
 }: {
   account: UseAccountReturnType<Config>;
   aesKey: string | null;
-}) => {
+}) {
   return (
     <div className="w-full space-y-8">
       <DashboardSectionHeader
@@ -28,6 +28,4 @@ const DataVaultSection = ({
       </div>
     </div>
   );
-};
-
-export default DataVaultSection;
+}
