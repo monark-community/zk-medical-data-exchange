@@ -15,6 +15,7 @@ import { TABLES } from "@/constants/db";
 const { USERS } = TABLES;
 
 // Enums matching Solidity contract
+/* eslint-disable no-unused-vars */
 export enum VoteChoice {
   None = 0,
   For = 1,
@@ -35,6 +36,7 @@ export enum ProposalCategory {
   Policy = 3,
   Other = 4,
 }
+/* eslint-enable no-unused-vars */
 
 export interface Proposal {
   id: number;
