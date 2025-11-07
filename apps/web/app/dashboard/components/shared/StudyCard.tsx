@@ -23,6 +23,24 @@ export default function StudyCard({
   const isAlmostFull = participantPercentage >= 80;
   const isFull = participantPercentage >= 100;
 
+  // Check if study has any criteria
+  const hasAnyCriteria = study.criteriaSummary
+    ? Object.values(study.criteriaSummary).some((value) => value === true)
+    : false;
+
+  // Calculate end date (creation date + duration)
+  const getEndDate = () => {
+    const createdDate = new Date(study.createdAt);
+    if (study.durationDays) {
+      const endDate = new Date(createdDate);
+      endDate.setDate(endDate.getDate() + study.durationDays);
+      return endDate;
+    }
+    return createdDate;
+  };
+
+  const displayDate = getEndDate();
+
   return (
     <div
       className={`group relative bg-white rounded-xl border border-gray-200 p-5 hover:border-gray-300 hover:shadow-md transition-all duration-200 ${
@@ -77,11 +95,12 @@ export default function StudyCard({
           <span className="text-xs text-gray-600">{participantPercentage.toFixed(0)}%</span>
         </div>
 
-        {/* Date */}
+        {/* End Date */}
         <div className="flex items-center space-x-2 text-gray-600">
           <Calendar className="h-4 w-4 text-gray-500" />
           <span className="text-xs">
-            {new Date(study.createdAt).toLocaleDateString("en-US", {
+            Ends:{" "}
+            {displayDate.toLocaleDateString("en-US", {
               month: "short",
               day: "numeric",
               year: "numeric",
@@ -109,13 +128,15 @@ export default function StudyCard({
         />
       </div>
 
-      {/* Criteria badges */}
-      <div className="pt-3 border-t border-gray-100">
-        <StudyCriteriaBadges
-          studyCriteriaSummary={study.criteriaSummary}
-          showLabel={showCriteriaLabel}
-        />
-      </div>
+      {/* Criteria badges - only show if there are any criteria */}
+      {hasAnyCriteria && (
+        <div className="pt-3 border-t border-gray-100">
+          <StudyCriteriaBadges
+            studyCriteriaSummary={study.criteriaSummary}
+            showLabel={showCriteriaLabel}
+          />
+        </div>
+      )}
     </div>
   );
 }

@@ -466,3 +466,103 @@ export const logFileAccess = async (req: Request, res: Response): Promise<void> 
     });
   }
 };
+
+/**
+ * Log failed study join attempt
+ * POST /api/audit/log-failed-join
+ */
+export const logFailedJoinStudy = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { userAddress, studyId, reason, errorDetails, metadata } = req.body;
+
+    // Validate required fields
+    if (!userAddress || !studyId) {
+      res.status(400).json({
+        success: false,
+        error: "Missing required fields: userAddress, studyId",
+      });
+      return;
+    }
+
+    // Validate user address format
+    if (!isValidEthereumAddress(userAddress)) {
+      res.status(400).json({
+        success: false,
+        error: "Invalid user address format",
+      });
+      return;
+    }
+
+    // Validate studyId
+    const studyIdNum = parseInt(studyId);
+    if (isNaN(studyIdNum) || studyIdNum < 0) {
+      res.status(400).json({
+        success: false,
+        error: "Invalid studyId. Must be a non-negative number",
+      });
+      return;
+    }
+
+    // Prepare metadata for audit
+    const enrichedMetadata = {
+      reason: reason || "Unknown error",
+      errorDetails,
+      ...metadata,
+    };
+
+    // Log the failed join attempt using logStudyParticipation with success=false
+    const result = await auditService.logStudyParticipation(
+      userAddress,
+      studyIdNum.toString(),
+      false, // success = false for failed attempts
+      enrichedMetadata
+    );
+
+    if (result.success) {
+      logger.info(
+        {
+          userAddress,
+          studyId: studyIdNum,
+          reason,
+          txHash: result.txHash,
+        },
+        "Failed study join attempt logged successfully"
+      );
+
+      res.json({
+        success: true,
+        data: {
+          txHash: result.txHash,
+          message: "Failed study join attempt logged successfully",
+        },
+      });
+    } else {
+      logger.error(
+        {
+          userAddress,
+          studyId: studyIdNum,
+          error: result.error,
+        },
+        "Failed to log failed study join attempt"
+      );
+
+      res.status(500).json({
+        success: false,
+        error: result.error || "Failed to log failed study join attempt",
+      });
+    }
+  } catch (error) {
+    logger.error(
+      {
+        error,
+        body: req.body,
+      },
+      "Failed to log failed study join attempt"
+    );
+
+    res.status(500).json({
+      success: false,
+      error: "Internal server error while logging failed study join attempt",
+    });
+  }
+};

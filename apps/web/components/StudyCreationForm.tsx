@@ -489,6 +489,17 @@ const StudyCreationForm = ({
               placeholder="Enter maximum participants"
             />
           </div>
+          <div className="space-y-2">
+            <label className="block text-sm font-semibold text-gray-700">Duration (Days)</label>
+            <NumberInput
+              value={studyInfo.durationDays}
+              onChange={(value) => setStudyInfo({ ...studyInfo, durationDays: value })}
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200"
+              min={1}
+              max={365}
+              placeholder="Enter study duration in days"
+            />
+          </div>
           <div className="lg:col-span-2 space-y-2">
             <label className="block text-sm font-semibold text-gray-700">Description</label>
             <textarea

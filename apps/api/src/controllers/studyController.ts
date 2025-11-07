@@ -281,6 +281,7 @@ const transformStudyForResponse = (study: any, isEnrolled?: boolean, hasConsente
     description: study.description,
     maxParticipants: study.max_participants,
     currentParticipants: study.current_participants,
+    durationDays: study.duration_days,
     status: study.status,
     complexityScore: study.complexity_score,
     templateName: study.template_name,

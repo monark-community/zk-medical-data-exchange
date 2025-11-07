@@ -37,7 +37,6 @@ export enum ActionType {
   ADMIN_ACTION, // Administrative actions
   SYSTEM_CONFIG, // System configuration changes
 }
-
 export interface AuditLogEntry {
   user: string;
   userProfile: UserProfile;

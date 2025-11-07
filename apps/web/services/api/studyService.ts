@@ -22,6 +22,7 @@ export interface StudySummary {
   complexityScore: number;
   templateName?: string;
   createdAt: string;
+  durationDays?: number;
   contractAddress?: string;
   isEnrolled?: boolean;
   hasConsented?: boolean;
@@ -228,6 +229,24 @@ export class StudyApplicationService {
       const isEligible = checkEligibility(medicalData, studyCriteria);
 
       if (!isEligible) {
+        // Log the failed eligibility check to audit trail
+        console.log("Eligibility criteria not met. Logging failed attempt...");
+        try {
+          await apiClient.post("/audit/log-failed-join", {
+            userAddress: walletAddress,
+            studyId: studyId.toString(),
+            reason: "Eligibility criteria not met",
+            errorDetails: "User medical data does not match study requirements",
+            metadata: {
+              stage: "client_eligibility_check",
+            },
+          });
+          console.log("Failed join attempt logged to audit trail");
+        } catch (auditError) {
+          console.error("Failed to log audit entry (non-critical):", auditError);
+          // Don't fail the whole operation if audit logging fails
+        }
+
         return {
           success: false,
           message:
@@ -268,6 +287,23 @@ export class StudyApplicationService {
       };
     } catch (error) {
       console.error("Study application failed:", error);
+
+      try {
+        await apiClient.post("/audit/log-failed-join", {
+          userAddress: walletAddress,
+          studyId: studyId.toString(),
+          reason: "Application process error",
+          errorDetails: error instanceof Error ? error.message : "Unknown error",
+          metadata: {
+            stage: "application_process",
+            errorType: error instanceof Error ? error.constructor.name : "unknown",
+          },
+        });
+        console.log("Failed join attempt logged to audit trail");
+      } catch (auditError) {
+        console.error("Failed to log audit entry (non-critical):", auditError);
+      }
+
       return {
         success: false,
         message: error instanceof Error ? error.message : "Application failed",
