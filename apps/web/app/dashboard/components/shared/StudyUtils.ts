@@ -1,5 +1,3 @@
-import { StudySummary } from "@/services/api/studyService";
-
 export function getStudyStatusColor(status: string): string {
   switch (status) {
     case "active":
@@ -15,12 +13,4 @@ export function getStudyStatusColor(status: string): string {
     default:
       return "bg-gray-100 text-gray-800 border-gray-200";
   }
-}
-
-export function calculateStudyStats(studies: StudySummary[]) {
-  return {
-    totalStudies: studies.length,
-    activeStudies: studies.filter((study) => study.status === "active").length,
-    totalParticipants: studies.reduce((sum, study) => sum + study.currentParticipants, 0),
-  };
 }
