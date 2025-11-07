@@ -77,29 +77,23 @@ export const generateSecureSalt = (): number => {
 export const normalizeMedicalDataForCircuit = (medicalData: ExtractedMedicalData) => {
   const age = medicalData.age;
   const gender = medicalData.gender;
-  const bmi = medicalData.bmi;
+  let bmi = medicalData.bmi;
   const smokingStatus = medicalData.smokingStatus;
 
-  if (age === undefined || gender === undefined || bmi === undefined || smokingStatus === undefined) {
-    throw new Error(
-      'Required fields missing'
-    );
-  }
-
   return {
-    age,
-    gender,
-    bmi: Math.round(bmi * 10),
-    smokingStatus,
+    age: age ?? -1,
+    gender: gender ?? -1,
+    bmi: bmi ? Math.round(bmi * 10) : -1,
+    smokingStatus: smokingStatus ?? -1,
 
-    region: medicalData.regions?.[0] ?? 0,
-    cholesterol: medicalData.cholesterol ?? 0,
-    systolicBP: medicalData.systolicBP ?? 0,
-    diastolicBP: medicalData.diastolicBP ?? 0,
-    hba1c: medicalData.hba1c ? Math.round(medicalData.hba1c * 10) : 0,
-    bloodType: medicalData.bloodType ?? 0,
-    activityLevel: medicalData.activityLevel ?? 0,
-    diabetesStatus: medicalData.diabetesStatus ?? 0,
-    heartDiseaseHistory: medicalData.heartDiseaseStatus ?? 0,
+    region: medicalData.regions?.[0] ?? -1,
+    cholesterol: medicalData.cholesterol ?? -1,
+    systolicBP: medicalData.systolicBP ?? -1,
+    diastolicBP: medicalData.diastolicBP ?? -1,
+    hba1c: medicalData.hba1c ? Math.round(medicalData.hba1c * 10) : -1,
+    bloodType: medicalData.bloodType ?? -1,
+    activityLevel: medicalData.activityLevel ?? -1,
+    diabetesStatus: medicalData.diabetesStatus ?? -1,
+    heartDiseaseHistory: medicalData.heartDiseaseStatus ?? -1,
   };
 };
