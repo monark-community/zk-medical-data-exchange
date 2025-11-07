@@ -77,19 +77,13 @@ export const generateSecureSalt = (): number => {
 export const normalizeMedicalDataForCircuit = (medicalData: ExtractedMedicalData) => {
   const age = medicalData.age;
   const gender = medicalData.gender;
-  const bmi = medicalData.bmi;
+  let bmi = medicalData.bmi;
   const smokingStatus = medicalData.smokingStatus;
-
-  if (age === undefined || gender === undefined || bmi === undefined || smokingStatus === undefined) {
-    throw new Error(
-      'Required fields missing'
-    );
-  }
 
   return {
     age,
     gender,
-    bmi: Math.round(bmi * 10),
+    bmi: bmi ? Math.round(bmi * 10) : 0,
     smokingStatus,
 
     region: medicalData.regions?.[0] ?? 0,
