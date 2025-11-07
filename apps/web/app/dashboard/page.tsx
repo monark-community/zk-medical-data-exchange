@@ -4,18 +4,36 @@ import { useProtectedRoute } from "@/hooks/useAuth";
 import { useWeb3AuthDisconnect } from "@web3auth/modal/react";
 import { useAccount } from "wagmi";
 import { useAESKey } from "@/hooks/useAESKey";
-import AccountOverview from "./components/dataSeller/AccountOverview";
 import DashboardTabs from "./components/shared/DashboardTabs";
+import { useProfile } from "@/contexts/ProfileContext";
+import { UserProfile } from "@zk-medical/shared";
+import AccountOverview from "./components/dataSeller/AccountOverview";
 
 export default function Dashboard() {
   const { isConnected } = useProtectedRoute();
   const { disconnect } = useWeb3AuthDisconnect();
   const account = useAccount();
   const { aesKey } = useAESKey(account);
+  const { currentProfile } = useProfile();
 
   if (!isConnected) {
     return null;
   }
+
+  const getDashboardTitle = () => {
+    if (currentProfile === UserProfile.RESEARCHER) {
+      return {
+        title: "Research Dashboard",
+        subtitle: "Access datasets and manage your research projects",
+      };
+    }
+    return {
+      title: "Your Health Data Dashboard",
+      subtitle: "Manage your data contributions and track rewards",
+    };
+  };
+
+  const { title, subtitle } = getDashboardTitle();
 
   return (
     <div className="min-h-screen bg-gray-50">

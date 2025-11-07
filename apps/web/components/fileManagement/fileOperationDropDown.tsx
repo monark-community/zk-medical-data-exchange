@@ -1,5 +1,5 @@
 "use client";
-import React, { Dispatch, SetStateAction } from "react";
+import React, { Dispatch, SetStateAction, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -11,7 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-import { EllipsisVertical } from "lucide-react";
+import { EllipsisVertical, Loader2 } from "lucide-react";
 
 import { decryptWithKey } from "@/utils/encryption";
 
@@ -20,6 +20,7 @@ import { ipfsDelete } from "@/services/api/ipfsService";
 import { ipfsDownload } from "@/services/api/ipfsService";
 import { deleteCID } from "@/services/api";
 import { logFileAccess } from "@/services/api/auditService";
+import eventBus from "@/lib/eventBus";
 const FileOperationDropDown = ({
   walletAddress,
   aesKey,
@@ -31,6 +32,8 @@ const FileOperationDropDown = ({
   setMedicalData: Dispatch<SetStateAction<MedicalData[]>>;
   data: MedicalData;
 }) => {
+  const [isDeleting, setIsDeleting] = useState(false);
+
   const getFileContent = async (cid: string) => {
     if (!aesKey) return;
     try {
@@ -133,41 +136,52 @@ const FileOperationDropDown = ({
 
   const deleteContent = async (cid: string, fileId: string) => {
     if (!aesKey || !walletAddress) return;
+    setIsDeleting(true);
+    eventBus.emit("medicalDataDeleting");
     try {
       const decryptedCid = decryptWithKey(cid, aesKey);
       await ipfsDelete(decryptedCid, fileId);
       await deleteCID(walletAddress!, cid);
       alert("File deleted successfully.");
       setMedicalData((prev) => prev.filter((item) => item.encryptedCid !== cid));
+      eventBus.emit("medicalDataDeleted");
     } catch (error) {
-      console.error("Failed to fetch IPFS content:", error);
-      alert("Failed to load content.");
-      // TODO: Add better UI feedback
+      console.error("Failed to delete file:", error);
+      alert("Failed to delete file.");
+      eventBus.emit("medicalDataDeleted");
+    } finally {
+      setIsDeleting(false);
     }
   };
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline">
-          <EllipsisVertical />
+        <Button variant="outline" disabled={isDeleting}>
+          {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <EllipsisVertical />}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56" align="end">
         <DropdownMenuLabel className="font-bold">File Actions</DropdownMenuLabel>
         <DropdownMenuGroup>
-          <DropdownMenuItem onClick={() => displayContent(data.encryptedCid)} disabled={!aesKey}>
+          <DropdownMenuItem
+            onClick={() => displayContent(data.encryptedCid)}
+            disabled={!aesKey || isDeleting}
+          >
             View Content
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => downloadContent(data.encryptedCid)} disabled={!aesKey}>
+          <DropdownMenuItem
+            onClick={() => downloadContent(data.encryptedCid)}
+            disabled={!aesKey || isDeleting}
+          >
             Download Content
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
             variant="destructive"
             onClick={() => deleteContent(data.encryptedCid, data.fileId)}
-            disabled={!aesKey}
+            disabled={!aesKey || isDeleting}
           >
-            Delete Content
+            {isDeleting ? "Deleting..." : "Delete Content"}
           </DropdownMenuItem>
         </DropdownMenuGroup>
       </DropdownMenuContent>

@@ -5,9 +5,7 @@ import { useAccount } from "wagmi";
 import { useStudies } from "@/hooks/useStudies";
 import DataSellerStudiesList from "@/app/dashboard/components/dataSeller/DataSellerStudiesList";
 import StudySectionHeader from "@/app/dashboard/components/shared/StudySectionHeader";
-import StudyStatsCards from "@/app/dashboard/components/shared/StudyStatsCards";
 import StudiesContainer from "@/app/dashboard/components/shared/StudiesContainer";
-import { calculateStudyStats } from "@/app/dashboard/components/shared/StudyUtils";
 
 export default function DataSellerStudiesSection() {
   const { address: walletAddress } = useAccount();
@@ -20,7 +18,7 @@ export default function DataSellerStudiesSection() {
     }
 
     const study = studies.find((s) => s.id === studyId);
-    
+
     const confirmMessage = `Do you want to apply to "${study?.title}"?\n\nBy applying, you agree to share your medical data according to the study's privacy requirements.`;
 
     if (window.confirm(confirmMessage)) {
@@ -30,8 +28,6 @@ export default function DataSellerStudiesSection() {
     }
   };
 
-  const stats = calculateStudyStats(studies);
-
   return (
     <div className="w-full">
       <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
@@ -39,22 +35,8 @@ export default function DataSellerStudiesSection() {
           title="Available Medical Studies"
           icon={<BookOpen className="h-8 w-8" />}
           action={
-            <div className="text-sm text-gray-600">
-              Browse studies and apply to participate
-            </div>
+            <div className="text-sm text-gray-600">Browse studies and apply to participate</div>
           }
-        />
-
-        <StudyStatsCards
-          isLoading={isLoading}
-          totalStudies={stats.totalStudies}
-          totalParticipants={stats.totalParticipants}
-          activeStudies={stats.activeStudies}
-          labels={{
-            totalStudies: "Available Studies",
-            totalParticipants: "Total Participants",
-            activeStudies: "Active Studies",
-          }}
         />
 
         <StudiesContainer

@@ -4,8 +4,12 @@ import logger from "@/utils/logger";
 import {
   checkIfUserExists,
   getUserByWalletAddress,
+  getUserStatsForDataSeller,
+  getUserStatsForResearcher,
   updateUserByWalletAddress,
 } from "@/services/userService";
+import { UserProfile } from "@zk-medical/shared";
+import isValidEthereumAddress from "@/utils/address";
 
 function toUserDTO(user: { id: string; username: string | null; created_at: string }) {
   return {
@@ -81,6 +85,49 @@ export async function updateUser(req: Request, res: Response) {
       return res.status(400).json({ error: err.message });
     }
 
+    return res.status(500).json({ error: "Internal server error" });
+  }
+}
+
+export async function getUserStats(req: Request, res: Response) {
+  const { walletAddress, profile } = req.params;
+
+  try {
+    // Validate wallet address
+    if (!isValidEthereumAddress(walletAddress)) {
+      return res.status(400).json({ error: "Invalid wallet address format" });
+    }
+
+    // Validate and convert profile
+    if (!profile || !(profile in UserProfile)) {
+      return res.status(400).json({
+        error: "Invalid profile. Must be one of: DATA_SELLER, RESEARCHER",
+      });
+    }
+
+    const profileValue = UserProfile[profile as keyof typeof UserProfile];
+
+    logger.info({ walletAddress, profile, profileValue }, "getUserStats called");
+
+    // Route to appropriate stats function based on profile
+    switch (profileValue) {
+      case UserProfile.DATA_SELLER: {
+        const dataSellerstats = await getUserStatsForDataSeller(req.supabase, walletAddress);
+        return res.status(200).json(dataSellerstats);
+      }
+
+      case UserProfile.RESEARCHER: {
+        const researcherStats = await getUserStatsForResearcher(req.supabase, walletAddress);
+        return res.status(200).json(researcherStats);
+      }
+
+      default:
+        return res.status(400).json({
+          error: "Stats not available for this profile type",
+        });
+    }
+  } catch (err: any) {
+    logger.error({ err, walletAddress, profile }, "Error in getUserStats");
     return res.status(500).json({ error: "Internal server error" });
   }
 }

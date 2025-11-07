@@ -16,7 +16,7 @@ import { LogOut, User, RefreshCw } from "lucide-react";
 import { useAccount } from "wagmi";
 import { useWeb3AuthDisconnect } from "@web3auth/modal/react";
 import { useProfile } from "@/contexts/ProfileContext";
-import { UserProfile } from "@/services/api/auditService";
+import { UserProfile } from "@zk-medical/shared";
 
 import { useRouter } from "next/navigation";
 import { useUser } from "@/hooks/useUser";
