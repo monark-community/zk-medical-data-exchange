@@ -3,11 +3,12 @@
   "version": "1.0.0",
   "description": "Shared types and utilities for ZK medical data exchange",
   "type": "module",
-  "main": "studyCriteria.ts",
-  "types": "studyCriteria.ts",
+  "main": "index.ts",
+  "types": "index.ts",
   "exports": {
-    ".": "./studyCriteria.ts",
-    "./studyCriteria": "./studyCriteria.ts"
+    ".": "./index.ts",
+    "./studyCriteria": "./studyCriteria.ts",
+    "./userProfile": "./userProfile.ts"
   },
   "scripts": {
     "build": "tsc"

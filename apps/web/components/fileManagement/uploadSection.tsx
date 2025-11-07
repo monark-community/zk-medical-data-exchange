@@ -6,7 +6,7 @@ import { ReportType } from "@/constants/reportType";
 import { Config, UseAccountReturnType } from "wagmi";
 import { encryptWithKey } from "@/utils/encryption";
 import RecordTypeSelect from "@/components/fileManagement/recordTypeSelect";
-import { Upload, Loader2 } from "lucide-react";
+import { Upload, Loader2, X, Send, CheckCircle2, XCircle } from "lucide-react";
 import eventBus from "@/lib/eventBus";
 import { ipfsUpload } from "@/services/api/ipfsService";
 import { uploadMedicalData } from "@/services/api";
@@ -78,97 +78,151 @@ export default function UploadSection({
     }
     setRecordType(value);
   };
+
+  // Truncate filename to max 40 characters, showing start and end
+  const truncateFilename = (filename: string, maxLength: number = 40): string => {
+    if (filename.length <= maxLength) return filename;
+
+    const extension = filename.split(".").pop() || "";
+    const nameWithoutExt = filename.substring(0, filename.length - extension.length - 1);
+
+    if (nameWithoutExt.length <= maxLength - extension.length - 4) return filename;
+
+    const charsToShow = maxLength - extension.length - 4; // 4 for "..." and "."
+    const frontChars = Math.ceil(charsToShow / 2);
+    const backChars = Math.floor(charsToShow / 2);
+
+    return `${nameWithoutExt.substring(0, frontChars)}...${nameWithoutExt.substring(
+      nameWithoutExt.length - backChars
+    )}.${extension}`;
+  };
   return (
-    <>
+    <div className="space-y-4">
+      {/* Main Upload Button */}
       {!checking && !readyToSend && !uploading && (
-        <Button onClick={handleUploadMedicalData} disabled={uploading}>
-          {uploading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Uploading...
-            </>
-          ) : (
-            <>
-              <Upload className="mr-2 h-4 w-4" />
-              Upload medical data
-            </>
-          )}
-        </Button>
-      )}
-      {uploadedFileName && (
-        <div className="flex items-center gap-2 mt-2">
-          <span>{uploadedFileName}</span>
-          {checking ? (
-            <span>⏳</span>
-          ) : isCompliant === true ? (
-            <span>FHIR ✔️</span>
-          ) : isCompliant === false ? (
-            <span>❌</span>
-          ) : null}
-          <button
-            className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-2 py-1 rounded text-xs"
-            onClick={() => {
-              setUploadedFileName(null);
-              setUploadedFile(null);
-              setIsCompliant(null);
-              setReadyToSend(false);
-            }}
+        <div className="relative group">
+          <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 via-teal-500 to-blue-600 rounded-lg blur opacity-25 group-hover:opacity-40 transition duration-300"></div>
+          <Button
+            onClick={handleUploadMedicalData}
+            disabled={uploading}
+            size="lg"
+            className="relative w-full sm:w-auto bg-gradient-to-r from-blue-600 to-teal-600 hover:from-blue-700 hover:to-teal-700 text-white font-semibold px-8 py-6 text-base shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02]"
           >
-            Remove
-          </button>
-          {readyToSend && (
-            <>
-              <button
-                className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-xs flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={uploading}
-                onClick={async () => {
-                  if (account.status !== "connected") return;
-                  if (!aesKey || !uploadedFile) return;
-
-                  setUploading(true);
-                  try {
-                    const content = await uploadedFile.text();
-                    const encryptedContent = encryptWithKey(content, aesKey);
-                    const uploadResponse = await ipfsUpload(encryptedContent);
-                    const encryptedCid = encryptWithKey(uploadResponse.cid, aesKey);
-                    const result = await uploadMedicalData(
-                      account.address,
-                      encryptedCid,
-                      recordType,
-                      uploadResponse.fileId
-                    );
-
-                    if (result) {
-                      alert("Medical data uploaded successfully.");
-                      eventBus.emit("medicalDataUploaded");
-                    }
-
-                    setUploadedFileName(null);
-                    setUploadedFile(null);
-                    setIsCompliant(null);
-                    setReadyToSend(false);
-                  } catch (error) {
-                    console.error("Upload failed:", error);
-                    alert("Failed to upload medical data. Please try again.");
-                  } finally {
-                    setUploading(false);
-                  }
-                }}
-              >
-                {uploading ? (
-                  <>
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                    Uploading...
-                  </>
-                ) : (
-                  "Confirm Send"
-                )}
-              </button>
-              <RecordTypeSelect onValueChange={onRecordTypeChange} selectedValue={recordType} />
-            </>
-          )}
+            <Upload className="mr-3 h-5 w-5" />
+            Upload Medical Data
+          </Button>
         </div>
       )}
-    </>
+
+      {/* File Preview Card */}
+      {uploadedFileName && (
+        <div className="border-2 border-gray-200 rounded-lg p-5 bg-white shadow-sm hover:shadow-md transition-all duration-200">
+          <div className="space-y-4">
+            {/* File Info Row */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3 flex-1 min-w-0">
+                <div className="flex-shrink-0 w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <Upload className="w-5 h-5 text-blue-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-gray-900 truncate" title={uploadedFileName}>
+                    {truncateFilename(uploadedFileName)}
+                  </p>
+                  <div className="flex items-center gap-2 mt-1">
+                    {checking ? (
+                      <span className="text-sm text-gray-500 flex items-center gap-1.5">
+                        <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
+                        Checking compliance...
+                      </span>
+                    ) : isCompliant === true ? (
+                      <span className="text-sm text-green-600 font-medium flex items-center gap-1.5">
+                        <CheckCircle2 className="w-4 h-4" />
+                        FHIR Compliant
+                      </span>
+                    ) : isCompliant === false ? (
+                      <span className="text-sm text-red-600 font-medium flex items-center gap-1.5">
+                        <XCircle className="w-4 h-4" />
+                        Not Compliant
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+
+              {/* Remove Button */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setUploadedFileName(null);
+                  setUploadedFile(null);
+                  setIsCompliant(null);
+                  setReadyToSend(false);
+                }}
+                className="flex-shrink-0 hover:bg-red-50 hover:text-red-600 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+
+            {/* Actions Row */}
+            {readyToSend && (
+              <div className="flex flex-col sm:flex-row gap-3 pt-3 border-t border-gray-200">
+                <RecordTypeSelect onValueChange={onRecordTypeChange} selectedValue={recordType} />
+                <Button
+                  onClick={async () => {
+                    if (account.status !== "connected") return;
+                    if (!aesKey || !uploadedFile) return;
+
+                    setUploading(true);
+                    try {
+                      const content = await uploadedFile.text();
+                      const encryptedContent = encryptWithKey(content, aesKey);
+                      const uploadResponse = await ipfsUpload(encryptedContent);
+                      const encryptedCid = encryptWithKey(uploadResponse.cid, aesKey);
+                      const result = await uploadMedicalData(
+                        account.address,
+                        encryptedCid,
+                        recordType,
+                        uploadResponse.fileId
+                      );
+
+                      if (result) {
+                        alert("Medical data uploaded successfully.");
+                        eventBus.emit("medicalDataUploaded");
+                      }
+
+                      setUploadedFileName(null);
+                      setUploadedFile(null);
+                      setIsCompliant(null);
+                      setReadyToSend(false);
+                    } catch (error) {
+                      console.error("Upload failed:", error);
+                      alert("Failed to upload medical data. Please try again.");
+                    } finally {
+                      setUploading(false);
+                    }
+                  }}
+                  disabled={uploading}
+                  className="flex-1 sm:flex-initial bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700 text-white font-semibold shadow-md hover:shadow-lg transition-all duration-200"
+                >
+                  {uploading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Uploading...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="mr-2 h-4 w-4" />
+                      Confirm & Send
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
