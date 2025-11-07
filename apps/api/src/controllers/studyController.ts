@@ -576,7 +576,6 @@ export const participateInStudy = async (req: Request, res: Response) => {
       return res.status(400).json({ error: "Study is full" });
     }
 
-    // Check for existing participation BEFORE database insert to prevent duplicates
     const { data: existing } = await req.supabase
       .from(TABLES.STUDY_PARTICIPATIONS!.name)
       .select(TABLES.STUDY_PARTICIPATIONS!.columns.id!)
