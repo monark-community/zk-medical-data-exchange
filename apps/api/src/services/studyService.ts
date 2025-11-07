@@ -142,6 +142,49 @@ class StudyService {
   }
 
   /**
+   * Helper to convert array of 4 numbers to BigInt tuple
+   * @private
+   */
+  private convertToBigIntTuple(
+    arr: readonly number[] | number[] | undefined
+  ): [bigint, bigint, bigint, bigint] {
+    const defaultArray = [0, 0, 0, 0] as const;
+    const source = arr || defaultArray;
+    return [
+      BigInt(source[0] ?? 0),
+      BigInt(source[1] ?? 0),
+      BigInt(source[2] ?? 0),
+      BigInt(source[3] ?? 0),
+    ];
+  }
+
+  /**
+   * Helper to log consent operation results
+   * @private
+   */
+  private logConsentResult(
+    operation: "revoke" | "grant",
+    result: { success: boolean; transactionHash?: string; error?: string },
+    studyAddress: string,
+    participantWallet: string
+  ): void {
+    if (result.success) {
+      logger.info(
+        {
+          transactionHash: result.transactionHash,
+          participantWallet,
+        },
+        `Consent ${operation === "revoke" ? "revoked" : "granted"} on blockchain successfully`
+      );
+    } else {
+      logger.error(
+        { error: result.error, studyAddress, participantWallet },
+        `Failed to ${operation} consent on blockchain`
+      );
+    }
+  }
+
+  /**
    * Convert StudyCriteria to contract format
    * Returns object that matches the struct format for viem
    * Uses safe default values for disabled criteria to avoid validation errors
@@ -223,21 +266,11 @@ class StudyService {
       minBMI: bmiRange.min,
       maxBMI: bmiRange.max,
       enableBloodType: BigInt(criteria.enableBloodType || 0),
-      allowedBloodTypes: [
-        BigInt((criteria.allowedBloodTypes || [0, 0, 0, 0])[0]),
-        BigInt((criteria.allowedBloodTypes || [0, 0, 0, 0])[1]),
-        BigInt((criteria.allowedBloodTypes || [0, 0, 0, 0])[2]),
-        BigInt((criteria.allowedBloodTypes || [0, 0, 0, 0])[3]),
-      ] as [bigint, bigint, bigint, bigint],
+      allowedBloodTypes: this.convertToBigIntTuple(criteria.allowedBloodTypes),
       enableGender: BigInt(criteria.enableGender || 0),
       allowedGender: BigInt(criteria.allowedGender || 0),
       enableLocation: BigInt(criteria.enableLocation || 0),
-      allowedRegions: [
-        BigInt((criteria.allowedRegions || [0, 0, 0, 0])[0]),
-        BigInt((criteria.allowedRegions || [0, 0, 0, 0])[1]),
-        BigInt((criteria.allowedRegions || [0, 0, 0, 0])[2]),
-        BigInt((criteria.allowedRegions || [0, 0, 0, 0])[3]),
-      ] as [bigint, bigint, bigint, bigint],
+      allowedRegions: this.convertToBigIntTuple(criteria.allowedRegions),
       enableBloodPressure: BigInt(criteria.enableBloodPressure || 0),
       minSystolic: systolicRange.min,
       maxSystolic: systolicRange.max,
@@ -632,38 +665,49 @@ class StudyService {
     dataCommitment: string
   ): Promise<{ success: boolean; transactionHash?: string; error?: string }> {
     logger.info(
-      {
-        studyAddress,
-        participantWallet,
-        dataCommitment,
-        proof,
-      },
+      { studyAddress, participantWallet, dataCommitment, proof },
       "Recording study participation on blockchain"
     );
 
     // Convert proof to BigInt format
-    let pA: [bigint, bigint];
-    let pB: [[bigint, bigint], [bigint, bigint]];
-    let pC: [bigint, bigint];
-    let commitment: bigint;
-
     try {
-      pA = [BigInt(proof.a[0]), BigInt(proof.a[1])];
-      pB = [
+      const pA: [bigint, bigint] = [BigInt(proof.a[0]), BigInt(proof.a[1])];
+      const pB: [[bigint, bigint], [bigint, bigint]] = [
         [BigInt(proof.b[0][0]), BigInt(proof.b[0][1])],
         [BigInt(proof.b[1][0]), BigInt(proof.b[1][1])],
       ];
-      pC = [BigInt(proof.c[0]), BigInt(proof.c[1])];
-      commitment = BigInt(dataCommitment);
+      const pC: [bigint, bigint] = [BigInt(proof.c[0]), BigInt(proof.c[1])];
+      const commitment = BigInt(dataCommitment);
 
       logger.info({ pA, pB, pC, commitment }, "Proof converted to BigInt format");
+
+      const result = await this.executeContractTransaction(
+        studyAddress,
+        "joinStudy",
+        [pA, pB, pC, commitment],
+        "Participation recording"
+      );
+
+      if (result.success) {
+        logger.info(
+          { transactionHash: result.transactionHash, participantWallet },
+          "Participation recorded on blockchain successfully"
+        );
+      } else {
+        logger.error(
+          { error: result.error, studyAddress, participantWallet },
+          "Failed to record participation on blockchain"
+        );
+      }
+
+      return {
+        success: result.success,
+        transactionHash: result.transactionHash,
+        error: result.error,
+      };
     } catch (conversionError) {
       logger.error(
-        {
-          error: conversionError,
-          proof,
-          dataCommitment,
-        },
+        { error: conversionError, proof, dataCommitment },
         "Failed to convert proof to BigInt"
       );
       return {
@@ -673,34 +717,6 @@ class StudyService {
         }`,
       };
     }
-
-    const result = await this.executeContractTransaction(
-      studyAddress,
-      "joinStudy",
-      [pA, pB, pC, commitment],
-      "Participation recording"
-    );
-
-    if (result.success) {
-      logger.info(
-        {
-          transactionHash: result.transactionHash,
-          participantWallet,
-        },
-        "Participation recorded on blockchain successfully"
-      );
-    } else {
-      logger.error(
-        { error: result.error, studyAddress, participantWallet },
-        "Failed to record participation on blockchain"
-      );
-    }
-
-    return {
-      success: result.success,
-      transactionHash: result.transactionHash,
-      error: result.error,
-    };
   }
 
   /**
@@ -712,13 +728,7 @@ class StudyService {
     studyAddress: string,
     participantWallet: string
   ): Promise<{ success: boolean; transactionHash?: string; error?: string }> {
-    logger.info(
-      {
-        studyAddress,
-        participantWallet,
-      },
-      "Revoking study consent on blockchain"
-    );
+    logger.info({ studyAddress, participantWallet }, "Revoking study consent on blockchain");
 
     const result = await this.executeContractTransaction(
       studyAddress,
@@ -727,20 +737,7 @@ class StudyService {
       "Consent revocation"
     );
 
-    if (result.success) {
-      logger.info(
-        {
-          transactionHash: result.transactionHash,
-          participantWallet,
-        },
-        "Consent revoked on blockchain successfully"
-      );
-    } else {
-      logger.error(
-        { error: result.error, studyAddress, participantWallet },
-        "Failed to revoke consent on blockchain"
-      );
-    }
+    this.logConsentResult("revoke", result, studyAddress, participantWallet);
 
     return {
       success: result.success,
@@ -758,13 +755,7 @@ class StudyService {
     studyAddress: string,
     participantWallet: string
   ): Promise<{ success: boolean; transactionHash?: string; error?: string }> {
-    logger.info(
-      {
-        studyAddress,
-        participantWallet,
-      },
-      "Granting study consent on blockchain"
-    );
+    logger.info({ studyAddress, participantWallet }, "Granting study consent on blockchain");
 
     const result = await this.executeContractTransaction(
       studyAddress,
@@ -773,20 +764,7 @@ class StudyService {
       "Consent grant"
     );
 
-    if (result.success) {
-      logger.info(
-        {
-          transactionHash: result.transactionHash,
-          participantWallet,
-        },
-        "Consent granted on blockchain successfully"
-      );
-    } else {
-      logger.error(
-        { error: result.error, studyAddress, participantWallet },
-        "Failed to grant consent on blockchain"
-      );
-    }
+    this.logConsentResult("grant", result, studyAddress, participantWallet);
 
     return {
       success: result.success,
