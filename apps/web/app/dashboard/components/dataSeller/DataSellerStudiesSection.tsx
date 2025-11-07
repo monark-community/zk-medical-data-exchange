@@ -14,7 +14,7 @@ import { StudyApplicationService } from "@/services/api";
 export default function DataSellerStudiesSection() {
   const { address: walletAddress } = useAccount();
   const { studies, isLoading, error, refetch } = useStudies(undefined, true);
-   const [applyingStudyId, setApplyingStudyId] = useState<number | null>(null);
+  const [applyingStudyId, setApplyingStudyId] = useState<number | null>(null);
 
   const handleApplyToStudy = async (studyId: number) => {
     if (!walletAddress) {
@@ -28,7 +28,7 @@ export default function DataSellerStudiesSection() {
 
     setApplyingStudyId(studyId);
 
-    try{
+    try {
       console.log("Starting secure study application process...");
 
       const data = await getAggregatedMedicalData(walletAddress);
@@ -55,11 +55,8 @@ export default function DataSellerStudiesSection() {
         refetch();
       } else {
         throw new Error(result.message);
-      } 
-
-
-    }
-    catch (error: any) {
+      }
+    } catch (error: any) {
       console.error("Error during study application:", error);
       alert(`Application failed: ${error.message || error}`);
     } finally {
