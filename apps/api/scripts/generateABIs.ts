@@ -116,10 +116,18 @@ function generateABIs(): void {
       export: "AUDIT_TRAIL_ABI",
       path: "audit/AuditTrail.sol/AuditTrail.json",
     },
+    {
+      name: "GovernanceDAO",
+      export: "GOVERNANCE_DAO_ABI",
+      path: "governance/GovernanceDAO.sol/GovernanceDAO.json",
+    },
   ];
 
   for (const contract of contracts) {
-    const contractFile = contractFiles.find((file) => file.includes(`/${contract.path}`));
+    const contractFile = contractFiles.find((file) => {
+      const normalizedFile = file.replace(/\\/g, "/");
+      return normalizedFile.includes(`/${contract.path}`);
+    });
 
     if (contractFile) {
       console.log(`Processing ${contract.name}...`);
