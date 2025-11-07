@@ -637,7 +637,7 @@ export const participateInStudy = async (req: Request, res: Response) => {
       eligibilityScore,
       matchedCriteria,
       blockchainTxHash,
-      dataCommitment: dataCommitment.substring(0, 20) + "...", // Truncate for privacy
+      dataCommitment: dataCommitment.substring(0, 20) + "...",
     });
 
     res.status(201).json({
