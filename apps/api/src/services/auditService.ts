@@ -710,11 +710,52 @@ class AuditService {
     return this.logAction({
       user: userAddress,
       userProfile: UserProfile.DATA_SELLER,
-      actionType: ActionType.CONSENT_REVOCATION,
+      actionType: ActionType.STUDY_CONSENT_REVOKED,
       resource: `study_${studyId}`,
       action: "revoke_consent",
       success,
       metadata,
+    });
+  }
+
+  async logConsentGranting(
+    userAddress: string,
+    studyId: string,
+    success: boolean,
+    metadata?: Record<string, any>
+  ) {
+    return this.logAction({
+      user: userAddress,
+      userProfile: UserProfile.DATA_SELLER,
+      actionType: ActionType.STUDY_CONSENT_GRANTED,
+      resource: `study_${studyId}`,
+      action: "grant_consent",
+      success,
+      metadata,
+    });
+  }
+
+  async logUsernameChange(
+    userAddress: string,
+    oldUsername: string,
+    newUsername: string,
+    success: boolean,
+    metadata?: Record<string, any>
+  ) {
+    const enrichedMetadata = {
+      oldUsername,
+      newUsername,
+      ...metadata,
+    };
+
+    return this.logAction({
+      user: userAddress,
+      userProfile: UserProfile.COMMON,
+      actionType: ActionType.USERNAME_CHANGE,
+      resource: "user_profile",
+      action: "change_username",
+      success,
+      metadata: enrichedMetadata,
     });
   }
 

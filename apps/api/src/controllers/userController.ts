@@ -10,6 +10,7 @@ import {
 } from "@/services/userService";
 import { UserProfile } from "@zk-medical/shared";
 import isValidEthereumAddress from "@/utils/address";
+import { auditService } from "@/services/auditService";
 
 function toUserDTO(user: { id: string; username: string | null; created_at: string }) {
   return {
@@ -46,6 +47,9 @@ export async function getUserById(req: Request, res: Response) {
 export async function updateUser(req: Request, res: Response) {
   const { walletAddress } = req.params;
   const updateData = req.body;
+  const startTime = Date.now();
+  const userAgent = req.get("User-Agent") || "";
+  const ipAddress = req.ip || req.socket?.remoteAddress || "";
 
   try {
     if (!walletAddress) {
@@ -65,6 +69,11 @@ export async function updateUser(req: Request, res: Response) {
       return res.status(404).json({ error: "User not found" });
     }
 
+    // Get current user data to capture old username
+    const currentUser = await getUserByWalletAddress(req.supabase, walletAddress);
+    const oldUsername = currentUser?.username || "";
+    const newUsername = updateData.username;
+
     // Update the user
     const updatedUser = await updateUserByWalletAddress(req.supabase, walletAddress, {
       username: updateData.username,
@@ -72,13 +81,56 @@ export async function updateUser(req: Request, res: Response) {
 
     if (!updatedUser) {
       logger?.error({ walletAddress }, "User update returned null");
+
+      // Log failed username change
+      if (newUsername) {
+        await auditService
+          .logUsernameChange(walletAddress, oldUsername, newUsername, false, {
+            reason: "update_returned_null",
+            userAgent,
+            ipAddress,
+            duration: Date.now() - startTime,
+          })
+          .catch((error) => {
+            logger.error({ error }, "Failed to log username change failure");
+          });
+      }
+
       return res.status(500).json({ error: "Failed to update user" });
+    }
+
+    // Log successful username change
+    if (newUsername && newUsername !== oldUsername) {
+      await auditService
+        .logUsernameChange(walletAddress, oldUsername, newUsername, true, {
+          userAgent,
+          ipAddress,
+          duration: Date.now() - startTime,
+        })
+        .catch((error) => {
+          logger.error({ error }, "Failed to log username change audit event");
+        });
     }
 
     logger?.info({ walletAddress }, "User updated successfully");
     return res.status(200).json(toUserDTO(updatedUser));
   } catch (err: any) {
     logger?.error({ err, walletAddress }, "Error in updateUser");
+
+    // Log failed username change
+    if (updateData?.username && typeof updateData.username === "string") {
+      const newUsername = updateData.username;
+      await auditService
+        .logUsernameChange(walletAddress!, "", newUsername, false, {
+          error: err.message || "Unknown error",
+          userAgent,
+          ipAddress,
+          duration: Date.now() - startTime,
+        })
+        .catch((auditError) => {
+          logger.error({ auditError }, "Failed to log username change failure");
+        });
+    }
 
     // Return validation errors directly to the user
     if (err.message && err.message.includes("Invalid username")) {

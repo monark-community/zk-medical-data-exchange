@@ -1218,10 +1218,9 @@ export const grantStudyConsent = async (req: Request, res: Response) => {
         .eq(TABLES.STUDIES!.columns.id!, id);
     }
 
-    // Log audit event (reusing consent revocation type, or create new CONSENT_GRANT type)
+    // Log audit event
     await auditService
-      .logConsentRevocation(participantWallet, String(id), true, {
-        action: "grant", // Add metadata to distinguish from revoke
+      .logConsentGranting(participantWallet, String(id), true, {
         blockchainTxHash,
         userAgent,
         ipAddress,
@@ -1255,8 +1254,7 @@ export const grantStudyConsent = async (req: Request, res: Response) => {
     const { participantWallet } = req.body;
     if (participantWallet) {
       await auditService
-        .logConsentRevocation(participantWallet, String(req.params.id), false, {
-          action: "grant",
+        .logConsentGranting(participantWallet, String(req.params.id), false, {
           error: error instanceof Error ? error.message : "Unknown error",
           userAgent,
           ipAddress,
