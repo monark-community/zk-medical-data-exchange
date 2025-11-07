@@ -53,7 +53,7 @@ export default function DataSellerStudiesSection() {
       );
 
       if (result.success) {
-        alert(`✅ ${result.message}`);
+        alert(`${result.message}`);
         refetch();
       } else {
         throw new Error(result.message);
@@ -63,7 +63,7 @@ export default function DataSellerStudiesSection() {
     }
     catch (error: any) {
       console.error("Error during study application:", error);
-      alert(`❌ Application failed: ${error.message || error}`);
+      alert(`Application failed: ${error.message || error}`);
     } finally {
       setApplyingStudyId(null);
     }
