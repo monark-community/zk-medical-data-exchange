@@ -5,6 +5,7 @@ export type AppEvents = {
   medicalDataDeleting: undefined;
   medicalDataDeleted: undefined;
   userUpdated: undefined;
+  proposalUpdated: undefined;
 };
 
 const emitter = mitt<AppEvents>();
