@@ -15,6 +15,212 @@ import { studyService } from "@/services/studyService";
 import { SEPOLIA_TESTNET_CHAIN_ID } from "@/constants/blockchain";
 
 /**
+ * Helper to extract audit metadata from request
+ */
+const getAuditMetadata = (req: Request) => ({
+  startTime: Date.now(),
+  userAgent: req.get("User-Agent") || "",
+  ipAddress: req.ip || req.socket?.remoteAddress || "",
+});
+
+/**
+ * Helper to calculate audit duration
+ */
+const getAuditDuration = (startTime: number) => Date.now() - startTime;
+
+/**
+ * Helper to update and sync participant count for a study
+ */
+const updateStudyParticipantCount = async (
+  supabase: any,
+  studyId: string | number,
+  study?: any
+) => {
+  const activeCount = await getActiveParticipantCount(supabase, studyId);
+
+  // Update if count is different from current value
+  if (!study || study.current_participants !== activeCount) {
+    await supabase
+      .from(TABLES.STUDIES!.name)
+      .update({ current_participants: activeCount })
+      .eq(TABLES.STUDIES!.columns.id!, studyId);
+  }
+
+  return activeCount;
+};
+
+/**
+ * Helper for consent operations (revoke/grant)
+ */
+const handleConsentOperation = async (
+  req: Request,
+  res: Response,
+  operation: "revoke" | "grant"
+) => {
+  const { startTime, userAgent, ipAddress } = getAuditMetadata(req);
+  const isRevoke = operation === "revoke";
+  const auditLogger = isRevoke
+    ? auditService.logConsentRevocation
+    : auditService.logConsentGranting;
+  const blockchainMethod = isRevoke
+    ? studyService.revokeStudyConsent
+    : studyService.grantStudyConsent;
+
+  try {
+    const { id } = req.params;
+    const { participantWallet } = req.body;
+
+    if (!participantWallet) {
+      return res.status(400).json({ error: "Participant wallet address is required" });
+    }
+
+    logger.info({ studyId: id, participantWallet }, `POST /api/studies/:id/consent/${operation}`);
+
+    // Check if participation exists
+    const { data: participation, error: participationError } = await req.supabase
+      .from(TABLES.STUDY_PARTICIPATIONS!.name)
+      .select("*, study:study_id(*)")
+      .eq(TABLES.STUDY_PARTICIPATIONS!.columns.studyId!, id)
+      .eq(TABLES.STUDY_PARTICIPATIONS!.columns.participantWallet!, participantWallet)
+      .single();
+
+    if (participationError || !participation) {
+      logger.warn(
+        { studyId: id, participantWallet, error: participationError },
+        "Participation not found"
+      );
+      return res.status(404).json({ error: "Participation not found in this study" });
+    }
+
+    // Check current consent status
+    const expectedConsentStatus = !isRevoke; // revoke expects true, grant expects false
+    if (participation.consents !== expectedConsentStatus) {
+      const message = isRevoke ? "Consent already revoked" : "Consent already active";
+      logger.warn({ studyId: id, participantWallet }, message);
+      return res.status(400).json({ error: message });
+    }
+
+    // Record consent operation on blockchain first (if study is deployed)
+    let blockchainTxHash = null;
+    const studyContractAddress = (participation.study as any)?.contract_address;
+
+    if (studyContractAddress) {
+      try {
+        const blockchainResult = await blockchainMethod(studyContractAddress, participantWallet);
+
+        if (blockchainResult.success) {
+          blockchainTxHash = blockchainResult.transactionHash;
+          logger.info(
+            { studyId: id, participantWallet, txHash: blockchainTxHash },
+            `Consent ${isRevoke ? "revoked" : "granted"} on blockchain`
+          );
+        } else {
+          logger.error(
+            { error: blockchainResult.error, studyId: id, participantWallet },
+            `Failed to ${operation} consent on blockchain - aborting database update`
+          );
+          return res.status(500).json({
+            error: `Failed to ${operation} consent on blockchain`,
+            details: blockchainResult.error,
+          });
+        }
+      } catch (blockchainError) {
+        logger.error(
+          { error: blockchainError, studyId: id, participantWallet },
+          `Error during blockchain consent ${operation}`
+        );
+        return res.status(500).json({
+          error: `Error during blockchain consent ${operation}`,
+          details: blockchainError instanceof Error ? blockchainError.message : "Unknown error",
+        });
+      }
+    } else {
+      logger.info(
+        { studyId: id },
+        `Study not deployed to blockchain - skipping blockchain ${operation}`
+      );
+    }
+
+    // Only update database if blockchain operation succeeded (or study not deployed)
+    const newConsentStatus = !isRevoke; // revoke sets false, grant sets true
+    const { error: updateError } = await req.supabase
+      .from(TABLES.STUDY_PARTICIPATIONS!.name)
+      .update({ consents: newConsentStatus })
+      .eq(TABLES.STUDY_PARTICIPATIONS!.columns.studyId!, id)
+      .eq(TABLES.STUDY_PARTICIPATIONS!.columns.participantWallet!, participantWallet);
+
+    if (updateError) {
+      logger.error(
+        { error: updateError, studyId: id, participantWallet },
+        "Failed to update consent status in database"
+      );
+      return res.status(500).json({ error: `Failed to ${operation} consent in database` });
+    }
+
+    logger.info(
+      { studyId: id, participantWallet },
+      `Consent ${isRevoke ? "revoked" : "granted"} in database`
+    );
+
+    // Update study participant count
+    const studyRecord = participation.study as any;
+    if (studyRecord) {
+      const delta = isRevoke ? -1 : 1;
+      const newCount = Math.max(0, studyRecord.current_participants + delta);
+      await req.supabase
+        .from(TABLES.STUDIES!.name)
+        .update({ current_participants: newCount })
+        .eq(TABLES.STUDIES!.columns.id!, id);
+    }
+
+    // Log audit event
+    await auditLogger(participantWallet, String(id), true, {
+      blockchainTxHash,
+      userAgent,
+      ipAddress,
+      duration: getAuditDuration(startTime),
+    }).catch((error) => {
+      logger.error({ error }, `Failed to log consent ${operation} audit event`);
+    });
+
+    res.status(200).json({
+      success: true,
+      message: `Consent ${isRevoke ? "revoked" : "granted"} successfully`,
+      blockchainTxHash,
+    });
+  } catch (error) {
+    logger.error(
+      {
+        error:
+          error instanceof Error
+            ? {
+                message: error.message,
+                stack: error.stack,
+                name: error.name,
+              }
+            : error,
+        studyId: req.params.id,
+      },
+      `${operation.charAt(0).toUpperCase() + operation.slice(1)} consent error`
+    );
+
+    const { participantWallet } = req.body;
+    if (participantWallet) {
+      await auditLogger(participantWallet, String(req.params.id), false, {
+        error: error instanceof Error ? error.message : "Unknown error",
+        userAgent,
+        ipAddress,
+        duration: getAuditDuration(startTime),
+      }).catch((auditError) => {
+        logger.error({ auditError }, `Failed to log consent ${operation} failure`);
+      });
+    }
+
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+/**
  * Helper function to get the count of active participants (with consent) for a study
  */
 const getActiveParticipantCount = async (supabase: any, studyId: string | number) => {
@@ -99,9 +305,7 @@ const transformStudyForResponse = (study: any, isEnrolled?: boolean, hasConsente
  * POST /studies
  */
 export const createStudy = async (req: Request, res: Response) => {
-  const startTime = Date.now();
-  const userAgent = req.get("User-Agent") || "";
-  const ipAddress = req.ip || req.socket?.remoteAddress || "";
+  const { startTime, userAgent, ipAddress } = getAuditMetadata(req);
   let creatorAddress = "";
 
   try {
@@ -124,7 +328,7 @@ export const createStudy = async (req: Request, res: Response) => {
           reason: "missing_title",
           userAgent,
           ipAddress,
-          duration: Date.now() - startTime,
+          duration: getAuditDuration(startTime),
         })
         .catch((error) => {
           logger.error({ error }, "Failed to log study creation audit event");
@@ -155,7 +359,7 @@ export const createStudy = async (req: Request, res: Response) => {
           errors: validation.errors,
           userAgent,
           ipAddress,
-          duration: Date.now() - startTime,
+          duration: getAuditDuration(startTime),
         })
         .catch((error) => {
           logger.error({ error }, "Failed to log study creation audit event");
@@ -214,7 +418,7 @@ export const createStudy = async (req: Request, res: Response) => {
           error: insertError.message,
           userAgent,
           ipAddress,
-          duration: Date.now() - startTime,
+          duration: getAuditDuration(startTime),
         })
         .catch((error) => {
           logger.error({ error }, "Failed to log study creation audit event");
@@ -234,7 +438,7 @@ export const createStudy = async (req: Request, res: Response) => {
         complexityScore: enabledCount,
         userAgent,
         ipAddress,
-        duration: Date.now() - startTime,
+        duration: getAuditDuration(startTime),
       })
       .catch((error) => {
         logger.error({ error }, "Failed to log successful study creation audit event");
@@ -268,7 +472,7 @@ export const createStudy = async (req: Request, res: Response) => {
         error: error instanceof Error ? error.message : "unknown_error",
         userAgent,
         ipAddress,
-        duration: Date.now() - startTime,
+        duration: getAuditDuration(startTime),
       })
       .catch((auditError) => {
         logger.error({ auditError }, "Failed to log study creation audit event");
@@ -457,18 +661,11 @@ export const getStudies = async (req: Request, res: Response) => {
     // Update current_participants to reflect active consented participants
     const transformedStudies = await Promise.all(
       (studies || []).map(async (study) => {
-        const activeCount = await getActiveParticipantCount(req.supabase, study.id);
-
-        // Update the study if the count is different
-        if (study.current_participants !== activeCount) {
-          await req.supabase
-            .from(TABLES.STUDIES!.name)
-            .update({ current_participants: activeCount })
-            .eq(TABLES.STUDIES!.columns.id!, study.id);
-
-          study.current_participants = activeCount;
-        }
-
+        study.current_participants = await updateStudyParticipantCount(
+          req.supabase,
+          study.id,
+          study
+        );
         return transformStudyForResponse(study);
       })
     );
@@ -511,17 +708,8 @@ export const getStudyById = async (req: Request, res: Response) => {
     }
 
     // Get accurate active participant count
-    const activeCount = await getActiveParticipantCount(req.supabase, study.id);
-
-    // Update the study if the count is different
-    if (study.current_participants !== activeCount) {
-      await req.supabase
-        .from(TABLES.STUDIES!.name)
-        .update({ current_participants: activeCount })
-        .eq(TABLES.STUDIES!.columns.id!, id);
-
-      study.current_participants = activeCount;
-    }
+    const activeCount = await updateStudyParticipantCount(req.supabase, study.id, study);
+    study.current_participants = activeCount;
 
     res.json({
       study: {
@@ -955,160 +1143,7 @@ export const getEnrolledStudies = async (req: Request, res: Response) => {
  * POST /api/studies/:id/consent/revoke
  */
 export const revokeStudyConsent = async (req: Request, res: Response) => {
-  const startTime = Date.now();
-  const userAgent = req.get("User-Agent") || "";
-  const ipAddress = req.ip || req.socket?.remoteAddress || "";
-
-  try {
-    const { id } = req.params;
-    const { participantWallet } = req.body;
-
-    if (!participantWallet) {
-      return res.status(400).json({ error: "Participant wallet address is required" });
-    }
-
-    logger.info({ studyId: id, participantWallet }, "POST /api/studies/:id/consent/revoke");
-
-    // Check if participation exists
-    const { data: participation, error: participationError } = await req.supabase
-      .from(TABLES.STUDY_PARTICIPATIONS!.name)
-      .select("*, study:study_id(*)")
-      .eq(TABLES.STUDY_PARTICIPATIONS!.columns.studyId!, id)
-      .eq(TABLES.STUDY_PARTICIPATIONS!.columns.participantWallet!, participantWallet)
-      .single();
-
-    if (participationError || !participation) {
-      logger.warn(
-        { studyId: id, participantWallet, error: participationError },
-        "Participation not found"
-      );
-      return res.status(404).json({ error: "Participation not found in this study" });
-    }
-
-    if (!participation.consents) {
-      logger.warn({ studyId: id, participantWallet }, "Consent already revoked");
-      return res.status(400).json({ error: "Consent already revoked" });
-    }
-
-    // Record consent revocation on blockchain first (if study is deployed)
-    let blockchainTxHash = null;
-    const studyContractAddress = (participation.study as any)?.contract_address;
-
-    if (studyContractAddress) {
-      try {
-        const blockchainResult = await studyService.revokeStudyConsent(
-          studyContractAddress,
-          participantWallet
-        );
-
-        if (blockchainResult.success) {
-          blockchainTxHash = blockchainResult.transactionHash;
-          logger.info(
-            { studyId: id, participantWallet, txHash: blockchainTxHash },
-            "Consent revoked on blockchain"
-          );
-        } else {
-          logger.error(
-            { error: blockchainResult.error, studyId: id, participantWallet },
-            "Failed to revoke consent on blockchain - aborting database update"
-          );
-          return res.status(500).json({
-            error: "Failed to revoke consent on blockchain",
-            details: blockchainResult.error,
-          });
-        }
-      } catch (blockchainError) {
-        logger.error(
-          { error: blockchainError, studyId: id, participantWallet },
-          "Error during blockchain consent revocation"
-        );
-        return res.status(500).json({
-          error: "Error during blockchain consent revocation",
-          details: blockchainError instanceof Error ? blockchainError.message : "Unknown error",
-        });
-      }
-    } else {
-      logger.info(
-        { studyId: id },
-        "Study not deployed to blockchain - skipping blockchain revocation"
-      );
-    }
-
-    // Only update database if blockchain operation succeeded (or study not deployed)
-    const { error: updateError } = await req.supabase
-      .from(TABLES.STUDY_PARTICIPATIONS!.name)
-      .update({ consents: false })
-      .eq(TABLES.STUDY_PARTICIPATIONS!.columns.studyId!, id)
-      .eq(TABLES.STUDY_PARTICIPATIONS!.columns.participantWallet!, participantWallet);
-
-    if (updateError) {
-      logger.error(
-        { error: updateError, studyId: id, participantWallet },
-        "Failed to update consent status in database"
-      );
-      return res.status(500).json({ error: "Failed to revoke consent in database" });
-    }
-
-    logger.info({ studyId: id, participantWallet }, "Consent revoked in database");
-
-    // Update study participant count (decrement by 1)
-    const studyRecord = participation.study as any;
-    if (studyRecord && studyRecord.current_participants > 0) {
-      await req.supabase
-        .from(TABLES.STUDIES!.name)
-        .update({ current_participants: studyRecord.current_participants - 1 })
-        .eq(TABLES.STUDIES!.columns.id!, id);
-    }
-
-    // Log audit event
-    await auditService
-      .logConsentRevocation(participantWallet, String(id), true, {
-        blockchainTxHash,
-        userAgent,
-        ipAddress,
-        duration: Date.now() - startTime,
-      })
-      .catch((error) => {
-        logger.error({ error }, "Failed to log consent revocation audit event");
-      });
-
-    res.status(200).json({
-      success: true,
-      message: "Consent revoked successfully",
-      blockchainTxHash,
-    });
-  } catch (error) {
-    logger.error(
-      {
-        error:
-          error instanceof Error
-            ? {
-                message: error.message,
-                stack: error.stack,
-                name: error.name,
-              }
-            : error,
-        studyId: req.params.id,
-      },
-      "Revoke consent error"
-    );
-
-    const { participantWallet } = req.body;
-    if (participantWallet) {
-      await auditService
-        .logConsentRevocation(participantWallet, String(req.params.id), false, {
-          error: error instanceof Error ? error.message : "Unknown error",
-          userAgent,
-          ipAddress,
-          duration: Date.now() - startTime,
-        })
-        .catch((auditError) => {
-          logger.error({ auditError }, "Failed to log consent revocation failure");
-        });
-    }
-
-    res.status(500).json({ error: "Internal server error" });
-  }
+  return handleConsentOperation(req, res, "revoke");
 };
 
 /**
@@ -1116,155 +1151,5 @@ export const revokeStudyConsent = async (req: Request, res: Response) => {
  * POST /api/studies/:id/consent/grant
  */
 export const grantStudyConsent = async (req: Request, res: Response) => {
-  const startTime = Date.now();
-  const userAgent = req.get("User-Agent") || "";
-  const ipAddress = req.ip || req.socket?.remoteAddress || "";
-
-  try {
-    const { id } = req.params;
-    const { participantWallet } = req.body;
-
-    if (!participantWallet) {
-      return res.status(400).json({ error: "Participant wallet address is required" });
-    }
-
-    logger.info({ studyId: id, participantWallet }, "POST /api/studies/:id/consent/grant");
-
-    // Check if participation exists
-    const { data: participation, error: participationError } = await req.supabase
-      .from(TABLES.STUDY_PARTICIPATIONS!.name)
-      .select("*, study:study_id(*)")
-      .eq(TABLES.STUDY_PARTICIPATIONS!.columns.studyId!, id)
-      .eq(TABLES.STUDY_PARTICIPATIONS!.columns.participantWallet!, participantWallet)
-      .single();
-
-    if (participationError || !participation) {
-      logger.warn(
-        { studyId: id, participantWallet, error: participationError },
-        "Participation not found"
-      );
-      return res.status(404).json({ error: "Participation not found in this study" });
-    }
-
-    if (participation.consents) {
-      logger.warn({ studyId: id, participantWallet }, "Consent already active");
-      return res.status(400).json({ error: "Consent already active" });
-    }
-
-    // Record consent grant on blockchain first (if study is deployed)
-    let blockchainTxHash = null;
-    const studyContractAddress = (participation.study as any)?.contract_address;
-
-    if (studyContractAddress) {
-      try {
-        const blockchainResult = await studyService.grantStudyConsent(
-          studyContractAddress,
-          participantWallet
-        );
-
-        if (blockchainResult.success) {
-          blockchainTxHash = blockchainResult.transactionHash;
-          logger.info(
-            { studyId: id, participantWallet, txHash: blockchainTxHash },
-            "Consent granted on blockchain"
-          );
-        } else {
-          logger.error(
-            { error: blockchainResult.error, studyId: id, participantWallet },
-            "Failed to grant consent on blockchain - aborting database update"
-          );
-          return res.status(500).json({
-            error: "Failed to grant consent on blockchain",
-            details: blockchainResult.error,
-          });
-        }
-      } catch (blockchainError) {
-        logger.error(
-          { error: blockchainError, studyId: id, participantWallet },
-          "Error during blockchain consent grant"
-        );
-        return res.status(500).json({
-          error: "Error during blockchain consent grant",
-          details: blockchainError instanceof Error ? blockchainError.message : "Unknown error",
-        });
-      }
-    } else {
-      logger.info({ studyId: id }, "Study not deployed to blockchain - skipping blockchain grant");
-    }
-
-    // Only update database if blockchain operation succeeded (or study not deployed)
-    const { error: updateError } = await req.supabase
-      .from(TABLES.STUDY_PARTICIPATIONS!.name)
-      .update({ consents: true })
-      .eq(TABLES.STUDY_PARTICIPATIONS!.columns.studyId!, id)
-      .eq(TABLES.STUDY_PARTICIPATIONS!.columns.participantWallet!, participantWallet);
-
-    if (updateError) {
-      logger.error(
-        { error: updateError, studyId: id, participantWallet },
-        "Failed to update consent status in database"
-      );
-      return res.status(500).json({ error: "Failed to grant consent in database" });
-    }
-
-    logger.info({ studyId: id, participantWallet }, "Consent granted in database");
-
-    // Update study participant count (increment by 1)
-    const studyRecord = participation.study as any;
-    if (studyRecord) {
-      await req.supabase
-        .from(TABLES.STUDIES!.name)
-        .update({ current_participants: studyRecord.current_participants + 1 })
-        .eq(TABLES.STUDIES!.columns.id!, id);
-    }
-
-    // Log audit event
-    await auditService
-      .logConsentGranting(participantWallet, String(id), true, {
-        blockchainTxHash,
-        userAgent,
-        ipAddress,
-        duration: Date.now() - startTime,
-      })
-      .catch((error) => {
-        logger.error({ error }, "Failed to log consent grant audit event");
-      });
-
-    res.status(200).json({
-      success: true,
-      message: "Consent granted successfully",
-      blockchainTxHash,
-    });
-  } catch (error) {
-    logger.error(
-      {
-        error:
-          error instanceof Error
-            ? {
-                message: error.message,
-                stack: error.stack,
-                name: error.name,
-              }
-            : error,
-        studyId: req.params.id,
-      },
-      "Grant consent error"
-    );
-
-    const { participantWallet } = req.body;
-    if (participantWallet) {
-      await auditService
-        .logConsentGranting(participantWallet, String(req.params.id), false, {
-          error: error instanceof Error ? error.message : "Unknown error",
-          userAgent,
-          ipAddress,
-          duration: Date.now() - startTime,
-        })
-        .catch((auditError) => {
-          logger.error({ auditError }, "Failed to log consent grant failure");
-        });
-    }
-
-    res.status(500).json({ error: "Internal server error" });
-  }
+  return handleConsentOperation(req, res, "grant");
 };

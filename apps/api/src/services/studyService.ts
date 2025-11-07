@@ -77,6 +77,71 @@ class StudyService {
   }
 
   /**
+   * Execute a contract transaction with simulation, execution, and receipt handling
+   * @private
+   */
+  private async executeContractTransaction(
+    address: string,
+    functionName: string,
+    args: any[],
+    context: string
+  ): Promise<{ success: boolean; transactionHash?: string; receipt?: any; error?: string }> {
+    try {
+      // Simulate the transaction first
+      const simulationResult = await this.publicClient.simulateContract({
+        account: this.account,
+        address: address as `0x${string}`,
+        abi: STUDY_ABI,
+        functionName,
+        args,
+      });
+
+      logger.info(
+        {
+          gasEstimate: simulationResult.request.gas?.toString(),
+        },
+        `${context} simulation successful`
+      );
+
+      // Execute the transaction
+      const transactionHash = await this.walletClient.writeContract(simulationResult.request);
+
+      logger.info({ transactionHash }, `${context} transaction submitted`);
+
+      // Wait for transaction receipt
+      const receipt = await this.publicClient.waitForTransactionReceipt({
+        hash: transactionHash,
+      });
+
+      if (receipt.status === "reverted") {
+        logger.error({ transactionHash }, `${context} transaction reverted`);
+        throw new Error(`Transaction reverted - ${context.toLowerCase()} failed`);
+      }
+
+      logger.info(
+        {
+          transactionHash,
+          gasUsed: receipt.gasUsed.toString(),
+        },
+        `${context} completed successfully`
+      );
+
+      return {
+        success: true,
+        transactionHash,
+        receipt,
+      };
+    } catch (error) {
+      logger.error({ error }, `Failed to execute ${context.toLowerCase()}`);
+      return {
+        success: false,
+        error:
+          error instanceof Error ? error.message : `Unknown error during ${context.toLowerCase()}`,
+      };
+    }
+  }
+
+  /**
    * Convert StudyCriteria to contract format
    * Returns object that matches the struct format for viem
    * Uses safe default values for disabled criteria to avoid validation errors
@@ -566,101 +631,76 @@ class StudyService {
     proof: { a: [string, string]; b: [[string, string], [string, string]]; c: [string, string] },
     dataCommitment: string
   ): Promise<{ success: boolean; transactionHash?: string; error?: string }> {
+    logger.info(
+      {
+        studyAddress,
+        participantWallet,
+        dataCommitment,
+        proof,
+      },
+      "Recording study participation on blockchain"
+    );
+
+    // Convert proof to BigInt format
+    let pA: [bigint, bigint];
+    let pB: [[bigint, bigint], [bigint, bigint]];
+    let pC: [bigint, bigint];
+    let commitment: bigint;
+
     try {
-      logger.info(
+      pA = [BigInt(proof.a[0]), BigInt(proof.a[1])];
+      pB = [
+        [BigInt(proof.b[0][0]), BigInt(proof.b[0][1])],
+        [BigInt(proof.b[1][0]), BigInt(proof.b[1][1])],
+      ];
+      pC = [BigInt(proof.c[0]), BigInt(proof.c[1])];
+      commitment = BigInt(dataCommitment);
+
+      logger.info({ pA, pB, pC, commitment }, "Proof converted to BigInt format");
+    } catch (conversionError) {
+      logger.error(
         {
-          studyAddress,
-          participantWallet,
-          dataCommitment,
+          error: conversionError,
           proof,
+          dataCommitment,
         },
-        "Recording study participation on blockchain"
+        "Failed to convert proof to BigInt"
       );
+      return {
+        success: false,
+        error: `Invalid proof format: ${
+          conversionError instanceof Error ? conversionError.message : "Unknown error"
+        }`,
+      };
+    }
 
-      let pA: [bigint, bigint];
-      let pB: [[bigint, bigint], [bigint, bigint]];
-      let pC: [bigint, bigint];
-      let commitment: bigint;
+    const result = await this.executeContractTransaction(
+      studyAddress,
+      "joinStudy",
+      [pA, pB, pC, commitment],
+      "Participation recording"
+    );
 
-      try {
-        pA = [BigInt(proof.a[0]), BigInt(proof.a[1])];
-        pB = [
-          [BigInt(proof.b[0][0]), BigInt(proof.b[0][1])],
-          [BigInt(proof.b[1][0]), BigInt(proof.b[1][1])],
-        ];
-        pC = [BigInt(proof.c[0]), BigInt(proof.c[1])];
-        commitment = BigInt(dataCommitment);
-
-        logger.info({ pA, pB, pC, commitment }, "Proof converted to BigInt format");
-      } catch (conversionError) {
-        logger.error(
-          {
-            error: conversionError,
-            proof,
-            dataCommitment,
-          },
-          "Failed to convert proof to BigInt"
-        );
-        throw new Error(
-          `Invalid proof format: ${
-            conversionError instanceof Error ? conversionError.message : "Unknown error"
-          }`
-        );
-      }
-
-      const simulationResult = await this.publicClient.simulateContract({
-        account: this.account,
-        address: studyAddress as `0x${string}`,
-        abi: STUDY_ABI,
-        functionName: "joinStudy",
-        args: [pA, pB, pC, commitment],
-      });
-
+    if (result.success) {
       logger.info(
         {
-          gasEstimate: simulationResult.request.gas?.toString(),
-        },
-        "Simulation successful"
-      );
-
-      const transactionHash = await this.walletClient.writeContract(simulationResult.request);
-
-      logger.info({ transactionHash }, "Participation transaction submitted");
-
-      const receipt = await this.publicClient.waitForTransactionReceipt({
-        hash: transactionHash,
-      });
-
-      if (receipt.status === "reverted") {
-        logger.error({ transactionHash }, "Participation transaction reverted");
-        throw new Error(
-          "Transaction reverted - participant may already be enrolled or proof invalid"
-        );
-      }
-
-      logger.info(
-        {
-          transactionHash,
-          gasUsed: receipt.gasUsed.toString(),
+          transactionHash: result.transactionHash,
           participantWallet,
         },
         "Participation recorded on blockchain successfully"
       );
-
-      return {
-        success: true,
-        transactionHash,
-      };
-    } catch (error) {
+    } else {
       logger.error(
-        { error, studyAddress, participantWallet },
+        { error: result.error, studyAddress, participantWallet },
         "Failed to record participation on blockchain"
       );
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : "Unknown error recording participation",
-      };
     }
+
+    return {
+      success: result.success,
+      transactionHash: result.transactionHash,
+      error: result.error,
+    };
   }
 
   /**
@@ -672,71 +712,41 @@ class StudyService {
     studyAddress: string,
     participantWallet: string
   ): Promise<{ success: boolean; transactionHash?: string; error?: string }> {
-    try {
+    logger.info(
+      {
+        studyAddress,
+        participantWallet,
+      },
+      "Revoking study consent on blockchain"
+    );
+
+    const result = await this.executeContractTransaction(
+      studyAddress,
+      "revokeConsent",
+      [],
+      "Consent revocation"
+    );
+
+    if (result.success) {
       logger.info(
         {
-          studyAddress,
-          participantWallet,
-        },
-        "Revoking study consent on blockchain"
-      );
-
-      // Simulate the transaction first
-      const simulationResult = await this.publicClient.simulateContract({
-        account: this.account,
-        address: studyAddress as `0x${string}`,
-        abi: STUDY_ABI,
-        functionName: "revokeConsent",
-        args: [],
-      });
-
-      logger.info(
-        {
-          gasEstimate: simulationResult.request.gas?.toString(),
-        },
-        "Consent revocation simulation successful"
-      );
-
-      // Execute the transaction
-      const transactionHash = await this.walletClient.writeContract(simulationResult.request);
-
-      logger.info({ transactionHash }, "Consent revocation transaction submitted");
-
-      // Wait for transaction receipt
-      const receipt = await this.publicClient.waitForTransactionReceipt({
-        hash: transactionHash,
-      });
-
-      if (receipt.status === "reverted") {
-        logger.error({ transactionHash }, "Consent revocation transaction reverted");
-        throw new Error(
-          "Transaction reverted - participant may not be enrolled or consent already revoked"
-        );
-      }
-
-      logger.info(
-        {
-          transactionHash,
-          gasUsed: receipt.gasUsed.toString(),
+          transactionHash: result.transactionHash,
           participantWallet,
         },
         "Consent revoked on blockchain successfully"
       );
-
-      return {
-        success: true,
-        transactionHash,
-      };
-    } catch (error) {
+    } else {
       logger.error(
-        { error, studyAddress, participantWallet },
+        { error: result.error, studyAddress, participantWallet },
         "Failed to revoke consent on blockchain"
       );
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : "Unknown error revoking consent",
-      };
     }
+
+    return {
+      success: result.success,
+      transactionHash: result.transactionHash,
+      error: result.error,
+    };
   }
 
   /**
@@ -748,71 +758,41 @@ class StudyService {
     studyAddress: string,
     participantWallet: string
   ): Promise<{ success: boolean; transactionHash?: string; error?: string }> {
-    try {
+    logger.info(
+      {
+        studyAddress,
+        participantWallet,
+      },
+      "Granting study consent on blockchain"
+    );
+
+    const result = await this.executeContractTransaction(
+      studyAddress,
+      "grantConsent",
+      [],
+      "Consent grant"
+    );
+
+    if (result.success) {
       logger.info(
         {
-          studyAddress,
-          participantWallet,
-        },
-        "Granting study consent on blockchain"
-      );
-
-      // Simulate the transaction first
-      const simulationResult = await this.publicClient.simulateContract({
-        account: this.account,
-        address: studyAddress as `0x${string}`,
-        abi: STUDY_ABI,
-        functionName: "grantConsent",
-        args: [],
-      });
-
-      logger.info(
-        {
-          gasEstimate: simulationResult.request.gas?.toString(),
-        },
-        "Consent grant simulation successful"
-      );
-
-      // Execute the transaction
-      const transactionHash = await this.walletClient.writeContract(simulationResult.request);
-
-      logger.info({ transactionHash }, "Consent grant transaction submitted");
-
-      // Wait for transaction receipt
-      const receipt = await this.publicClient.waitForTransactionReceipt({
-        hash: transactionHash,
-      });
-
-      if (receipt.status === "reverted") {
-        logger.error({ transactionHash }, "Consent grant transaction reverted");
-        throw new Error(
-          "Transaction reverted - participant may not be enrolled or consent already granted"
-        );
-      }
-
-      logger.info(
-        {
-          transactionHash,
-          gasUsed: receipt.gasUsed.toString(),
+          transactionHash: result.transactionHash,
           participantWallet,
         },
         "Consent granted on blockchain successfully"
       );
-
-      return {
-        success: true,
-        transactionHash,
-      };
-    } catch (error) {
+    } else {
       logger.error(
-        { error, studyAddress, participantWallet },
+        { error: result.error, studyAddress, participantWallet },
         "Failed to grant consent on blockchain"
       );
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : "Unknown error granting consent",
-      };
     }
+
+    return {
+      success: result.success,
+      transactionHash: result.transactionHash,
+      error: result.error,
+    };
   }
 
   /**
