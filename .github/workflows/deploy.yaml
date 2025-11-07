@@ -44,7 +44,7 @@ jobs:
             NEXT_PUBLIC_APP_API_URL=${{ secrets.NEXT_PUBLIC_APP_API_URL }}
             NEXT_PUBLIC_PINATA_JWT_TOKEN=${{ secrets.NEXT_PUBLIC_PINATA_JWT_TOKEN }}
             NEXT_PUBLIC_WEB3AUTH_CLIENT_ID=${{ secrets.NEXT_PUBLIC_WEB3AUTH_CLIENT_ID }}
-
+            NEXT_PUBLIC_PINATA_GATEWAY=${{ secrets.NEXT_PUBLIC_PINATA_GATEWAY }}
   trigger-render-redeploys:
     needs: build-and-push-images
     runs-on: ubuntu-latest
