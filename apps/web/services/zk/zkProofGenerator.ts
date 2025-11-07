@@ -253,6 +253,9 @@ export function checkEligibility(
   medicalData: ExtractedMedicalData,
   studyCriteria: StudyCriteria
 ): boolean {
+  const scaledHbA1c = medicalData.hba1c !== undefined ? Math.round(medicalData.hba1c * 10) : undefined;
+  const scaledBMI = medicalData.bmi !== undefined ? Math.round(medicalData.bmi * 10) : undefined;
+
   if (studyCriteria.enableAge) {
     if (medicalData.age === undefined) {
       console.log("Age data missing but required by study");
@@ -302,11 +305,11 @@ export function checkEligibility(
   }
   
   if (studyCriteria.enableBMI) {
-    if (medicalData.bmi === undefined) {
+    if (scaledBMI === undefined) {
       console.log("BMI data missing but required by study");
       return false;
     }
-    if (medicalData.bmi < studyCriteria.minBMI || medicalData.bmi > studyCriteria.maxBMI) {
+    if (scaledBMI < studyCriteria.minBMI || scaledBMI > studyCriteria.maxBMI) {
       console.log("BMI check failed");
       return false;
     }
@@ -338,12 +341,12 @@ export function checkEligibility(
   }
   
   if (studyCriteria.enableHbA1c) {
-    if (medicalData.hba1c === undefined) {
+    if (scaledHbA1c === undefined) {
       console.log("HbA1c data missing but required by study");
       return false;
     }
-    if (medicalData.hba1c < studyCriteria.minHbA1c ||
-        medicalData.hba1c > studyCriteria.maxHbA1c) {
+    if (scaledHbA1c < studyCriteria.minHbA1c ||
+        scaledHbA1c > studyCriteria.maxHbA1c) {
       console.log("HbA1c check failed");
       return false;
     }
