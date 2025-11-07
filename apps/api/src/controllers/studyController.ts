@@ -633,6 +633,13 @@ export const participateInStudy = async (req: Request, res: Response) => {
       .update({ blockchain_tx_hash: blockchainTxHash })
       .eq(TABLES.STUDY_PARTICIPATIONS!.columns.id!, participation.id);
 
+    await auditService.logStudyParticipation(participantWallet, String(id), true, {
+      eligibilityScore,
+      matchedCriteria,
+      blockchainTxHash,
+      dataCommitment: dataCommitment.substring(0, 20) + "...", // Truncate for privacy
+    });
+
     res.status(201).json({
       success: true,
       participantId: participation.id,
@@ -648,6 +655,19 @@ export const participateInStudy = async (req: Request, res: Response) => {
     });
   } catch (error) {
     logger.error({ error }, "Participation error");
+
+    const { id } = req.params;
+    const { participantWallet } = req.body;
+    if (participantWallet && id) {
+      await auditService
+        .logStudyParticipation(participantWallet, String(id), false, {
+          error: error instanceof Error ? error.message : "Unknown error",
+        })
+        .catch((auditError) => {
+          logger.error({ auditError }, "Failed to log failed participation attempt");
+        });
+    }
+
     res.status(500).json({ error: "Internal server error" });
   }
 };
