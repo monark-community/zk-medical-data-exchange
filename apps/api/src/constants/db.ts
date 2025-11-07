@@ -121,7 +121,6 @@ export const TABLES: Record<string, TableDefinition> = {
       votesFor: "votes_for",
       votesAgainst: "votes_against",
       totalVoters: "total_voters",
-      executed: "executed",
       state: "state",
       deploymentTxHash: "deployment_tx_hash",
       chainId: "chain_id",
