@@ -243,6 +243,123 @@ function prepareCircuitInput(
 }
 
 /**
+ * Validation result with detailed failure information
+ */
+interface ValidationResult {
+  isValid: boolean;
+  fieldName?: string;
+  reason?: string;
+}
+
+/**
+ * Check if a required field has a value
+ */
+function validateRequiredField<T>(
+  value: T | undefined,
+  fieldName: string
+): ValidationResult {
+  if (value === undefined) {
+    return {
+      isValid: false,
+      fieldName,
+      reason: `${fieldName} data missing but required by study`
+    };
+  }
+  return { isValid: true };
+}
+
+/**
+ * Check if a numeric value is within a range
+ */
+function validateNumericRange(
+  value: number | undefined,
+  min: number,
+  max: number,
+  fieldName: string
+): ValidationResult {
+  const requiredCheck = validateRequiredField(value, fieldName);
+  if (!requiredCheck.isValid) return requiredCheck;
+  
+  if (value! < min || value! > max) {
+    return {
+      isValid: false,
+      fieldName,
+      reason: `${fieldName} ${value} not in range ${min}-${max}`
+    };
+  }
+  return { isValid: true };
+}
+
+/**
+ * Check if a value matches the expected value
+ */
+function validateExactMatch<T>(
+  value: T | undefined,
+  expected: T,
+  fieldName: string
+): ValidationResult {
+  const requiredCheck = validateRequiredField(value, fieldName);
+  if (!requiredCheck.isValid) return requiredCheck;
+  
+  if (value !== expected) {
+    return {
+      isValid: false,
+      fieldName,
+      reason: `${fieldName} does not match required value`
+    };
+  }
+  return { isValid: true };
+}
+
+/**
+ * Check if a value is in an allowed list
+ */
+function validateInList<T>(
+  value: T | undefined,
+  allowedValues: readonly T[],
+  fieldName: string
+): ValidationResult {
+  const requiredCheck = validateRequiredField(value, fieldName);
+  if (!requiredCheck.isValid) return requiredCheck;
+  
+  if (!allowedValues.includes(value!)) {
+    return {
+      isValid: false,
+      fieldName,
+      reason: `${fieldName} not in allowed values`
+    };
+  }
+  return { isValid: true };
+}
+
+/**
+ * Check if arrays have overlapping elements
+ */
+function validateArrayOverlap<T>(
+  values: readonly T[] | undefined,
+  allowedValues: readonly T[],
+  fieldName: string
+): ValidationResult {
+  if (!values || values.length === 0) {
+    return {
+      isValid: false,
+      fieldName,
+      reason: `${fieldName} data missing but required by study`
+    };
+  }
+  
+  const hasMatch = values.some(value => allowedValues.includes(value));
+  if (!hasMatch) {
+    return {
+      isValid: false,
+      fieldName,
+      reason: `${fieldName} does not match any allowed values`
+    };
+  }
+  return { isValid: true };
+}
+
+/**
  * Check eligibility locally before generating expensive proof
  * 
  * @param medicalData - Patient's medical data
@@ -256,144 +373,97 @@ export function checkEligibility(
   const scaledHbA1c = medicalData.hba1c !== undefined ? Math.round(medicalData.hba1c * 10) : undefined;
   const scaledBMI = medicalData.bmi !== undefined ? Math.round(medicalData.bmi * 10) : undefined;
 
-  if (studyCriteria.enableAge) {
-    if (medicalData.age === undefined) {
-      console.log("Age data missing but required by study");
-      return false;
+  // Define all validation checks
+  const validations: Array<{ enabled: boolean; check: () => ValidationResult }> = [
+    {
+      enabled: Boolean(studyCriteria.enableAge),
+      check: () => validateNumericRange(medicalData.age, studyCriteria.minAge, studyCriteria.maxAge, 'Age')
+    },
+    {
+      enabled: Boolean(studyCriteria.enableGender),
+      check: () => validateExactMatch(medicalData.gender, studyCriteria.allowedGender, 'Gender')
+    },
+    {
+      enabled: Boolean(studyCriteria.enableLocation),
+      check: () => validateArrayOverlap(medicalData.regions, studyCriteria.allowedRegions, 'Location')
+    },
+    {
+      enabled: Boolean(studyCriteria.enableCholesterol),
+      check: () => validateNumericRange(
+        medicalData.cholesterol,
+        studyCriteria.minCholesterol,
+        studyCriteria.maxCholesterol,
+        'Cholesterol'
+      )
+    },
+    {
+      enabled: Boolean(studyCriteria.enableBMI),
+      check: () => validateNumericRange(scaledBMI, studyCriteria.minBMI, studyCriteria.maxBMI, 'BMI')
+    },
+    {
+      enabled: Boolean(studyCriteria.enableBloodPressure),
+      check: () => {
+        const systolicCheck = validateRequiredField(medicalData.systolicBP, 'Systolic BP');
+        if (!systolicCheck.isValid) return systolicCheck;
+        
+        const diastolicCheck = validateRequiredField(medicalData.diastolicBP, 'Diastolic BP');
+        if (!diastolicCheck.isValid) return diastolicCheck;
+        
+        if (medicalData.systolicBP! < studyCriteria.minSystolic ||
+            medicalData.systolicBP! > studyCriteria.maxSystolic ||
+            medicalData.diastolicBP! < studyCriteria.minDiastolic ||
+            medicalData.diastolicBP! > studyCriteria.maxDiastolic) {
+          return {
+            isValid: false,
+            fieldName: 'Blood Pressure',
+            reason: 'Blood pressure out of acceptable range'
+          };
+        }
+        return { isValid: true };
+      }
+    },
+    {
+      enabled: Boolean(studyCriteria.enableBloodType),
+      check: () => validateInList(medicalData.bloodType, studyCriteria.allowedBloodTypes, 'Blood Type')
+    },
+    {
+      enabled: Boolean(studyCriteria.enableHbA1c),
+      check: () => validateNumericRange(scaledHbA1c, studyCriteria.minHbA1c, studyCriteria.maxHbA1c, 'HbA1c')
+    },
+    {
+      enabled: Boolean(studyCriteria.enableSmoking),
+      check: () => validateExactMatch(medicalData.smokingStatus, studyCriteria.allowedSmoking, 'Smoking status')
+    },
+    {
+      enabled: Boolean(studyCriteria.enableActivity),
+      check: () => validateNumericRange(
+        medicalData.activityLevel,
+        studyCriteria.minActivityLevel,
+        studyCriteria.maxActivityLevel,
+        'Activity level'
+      )
+    },
+    {
+      enabled: Boolean(studyCriteria.enableDiabetes),
+      check: () => validateExactMatch(medicalData.diabetesStatus, studyCriteria.allowedDiabetes, 'Diabetes status')
+    },
+    {
+      enabled: Boolean(studyCriteria.enableHeartDisease),
+      check: () => validateExactMatch(
+        medicalData.heartDiseaseStatus,
+        studyCriteria.allowedHeartDisease,
+        'Heart disease history'
+      )
     }
-    if (medicalData.age < studyCriteria.minAge || medicalData.age > studyCriteria.maxAge) {
-      console.log("Age check failed:", medicalData.age, "not in range", studyCriteria.minAge, "-", studyCriteria.maxAge);
-      return false;
-    }
-  }
-  
-  if (studyCriteria.enableGender) {
-    if (medicalData.gender === undefined) {
-      console.log("Gender data missing but required by study");
-      return false;
-    }
-    if (medicalData.gender !== studyCriteria.allowedGender) {
-      console.log("Gender check failed");
-      return false;
-    }
-  }
-  
-  if (studyCriteria.enableLocation) {
-    if (!medicalData.regions || medicalData.regions.length === 0) {
-      console.log("Location data missing but required by study");
-      return false;
-    }
-    const hasAllowedRegion = medicalData.regions.some(region => 
-      studyCriteria.allowedRegions.includes(region)
-    );
-    if (!hasAllowedRegion) {
-      console.log("Location check failed");
-      return false;
-    }
-  }
-  
-  if (studyCriteria.enableCholesterol) {
-    if (medicalData.cholesterol === undefined) {
-      console.log("Cholesterol data missing but required by study");
-      return false;
-    }
-    if (medicalData.cholesterol < studyCriteria.minCholesterol || 
-        medicalData.cholesterol > studyCriteria.maxCholesterol) {
-      console.log("Cholesterol check failed");
-      return false;
-    }
-  }
-  
-  if (studyCriteria.enableBMI) {
-    if (scaledBMI === undefined) {
-      console.log("BMI data missing but required by study");
-      return false;
-    }
-    if (scaledBMI < studyCriteria.minBMI || scaledBMI > studyCriteria.maxBMI) {
-      console.log("BMI check failed");
-      return false;
-    }
-  }
-  
-  if (studyCriteria.enableBloodPressure) {
-    if (medicalData.systolicBP === undefined || medicalData.diastolicBP === undefined) {
-      console.log("Blood pressure data missing but required by study");
-      return false;
-    }
-    if (medicalData.systolicBP < studyCriteria.minSystolic ||
-        medicalData.systolicBP > studyCriteria.maxSystolic ||
-        medicalData.diastolicBP < studyCriteria.minDiastolic ||
-        medicalData.diastolicBP > studyCriteria.maxDiastolic) {
-      console.log("Blood pressure check failed");
-      return false;
-    }
-  }
-  
-  if (studyCriteria.enableBloodType) {
-    if (medicalData.bloodType === undefined) {
-      console.log("Blood type data missing but required by study");
-      return false;
-    }
-    if (!studyCriteria.allowedBloodTypes.includes(medicalData.bloodType)) {
-      console.log("Blood type check failed");
-      return false;
-    }
-  }
-  
-  if (studyCriteria.enableHbA1c) {
-    if (scaledHbA1c === undefined) {
-      console.log("HbA1c data missing but required by study");
-      return false;
-    }
-    if (scaledHbA1c < studyCriteria.minHbA1c ||
-        scaledHbA1c > studyCriteria.maxHbA1c) {
-      console.log("HbA1c check failed");
-      return false;
-    }
-  }
-  
-  if (studyCriteria.enableSmoking) {
-    if (medicalData.smokingStatus === undefined) {
-      console.log("Smoking status data missing but required by study");
-      return false;
-    }
-    if (medicalData.smokingStatus !== studyCriteria.allowedSmoking) {
-      console.log("Smoking status check failed");
-      return false;
-    }
-  }
-  
-  if (studyCriteria.enableActivity) {
-    if (medicalData.activityLevel === undefined) {
-      console.log("Activity level data missing but required by study");
-      return false;
-    }
-    if (medicalData.activityLevel < studyCriteria.minActivityLevel ||
-        medicalData.activityLevel > studyCriteria.maxActivityLevel) {
-      console.log("Activity level check failed");
-      return false;
-    }
-  }
-  
-  if (studyCriteria.enableDiabetes) {
-    if (medicalData.diabetesStatus === undefined) {
-      console.log("Diabetes status data missing but required by study");
-      return false;
-    }
-    if (medicalData.diabetesStatus !== studyCriteria.allowedDiabetes) {
-      console.log("Diabetes status check failed");
-      return false;
-    }
-  }
-  
-  if (studyCriteria.enableHeartDisease) {
-    if (medicalData.heartDiseaseStatus === undefined) {
-      console.log("Heart disease history data missing but required by study");
-      return false;
-    }
-    if (medicalData.heartDiseaseStatus !== studyCriteria.allowedHeartDisease) {
-      console.log("Heart disease history check failed");
-      return false;
+  ];
+
+  for (const validation of validations) {
+    if (validation.enabled) {
+      const result = validation.check();
+      if (!result.isValid) {
+        console.log(`${result.fieldName} check failed:`, result.reason);
+        return false;
+      }
     }
   }
   
