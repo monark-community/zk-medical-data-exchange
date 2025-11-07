@@ -43,7 +43,6 @@ class StudyService {
       throw new Error("SEPOLIA_PRIVATE_KEY environment variable is required");
     }
 
-    // Ensure private key is properly formatted with 0x prefix
     const formattedPrivateKey = privateKey.startsWith("0x") ? privateKey : `0x${privateKey}`;
 
     // Validate private key format (should be 64 hex characters + 0x prefix = 66 total)
@@ -345,7 +344,6 @@ class StudyService {
 
       logger.info({ transactionHash }, "Study deployment transaction submitted");
 
-      // Wait for confirmation
       const receipt = await this.publicClient.waitForTransactionReceipt({
         hash: transactionHash,
       });

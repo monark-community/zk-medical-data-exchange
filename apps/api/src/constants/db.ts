@@ -17,14 +17,6 @@ export type TableDefinition = {
  *                 If omitted, all columns in the table will be returned.
  *
  * @returns A string of comma-separated column names suitable for SQL queries.
- *
- * @example
- * getColumns(TABLES.DATA_VAULT);
- * // "id, wallet_address, encrypted_cid, created_at, resource_type"
- *
- * @example
- * getColumns(TABLES.DATA_VAULT, ["id", "walletAddress"]);
- * // "id, wallet_address"
  */
 export const getColumns = (table: TableDefinition, subset?: string[]): string => {
   const keys = subset ?? Object.keys(table.columns);
