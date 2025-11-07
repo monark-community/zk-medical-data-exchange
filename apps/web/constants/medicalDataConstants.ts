@@ -20,7 +20,7 @@ export const GENDER_VALUES = {
   FEMALE: 2,
   OTHER: 0,
   UNKNOWN: 0,
-  ANY: 3, // For study criteria only
+  ANY: 0,
 } as const;
 
 /**
