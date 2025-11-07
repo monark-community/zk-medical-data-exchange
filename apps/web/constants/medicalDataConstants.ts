@@ -20,7 +20,7 @@ export const GENDER_VALUES = {
   FEMALE: 2,
   OTHER: 0,
   UNKNOWN: 0,
-  ANY: 0, // For study criteria only - matches contract (0=any, 1=male, 2=female)
+  ANY: 0,
 } as const;
 
 /**
@@ -215,9 +215,8 @@ export const FHIR_DIABETES_ICD10 = {
 export const FHIR_DIABETES_SNOMED = {
   "46635009": DIABETES_VALUES.TYPE_1, // Type 1 diabetes
   "44054006": DIABETES_VALUES.TYPE_2, // Type 2 diabetes
-  "9414007": DIABETES_VALUES.TYPE_2, // Secondary diabetes
+  "9414007": DIABETES_VALUES.PRE_DIABETES, // Secondary diabetes
   "73211009": DIABETES_VALUES.UNSPECIFIED, // Diabetes mellitus (unspecified)
-  "15771004": DIABETES_VALUES.PRE_DIABETES, // Pre-diabetes
 } as const;
 
 /**
@@ -238,11 +237,17 @@ export const FHIR_HEART_DISEASE_ICD10 = {
  */
 export const FHIR_HEART_DISEASE_SNOMED = {
   "22298006": HEART_DISEASE_VALUES.PREVIOUS_HEART_ATTACK, // Myocardial infarction
+  "414545008": HEART_DISEASE_VALUES.PREVIOUS_HEART_ATTACK, // History of myocardial infarction
   "57054005": HEART_DISEASE_VALUES.PREVIOUS_HEART_ATTACK, // Acute myocardial infarction
   "194828000": HEART_DISEASE_VALUES.CARDIOVASCULAR_CONDITION, // Angina
+  "429457004": HEART_DISEASE_VALUES.CARDIOVASCULAR_CONDITION, // Cardiovascular disease
   "84114007": HEART_DISEASE_VALUES.CARDIOVASCULAR_CONDITION, // Heart failure
+  "49601007": HEART_DISEASE_VALUES.CARDIOVASCULAR_CONDITION, // Disorder of cardiovascular system
   "53741008": HEART_DISEASE_VALUES.CARDIOVASCULAR_CONDITION, // Coronary arteriosclerosis
-  "429559004": HEART_DISEASE_VALUES.FAMILY_HISTORY, // Typical angina (family history)
+  "429559004": HEART_DISEASE_VALUES.PREVIOUS_HEART_ATTACK, // Typical angina (family history)
+  "275104002": HEART_DISEASE_VALUES.FAMILY_HISTORY, // Family history of ischemic heart disease
+  "297242006": HEART_DISEASE_VALUES.FAMILY_HISTORY, // Family history of cardiovascular disease
+  "275120007": HEART_DISEASE_VALUES.FAMILY_HISTORY, // Chronic ischemic heart disease
 } as const;
 
 /**

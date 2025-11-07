@@ -356,8 +356,8 @@ export const convertToZkReady = (medicalData: AggregatedMedicalData): ExtractedM
     }
   }
 
-  values.diabetesStatus = DIABETES_VALUES.NO_DIABETES;
-  values.heartDiseaseStatus = HEART_DISEASE_VALUES.NO_HISTORY;
+  values.diabetesStatus = medicalData.diabetesStatus?.value;
+  values.heartDiseaseStatus = fhirHeartDiseaseToZK(medicalData.heartDiseaseStatus?.code || "");
 
   return values;
 };

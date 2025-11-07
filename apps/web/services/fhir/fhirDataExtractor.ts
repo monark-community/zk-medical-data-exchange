@@ -4,7 +4,9 @@ import { ExtractedMedicalData } from "@/services/fhir/types/extractedMedicalData
 import { AggregatedMedicalData } from "@/services/fhir/types/aggregatedMedicalData";
 import { FHIRPatient } from "@/services/fhir/types/fhirPatient";
 import { FHIRObservation } from "@/services/fhir/types/fhirObservation";
+import { FHIRCondition } from "@/services/fhir/types/fhirCondition";
 import { CodedValue } from "@/services/fhir/types/codedValue";
+import { DIABETES_VALUES, HEART_DISEASE_VALUES } from "@/constants/medicalDataConstants";
 
 export interface FHIRDataBundle {
   resources: any[];
@@ -121,7 +123,6 @@ const processObservation = (
           break;
         case "41950-7": // Number of days per week engaged in moderate to vigorous physical activity
         case "89558-1": // Physical activity level (numeric)
-          // For LOINC activity level, store the numeric value
           aggregated.activityLevel = {
             value,
             code: loincCode,
@@ -214,6 +215,131 @@ const processObservation = (
 };
 
 /**
+ * Process FHIR Condition resource
+ * Supports all diabetes statuses and heart disease
+ */
+export const processCondition = (
+  condition: FHIRCondition,
+  aggregated: AggregatedMedicalData
+): void => {
+  const coding = condition.code?.coding?.find(
+    (c) =>
+      c.system?.toLowerCase().includes("snomed") ||
+      c.system?.toLowerCase().includes("icd")
+  );
+
+  const code = coding?.code;
+  const system = coding?.system;
+  const display = coding?.display || condition.code?.text;
+  const codeSystem = determineCodeSystem(system);
+
+  const effectiveDate =
+    condition.onsetDateTime ||
+    condition.onsetPeriod?.start ||
+    condition.recordedDate;
+
+  if (!code) return;
+
+  switch (code) {
+    // Type 1 Diabetes Mellitus
+    case "46635009": // SNOMED: Type 1 diabetes mellitus
+    case "E10": // ICD-10
+      aggregated.diabetesStatus = {
+        value: DIABETES_VALUES.TYPE_1,
+        code,
+        codeSystem,
+        source: "issuer",
+        effectiveDate,
+      };
+      break;
+
+    // Type 2 Diabetes Mellitus
+    case "44054006": // SNOMED: Type 2 diabetes mellitus
+    case "E11":
+      aggregated.diabetesStatus = {
+        value: DIABETES_VALUES.TYPE_2,
+        code,
+        codeSystem,
+        source: "issuer",
+        effectiveDate,
+      };
+      break;
+
+    // Pre-diabetes
+    case "9414007": // SNOMED: Impaired glucose tolerance (pre-diabetes)
+    case "R73.03": // ICD-10: Prediabetes
+      aggregated.diabetesStatus = {
+        value: DIABETES_VALUES.PRE_DIABETES,
+        code,
+        codeSystem,
+        source: "issuer",
+        effectiveDate,
+      };
+      break;
+
+    // Generic diabetes / any type
+    case "73211009": // SNOMED: Diabetes mellitus (disorder)
+    case "250.00": // ICD-9: Diabetes mellitus
+    case "E13": // Other specified diabetes mellitus
+      aggregated.diabetesStatus = {
+        value: DIABETES_VALUES.ANY_TYPE,
+        code,
+        codeSystem,
+        source: "issuer",
+        effectiveDate,
+      };
+      break;
+
+    // --- Heart disease mapping ---
+    // Previous heart attack / Myocardial infarction
+    case "22298006": // SNOMED: Myocardial infarction
+    case "429559004": // SNOMED: Typical angina
+    case "I21": // ICD-10: Acute myocardial infarction
+    case "I22": // ICD-10: Subsequent myocardial infarction
+      aggregated.heartDiseaseStatus = {
+        value: HEART_DISEASE_VALUES.PREVIOUS_HEART_ATTACK,
+        code,
+        codeSystem,
+        source: "issuer",
+        effectiveDate,
+      };
+      break;
+
+      // Any cardiovascular condition (umbrella term)
+      case "414545008": // SNOMED: Ischemic heart disease
+      case "49601007": // SNOMED: Disorder of cardiovascular system
+      case "429457004": // SNOMED: Cardiovascular disease
+      case "53741008": // SNOMED: Coronary arteriosclerosis
+        aggregated.heartDiseaseStatus = {
+          value: HEART_DISEASE_VALUES.CARDIOVASCULAR_CONDITION,
+          code,
+          codeSystem,
+          source: "issuer",
+          effectiveDate,
+        };
+        break;
+
+      // Family history only
+      case "275104002": // SNOMED: Family history of cardiovascular disease
+      case "297242006": // SNOMED: Family history of ischemic heart disease
+      case "275120007": // SNOMED: Family history of cardiac disease
+      case "Z82.49": // ICD-10: Family history of ischemic heart disease
+        aggregated.heartDiseaseStatus = {
+          value: HEART_DISEASE_VALUES.FAMILY_HISTORY,
+          code,
+          codeSystem,
+          source: "patient",
+          effectiveDate,
+        };
+        break;
+
+    default:
+      console.log(`Unhandled condition code: ${code} (${display})`);
+  }
+};
+
+
+/**
  * Resource type processor dispatcher
  * Routes FHIR resources to their specific processor functions
  *
@@ -234,7 +360,7 @@ export const processResourceByType = (
       break;
 
     case FhirResourceType.CONDITION:
-      console.log("Condition resource processing not yet implemented");
+      processCondition(resource as FHIRCondition, aggregated);
       break;
 
     case FhirResourceType.BUNDLE:
