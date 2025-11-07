@@ -27,6 +27,7 @@ export enum ActionType {
   PERMISSION_CHANGE, // Permission granted/revoked
   // DATA SELLER ACTIONS
   STUDY_PARTICIPATION, // Patient joins study
+  CONSENT_REVOCATION, // Patient revokes consent for study
   STUDY_CONSENT_REVOKED, // Patient revokes consent
   DATA_UPLOAD, // Data uploaded to vault
   DATA_ACCESS, // Data accessed/viewed
@@ -696,6 +697,23 @@ class AuditService {
     return this.logAction({
       ...entry,
       userProfile: actualProfile,
+    });
+  }
+
+  async logConsentRevocation(
+    userAddress: string,
+    studyId: string,
+    success: boolean,
+    metadata?: Record<string, any>
+  ) {
+    return this.logAction({
+      user: userAddress,
+      userProfile: UserProfile.DATA_SELLER,
+      actionType: ActionType.CONSENT_REVOCATION,
+      resource: `study_${studyId}`,
+      action: "revoke_consent",
+      success,
+      metadata,
     });
   }
 

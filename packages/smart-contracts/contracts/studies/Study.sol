@@ -48,19 +48,23 @@ contract Study {
     string public studyTitle;
     address public studyCreator;
     uint256 public maxParticipants;
-    uint256 public currentParticipants;
+    uint256 public currentParticipants; // Total enrolled (regardless of consent)
+    uint256 public activeParticipants;  // Only those with active consent
     
     StudyCriteria public criteria;
     Groth16Verifier public immutable zkVerifier;
 
     // Participant tracking (NO private medical data stored on-chain!)
     mapping(address => bool) public participants;
+    mapping(address => bool) public hasConsented; // Tracks active consent status
     mapping(address => uint256) public participantDataCommitments; // Hash of their private data
     address[] public participantList;
     
     // Events
     event ParticipantJoined(address indexed participant, uint256 dataCommitment);
     event EligibilityVerified(address indexed participant, bool eligible);
+    event ConsentRevoked(address indexed participant, uint256 timestamp);
+    event ConsentGranted(address indexed participant, uint256 timestamp);
     
     constructor(
         string memory _title,
@@ -100,20 +104,53 @@ contract Study {
         emit EligibilityVerified(msg.sender, isEligible);
         require(isEligible, "ZK proof verification failed - not eligible");
         
-        // Add participant to study
+        // Add participant to study with consent granted by default
         participants[msg.sender] = true;
+        hasConsented[msg.sender] = true;
         participantDataCommitments[msg.sender] = dataCommitment;
         participantList.push(msg.sender);
         currentParticipants++;
+        activeParticipants++;
         
         emit ParticipantJoined(msg.sender, dataCommitment);
+        emit ConsentGranted(msg.sender, block.timestamp);
     }
     
+    /**
+     * @dev Allow participants to revoke their consent for data usage
+     * This does NOT remove them from the study, but marks their consent as revoked
+     */
+    function revokeConsent() external {
+        require(participants[msg.sender], "Not a participant in this study");
+        require(hasConsented[msg.sender], "Consent already revoked");
+        
+        hasConsented[msg.sender] = false;
+        activeParticipants--;
+        
+        emit ConsentRevoked(msg.sender, block.timestamp);
+    }
     
+    /**
+     * @dev Allow participants to grant consent again after revoking
+     */
+    function grantConsent() external {
+        require(participants[msg.sender], "Not a participant in this study");
+        require(!hasConsented[msg.sender], "Consent already granted");
+        require(activeParticipants < maxParticipants, "Study is full - cannot grant consent");
+        
+        hasConsented[msg.sender] = true;
+        activeParticipants++;
+        
+        emit ConsentGranted(msg.sender, block.timestamp);
+    }
     
     // View functions
     function getParticipantCount() external view returns (uint256) {
-        return currentParticipants;
+        return activeParticipants; // Only count participants with active consent
+    }
+    
+    function getTotalEnrolled() external view returns (uint256) {
+        return currentParticipants; // Total enrolled regardless of consent status
     }
     
     function getStudyCriteria() external view returns (StudyCriteria memory) {
@@ -124,8 +161,14 @@ contract Study {
         return participants[addr];
     }
     
+    function hasActiveConsent(address addr) external view returns (bool) {
+        require(participants[addr], "Not a participant");
+        return hasConsented[addr];
+    }
+    
     function getParticipantDataCommitment(address addr) external view returns (uint256) {
         require(participants[addr], "Not a participant");
+        require(hasConsented[addr], "Participant has revoked consent");
         return participantDataCommitments[addr];
     }
 }

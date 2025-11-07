@@ -507,47 +507,58 @@ class StudyService {
   }
 
   async joinBlockchainStudy(
-      contractAddress: string,
-      proofjson: { a: [string, string]; b: [[string, string], [string, string]]; c: [string, string] },
-      participantWallet: string,
-      dataCommitment: string
-    ) {
-      let blockchainTxHash = null;
-      if (contractAddress) {
-        try {
-          const blockchainResult =  await this.sendParticipationToBlockchain(
-            contractAddress,
-            participantWallet,
-            proofjson,
-            dataCommitment
+    contractAddress: string,
+    proofjson: {
+      a: [string, string];
+      b: [[string, string], [string, string]];
+      c: [string, string];
+    },
+    participantWallet: string,
+    dataCommitment: string
+  ) {
+    let blockchainTxHash = null;
+    if (contractAddress) {
+      try {
+        const blockchainResult = await this.sendParticipationToBlockchain(
+          contractAddress,
+          participantWallet,
+          proofjson,
+          dataCommitment
+        );
+
+        if (blockchainResult.success) {
+          blockchainTxHash = blockchainResult.transactionHash;
+          logger.info(
+            {
+              participantWallet,
+              txHash: blockchainTxHash,
+            },
+            "Participation recorded on blockchain successfully"
           );
-
-          if (blockchainResult.success) {
-            blockchainTxHash = blockchainResult.transactionHash;
-            logger.info({ 
-              participantWallet, 
-              txHash: blockchainTxHash 
-            }, "Participation recorded on blockchain successfully");
-          } else {
-            logger.error({ 
+        } else {
+          logger.error(
+            {
               error: blockchainResult.error,
-              participantWallet 
-            }, "Failed to record participation on blockchain - continuing anyway");
-          }
-            
-        } catch (blockchainError) {
-          logger.error({ 
-            error: blockchainError,
-            participantWallet 
-          }, "Error during blockchain participation recording");
+              participantWallet,
+            },
+            "Failed to record participation on blockchain - continuing anyway"
+          );
         }
-      } else {
-        logger.info("Study has no blockchain address - skipping blockchain recording");
+      } catch (blockchainError) {
+        logger.error(
+          {
+            error: blockchainError,
+            participantWallet,
+          },
+          "Error during blockchain participation recording"
+        );
       }
-      
-
-      return blockchainTxHash;
+    } else {
+      logger.info("Study has no blockchain address - skipping blockchain recording");
     }
+
+    return blockchainTxHash;
+  }
 
   async sendParticipationToBlockchain(
     studyAddress: string,
@@ -582,12 +593,19 @@ class StudyService {
 
         logger.info({ pA, pB, pC, commitment }, "Proof converted to BigInt format");
       } catch (conversionError) {
-        logger.error({ 
-          error: conversionError, 
-          proof, 
-          dataCommitment 
-        }, "Failed to convert proof to BigInt");
-        throw new Error(`Invalid proof format: ${conversionError instanceof Error ? conversionError.message : 'Unknown error'}`);
+        logger.error(
+          {
+            error: conversionError,
+            proof,
+            dataCommitment,
+          },
+          "Failed to convert proof to BigInt"
+        );
+        throw new Error(
+          `Invalid proof format: ${
+            conversionError instanceof Error ? conversionError.message : "Unknown error"
+          }`
+        );
       }
 
       const simulationResult = await this.publicClient.simulateContract({
@@ -615,7 +633,9 @@ class StudyService {
 
       if (receipt.status === "reverted") {
         logger.error({ transactionHash }, "Participation transaction reverted");
-        throw new Error("Transaction reverted - participant may already be enrolled or proof invalid");
+        throw new Error(
+          "Transaction reverted - participant may already be enrolled or proof invalid"
+        );
       }
 
       logger.info(
@@ -632,10 +652,201 @@ class StudyService {
         transactionHash,
       };
     } catch (error) {
-      logger.error({ error, studyAddress, participantWallet }, "Failed to record participation on blockchain");
+      logger.error(
+        { error, studyAddress, participantWallet },
+        "Failed to record participation on blockchain"
+      );
       return {
         success: false,
         error: error instanceof Error ? error.message : "Unknown error recording participation",
+      };
+    }
+  }
+
+  /**
+   * Revoke consent for a study
+   * @param studyAddress The address of the study contract
+   * @param participantWallet The wallet address of the participant revoking consent
+   */
+  async revokeStudyConsent(
+    studyAddress: string,
+    participantWallet: string
+  ): Promise<{ success: boolean; transactionHash?: string; error?: string }> {
+    try {
+      logger.info(
+        {
+          studyAddress,
+          participantWallet,
+        },
+        "Revoking study consent on blockchain"
+      );
+
+      // Simulate the transaction first
+      const simulationResult = await this.publicClient.simulateContract({
+        account: this.account,
+        address: studyAddress as `0x${string}`,
+        abi: STUDY_ABI,
+        functionName: "revokeConsent",
+        args: [],
+      });
+
+      logger.info(
+        {
+          gasEstimate: simulationResult.request.gas?.toString(),
+        },
+        "Consent revocation simulation successful"
+      );
+
+      // Execute the transaction
+      const transactionHash = await this.walletClient.writeContract(simulationResult.request);
+
+      logger.info({ transactionHash }, "Consent revocation transaction submitted");
+
+      // Wait for transaction receipt
+      const receipt = await this.publicClient.waitForTransactionReceipt({
+        hash: transactionHash,
+      });
+
+      if (receipt.status === "reverted") {
+        logger.error({ transactionHash }, "Consent revocation transaction reverted");
+        throw new Error(
+          "Transaction reverted - participant may not be enrolled or consent already revoked"
+        );
+      }
+
+      logger.info(
+        {
+          transactionHash,
+          gasUsed: receipt.gasUsed.toString(),
+          participantWallet,
+        },
+        "Consent revoked on blockchain successfully"
+      );
+
+      return {
+        success: true,
+        transactionHash,
+      };
+    } catch (error) {
+      logger.error(
+        { error, studyAddress, participantWallet },
+        "Failed to revoke consent on blockchain"
+      );
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error revoking consent",
+      };
+    }
+  }
+
+  /**
+   * Grant consent for a study (after previously revoking)
+   * @param studyAddress The address of the study contract
+   * @param participantWallet The wallet address of the participant granting consent
+   */
+  async grantStudyConsent(
+    studyAddress: string,
+    participantWallet: string
+  ): Promise<{ success: boolean; transactionHash?: string; error?: string }> {
+    try {
+      logger.info(
+        {
+          studyAddress,
+          participantWallet,
+        },
+        "Granting study consent on blockchain"
+      );
+
+      // Simulate the transaction first
+      const simulationResult = await this.publicClient.simulateContract({
+        account: this.account,
+        address: studyAddress as `0x${string}`,
+        abi: STUDY_ABI,
+        functionName: "grantConsent",
+        args: [],
+      });
+
+      logger.info(
+        {
+          gasEstimate: simulationResult.request.gas?.toString(),
+        },
+        "Consent grant simulation successful"
+      );
+
+      // Execute the transaction
+      const transactionHash = await this.walletClient.writeContract(simulationResult.request);
+
+      logger.info({ transactionHash }, "Consent grant transaction submitted");
+
+      // Wait for transaction receipt
+      const receipt = await this.publicClient.waitForTransactionReceipt({
+        hash: transactionHash,
+      });
+
+      if (receipt.status === "reverted") {
+        logger.error({ transactionHash }, "Consent grant transaction reverted");
+        throw new Error(
+          "Transaction reverted - participant may not be enrolled or consent already granted"
+        );
+      }
+
+      logger.info(
+        {
+          transactionHash,
+          gasUsed: receipt.gasUsed.toString(),
+          participantWallet,
+        },
+        "Consent granted on blockchain successfully"
+      );
+
+      return {
+        success: true,
+        transactionHash,
+      };
+    } catch (error) {
+      logger.error(
+        { error, studyAddress, participantWallet },
+        "Failed to grant consent on blockchain"
+      );
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error granting consent",
+      };
+    }
+  }
+
+  /**
+   * Check if a participant has active consent for a study
+   * @param studyAddress The address of the study contract
+   * @param participantWallet The wallet address to check
+   */
+  async hasActiveConsent(
+    studyAddress: string,
+    participantWallet: string
+  ): Promise<{ hasConsent: boolean; error?: string }> {
+    try {
+      const hasConsent = await this.publicClient.readContract({
+        address: studyAddress as `0x${string}`,
+        abi: STUDY_ABI,
+        functionName: "hasActiveConsent",
+        args: [participantWallet as `0x${string}`],
+      });
+
+      logger.info(
+        {
+          studyAddress,
+          participantWallet,
+          hasConsent,
+        },
+        "Checked consent status"
+      );
+
+      return { hasConsent: Boolean(hasConsent) };
+    } catch (error) {
+      logger.error({ error, studyAddress, participantWallet }, "Failed to check consent status");
+      return {
+        hasConsent: false,
+        error: error instanceof Error ? error.message : "Unknown error checking consent",
       };
     }
   }

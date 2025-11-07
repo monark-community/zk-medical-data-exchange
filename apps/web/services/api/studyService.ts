@@ -23,6 +23,8 @@ export interface StudySummary {
   templateName?: string;
   createdAt: string;
   contractAddress?: string;
+  isEnrolled?: boolean;
+  hasConsented?: boolean;
   criteriaSummary: {
     requiresAge: boolean;
     requiresGender: boolean;
@@ -346,4 +348,58 @@ export const useCreateStudy = () => {
   };
 
   return { createStudy: createStudyAsync };
+};
+
+/**
+ * Revoke consent for a study
+ */
+export const revokeStudyConsent = async (
+  studyId: number,
+  participantWallet: string
+): Promise<{ success: boolean; blockchainTxHash?: string }> => {
+  try {
+    const response = await apiClient.post(`/studies/${studyId}/consent/revoke`, {
+      participantWallet,
+    });
+
+    return response.data;
+  } catch (error) {
+    console.error("Failed to revoke consent:", error);
+
+    if (error && typeof error === "object" && "response" in error) {
+      const axiosError = error as any;
+      const errorMessage = axiosError.response?.data?.error || axiosError.message;
+      throw new Error(`Failed to revoke consent: ${errorMessage}`);
+    }
+
+    const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+    throw new Error(`Failed to revoke consent: ${errorMessage}`);
+  }
+};
+
+/**
+ * Grant consent for a study (after previously revoking)
+ */
+export const grantStudyConsent = async (
+  studyId: number,
+  participantWallet: string
+): Promise<{ success: boolean; blockchainTxHash?: string }> => {
+  try {
+    const response = await apiClient.post(`/studies/${studyId}/consent/grant`, {
+      participantWallet,
+    });
+
+    return response.data;
+  } catch (error) {
+    console.error("Failed to grant consent:", error);
+
+    if (error && typeof error === "object" && "response" in error) {
+      const axiosError = error as any;
+      const errorMessage = axiosError.response?.data?.error || axiosError.message;
+      throw new Error(`Failed to grant consent: ${errorMessage}`);
+    }
+
+    const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+    throw new Error(`Failed to grant consent: ${errorMessage}`);
+  }
 };

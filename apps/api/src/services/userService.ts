@@ -129,10 +129,12 @@ export async function getUserStatsForDataSeller(
   nMedicalFiles: number;
   totalEarnings: number;
 }> {
+  // Only count participations where user has active consent
   const { data: participations, error: participationsError } = await supabase
     .from(STUDY_PARTICIPATIONS!.name!)
     .select("*, studies!inner(created_at, duration_days)")
-    .eq(STUDY_PARTICIPATIONS!.columns.participantWallet!, walletAddress);
+    .eq(STUDY_PARTICIPATIONS!.columns.participantWallet!, walletAddress)
+    .eq(STUDY_PARTICIPATIONS!.columns.consents!, true);
 
   if (participationsError) {
     logger.error(
@@ -214,10 +216,12 @@ export async function getUserStatsForResearcher(
     }
   }
 
+  // Only count participants with active consent
   const { count: nParticipantsEnrolled, error: participantsError } = await supabase
     .from(STUDY_PARTICIPATIONS!.name!)
     .select("*, studies!inner(*)", { count: "exact", head: true })
-    .eq("studies.created_by", walletAddress);
+    .eq("studies.created_by", walletAddress)
+    .eq(STUDY_PARTICIPATIONS!.columns.consents!, true);
 
   if (participantsError) {
     logger.error({ error: participantsError, walletAddress }, "Failed to get participants count");
