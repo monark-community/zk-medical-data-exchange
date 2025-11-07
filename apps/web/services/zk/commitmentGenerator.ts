@@ -81,10 +81,10 @@ export const normalizeMedicalDataForCircuit = (medicalData: ExtractedMedicalData
   const smokingStatus = medicalData.smokingStatus;
 
   return {
-    age,
-    gender,
-    bmi: bmi ? Math.round(bmi * 10) : 0,
-    smokingStatus,
+    age: age ?? -1,
+    gender: gender ?? -1,
+    bmi: bmi ? Math.round(bmi * 10) : -1,
+    smokingStatus: smokingStatus ?? 0,
 
     region: medicalData.regions?.[0] ?? 0,
     cholesterol: medicalData.cholesterol ?? 0,
