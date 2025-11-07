@@ -573,7 +573,9 @@ const StudyCreationForm = ({
               <label className="block text-sm font-semibold text-gray-700">Allowed Gender</label>
               <select
                 value={criteria.allowedGender}
-                onChange={(e) => updateCriteria({ allowedGender: Number(e.target.value) })}
+                onChange={(e) => {
+                  updateCriteria({ allowedGender: Number(e.target.value) });
+                }}
                 className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 bg-white"
               >
                 {STUDY_FORM_MAPPINGS.genderOptions.map((option) => (
@@ -960,7 +962,7 @@ const StudyCreationForm = ({
               <div className="flex items-center space-x-2">
                 <div className="w-2 h-2 bg-blue-300 rounded-full"></div>
                 <span>Blockchain deployment</span>
-              </div> 
+              </div>
             </div>
           </div>
           <Button
