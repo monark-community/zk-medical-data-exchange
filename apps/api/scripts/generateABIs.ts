@@ -168,7 +168,11 @@ function generateABIs(): void {
   console.log(`Generated ${Object.keys(abis).length} contract ABIs`);
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+const isMainModule = 
+  import.meta.url === `file://${process.argv[1]}` ||
+  import.meta.url.endsWith(process.argv[1]?.replace(/\\/g, '/') || '');
+
+if (isMainModule) {
   try {
     generateABIs();
   } catch (error) {
