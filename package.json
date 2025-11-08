@@ -8,6 +8,7 @@
     "infra": "docker compose -f infra/docker-compose.yaml up -d",
     "deploy:contracts:local": "bun run --cwd packages/smart-contracts deploy:local",
     "deploy:contracts:sepolia": "bun run --cwd packages/smart-contracts deploy:sepolia",
+    "generate:abis": "node --import tsx/esm --eval \"import('./apps/api/scripts/generateABIs.ts').then(m => m.generateABIs())\"",
     "lint": "eslint . --ext .ts,.tsx,.js,.jsx",
     "lint:web": "bun run --cwd apps/web lint",
     "lint:api": "bun run --cwd apps/api lint",

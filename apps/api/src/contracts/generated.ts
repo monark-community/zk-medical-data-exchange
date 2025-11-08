@@ -1,5 +1,5 @@
 // Auto-generated contract ABIs
-// Generated on 2025-11-07T00:56:03.202Z
+// Generated on 2025-11-08T18:57:43.619Z
 
 // ABI type definitions
 interface ABIInput {
@@ -2533,31 +2533,6 @@ export const GOVERNANCE_DAO_ABI: ABI = [
         "type": "uint256"
       },
       {
-        "indexed": true,
-        "internalType": "address",
-        "name": "executor",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "timestamp",
-        "type": "uint256"
-      }
-    ],
-    "name": "ProposalExecuted",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "uint256",
-        "name": "proposalId",
-        "type": "uint256"
-      },
-      {
         "indexed": false,
         "internalType": "enum GovernanceDAO.ProposalState",
         "name": "newState",
@@ -2655,19 +2630,6 @@ export const GOVERNANCE_DAO_ABI: ABI = [
         "type": "uint256"
       }
     ],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "proposalId",
-        "type": "uint256"
-      }
-    ],
-    "name": "executeProposal",
-    "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
   },
@@ -2797,11 +2759,6 @@ export const GOVERNANCE_DAO_ABI: ABI = [
             "internalType": "uint256",
             "name": "totalVoters",
             "type": "uint256"
-          },
-          {
-            "internalType": "bool",
-            "name": "executed",
-            "type": "bool"
           },
           {
             "internalType": "enum GovernanceDAO.ProposalState",
@@ -3055,11 +3012,6 @@ export const GOVERNANCE_DAO_ABI: ABI = [
         "internalType": "uint256",
         "name": "totalVoters",
         "type": "uint256"
-      },
-      {
-        "internalType": "bool",
-        "name": "executed",
-        "type": "bool"
       },
       {
         "internalType": "enum GovernanceDAO.ProposalState",
