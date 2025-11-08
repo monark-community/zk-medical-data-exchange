@@ -45,7 +45,7 @@ export default function StudyCard({
     <div
       className={`group relative bg-white rounded-xl border border-gray-200 p-5 hover:border-gray-300 hover:shadow-md transition-all duration-200 ${
         !isLast ? "mb-3" : ""
-      } cursor-pointer`}
+      }`}
     >
       {/* Header Section */}
       <div className="flex items-start justify-between mb-4">

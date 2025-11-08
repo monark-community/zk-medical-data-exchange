@@ -60,11 +60,11 @@ const handleConsentOperation = async (
   const { startTime, userAgent, ipAddress } = getAuditMetadata(req);
   const isRevoke = operation === "revoke";
   const auditLogger = isRevoke
-    ? auditService.logConsentRevocation
-    : auditService.logConsentGranting;
+    ? auditService.logConsentRevocation.bind(auditService)
+    : auditService.logConsentGranting.bind(auditService);
   const blockchainMethod = isRevoke
-    ? studyService.revokeStudyConsent
-    : studyService.grantStudyConsent;
+    ? studyService.revokeStudyConsent.bind(studyService)
+    : studyService.grantStudyConsent.bind(studyService);
 
   try {
     const { id } = req.params;
@@ -92,11 +92,18 @@ const handleConsentOperation = async (
       return res.status(404).json({ error: "Participation not found in this study" });
     }
 
-    // Check current consent status
-    const expectedConsentStatus = !isRevoke; // revoke expects true, grant expects false
-    if (participation.consents !== expectedConsentStatus) {
+    const currentConsentStatus = participation.consents ?? true;
+
+    const canPerformOperation = isRevoke
+      ? currentConsentStatus === true
+      : currentConsentStatus === false;
+
+    if (!canPerformOperation) {
       const message = isRevoke ? "Consent already revoked" : "Consent already active";
-      logger.warn({ studyId: id, participantWallet }, message);
+      logger.warn(
+        { studyId: id, participantWallet, currentConsent: currentConsentStatus },
+        message
+      );
       return res.status(400).json({ error: message });
     }
 
@@ -106,7 +113,24 @@ const handleConsentOperation = async (
 
     if (studyContractAddress) {
       try {
+        logger.info(
+          { studyId: id, participantWallet, studyContractAddress },
+          `Calling blockchain ${operation} consent`
+        );
+
         const blockchainResult = await blockchainMethod(studyContractAddress, participantWallet);
+
+        logger.info(
+          {
+            studyId: id,
+            participantWallet,
+            blockchainResult,
+            success: blockchainResult.success,
+            error: blockchainResult.error,
+            txHash: blockchainResult.transactionHash,
+          },
+          `Blockchain ${operation} consent result`
+        );
 
         if (blockchainResult.success) {
           blockchainTxHash = blockchainResult.transactionHash;
@@ -116,7 +140,13 @@ const handleConsentOperation = async (
           );
         } else {
           logger.error(
-            { error: blockchainResult.error, studyId: id, participantWallet },
+            {
+              error: blockchainResult.error,
+              errorString: String(blockchainResult.error),
+              errorJSON: JSON.stringify(blockchainResult.error),
+              studyId: id,
+              participantWallet,
+            },
             `Failed to ${operation} consent on blockchain - aborting database update`
           );
           return res.status(500).json({

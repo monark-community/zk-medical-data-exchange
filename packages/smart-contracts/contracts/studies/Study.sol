@@ -119,29 +119,31 @@ contract Study {
     /**
      * @dev Allow participants to revoke their consent for data usage
      * This does NOT remove them from the study, but marks their consent as revoked
+     * @param participant Address of the participant revoking consent
      */
-    function revokeConsent() external {
-        require(participants[msg.sender], "Not a participant in this study");
-        require(hasConsented[msg.sender], "Consent already revoked");
+    function revokeConsent(address participant) external {
+        require(participants[participant], "Not a participant in this study");
+        require(hasConsented[participant], "Consent already revoked");
         
-        hasConsented[msg.sender] = false;
+        hasConsented[participant] = false;
         activeParticipants--;
         
-        emit ConsentRevoked(msg.sender, block.timestamp);
+        emit ConsentRevoked(participant, block.timestamp);
     }
     
     /**
      * @dev Allow participants to grant consent again after revoking
+     * @param participant Address of the participant granting consent
      */
-    function grantConsent() external {
-        require(participants[msg.sender], "Not a participant in this study");
-        require(!hasConsented[msg.sender], "Consent already granted");
+    function grantConsent(address participant) external {
+        require(participants[participant], "Not a participant in this study");
+        require(!hasConsented[participant], "Consent already granted");
         require(activeParticipants < maxParticipants, "Study is full - cannot grant consent");
         
-        hasConsented[msg.sender] = true;
+        hasConsented[participant] = true;
         activeParticipants++;
         
-        emit ConsentGranted(msg.sender, block.timestamp);
+        emit ConsentGranted(participant, block.timestamp);
     }
     
     // View functions

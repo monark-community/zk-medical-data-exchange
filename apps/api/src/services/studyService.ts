@@ -87,6 +87,16 @@ class StudyService {
     context: string
   ): Promise<{ success: boolean; transactionHash?: string; receipt?: any; error?: string }> {
     try {
+      logger.info(
+        {
+          address,
+          functionName,
+          args,
+          account: this.account.address,
+        },
+        `${context} - Starting contract call`
+      );
+
       // Simulate the transaction first
       const simulationResult = await this.publicClient.simulateContract({
         account: this.account,
@@ -132,7 +142,17 @@ class StudyService {
         receipt,
       };
     } catch (error) {
-      logger.error({ error }, `Failed to execute ${context.toLowerCase()}`);
+      logger.error(
+        {
+          error,
+          errorMessage: error instanceof Error ? error.message : String(error),
+          errorDetails: error instanceof Error ? error.stack : undefined,
+          address,
+          functionName,
+          args,
+        },
+        `Failed to execute ${context.toLowerCase()}`
+      );
       return {
         success: false,
         error:
@@ -728,22 +748,40 @@ class StudyService {
     studyAddress: string,
     participantWallet: string
   ): Promise<{ success: boolean; transactionHash?: string; error?: string }> {
-    logger.info({ studyAddress, participantWallet }, "Revoking study consent on blockchain");
+    try {
+      logger.info({ studyAddress, participantWallet }, "Revoking study consent on blockchain");
 
-    const result = await this.executeContractTransaction(
-      studyAddress,
-      "revokeConsent",
-      [],
-      "Consent revocation"
-    );
+      const result = await this.executeContractTransaction(
+        studyAddress,
+        "revokeConsent",
+        [participantWallet as `0x${string}`],
+        "Consent revocation"
+      );
 
-    this.logConsentResult("revoke", result, studyAddress, participantWallet);
+      this.logConsentResult("revoke", result, studyAddress, participantWallet);
 
-    return {
-      success: result.success,
-      transactionHash: result.transactionHash,
-      error: result.error,
-    };
+      return {
+        success: result.success,
+        transactionHash: result.transactionHash,
+        error: result.error,
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.error(
+        {
+          error,
+          errorMessage,
+          errorStack: error instanceof Error ? error.stack : undefined,
+          studyAddress,
+          participantWallet,
+        },
+        "Exception in revokeStudyConsent"
+      );
+      return {
+        success: false,
+        error: errorMessage,
+      };
+    }
   }
 
   /**
@@ -755,22 +793,40 @@ class StudyService {
     studyAddress: string,
     participantWallet: string
   ): Promise<{ success: boolean; transactionHash?: string; error?: string }> {
-    logger.info({ studyAddress, participantWallet }, "Granting study consent on blockchain");
+    try {
+      logger.info({ studyAddress, participantWallet }, "Granting study consent on blockchain");
 
-    const result = await this.executeContractTransaction(
-      studyAddress,
-      "grantConsent",
-      [],
-      "Consent grant"
-    );
+      const result = await this.executeContractTransaction(
+        studyAddress,
+        "grantConsent",
+        [participantWallet as `0x${string}`],
+        "Consent grant"
+      );
 
-    this.logConsentResult("grant", result, studyAddress, participantWallet);
+      this.logConsentResult("grant", result, studyAddress, participantWallet);
 
-    return {
-      success: result.success,
-      transactionHash: result.transactionHash,
-      error: result.error,
-    };
+      return {
+        success: result.success,
+        transactionHash: result.transactionHash,
+        error: result.error,
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.error(
+        {
+          error,
+          errorMessage,
+          errorStack: error instanceof Error ? error.stack : undefined,
+          studyAddress,
+          participantWallet,
+        },
+        "Exception in grantStudyConsent"
+      );
+      return {
+        success: false,
+        error: errorMessage,
+      };
+    }
   }
 
   /**

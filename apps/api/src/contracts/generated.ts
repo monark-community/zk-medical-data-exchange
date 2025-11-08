@@ -1,5 +1,5 @@
 // Auto-generated contract ABIs
-// Generated on 2025-11-07T18:17:39.793Z
+// Generated on 2025-11-08T19:53:42.105Z
 
 // ABI type definitions
 interface ABIInput {
@@ -1538,7 +1538,13 @@ export const STUDY_ABI: ABI = [
     "type": "function"
   },
   {
-    "inputs": [],
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "participant",
+        "type": "address"
+      }
+    ],
     "name": "grantConsent",
     "outputs": [],
     "stateMutability": "nonpayable",
@@ -1700,7 +1706,13 @@ export const STUDY_ABI: ABI = [
     "type": "function"
   },
   {
-    "inputs": [],
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "participant",
+        "type": "address"
+      }
+    ],
     "name": "revokeConsent",
     "outputs": [],
     "stateMutability": "nonpayable",
