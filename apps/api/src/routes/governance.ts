@@ -144,13 +144,10 @@ router.get("/stats", getStats);
  *                       totalVoters:
  *                         type: number
  *                         example: 200
- *                       executed:
- *                         type: boolean
- *                         example: false
  *                       state:
  *                         type: number
- *                         enum: [0, 1, 2, 3]
- *                         description: "0: Active, 1: Passed, 2: Failed, 3: Executed"
+ *                         enum: [0, 1, 2]
+ *                         description: "0: Active, 1: Passed, 2: Failed"
  *                         example: 0
  *                       timeRemaining:
  *                         type: number
@@ -252,13 +249,10 @@ router.get("/proposals", getAllProposals);
  *                     totalVoters:
  *                       type: number
  *                       example: 200
- *                     executed:
- *                       type: boolean
- *                       example: false
  *                     state:
  *                       type: number
- *                       enum: [0, 1, 2, 3]
- *                       description: "0: Active, 1: Passed, 2: Failed, 3: Executed"
+ *                       enum: [0, 1, 2]
+ *                       description: "0: Active, 1: Passed, 2: Failed"
  *                       example: 0
  *                     timeRemaining:
  *                       type: number
@@ -620,12 +614,9 @@ router.post("/proposals/:id/finalize", finalizeProposal);
  *                       totalVoters:
  *                         type: number
  *                         example: 200
- *                       executed:
- *                         type: boolean
- *                         example: false
  *                       state:
  *                         type: number
- *                         enum: [0, 1, 2, 3]
+ *                         enum: [0, 1, 2]
  *                         example: 0
  *       400:
  *         description: Bad request - Invalid wallet address
@@ -719,12 +710,9 @@ router.get("/users/:address/proposals", getUserProposals);
  *                       totalVoters:
  *                         type: number
  *                         example: 200
- *                       executed:
- *                         type: boolean
- *                         example: false
  *                       state:
  *                         type: number
- *                         enum: [0, 1, 2, 3]
+ *                         enum: [0, 1, 2]
  *                         example: 0
  *                       hasVoted:
  *                         type: boolean

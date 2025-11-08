@@ -26,8 +26,7 @@ export enum VoteChoice {
 export enum ProposalState {
   Active = 0, 
   Passed = 1,
-  Failed = 2,
-  Executed = 3
+  Failed = 2
 }
 
 export enum ProposalCategory {

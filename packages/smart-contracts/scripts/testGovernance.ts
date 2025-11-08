@@ -62,7 +62,7 @@ async function main() {
     console.log(`   Title: ${proposal.title}`);
     console.log(`   Description: ${proposal.description}`);
     console.log(`   Proposer: ${proposal.proposer}`);
-    console.log(`   State: ${["Pending", "Active", "Passed", "Failed", "Executed"][proposal.state]}`);
+    console.log(`   State: ${["Pending", "Active", "Passed", "Failed"][proposal.state]}`);
   }
 
   console.log("\n All tests completed successfully!");
