@@ -10,7 +10,6 @@ contract GovernanceDAO {
     }
 
     enum ProposalState {
-        Pending,
         Active,
         Passed,
         Failed
