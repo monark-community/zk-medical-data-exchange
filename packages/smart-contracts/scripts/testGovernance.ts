@@ -16,7 +16,7 @@ dotenv.config();
 async function main() {
   console.log("Testing GovernanceDAO...\n");
 
-  const contractAddress = "0xab5a10bcc3df44865c54c2b646ba67da3c88e5c4";
+  const contractAddress = "0xfd04791131df7258e63046040254b5cacb5a078b";
 
   if (!process.env.SEPOLIA_RPC_URL || !process.env.SEPOLIA_PRIVATE_KEY) {
     throw new Error("Missing SEPOLIA_RPC_URL or SEPOLIA_PRIVATE_KEY in .env file");
@@ -62,7 +62,7 @@ async function main() {
     console.log(`   Title: ${proposal.title}`);
     console.log(`   Description: ${proposal.description}`);
     console.log(`   Proposer: ${proposal.proposer}`);
-    console.log(`   State: ${["Pending", "Active", "Passed", "Failed", "Executed"][proposal.state]}`);
+    console.log(`   State: ${["Active", "Passed", "Failed"][proposal.state]}`);
   }
 
   console.log("\n All tests completed successfully!");

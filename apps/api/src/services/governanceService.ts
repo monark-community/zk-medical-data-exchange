@@ -11,10 +11,12 @@ import logger from "@/utils/logger";
 import { Config } from "@/config/config";
 import { GOVERNANCE_DAO_ABI } from "@/contracts/generated";
 import { TABLES } from "@/constants/db";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
-const { USERS } = TABLES;
+const { USERS, PROPOSALS, PROPOSAL_VOTES } = TABLES;
 
 // Enums matching Solidity contract
+/* eslint-disable no-unused-vars */
 export enum VoteChoice {
   None = 0,
   For = 1,
@@ -24,8 +26,7 @@ export enum VoteChoice {
 export enum ProposalState {
   Active = 0, 
   Passed = 1,
-  Failed = 2,
-  Executed = 3
+  Failed = 2
 }
 
 export enum ProposalCategory {
@@ -35,6 +36,7 @@ export enum ProposalCategory {
   Policy = 3,
   Other = 4,
 }
+/* eslint-enable no-unused-vars */
 
 export interface Proposal {
   id: number;
@@ -47,7 +49,6 @@ export interface Proposal {
   votesFor: number;
   votesAgainst: number;
   totalVoters: number;
-  executed: boolean;
   state: ProposalState;
   timeRemaining?: number;
   hasVoted?: boolean;
@@ -101,6 +102,7 @@ class GovernanceService {
   private publicClient: any;
   private account: any;
   private contractAddress: string;
+  private supabase: SupabaseClient;
 
   constructor() {
     const privateKey = Config.SEPOLIA_PRIVATE_KEY;
@@ -139,6 +141,10 @@ class GovernanceService {
       transport: http(rpcUrl),
     });
 
+    this.supabase = createClient(Config.SUPABASE_URL, Config.SUPABASE_KEY, {
+      auth: { persistSession: false },
+    });
+
     logger.info(
       {
         contractAddress: this.contractAddress,
@@ -171,7 +177,7 @@ class GovernanceService {
 
       const receipt = await this.publicClient.waitForTransactionReceipt({ hash });
 
-      logger.info({ receipt }, "Proposal created successfully");
+      logger.info({ receipt }, "Proposal created on blockchain successfully");
 
       let proposalId: number | undefined;
       for (const log of receipt.logs) {
@@ -191,9 +197,52 @@ class GovernanceService {
         }
       }
 
+      if (proposalId === undefined) {
+        logger.error({ hash }, "Could not extract proposal ID from blockchain event");
+        return {
+          success: false,
+          error: "Proposal created on blockchain but ID extraction failed",
+        };
+      }
+
+      // Fetch complete proposal data from blockchain
+      const blockchainProposal = await this.publicClient.readContract({
+        address: this.contractAddress as `0x${string}`,
+        abi: GOVERNANCE_DAO_ABI,
+        functionName: "getProposal",
+        args: [BigInt(proposalId)],
+      });
+
+      // Save to database for fast queries
+      const { error: dbError } = await this.supabase
+        .from(PROPOSALS!.name)
+        .insert({
+          id: proposalId,
+          title: params.title,
+          description: params.description,
+          category: params.category,
+          proposer: params.walletAddress,
+          start_time: Number(blockchainProposal[5]),
+          end_time: Number(blockchainProposal[6]),
+          votes_for: 0,
+          votes_against: 0,
+          total_voters: 0,
+          state: ProposalState.Active,
+          deployment_tx_hash: hash,
+          chain_id: 11155111, // Sepolia
+        });
+
+      if (dbError) {
+        logger.error({ error: dbError, proposalId }, "Failed to save proposal to database");
+        // Don't fail the request - blockchain is source of truth
+        // Database is just a cache, can be synced later
+      } else {
+        logger.info({ proposalId }, "Proposal saved to database successfully");
+      }
+
       return {
         success: true,
-        data: { proposalId: proposalId ?? 0 },
+        data: { proposalId },
         transactionHash: hash,
       };
     } catch (error: any) {
@@ -208,23 +257,25 @@ class GovernanceService {
 
   async vote(params: VoteParams): Promise<GovernanceResult<VoteResult>> {
     try {
-      logger.info({ params }, "Casting vote");
+      logger.info({ params }, "Casting vote on blockchain");
 
       if (params.choice === VoteChoice.None) {
         return { success: false, error: "Invalid vote choice" };
       }
 
-      const hasVoted = await this.publicClient.readContract({
-        address: this.contractAddress as `0x${string}`,
-        abi: GOVERNANCE_DAO_ABI,
-        functionName: "getHasVoted",
-        args: [BigInt(params.proposalId), params.walletAddress as `0x${string}`],
-      });
+      // Check if already voted (from database)
+      const { data: existingVote } = await this.supabase
+        .from(PROPOSAL_VOTES!.name)
+        .select("*")
+        .eq(PROPOSAL_VOTES!.columns.proposalId!, params.proposalId)
+        .eq(PROPOSAL_VOTES!.columns.voterAddress!, params.walletAddress)
+        .single();
 
-      if (hasVoted) {
+      if (existingVote) {
         return { success: false, error: "Already voted on this proposal" };
       }
 
+      // Submit vote to blockchain
       const hash = await this.walletClient.writeContract({
         address: this.contractAddress as `0x${string}`,
         abi: GOVERNANCE_DAO_ABI,
@@ -236,7 +287,58 @@ class GovernanceService {
 
       const receipt = await this.publicClient.waitForTransactionReceipt({ hash });
 
-      logger.info({ receipt }, "Vote cast successfully");
+      logger.info({ receipt }, "Vote cast on blockchain successfully");
+
+      // Update database cache with new vote counts
+      // Get updated proposal data from blockchain
+      const proposalData = await this.publicClient.readContract({
+        address: this.contractAddress as `0x${string}`,
+        abi: GOVERNANCE_DAO_ABI,
+        functionName: "getProposal",
+        args: [BigInt(params.proposalId)],
+      });
+
+      // Update proposal vote counts in database
+      const { error: updateError } = await this.supabase
+        .from(PROPOSALS!.name)
+        .update({
+          votes_for: Number(proposalData[7]),
+          votes_against: Number(proposalData[8]),
+          total_voters: Number(proposalData[9]),
+          state: Number(proposalData[11]),
+        })
+        .eq(PROPOSALS!.columns.id!, params.proposalId);
+
+      if (updateError) {
+        logger.error({ error: updateError, proposalId: params.proposalId }, 
+          "Failed to update proposal vote counts in database");
+      }
+
+      // Record individual vote in database
+      const { data: dbProposal } = await this.supabase
+        .from(PROPOSALS!.name)
+        .select("id")
+        .eq(PROPOSALS!.columns.id!, params.proposalId)
+        .single();
+
+      if (dbProposal) {
+        const { error: voteError } = await this.supabase
+          .from(PROPOSAL_VOTES!.name)
+          .insert({
+            proposal_id: dbProposal.id,
+            voter_address: params.walletAddress,
+            choice: params.choice,
+            vote_tx_hash: hash,
+          });
+
+        if (voteError) {
+          logger.error({ error: voteError, proposalId: params.proposalId }, 
+            "Failed to save vote to database");
+        } else {
+          logger.info({ proposalId: params.proposalId, voter: params.walletAddress }, 
+            "Vote saved to database successfully");
+        }
+      }
 
       return {
         success: true,
@@ -254,8 +356,71 @@ class GovernanceService {
 
   async getProposal(proposalId: number, userAddress?: string): Promise<Proposal | null> {
     try {
-      logger.info({ proposalId, userAddress }, "Fetching proposal");
+      logger.info({ proposalId, userAddress }, "Fetching proposal from database");
 
+      // Fetch from database (fast)
+      const { data: dbProposal, error: dbError } = await this.supabase
+        .from(PROPOSALS!.name)
+        .select("*")
+        .eq(PROPOSALS!.columns.id!, proposalId)
+        .single();
+
+      if (dbError || !dbProposal) {
+        logger.warn({ error: dbError, proposalId }, 
+          "Proposal not found in database, falling back to blockchain");
+        
+        // Fallback to blockchain if not in database
+        return await this.getProposalFromBlockchain(proposalId, userAddress);
+      }
+
+      // Calculate time remaining
+      const now = Math.floor(Date.now() / 1000);
+      const timeRemaining = Math.max(0, dbProposal.end_time - now);
+
+      const proposal: Proposal = {
+        id: dbProposal.id,
+        title: dbProposal.title,
+        description: dbProposal.description,
+        category: dbProposal.category,
+        proposer: dbProposal.proposer,
+        startTime: dbProposal.start_time,
+        endTime: dbProposal.end_time,
+        votesFor: dbProposal.votes_for,
+        votesAgainst: dbProposal.votes_against,
+        totalVoters: dbProposal.total_voters,
+        state: dbProposal.state,
+        timeRemaining,
+      };
+
+      // Step 2: Check if user has voted (from database for speed)
+      if (userAddress) {
+        const { data: userVote } = await this.supabase
+          .from(PROPOSAL_VOTES!.name)
+          .select("*")
+          .eq(PROPOSAL_VOTES!.columns.proposalId!, dbProposal.id)
+          .eq(PROPOSAL_VOTES!.columns.voterAddress!, userAddress)
+          .single();
+
+        if (userVote) {
+          proposal.hasVoted = true;
+          proposal.userVote = userVote.choice;
+        } else {
+          proposal.hasVoted = false;
+        }
+      }
+
+      return proposal;
+    } catch (error: any) {
+      logger.error({ error, proposalId }, "Failed to fetch proposal");
+      return null;
+    }
+  }
+
+  /**
+   * Fetch proposal directly from blockchain (fallback method)
+   */
+  private async getProposalFromBlockchain(proposalId: number, userAddress?: string): Promise<Proposal | null> {
+    try {
       const proposalData = await this.publicClient.readContract({
         address: this.contractAddress as `0x${string}`,
         abi: GOVERNANCE_DAO_ABI,
@@ -274,7 +439,6 @@ class GovernanceService {
         votesFor: Number(proposalData[7]),
         votesAgainst: Number(proposalData[8]),
         totalVoters: Number(proposalData[9]),
-        executed: proposalData[10],
         state: Number(proposalData[11]) as ProposalState,
       };
 
@@ -286,7 +450,6 @@ class GovernanceService {
       });
       proposal.timeRemaining = Number(timeRemaining);
 
-      // If user address provided, check if they voted
       if (userAddress) {
         const hasVoted = await this.publicClient.readContract({
           address: this.contractAddress as `0x${string}`,
@@ -310,39 +473,72 @@ class GovernanceService {
 
       return proposal;
     } catch (error: any) {
-      logger.error({ error, proposalId }, "Failed to fetch proposal");
+      logger.error({ error, proposalId }, "Failed to fetch proposal from blockchain");
       return null;
     }
   }
 
   async getAllProposals(userAddress?: string): Promise<Proposal[]> {
     try {
-      logger.info({ userAddress }, "Fetching all proposals");
+      logger.info({ userAddress }, "Fetching all proposals from database");
 
-      const proposalCount = await this.publicClient.readContract({
-        address: this.contractAddress as `0x${string}`,
-        abi: GOVERNANCE_DAO_ABI,
-        functionName: "proposalCount",
-      });
+      // Fetch all proposals from database (fast, no blockchain calls)
+      const { data: dbProposals, error: dbError } = await this.supabase
+        .from(PROPOSALS!.name)
+        .select("*")
+        .order(PROPOSALS!.columns.createdAt!, { ascending: false });
 
-      const count = Number(proposalCount);
-      const proposals: Proposal[] = [];
+      if (dbError) {
+        logger.error({ error: dbError }, "Failed to fetch proposals from database");
+        return [];
+      }
 
-      const proposalPromises = Array.from({ length: count }, (_, i) =>
-        this.getProposal(i, userAddress)
-      );
+      if (!dbProposals || dbProposals.length === 0) {
+        logger.info("No proposals found in database");
+        return [];
+      }
 
-      const results = await Promise.all(proposalPromises);
+      const now = Math.floor(Date.now() / 1000);
+      const proposals: Proposal[] = dbProposals.map((dbProposal: any) => ({
+        id: dbProposal.id,
+        title: dbProposal.title,
+        description: dbProposal.description,
+        category: dbProposal.category,
+        proposer: dbProposal.proposer,
+        startTime: dbProposal.start_time,
+        endTime: dbProposal.end_time,
+        votesFor: dbProposal.votes_for,
+        votesAgainst: dbProposal.votes_against,
+        totalVoters: dbProposal.total_voters,
+        state: dbProposal.state,
+        timeRemaining: Math.max(0, dbProposal.end_time - now),
+      }));
 
-      for (const proposal of results) {
-        if (proposal) {
-          proposals.push(proposal);
+      // If user address provided, check their votes
+      if (userAddress) {
+        const { data: userVotes } = await this.supabase
+          .from(PROPOSAL_VOTES!.name)
+          .select("proposal_id, choice")
+          .eq(PROPOSAL_VOTES!.columns.voterAddress!, userAddress);
+
+        if (userVotes && userVotes.length > 0) {
+          const voteMap = new Map(userVotes.map((v: any) => [v.proposal_id, v.choice]));
+          
+          for (const proposal of proposals) {
+            const dbProposal = dbProposals.find((p: any) => p.id === proposal.id);
+            if (dbProposal && voteMap.has(dbProposal.id)) {
+              proposal.hasVoted = true;
+              proposal.userVote = voteMap.get(dbProposal.id) as VoteChoice;
+            } else {
+              proposal.hasVoted = false;
+            }
+          }
+        } else {
+          proposals.forEach(p => p.hasVoted = false);
         }
       }
 
-      proposals.sort((a, b) => b.id - a.id);
-
-      logger.info({ count: proposals.length }, "Fetched all proposals");
+      logger.info({ count: proposals.length }, "Fetched all proposals from database");
 
       return proposals;
     } catch (error: any) {
@@ -353,25 +549,42 @@ class GovernanceService {
 
   async getUserProposals(userAddress: string): Promise<Proposal[]> {
     try {
-      logger.info({ userAddress }, "Fetching user proposals");
+      logger.info({ userAddress }, "Fetching user proposals from database");
 
-      const proposalIds = await this.publicClient.readContract({
-        address: this.contractAddress as `0x${string}`,
-        abi: GOVERNANCE_DAO_ABI,
-        functionName: "getUserProposals",
-        args: [userAddress as `0x${string}`],
-      });
+      // Fetch user's proposals from database
+      const { data: dbProposals, error: dbError } = await this.supabase
+        .from(PROPOSALS!.name)
+        .select("*")
+        .eq(PROPOSALS!.columns.proposer!, userAddress)
+        .order(PROPOSALS!.columns.createdAt!, { ascending: false });
 
-      const proposals: Proposal[] = [];
-
-      for (const id of proposalIds) {
-        const proposal = await this.getProposal(Number(id), userAddress);
-        if (proposal) {
-          proposals.push(proposal);
-        }
+      if (dbError) {
+        logger.error({ error: dbError, userAddress }, "Failed to fetch user proposals from database");
+        return [];
       }
 
-      logger.info({ count: proposals.length }, "Fetched user proposals");
+      if (!dbProposals || dbProposals.length === 0) {
+        return [];
+      }
+
+      const now = Math.floor(Date.now() / 1000);
+      const proposals: Proposal[] = dbProposals.map((dbProposal: any) => ({
+        id: dbProposal.id,
+        title: dbProposal.title,
+        description: dbProposal.description,
+        category: dbProposal.category,
+        proposer: dbProposal.proposer,
+        startTime: dbProposal.start_time,
+        endTime: dbProposal.end_time,
+        votesFor: dbProposal.votes_for,
+        votesAgainst: dbProposal.votes_against,
+        totalVoters: dbProposal.total_voters,
+        state: dbProposal.state,
+        timeRemaining: Math.max(0, dbProposal.end_time - now),
+        hasVoted: false, // User is the proposer, voting status not relevant
+      }));
+
+      logger.info({ count: proposals.length }, "Fetched user proposals from database");
 
       return proposals;
     } catch (error: any) {
@@ -382,25 +595,56 @@ class GovernanceService {
 
   async getUserVotes(userAddress: string): Promise<Proposal[]> {
     try {
-      logger.info({ userAddress }, "Fetching user votes");
+      logger.info({ userAddress }, "Fetching user votes from database");
 
-      const proposalIds = await this.publicClient.readContract({
-        address: this.contractAddress as `0x${string}`,
-        abi: GOVERNANCE_DAO_ABI,
-        functionName: "getUserVotes",
-        args: [userAddress as `0x${string}`],
-      });
+      // Fetch user's votes
+      const { data: userVotes, error: votesError } = await this.supabase
+        .from(PROPOSAL_VOTES!.name)
+        .select("proposal_id, choice")
+        .eq(PROPOSAL_VOTES!.columns.voterAddress!, userAddress);
 
-      const proposals: Proposal[] = [];
-
-      for (const id of proposalIds) {
-        const proposal = await this.getProposal(Number(id), userAddress);
-        if (proposal) {
-          proposals.push(proposal);
-        }
+      if (votesError) {
+        logger.error({ error: votesError, userAddress }, "Failed to fetch user votes from database");
+        return [];
       }
 
-      logger.info({ count: proposals.length }, "Fetched user votes");
+      if (!userVotes || userVotes.length === 0) {
+        return [];
+      }
+
+      const proposalIds = userVotes.map((vote: any) => vote.proposal_id);
+
+      const { data: dbProposals, error: proposalsError } = await this.supabase
+        .from(PROPOSALS!.name)
+        .select("*")
+        .in(PROPOSALS!.columns.id!, proposalIds);
+
+      if (proposalsError || !dbProposals) {
+        logger.error({ error: proposalsError, userAddress }, "Failed to fetch proposals from database");
+        return [];
+      }
+
+      const voteMap = new Map(userVotes.map((v: any) => [v.proposal_id, v.choice]));
+
+      const now = Math.floor(Date.now() / 1000);
+      const proposals: Proposal[] = dbProposals.map((dbProposal: any) => ({
+        id: dbProposal.id,
+        title: dbProposal.title,
+        description: dbProposal.description,
+        category: dbProposal.category,
+        proposer: dbProposal.proposer,
+        startTime: dbProposal.start_time,
+        endTime: dbProposal.end_time,
+        votesFor: dbProposal.votes_for,
+        votesAgainst: dbProposal.votes_against,
+        totalVoters: dbProposal.total_voters,
+        state: dbProposal.state,
+        timeRemaining: Math.max(0, dbProposal.end_time - now),
+        hasVoted: true,
+        userVote: voteMap.get(dbProposal.id) as VoteChoice,
+      }));
+
+      logger.info({ count: proposals.length }, "Fetched user votes from database");
 
       return proposals;
     } catch (error: any) {
@@ -411,26 +655,26 @@ class GovernanceService {
 
   async getPlatformStats(): Promise<PlatformStats> {
     try {
-      logger.info("Fetching platform stats");
+      logger.info("Fetching platform stats from database");
 
-      // Get blockchain stats
-      const stats = await this.publicClient.readContract({
-        address: this.contractAddress as `0x${string}`,
-        abi: GOVERNANCE_DAO_ABI,
-        functionName: "getPlatformStats",
-      });
+      // Get proposal counts from database
+      const { count: totalProposals } = await this.supabase
+        .from(PROPOSALS!.name)
+        .select("*", { count: "exact", head: true });
 
-      const totalProposals = Number(stats[0]);
-      const activeProposals = Number(stats[1]);
-      const totalVotes = Number(stats[2]);
+      const { count: activeProposals } = await this.supabase
+        .from(PROPOSALS!.name)
+        .select("*", { count: "exact", head: true })
+        .eq(PROPOSALS!.columns.state!, ProposalState.Active);
+
+      // Get total votes from database
+      const { count: totalVotes } = await this.supabase
+        .from(PROPOSAL_VOTES!.name)
+        .select("*", { count: "exact", head: true });
 
       // Get total registered users from database
-      const supabase = createClient(Config.SUPABASE_URL, Config.SUPABASE_KEY, {
-        auth: { persistSession: false },
-      });
-
-      const { count: totalUsers, error: countError } = await supabase
-        .from(USERS?.name || "users")
+      const { count: totalUsers, error: countError } = await this.supabase
+        .from(USERS!.name || "users")
         .select("*", { count: "exact", head: true });
 
       if (countError) {
@@ -438,27 +682,27 @@ class GovernanceService {
       }
 
       // Calculate average participation: (avg votes per proposal / total users) * 100
-      const avgVotesPerProposal = totalProposals > 0 ? totalVotes / totalProposals : 0;
+      const avgVotesPerProposal = (totalProposals || 0) > 0 
+        ? (totalVotes || 0) / (totalProposals || 1) 
+        : 0;
       const avgParticipation =
         totalUsers && totalUsers > 0
           ? Math.min(100, (avgVotesPerProposal / totalUsers) * 100)
           : 0;
 
-      // Use database user count as active voters (registered users who can vote)
-      // Note: The smart contract doesn't track unique voters across proposals,
-      // so we use total registered users as a proxy for potential active voters
+      // uniqueVoters = total registered users on the platform (who can vote)
       const uniqueVoters = totalUsers || 0;
 
       const platformStats: PlatformStats = {
-        totalProposals,
-        activeProposals,
-        totalVotes,
+        totalProposals: totalProposals || 0,
+        activeProposals: activeProposals || 0,
+        totalVotes: totalVotes || 0,
         uniqueVoters,
         avgParticipation: Math.round(avgParticipation * 100) / 100, // Round to 2 decimals
-        votingPower: totalVotes,
+        votingPower: totalVotes || 0,
       };
 
-      logger.info({ platformStats }, "Fetched platform stats");
+      logger.info({ platformStats }, "Fetched platform stats from database");
 
       return platformStats;
     } catch (error: any) {
@@ -476,8 +720,9 @@ class GovernanceService {
 
   async finalizeProposal(proposalId: number): Promise<GovernanceResult<FinalizeProposalResult>> {
     try {
-      logger.info({ proposalId }, "Finalizing proposal");
+      logger.info({ proposalId }, "Finalizing proposal on blockchain");
 
+      // Step 1: Finalize on blockchain
       const hash = await this.walletClient.writeContract({
         address: this.contractAddress as `0x${string}`,
         abi: GOVERNANCE_DAO_ABI,
@@ -489,7 +734,29 @@ class GovernanceService {
 
       const receipt = await this.publicClient.waitForTransactionReceipt({ hash });
 
-      logger.info({ receipt }, "Proposal finalized successfully");
+      logger.info({ receipt }, "Proposal finalized on blockchain successfully");
+
+      // Step 2: Update database cache
+      const proposalData = await this.publicClient.readContract({
+        address: this.contractAddress as `0x${string}`,
+        abi: GOVERNANCE_DAO_ABI,
+        functionName: "getProposal",
+        args: [BigInt(proposalId)],
+      });
+
+      const { error: updateError } = await this.supabase
+        .from(PROPOSALS!.name)
+        .update({
+          state: Number(proposalData[11]),
+        })
+        .eq(PROPOSALS!.columns.id!, proposalId);
+
+      if (updateError) {
+        logger.error({ error: updateError, proposalId }, 
+          "Failed to update finalized proposal in database");
+      } else {
+        logger.info({ proposalId }, "Finalized proposal updated in database");
+      }
 
       return {
         success: true,
@@ -504,6 +771,7 @@ class GovernanceService {
       };
     }
   }
+
 }
 
 export const governanceService = new GovernanceService();

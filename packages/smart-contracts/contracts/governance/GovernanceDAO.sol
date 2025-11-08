@@ -10,11 +10,9 @@ contract GovernanceDAO {
     }
 
     enum ProposalState {
-        Pending,
         Active,
         Passed,
-        Failed,
-        Executed
+        Failed
     }
 
     enum ProposalCategory {
@@ -36,7 +34,6 @@ contract GovernanceDAO {
         uint256 votesFor;
         uint256 votesAgainst;
         uint256 totalVoters;
-        bool executed;
         ProposalState state;
     }
 
@@ -74,12 +71,6 @@ contract GovernanceDAO {
     event ProposalStateChanged(
         uint256 indexed proposalId,
         ProposalState newState,
-        uint256 timestamp
-    );
-
-    event ProposalExecuted(
-        uint256 indexed proposalId,
-        address indexed executor,
         uint256 timestamp
     );
 
@@ -138,7 +129,6 @@ contract GovernanceDAO {
             votesFor: 0,
             votesAgainst: 0,
             totalVoters: 0,
-            executed: false,
             state: ProposalState.Active
         });
 
@@ -199,22 +189,6 @@ contract GovernanceDAO {
         proposal.state = newState;
 
         emit ProposalStateChanged(proposalId, newState, block.timestamp);
-    }
-
-    function executeProposal(uint256 proposalId)
-        external
-        onlyOwner
-        proposalExists(proposalId)
-    {
-        Proposal storage proposal = proposals[proposalId];
-
-        require(proposal.state == ProposalState.Passed, "Proposal must be passed");
-        require(!proposal.executed, "Already executed");
-
-        proposal.executed = true;
-        proposal.state = ProposalState.Executed;
-
-        emit ProposalExecuted(proposalId, msg.sender, block.timestamp);
     }
 
     function getProposal(uint256 proposalId) 
