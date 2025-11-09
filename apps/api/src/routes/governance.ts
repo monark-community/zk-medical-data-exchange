@@ -470,7 +470,7 @@ router.post("/proposals", createProposal);
  *                   example: false
  *                 error:
  *                   type: string
- *                   example: Invalid vote choice (must be 1: For, 2: Against, 3: Abstain)
+ *                   example: "Invalid vote choice (must be 1: For, 2: Against, 3: Abstain)"
  *       500:
  *         description: Internal server error
  *         content:
