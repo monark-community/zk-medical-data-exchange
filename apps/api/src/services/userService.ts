@@ -129,7 +129,6 @@ export async function getUserStatsForDataSeller(
   nMedicalFiles: number;
   totalEarnings: number;
 }> {
-  // Only count participations where user has active consent
   const { data: participations, error: participationsError } = await supabase
     .from(STUDY_PARTICIPATIONS!.name!)
     .select("*, studies!inner(created_at, duration_days)")
@@ -216,7 +215,6 @@ export async function getUserStatsForResearcher(
     }
   }
 
-  // Only count participants with active consent
   const { count: nParticipantsEnrolled, error: participantsError } = await supabase
     .from(STUDY_PARTICIPATIONS!.name!)
     .select("*, studies!inner(*)", { count: "exact", head: true })

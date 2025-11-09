@@ -145,12 +145,10 @@ export async function getUserStats(req: Request, res: Response) {
   const { walletAddress, profile } = req.params;
 
   try {
-    // Validate wallet address
     if (!isValidEthereumAddress(walletAddress)) {
       return res.status(400).json({ error: "Invalid wallet address format" });
     }
 
-    // Validate and convert profile
     if (!profile || !(profile in UserProfile)) {
       return res.status(400).json({
         error: "Invalid profile. Must be one of: DATA_SELLER, RESEARCHER",
@@ -161,7 +159,6 @@ export async function getUserStats(req: Request, res: Response) {
 
     logger.info({ walletAddress, profile, profileValue }, "getUserStats called");
 
-    // Route to appropriate stats function based on profile
     switch (profileValue) {
       case UserProfile.DATA_SELLER: {
         const dataSellerstats = await getUserStatsForDataSeller(req.supabase, walletAddress);

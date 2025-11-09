@@ -25,7 +25,7 @@ export default function EnrolledStudiesList({
   const renderActionButtons = (study: StudySummary) => {
     const isRevoking = revokingStudyId === study.id;
     const isGranting = grantingStudyId === study.id;
-    const hasConsent = study.hasConsented ?? true; // Default to true if undefined
+    const hasConsent = study.hasConsented ?? true;
     const isStudyFull = study.currentParticipants >= study.maxParticipants;
 
     return (

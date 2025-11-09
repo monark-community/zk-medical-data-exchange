@@ -76,7 +76,6 @@ const handleConsentOperation = async (
 
     logger.info({ studyId: id, participantWallet }, `POST /api/studies/:id/consent/${operation}`);
 
-    // Check if participation exists
     const { data: participation, error: participationError } = await req.supabase
       .from(TABLES.STUDY_PARTICIPATIONS!.name)
       .select("*, study:study_id(*)")
@@ -107,7 +106,6 @@ const handleConsentOperation = async (
       return res.status(400).json({ error: message });
     }
 
-    // Record consent operation on blockchain first (if study is deployed)
     let blockchainTxHash = null;
     const studyContractAddress = (participation.study as any)?.contract_address;
 
@@ -171,8 +169,7 @@ const handleConsentOperation = async (
       );
     }
 
-    // Only update database if blockchain operation succeeded (or study not deployed)
-    const newConsentStatus = !isRevoke; // revoke sets false, grant sets true
+    const newConsentStatus = !isRevoke;
     const { error: updateError } = await req.supabase
       .from(TABLES.STUDY_PARTICIPATIONS!.name)
       .update({ consents: newConsentStatus })
@@ -192,7 +189,6 @@ const handleConsentOperation = async (
       `Consent ${isRevoke ? "revoked" : "granted"} in database`
     );
 
-    // Update study participant count
     const studyRecord = participation.study as any;
     if (studyRecord) {
       const delta = isRevoke ? -1 : 1;
@@ -203,7 +199,6 @@ const handleConsentOperation = async (
         .eq(TABLES.STUDIES!.columns.id!, id);
     }
 
-    // Log audit event
     await auditLogger(participantWallet, String(id), true, {
       blockchainTxHash,
       userAgent,
@@ -689,7 +684,6 @@ export const getStudies = async (req: Request, res: Response) => {
       return res.status(500).json({ error: "Failed to fetch studies" });
     }
 
-    // Update current_participants to reflect active consented participants
     const transformedStudies = await Promise.all(
       (studies || []).map(async (study) => {
         study.current_participants = await updateStudyParticipantCount(
@@ -738,7 +732,6 @@ export const getStudyById = async (req: Request, res: Response) => {
       return res.status(500).json({ error: "Failed to fetch study" });
     }
 
-    // Get accurate active participant count
     const activeCount = await updateStudyParticipantCount(req.supabase, study.id, study);
     study.current_participants = activeCount;
 
@@ -818,6 +811,8 @@ export const updateStudy = async (req: Request, res: Response) => {
  * POST /api/studies/:id/participants
  */
 export const participateInStudy = async (req: Request, res: Response) => {
+  const { startTime, userAgent, ipAddress } = getAuditMetadata(req);
+
   try {
     const { id } = req.params;
     const {
@@ -920,6 +915,9 @@ export const participateInStudy = async (req: Request, res: Response) => {
       matchedCriteria,
       blockchainTxHash,
       dataCommitment: dataCommitment.substring(0, 20) + "...",
+      userAgent,
+      ipAddress,
+      duration: getAuditDuration(startTime),
     });
 
     res.status(201).json({
@@ -944,6 +942,9 @@ export const participateInStudy = async (req: Request, res: Response) => {
       await auditService
         .logStudyParticipation(participantWallet, String(id), false, {
           error: error instanceof Error ? error.message : "Unknown error",
+          userAgent,
+          ipAddress,
+          duration: getAuditDuration(startTime),
         })
         .catch((auditError) => {
           logger.error({ auditError }, "Failed to log failed participation attempt");
@@ -1119,16 +1120,13 @@ export const getEnrolledStudies = async (req: Request, res: Response) => {
       return res.json({ studies: [] });
     }
 
-    // Extract study IDs
     const studyIds = participations.map((p: any) => p.study_id);
 
-    // Create consent map for easy lookup
     const consentMap = new Map<number, boolean>();
     participations.forEach((p: any) => {
-      consentMap.set(p.study_id, p.consents ?? true); // Default to true if null
+      consentMap.set(p.study_id, p.consents ?? true);
     });
 
-    // Fetch the full study details for all enrolled studies
     const { data: studies, error: studiesError } = await req.supabase
       .from(TABLES.STUDIES!.name)
       .select("*")

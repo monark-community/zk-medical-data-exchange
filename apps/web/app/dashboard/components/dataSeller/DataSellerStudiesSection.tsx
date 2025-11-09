@@ -30,7 +30,6 @@ export default function DataSellerStudiesSection() {
   const [enrolledLoading, setEnrolledLoading] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("available");
 
-  // Fetch enrolled studies when wallet address changes
   useEffect(() => {
     if (walletAddress) {
       setEnrolledLoading(true);
@@ -79,7 +78,6 @@ export default function DataSellerStudiesSection() {
 
       if (result.success) {
         alert(`${result.message}`);
-        // Refetch both all studies and enrolled studies
         refetch();
         if (walletAddress) {
           getEnrolledStudies(walletAddress)
@@ -120,7 +118,6 @@ export default function DataSellerStudiesSection() {
           console.log("Blockchain transaction:", result.blockchainTxHash);
         }
 
-        // Refetch enrolled studies to update UI
         setEnrolledLoading(true);
         const updatedStudies = await getEnrolledStudies(walletAddress);
         setEnrolledStudies(updatedStudies);
@@ -161,7 +158,6 @@ export default function DataSellerStudiesSection() {
           console.log("Blockchain transaction:", result.blockchainTxHash);
         }
 
-        // Refetch enrolled studies to update UI
         setEnrolledLoading(true);
         const updatedStudies = await getEnrolledStudies(walletAddress);
         setEnrolledStudies(updatedStudies);
@@ -172,7 +168,6 @@ export default function DataSellerStudiesSection() {
     } catch (error) {
       console.error("Failed to grant consent:", error);
 
-      // Check if error is due to study being full
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
       if (errorMessage.includes("full") || errorMessage.includes("Full")) {
         alert(
@@ -186,7 +181,6 @@ export default function DataSellerStudiesSection() {
     }
   };
 
-  // Filter out enrolled studies from available studies
   const enrolledStudyIds = new Set(enrolledStudies.map((s) => s.id));
   const availableStudies = studies.filter((study) => !enrolledStudyIds.has(study.id));
 

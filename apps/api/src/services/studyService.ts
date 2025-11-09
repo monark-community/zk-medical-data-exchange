@@ -45,7 +45,6 @@ class StudyService {
 
     const formattedPrivateKey = privateKey.startsWith("0x") ? privateKey : `0x${privateKey}`;
 
-    // Validate private key format (should be 64 hex characters + 0x prefix = 66 total)
     if (formattedPrivateKey.length !== 66) {
       throw new Error(
         `Invalid private key format. Expected 64 hex characters, got ${
@@ -113,12 +112,10 @@ class StudyService {
         `${context} simulation successful`
       );
 
-      // Execute the transaction
       const transactionHash = await this.walletClient.writeContract(simulationResult.request);
 
       logger.info({ transactionHash }, `${context} transaction submitted`);
 
-      // Wait for transaction receipt
       const receipt = await this.publicClient.waitForTransactionReceipt({
         hash: transactionHash,
       });
@@ -689,7 +686,6 @@ class StudyService {
       "Recording study participation on blockchain"
     );
 
-    // Convert proof to BigInt format
     try {
       const pA: [bigint, bigint] = [BigInt(proof.a[0]), BigInt(proof.a[1])];
       const pB: [[bigint, bigint], [bigint, bigint]] = [

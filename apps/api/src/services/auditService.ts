@@ -113,10 +113,8 @@ class AuditService {
     entry: AuditLogEntry
   ): Promise<{ success: boolean; txHash?: string; error?: string }> {
     try {
-      // Create data hash for privacy
       const dataHash = this.createDataHash(entry.sensitiveData || {});
 
-      // Prepare metadata
       const metadata = {
         timestamp: entry.timestamp || new Date(),
         sessionId: entry.sessionId,
@@ -125,7 +123,6 @@ class AuditService {
         ...entry.metadata,
       };
 
-      // Log to blockchain (for immutability)
       const txHash = await this.logToBlockchain(
         entry.user,
         entry.userProfile,
@@ -212,11 +209,10 @@ class AuditService {
           chain: sepolia,
         });
 
-        // Wait for confirmation with timeout
         const receipt = await Promise.race([
           this.publicClient.waitForTransactionReceipt({
             hash: txHash,
-            timeout: 60000, // 60 second timeout
+            timeout: 60000, // 60 second
           }),
           new Promise((_, reject) =>
             setTimeout(() => reject(new Error("Transaction confirmation timeout")), 60000)
@@ -247,7 +243,6 @@ class AuditService {
           `Blockchain transaction attempt ${attempt} failed`
         );
 
-        // Don't retry on certain errors
         if (
           error.message?.includes("insufficient funds") ||
           error.message?.includes("gas required exceeds allowance")
@@ -255,7 +250,6 @@ class AuditService {
           throw error;
         }
 
-        // Wait before retrying (exponential backoff)
         if (attempt < maxRetries) {
           const delay = Math.pow(2, attempt) * 1000; // 2s, 4s, 8s
           await new Promise((resolve) => setTimeout(resolve, delay));
@@ -263,7 +257,6 @@ class AuditService {
       }
     }
 
-    // If all retries failed, throw the last error
     throw new Error(
       `Blockchain transaction failed after ${maxRetries} attempts: ${lastError.message}`
     );
@@ -283,7 +276,7 @@ class AuditService {
 
     let hash = 0;
     for (let i = 0; i < data.length; i++) {
-      const char = data[i]!; // Non-null assertion since we know i is within bounds
+      const char = data[i]!;
       hash = (hash << 5) - hash + char;
       hash = hash & hash; // Convert to 32-bit integer
     }
@@ -307,9 +300,8 @@ class AuditService {
         args: [userAddress as `0x${string}`],
       })) as bigint[];
 
-      const latestActions = actions.slice(-limit); // Get latest actions
+      const latestActions = actions.slice(-limit);
 
-      // Convert BigInt values to numbers for JSON serialization
       return this.convertBigIntToNumber(latestActions);
     } catch (error) {
       logger.error({ error, userAddress }, "Failed to get user actions");
@@ -335,7 +327,6 @@ class AuditService {
         args: [userAddress as `0x${string}`, userProfile, BigInt(limit)],
       })) as bigint[];
 
-      // Convert BigInt values to numbers for JSON serialization
       return this.convertBigIntToNumber(actions);
     } catch (error) {
       logger.error({ error, userAddress, userProfile }, "Failed to get user latest actions");
@@ -357,7 +348,6 @@ class AuditService {
         args: [BigInt(recordId)],
       })) as any;
 
-      // Convert BigInt values to numbers for JSON serialization
       return this.convertBigIntToNumber(record);
     } catch (error) {
       logger.error({ error, recordId }, "Failed to get audit record");
@@ -371,7 +361,7 @@ class AuditService {
   async logAuthentication(userAddress: string, success: boolean, metadata?: Record<string, any>) {
     return this.logAction({
       user: userAddress,
-      userProfile: UserProfile.COMMON, // Authentication is common to all profiles
+      userProfile: UserProfile.COMMON,
       actionType: ActionType.USER_AUTHENTICATION,
       resource: "auth",
       action: success ? "login_success" : "login_failed",
@@ -554,12 +544,9 @@ class AuditService {
         args: [userAddress as `0x${string}`, userProfile],
       })) as bigint[];
 
-      // Since the contract returns in ascending order (oldest first),
-      // we reverse to get latest first and take the last N records
       const actionsArray = [...actions].reverse();
       const limitedActions = actionsArray.slice(0, limit);
 
-      // Convert BigInt values to numbers for JSON serialization
       return this.convertBigIntToNumber(limitedActions);
     } catch (error) {
       logger.error({ error, userAddress, userProfile }, "Failed to get user actions for profile");
@@ -580,7 +567,6 @@ class AuditService {
     try {
       const auditTrailAddress = Config.AUDIT_TRAIL_ADDRESS as `0x${string}`;
 
-      // First, get the array of record IDs and total count
       const result = (await this.publicClient.readContract({
         address: auditTrailAddress,
         abi: AUDIT_TRAIL_ABI,
@@ -596,7 +582,6 @@ class AuditService {
 
       const [recordIds, total] = result;
 
-      // Then, fetch full details for each record ID
       const recordDetailsPromises = recordIds.map(async (recordId: bigint) => {
         try {
           const recordData = (await this.publicClient.readContract({
@@ -606,7 +591,6 @@ class AuditService {
             args: [recordId],
           })) as any;
 
-          // Map the tuple result to our expected interface
           const [
             timestamp,
             blockNumber,
@@ -650,11 +634,9 @@ class AuditService {
         }
       });
 
-      // Wait for all record details and filter out any failed fetches
       const recordDetails = await Promise.all(recordDetailsPromises);
       const validRecords = recordDetails.filter((record) => record !== null);
 
-      // Convert BigInt values to numbers for JSON serialization
       const serializedRecords = this.convertBigIntToNumber(validRecords);
 
       return { records: serializedRecords, total: Number(total) };
@@ -671,7 +653,6 @@ class AuditService {
    * Check if an action type should be logged as COMMON
    */
   static getProfileForActionType(actionType: ActionType, defaultProfile: UserProfile): UserProfile {
-    // Common actions that should be available across all profiles
     if (
       actionType === ActionType.USER_AUTHENTICATION ||
       actionType === ActionType.PROPOSAL_CREATION ||
@@ -782,5 +763,4 @@ class AuditService {
   }
 }
 
-// Export singleton instance
 export const auditService = new AuditService();

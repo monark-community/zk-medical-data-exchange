@@ -17,7 +17,6 @@ export const getUserActionsByProfile = async (req: Request, res: Response): Prom
     const { userAddress, profile } = req.params;
     const { limit = "20" } = req.query;
 
-    // Validate user address format
     if (!isValidEthereumAddress(userAddress)) {
       res.status(400).json({
         success: false,
@@ -26,7 +25,6 @@ export const getUserActionsByProfile = async (req: Request, res: Response): Prom
       return;
     }
 
-    // Validate and convert profile
     const userProfile = parseInt(profile as string);
     if (isNaN(userProfile) || !Object.values(UserProfile).includes(userProfile)) {
       res.status(400).json({
@@ -37,7 +35,6 @@ export const getUserActionsByProfile = async (req: Request, res: Response): Prom
       return;
     }
 
-    // Validate limit
     const limitNum = parseInt(limit as string);
     if (isNaN(limitNum) || limitNum < 1 || limitNum > 100) {
       res.status(400).json({
@@ -101,7 +98,6 @@ export const getUserActionsByProfilePaginated = async (
     const { userAddress, profile } = req.params;
     const { offset = "0", limit = "20", latestFirst = "true" } = req.query;
 
-    // Validate user address format
     if (!isValidEthereumAddress(userAddress)) {
       res.status(400).json({
         success: false,
@@ -109,8 +105,6 @@ export const getUserActionsByProfilePaginated = async (
       });
       return;
     }
-
-    // Validate and convert profile
     const userProfile = parseInt(profile as string);
     if (isNaN(userProfile) || !Object.values(UserProfile).includes(userProfile)) {
       res.status(400).json({
@@ -121,7 +115,6 @@ export const getUserActionsByProfilePaginated = async (
       return;
     }
 
-    // Validate offset
     const offsetNum = parseInt(offset as string);
     if (isNaN(offsetNum) || offsetNum < 0) {
       res.status(400).json({
@@ -131,7 +124,6 @@ export const getUserActionsByProfilePaginated = async (
       return;
     }
 
-    // Validate limit
     const limitNum = parseInt(limit as string);
     if (isNaN(limitNum) || limitNum < 1 || limitNum > 100) {
       res.status(400).json({
@@ -141,7 +133,6 @@ export const getUserActionsByProfilePaginated = async (
       return;
     }
 
-    // Convert latestFirst to boolean
     const latestFirstBool = latestFirst === "true";
 
     const result = await auditService.getUserActionsForProfilePaginated(
@@ -218,7 +209,6 @@ export const getAuditRecord = async (req: Request, res: Response): Promise<void>
   try {
     const { recordId } = req.params;
 
-    // Validate record ID
     if (!recordId) {
       res.status(400).json({
         success: false,
@@ -284,7 +274,6 @@ export const getAllUserActions = async (req: Request, res: Response): Promise<vo
     const { userAddress } = req.params;
     const { limit = "20" } = req.query;
 
-    // Validate user address format
     if (!isValidEthereumAddress(userAddress)) {
       res.status(400).json({
         success: false,
@@ -293,7 +282,6 @@ export const getAllUserActions = async (req: Request, res: Response): Promise<vo
       return;
     }
 
-    // Validate limit
     const limitNum = parseInt(limit as string);
     if (isNaN(limitNum) || limitNum < 1 || limitNum > 100) {
       res.status(400).json({
@@ -382,7 +370,6 @@ export const logFileAccess = async (req: Request, res: Response): Promise<void> 
   try {
     const { userAddress, encryptedCID, accessType, success, resourceType, metadata } = req.body;
 
-    // Validate required fields
     if (!userAddress || !encryptedCID || !accessType) {
       res.status(400).json({
         success: false,
@@ -391,7 +378,6 @@ export const logFileAccess = async (req: Request, res: Response): Promise<void> 
       return;
     }
 
-    // Validate user address format
     if (!isValidEthereumAddress(userAddress)) {
       res.status(400).json({
         success: false,
@@ -400,7 +386,6 @@ export const logFileAccess = async (req: Request, res: Response): Promise<void> 
       return;
     }
 
-    // Validate access type
     if (!["view", "download"].includes(accessType)) {
       res.status(400).json({
         success: false,
@@ -409,12 +394,11 @@ export const logFileAccess = async (req: Request, res: Response): Promise<void> 
       return;
     }
 
-    // Log the file access
     const result = await auditService.logDataAccess(
       userAddress,
       encryptedCID,
       accessType,
-      success !== false, // Default to true if not specified
+      success !== false,
       resourceType,
       metadata || {}
     );
@@ -475,7 +459,6 @@ export const logFailedJoinStudy = async (req: Request, res: Response): Promise<v
   try {
     const { userAddress, studyId, reason, errorDetails, metadata } = req.body;
 
-    // Validate required fields
     if (!userAddress || !studyId) {
       res.status(400).json({
         success: false,
@@ -484,7 +467,6 @@ export const logFailedJoinStudy = async (req: Request, res: Response): Promise<v
       return;
     }
 
-    // Validate user address format
     if (!isValidEthereumAddress(userAddress)) {
       res.status(400).json({
         success: false,
@@ -493,7 +475,6 @@ export const logFailedJoinStudy = async (req: Request, res: Response): Promise<v
       return;
     }
 
-    // Validate studyId
     const studyIdNum = parseInt(studyId);
     if (isNaN(studyIdNum) || studyIdNum < 0) {
       res.status(400).json({
@@ -503,18 +484,16 @@ export const logFailedJoinStudy = async (req: Request, res: Response): Promise<v
       return;
     }
 
-    // Prepare metadata for audit
     const enrichedMetadata = {
       reason: reason || "Unknown error",
       errorDetails,
       ...metadata,
     };
 
-    // Log the failed join attempt using logStudyParticipation with success=false
     const result = await auditService.logStudyParticipation(
       userAddress,
       studyIdNum.toString(),
-      false, // success = false for failed attempts
+      false,
       enrichedMetadata
     );
 
