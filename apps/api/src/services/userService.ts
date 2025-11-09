@@ -133,7 +133,7 @@ export async function getUserStatsForDataSeller(
     .from(STUDY_PARTICIPATIONS!.name!)
     .select("*, studies!inner(created_at, duration_days)")
     .eq(STUDY_PARTICIPATIONS!.columns.participantWallet!, walletAddress)
-    .eq(STUDY_PARTICIPATIONS!.columns.consents!, true);
+    .eq(STUDY_PARTICIPATIONS!.columns.hasConsented!, true);
 
   if (participationsError) {
     logger.error(
@@ -219,7 +219,7 @@ export async function getUserStatsForResearcher(
     .from(STUDY_PARTICIPATIONS!.name!)
     .select("*, studies!inner(*)", { count: "exact", head: true })
     .eq("studies.created_by", walletAddress)
-    .eq(STUDY_PARTICIPATIONS!.columns.consents!, true);
+    .eq(STUDY_PARTICIPATIONS!.columns.hasConsented!, true);
 
   if (participantsError) {
     logger.error({ error: participantsError, walletAddress }, "Failed to get participants count");

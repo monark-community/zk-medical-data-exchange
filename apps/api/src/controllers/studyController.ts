@@ -38,7 +38,6 @@ const updateStudyParticipantCount = async (
 ) => {
   const activeCount = await getActiveParticipantCount(supabase, studyId);
 
-  // Update if count is different from current value
   if (!study || study.current_participants !== activeCount) {
     await supabase
       .from(TABLES.STUDIES!.name)
@@ -91,7 +90,7 @@ const handleConsentOperation = async (
       return res.status(404).json({ error: "Participation not found in this study" });
     }
 
-    const currentConsentStatus = participation.consents ?? true;
+    const currentConsentStatus = participation.has_consented ?? true;
 
     const canPerformOperation = isRevoke
       ? currentConsentStatus === true
@@ -130,13 +129,7 @@ const handleConsentOperation = async (
           `Blockchain ${operation} consent result`
         );
 
-        if (blockchainResult.success) {
-          blockchainTxHash = blockchainResult.transactionHash;
-          logger.info(
-            { studyId: id, participantWallet, txHash: blockchainTxHash },
-            `Consent ${isRevoke ? "revoked" : "granted"} on blockchain`
-          );
-        } else {
+        if (!blockchainResult.success) {
           logger.error(
             {
               error: blockchainResult.error,
@@ -145,17 +138,25 @@ const handleConsentOperation = async (
               studyId: id,
               participantWallet,
             },
-            `Failed to ${operation} consent on blockchain - aborting database update`
+            `Failed to ${operation} consent on blockchain - ABORTING (no database update)`
           );
           return res.status(500).json({
             error: `Failed to ${operation} consent on blockchain`,
             details: blockchainResult.error,
           });
         }
+
+        blockchainTxHash = blockchainResult.transactionHash;
+        logger.info(
+          { studyId: id, participantWallet, txHash: blockchainTxHash },
+          `Consent ${
+            isRevoke ? "revoked" : "granted"
+          } on blockchain - proceeding to database update`
+        );
       } catch (blockchainError) {
         logger.error(
           { error: blockchainError, studyId: id, participantWallet },
-          `Error during blockchain consent ${operation}`
+          `Error during blockchain consent ${operation} - ABORTING (no database update)`
         );
         return res.status(500).json({
           error: `Error during blockchain consent ${operation}`,
@@ -165,14 +166,14 @@ const handleConsentOperation = async (
     } else {
       logger.info(
         { studyId: id },
-        `Study not deployed to blockchain - skipping blockchain ${operation}`
+        `Study not deployed to blockchain - proceeding to database update only`
       );
     }
 
     const newConsentStatus = !isRevoke;
     const { error: updateError } = await req.supabase
       .from(TABLES.STUDY_PARTICIPATIONS!.name)
-      .update({ consents: newConsentStatus })
+      .update({ has_consented: newConsentStatus })
       .eq(TABLES.STUDY_PARTICIPATIONS!.columns.studyId!, id)
       .eq(TABLES.STUDY_PARTICIPATIONS!.columns.participantWallet!, participantWallet);
 
@@ -253,7 +254,7 @@ const getActiveParticipantCount = async (supabase: any, studyId: string | number
     .from(TABLES.STUDY_PARTICIPATIONS!.name)
     .select("*", { count: "exact", head: true })
     .eq(TABLES.STUDY_PARTICIPATIONS!.columns.studyId!, studyId)
-    .eq(TABLES.STUDY_PARTICIPATIONS!.columns.consents!, true);
+    .eq(TABLES.STUDY_PARTICIPATIONS!.columns.hasConsented!, true);
 
   if (error) {
     logger.error({ error, studyId }, "Failed to get active participant count");
@@ -876,7 +877,7 @@ export const participateInStudy = async (req: Request, res: Response) => {
       matched_criteria: matchedCriteria,
       eligibility_score: eligibilityScore,
       status: proofJson ? "verified" : "pending",
-      consents: true,
+      has_consented: true,
       enrolled_at: new Date().toISOString(),
     };
 
@@ -1106,7 +1107,7 @@ export const getEnrolledStudies = async (req: Request, res: Response) => {
       .from(TABLES.STUDY_PARTICIPATIONS!.name)
       .select(
         `${TABLES.STUDY_PARTICIPATIONS!.columns.studyId!}, ${TABLES.STUDY_PARTICIPATIONS!.columns
-          .consents!}`
+          .hasConsented!}`
       )
       .eq(TABLES.STUDY_PARTICIPATIONS!.columns.participantWallet!, walletAddress);
 
@@ -1124,7 +1125,7 @@ export const getEnrolledStudies = async (req: Request, res: Response) => {
 
     const consentMap = new Map<number, boolean>();
     participations.forEach((p: any) => {
-      consentMap.set(p.study_id, p.consents ?? true);
+      consentMap.set(p.study_id, p.has_consented ?? true);
     });
 
     const { data: studies, error: studiesError } = await req.supabase
