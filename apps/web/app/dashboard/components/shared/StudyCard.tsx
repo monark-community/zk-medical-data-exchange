@@ -43,7 +43,7 @@ export default function StudyCard({
 
   return (
     <div
-      className={`group relative bg-white rounded-xl border border-gray-200 p-5 hover:border-gray-300 hover:shadow-md transition-all duration-200 ${
+      className={`group relative bg-white rounded-xl border border-gray-200 p-5 hover:border-gray-300 hover:shadow-md transition-all duration-200 cursor-default ${
         !isLast ? "mb-3" : ""
       }`}
     >
