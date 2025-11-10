@@ -109,14 +109,15 @@ contract GovernanceDAO {
     function createProposal(
         string memory title,
         string memory description,
-        ProposalCategory category
+        ProposalCategory category,
+        uint256 duration
     ) external returns (uint256) {
         require(bytes(title).length > 0, "Title cannot be empty");
         require(bytes(description).length > 0, "Description cannot be empty");
 
         uint256 proposalId = proposalCount;
         uint256 startTime = block.timestamp;
-        uint256 endTime = startTime + votingPeriod;
+        uint256 endTime = startTime + duration;
 
         proposals[proposalId] = Proposal({
             id: proposalId,

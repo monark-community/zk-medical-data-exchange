@@ -93,9 +93,9 @@ export async function getProposal(req: Request, res: Response) {
 
 export async function createProposal(req: Request, res: Response) {
   try {
-    const { title, description, category, walletAddress } = req.body;
+    const { title, description, category, walletAddress, duration } = req.body;
 
-    logger.info({ title, category, walletAddress }, "POST /governance/proposals");
+    logger.info({ title, category, walletAddress, duration }, "POST /governance/proposals");
 
     if (!title || title.trim().length === 0) {
       return res.status(400).json({
@@ -111,10 +111,10 @@ export async function createProposal(req: Request, res: Response) {
       });
     }
 
-    if (category === undefined || category < 0 || category > 3) {
+    if (category === undefined || category < 0 || category > 4) {
       return res.status(400).json({
         success: false,
-        error: "Invalid category (must be 0-3: Economics, Privacy, Governance, Policy)",
+        error: "Invalid category (must be 0-4: Economics, Privacy, Governance, Policy, Other)",
       });
     }
 
@@ -125,11 +125,19 @@ export async function createProposal(req: Request, res: Response) {
       });
     }
 
+    if (!duration) {
+      return res.status(400).json({
+        success: false,
+        error: "Duration is required",
+      });
+    }
+
     const params: CreateProposalParams = {
       title: title.trim(),
       description: description.trim(),
       category: category as ProposalCategory,
       walletAddress,
+      duration: Number(duration),
     };
 
     const result = await governanceService.createProposal(params);
