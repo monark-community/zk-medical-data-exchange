@@ -212,25 +212,26 @@ class GovernanceService {
         functionName: "getProposal",
         args: [BigInt(proposalId)],
       });
+      logger.info({ blockchainProposal }, "DEBUG getProposal result");
 
       // Save to database for fast queries
       const { error: dbError } = await this.supabase
-        .from(PROPOSALS!.name)
-        .insert({
-          id: proposalId,
-          title: params.title,
-          description: params.description,
-          category: params.category,
-          proposer: params.walletAddress,
-          start_time: Number(blockchainProposal[5]),
-          end_time: Number(blockchainProposal[6]),
-          votes_for: 0,
-          votes_against: 0,
-          total_voters: 0,
-          state: ProposalState.Active,
-          deployment_tx_hash: hash,
-          chain_id: 11155111, // Sepolia
-        });
+      .from(PROPOSALS!.name)
+      .insert({
+        id: proposalId,
+        title: params.title,
+        description: params.description,
+        category: params.category,
+        proposer: params.walletAddress,
+        start_time: Number(blockchainProposal.startTime),
+        end_time: Number(blockchainProposal.endTime),
+        votes_for: Number(blockchainProposal.votesFor),
+        votes_against: Number(blockchainProposal.votesAgainst),
+        total_voters: Number(blockchainProposal.totalVoters),
+        state: Number(blockchainProposal.state),
+        deployment_tx_hash: hash,
+        chain_id: 11155111, // Sepolia
+      });
 
       if (dbError) {
         logger.error({ error: dbError, proposalId }, "Failed to save proposal to database");
@@ -302,10 +303,10 @@ class GovernanceService {
       const { error: updateError } = await this.supabase
         .from(PROPOSALS!.name)
         .update({
-          votes_for: Number(proposalData[7]),
-          votes_against: Number(proposalData[8]),
-          total_voters: Number(proposalData[9]),
-          state: Number(proposalData[11]),
+          votes_for: Number((proposalData as any).votesFor ?? (proposalData as any)[7]),
+          votes_against: Number((proposalData as any).votesAgainst ?? (proposalData as any)[8]),
+          total_voters: Number((proposalData as any).totalVoters ?? (proposalData as any)[9]),
+          state: Number((proposalData as any).state ?? (proposalData as any)[10]),
         })
         .eq(PROPOSALS!.columns.id!, params.proposalId);
 
@@ -429,17 +430,17 @@ class GovernanceService {
       });
 
       const proposal: Proposal = {
-        id: Number(proposalData[0]),
-        title: proposalData[1],
-        description: proposalData[2],
-        category: Number(proposalData[3]) as ProposalCategory,
-        proposer: proposalData[4],
-        startTime: Number(proposalData[5]),
-        endTime: Number(proposalData[6]),
-        votesFor: Number(proposalData[7]),
-        votesAgainst: Number(proposalData[8]),
-        totalVoters: Number(proposalData[9]),
-        state: Number(proposalData[11]) as ProposalState,
+        id: Number((proposalData as any).id ?? (proposalData as any)[0]),
+        title: (proposalData as any).title ?? (proposalData as any)[1],
+        description: (proposalData as any).description ?? (proposalData as any)[2],
+        category: Number((proposalData as any).category ?? (proposalData as any)[3]) as ProposalCategory,
+        proposer: (proposalData as any).proposer ?? (proposalData as any)[4],
+        startTime: Number((proposalData as any).startTime ?? (proposalData as any)[5]),
+        endTime: Number((proposalData as any).endTime ?? (proposalData as any)[6]),
+        votesFor: Number((proposalData as any).votesFor ?? (proposalData as any)[7]),
+        votesAgainst: Number((proposalData as any).votesAgainst ?? (proposalData as any)[8]),
+        totalVoters: Number((proposalData as any).totalVoters ?? (proposalData as any)[9]),
+        state: Number((proposalData as any).state ?? (proposalData as any)[10]) as ProposalState,
       };
 
       const timeRemaining = await this.publicClient.readContract({
@@ -747,7 +748,7 @@ class GovernanceService {
       const { error: updateError } = await this.supabase
         .from(PROPOSALS!.name)
         .update({
-          state: Number(proposalData[11]),
+          state: Number((proposalData as any).state ?? (proposalData as any)[10]),
         })
         .eq(PROPOSALS!.columns.id!, proposalId);
 
