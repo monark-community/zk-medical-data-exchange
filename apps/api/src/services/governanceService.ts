@@ -69,6 +69,7 @@ export interface CreateProposalParams {
   description: string;
   category: ProposalCategory;
   walletAddress: string;
+  duration: number;
 }
 
 export interface VoteParams {
@@ -170,7 +171,7 @@ class GovernanceService {
         address: this.contractAddress as `0x${string}`,
         abi: GOVERNANCE_DAO_ABI,
         functionName: "createProposal",
-        args: [params.title, params.description, params.category],
+        args: [params.title, params.description, params.category, BigInt(params.duration)],
       });
 
       logger.info({ hash }, "Proposal creation transaction sent");

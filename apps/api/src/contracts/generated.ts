@@ -1,5 +1,5 @@
 // Auto-generated contract ABIs
-// Generated on 2025-11-09T22:38:30.463Z
+// Generated on 2025-11-10T06:47:45.104Z
 
 // ABI type definitions
 interface ABIInput {
@@ -2620,6 +2620,11 @@ export const GOVERNANCE_DAO_ABI: ABI = [
         "internalType": "enum GovernanceDAO.ProposalCategory",
         "name": "category",
         "type": "uint8"
+      },
+      {
+        "internalType": "uint256",
+        "name": "duration",
+        "type": "uint256"
       }
     ],
     "name": "createProposal",
