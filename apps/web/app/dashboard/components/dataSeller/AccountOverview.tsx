@@ -6,7 +6,7 @@ import { ACCOUNT_OVERVIEW_UI } from "@/app/dashboard/constants/UI";
 import { useProfile } from "@/contexts/ProfileContext";
 import { UserProfile } from "@zk-medical/shared";
 import { getUserStats, DataSellerStats, ResearcherStats } from "@/services/api/userService";
-import { Loader2 } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 
 interface AccountOverviewProps {
   walletAddress: string;
@@ -38,7 +38,7 @@ const AccountOverview: React.FC<AccountOverviewProps> = ({ walletAddress }) => {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        <Spinner className="size-8 text-blue-600" />
       </div>
     );
   }

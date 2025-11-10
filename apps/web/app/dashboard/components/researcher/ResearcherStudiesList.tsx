@@ -1,7 +1,8 @@
 import { StudySummary } from "@/services/api/studyService";
-import { Trash2, Loader2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import StudiesList from "@/app/dashboard/components/shared/StudiesList";
+import { Spinner } from "@/components/ui/spinner";
 
 interface ResearcherStudiesListProps {
   studies: StudySummary[];
@@ -10,10 +11,10 @@ interface ResearcherStudiesListProps {
   deletingStudyId: number | null;
 }
 
-export default function ResearcherStudiesList({ 
-  studies, 
-  onDeleteStudy, 
-  deletingStudyId 
+export default function ResearcherStudiesList({
+  studies,
+  onDeleteStudy,
+  deletingStudyId,
 }: ResearcherStudiesListProps) {
   const renderActionButtons = (study: StudySummary) => (
     <Button
@@ -28,7 +29,7 @@ export default function ResearcherStudiesList({
       title="Delete study"
     >
       {deletingStudyId === study.id ? (
-        <Loader2 className="h-3 w-3 animate-spin" />
+        <Spinner className="size-3 text-blue-600" />
       ) : (
         <Trash2 className="h-3 w-3" />
       )}
