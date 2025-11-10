@@ -98,9 +98,6 @@ export interface CreateStudyResponse {
 // CORE API FUNCTIONS
 // ========================================
 
-/**
- * Get list of studies with optional filtering
- */
 export const getStudies = async (params?: {
   status?: string;
   page?: number;
@@ -117,15 +114,11 @@ export const getStudies = async (params?: {
   return data;
 };
 
-/**
- * Get all studies that a user is enrolled in
- */
 export const getEnrolledStudies = async (walletAddress: string): Promise<StudySummary[]> => {
   try {
     const { data } = await apiClient.get(`/studies/enrolled/${walletAddress}`);
     return data.studies || [];
   } catch (error: any) {
-    // If no enrolled studies, return empty array
     if (error.response?.status === 404 || error.response?.data?.studies === null) {
       return [];
     }
@@ -133,23 +126,16 @@ export const getEnrolledStudies = async (walletAddress: string): Promise<StudySu
   }
 };
 
-/**
- * Get detailed information about a specific study
- */
 export const getStudyDetails = async (studyId: number): Promise<StudyDetails> => {
   const { data } = await apiClient.get(`/studies/${studyId}`);
   return data.study;
 };
 
-/**
- * Create a new study
- */
 export const createStudy = async (studyData: CreateStudyRequest): Promise<CreateStudyResponse> => {
   try {
     const response = await apiClient.post<CreateStudyResponse>("/studies", studyData);
     return response.data;
   } catch (error: any) {
-    // Handle axios errors
     if (error.response?.data?.error) {
       throw new Error(error.response.data.error);
     }
@@ -157,9 +143,6 @@ export const createStudy = async (studyData: CreateStudyRequest): Promise<Create
   }
 };
 
-/**
- * Update study status and deployment information
- */
 export const updateStudyStatus = async (
   studyId: number,
   updates: {
@@ -172,27 +155,17 @@ export const updateStudyStatus = async (
   return data;
 };
 
-/**
- * Deploy a study to the blockchain
- */
 export const deployStudy = async (studyId: number) => {
   const { data } = await apiClient.post(`/studies/${studyId}/deployment`);
   return data;
 };
 
-/**
- * Delete a study from the database
- */
 export const deleteStudy = async (studyId: number, walletId: string) => {
   const { data } = await apiClient.delete(`/studies/${studyId}`, {
     data: { walletId },
   });
   return data;
 };
-
-/**
- * Study application request
- */
 export interface StudyApplicationRequest {
   studyId: number;
   participantWallet: string;
@@ -205,17 +178,7 @@ export interface StudyApplicationRequest {
   dataCommitment: string;
 }
 
-/**
- * Study application process - all sensitive operations on client
- */
 export class StudyApplicationService {
-  /**
-   * Complete study application process with client-side ZK proof generation
-   *
-   * @param studyId - ID of study to apply to
-   * @param medicalData - Patient's medical data
-   * @param walletAddress - Patient's wallet address
-   */
   static async applyToStudy(
     studyId: number,
     medicalData: ExtractedMedicalData,
@@ -229,7 +192,6 @@ export class StudyApplicationService {
       const isEligible = checkEligibility(medicalData, studyCriteria);
 
       if (!isEligible) {
-        // Log the failed eligibility check to audit trail
         console.log("Eligibility criteria not met. Logging failed attempt...");
         try {
           await apiClient.post("/audit/log-failed-join", {
@@ -244,7 +206,6 @@ export class StudyApplicationService {
           console.log("Failed join attempt logged to audit trail");
         } catch (auditError) {
           console.error("Failed to log audit entry (non-critical):", auditError);
-          // Don't fail the whole operation if audit logging fails
         }
 
         return {
@@ -311,9 +272,6 @@ export class StudyApplicationService {
     }
   }
 
-  /**
-   * Fetch study criteria
-   */
   private static async getStudyCriteria(studyId: number): Promise<StudyCriteria> {
     console.log("Fetching criteria for study ID:", studyId);
     try {
@@ -326,9 +284,6 @@ export class StudyApplicationService {
     }
   }
 
-  /**
-   * Submit application with proof
-   */
   private static async submitApplication(request: StudyApplicationRequest): Promise<void> {
     try {
       const response = await apiClient.post(`/studies/${request.studyId}/participants`, request);
@@ -357,9 +312,6 @@ export class StudyApplicationService {
 // REACT HOOKS
 // ========================================
 
-/**
- * Hook for study creation with proper typing and error handling
- */
 export const useCreateStudy = () => {
   const createStudyAsync = async (
     title: string,
@@ -375,7 +327,6 @@ export const useCreateStudy = () => {
       description,
       maxParticipants,
       durationDays,
-      // Use template if selected, otherwise use custom criteria
       ...(selectedTemplate ? { templateName: selectedTemplate } : { customCriteria: criteria }),
       ...(createdBy ? { createdBy } : {}),
     };
@@ -386,9 +337,6 @@ export const useCreateStudy = () => {
   return { createStudy: createStudyAsync };
 };
 
-/**
- * Revoke consent for a study
- */
 export const revokeStudyConsent = async (
   studyId: number,
   participantWallet: string
@@ -413,9 +361,6 @@ export const revokeStudyConsent = async (
   }
 };
 
-/**
- * Grant consent for a study (after previously revoking)
- */
 export const grantStudyConsent = async (
   studyId: number,
   participantWallet: string

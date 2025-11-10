@@ -1,9 +1,3 @@
-/* eslint-disable no-unused-vars */
-/**
- * Audit Service for comprehensive action tracking
- * Integrates with blockchain AuditTrail contract and database logging
- */
-
 import { createPublicClient, createWalletClient, http } from "viem";
 import type { PublicClient, WalletClient } from "viem";
 import { sepolia } from "viem/chains";
@@ -15,27 +9,23 @@ import { AUDIT_TRAIL_ABI } from "@/contracts";
 import { UserProfile } from "@zk-medical/shared";
 
 export enum ActionType {
-  // COMMON
-  USER_AUTHENTICATION, // Login/logout events
-  PROPOSAL_CREATION, // Governance proposal created
-  VOTE_CAST, // Vote cast on proposal
-  PROPOSAL_REMOVAL, // Governance proposal removed
-  USERNAME_CHANGE, // User changes username/display name
-  // RESEARCHER ACTIONS
-  STUDY_CREATION, // New study created
-  STUDY_STATUS_CHANGE, // Study activated/deactivated
-  STUDY_AGGREGATED_DATA_ACCESS, // Access to aggregated study data
-  PERMISSION_CHANGE, // Permission granted/revoked
-  // DATA SELLER ACTIONS
-  STUDY_PARTICIPATION, // Patient joins study
-  STUDY_CONSENT_REVOKED, // Patient revokes consent
-  STUDY_CONSENT_GRANTED, // Patient grants consent
-  DATA_UPLOAD, // Data uploaded to vault
-  DATA_ACCESS, // Data accessed/viewed
-  DATA_DELETED, // Data deleted from vault
-  // ADMIN
-  ADMIN_ACTION, // Administrative actions
-  SYSTEM_CONFIG, // System configuration changes
+  USER_AUTHENTICATION,
+  PROPOSAL_CREATION,
+  VOTE_CAST,
+  PROPOSAL_REMOVAL,
+  USERNAME_CHANGE,
+  STUDY_CREATION,
+  STUDY_STATUS_CHANGE,
+  STUDY_AGGREGATED_DATA_ACCESS,
+  PERMISSION_CHANGE,
+  STUDY_PARTICIPATION,
+  STUDY_CONSENT_REVOKED,
+  STUDY_CONSENT_GRANTED,
+  DATA_UPLOAD,
+  DATA_ACCESS,
+  DATA_DELETED,
+  ADMIN_ACTION,
+  SYSTEM_CONFIG,
 }
 export interface AuditLogEntry {
   user: string;
@@ -45,7 +35,7 @@ export interface AuditLogEntry {
   action: string;
   success: boolean;
   metadata?: Record<string, any>;
-  sensitiveData?: Record<string, any>; // For hashing
+  sensitiveData?: Record<string, any>;
   timestamp?: Date;
   sessionId?: string;
   ipAddress?: string;
@@ -87,13 +77,9 @@ class AuditService {
     );
   }
 
-  /**
-   * Log an action to blockchain and database with transaction queuing
-   */
   async logAction(
     entry: AuditLogEntry
   ): Promise<{ success: boolean; txHash?: string; error?: string }> {
-    // Add this transaction to the queue to prevent race conditions
     this.transactionQueue = this.transactionQueue
       .then(async () => {
         return this.processLogAction(entry);
@@ -106,9 +92,6 @@ class AuditService {
     return this.transactionQueue;
   }
 
-  /**
-   * Process individual log action (called from queue)
-   */
   private async processLogAction(
     entry: AuditLogEntry
   ): Promise<{ success: boolean; txHash?: string; error?: string }> {
@@ -162,9 +145,6 @@ class AuditService {
     }
   }
 
-  /**
-   * Log to blockchain for immutability with retry logic
-   */
   private async logToBlockchain(
     user: string,
     userProfile: UserProfile,
@@ -212,7 +192,7 @@ class AuditService {
         const receipt = await Promise.race([
           this.publicClient.waitForTransactionReceipt({
             hash: txHash,
-            timeout: 60000, // 60 second
+            timeout: 60000,
           }),
           new Promise((_, reject) =>
             setTimeout(() => reject(new Error("Transaction confirmation timeout")), 60000)
@@ -262,9 +242,6 @@ class AuditService {
     );
   }
 
-  /**
-   * Create privacy-preserving hash of sensitive data
-   */
   private createDataHash(sensitiveData: Record<string, any>): string {
     if (Object.keys(sensitiveData).length === 0) {
       return "0x0000000000000000000000000000000000000000000000000000000000000000";
@@ -278,17 +255,13 @@ class AuditService {
     for (let i = 0; i < data.length; i++) {
       const char = data[i]!;
       hash = (hash << 5) - hash + char;
-      hash = hash & hash; // Convert to 32-bit integer
+      hash = hash & hash;
     }
 
-    // Convert to hex string padded to 32 bytes
     const hashHex = Math.abs(hash).toString(16).padStart(64, "0");
     return `0x${hashHex}`;
   }
 
-  /**
-   * Get user action history
-   */
   async getUserActions(userAddress: string, limit: number = 100): Promise<any[]> {
     try {
       const auditTrailAddress = Config.AUDIT_TRAIL_ADDRESS as `0x${string}`;
@@ -309,9 +282,6 @@ class AuditService {
     }
   }
 
-  /**
-   * Get latest actions for a user with specific profile
-   */
   async getUserLatestActions(
     userAddress: string,
     userProfile: UserProfile,
@@ -334,9 +304,6 @@ class AuditService {
     }
   }
 
-  /**
-   * Get audit record details by ID
-   */
   async getAuditRecord(recordId: number): Promise<any | null> {
     try {
       const auditTrailAddress = Config.AUDIT_TRAIL_ADDRESS as `0x${string}`;
@@ -355,9 +322,6 @@ class AuditService {
     }
   }
 
-  /**
-   * Convenience methods for common actions
-   */
   async logAuthentication(userAddress: string, success: boolean, metadata?: Record<string, any>) {
     return this.logAction({
       user: userAddress,
@@ -439,9 +403,6 @@ class AuditService {
     });
   }
 
-  /**
-   * Log data upload operation with encrypted CID
-   */
   async logDataUpload(
     userAddress: string,
     resourceType: string,
@@ -467,9 +428,6 @@ class AuditService {
     });
   }
 
-  /**
-   * Log data deletion operation with encrypted CID
-   */
   async logDataDeletion(
     userAddress: string,
     resourceType: string,
@@ -495,9 +453,6 @@ class AuditService {
     });
   }
 
-  /**
-   * Log data access/view operation with encrypted CID
-   */
   async logDataAccess(
     userAddress: string,
     encryptedCID: string,
@@ -525,10 +480,6 @@ class AuditService {
     });
   }
 
-  /**
-   * Get user actions for a specific profile, including COMMON actions
-   * Uses the new contract function that combines profile-specific and common actions
-   */
   async getUserActionsForProfile(
     userAddress: string,
     userProfile: UserProfile,
@@ -554,9 +505,6 @@ class AuditService {
     }
   }
 
-  /**
-   * Get paginated user actions for a specific profile, including COMMON actions
-   */
   async getUserActionsForProfilePaginated(
     userAddress: string,
     userProfile: UserProfile,
@@ -649,9 +597,6 @@ class AuditService {
     }
   }
 
-  /**
-   * Check if an action type should be logged as COMMON
-   */
   static getProfileForActionType(actionType: ActionType, defaultProfile: UserProfile): UserProfile {
     if (
       actionType === ActionType.USER_AUTHENTICATION ||
@@ -664,9 +609,6 @@ class AuditService {
     return defaultProfile;
   }
 
-  /**
-   * Enhanced logAction method that automatically determines if action should be COMMON
-   */
   async logActionWithProfileDetection(
     entry: Omit<AuditLogEntry, "userProfile"> & { suggestedProfile: UserProfile }
   ): Promise<{ success: boolean; txHash?: string; error?: string }> {
@@ -739,9 +681,6 @@ class AuditService {
     });
   }
 
-  /**
-   * Convert BigInt values to numbers for JSON serialization
-   */
   private convertBigIntToNumber(data: any): any {
     if (typeof data === "bigint") {
       return Number(data);

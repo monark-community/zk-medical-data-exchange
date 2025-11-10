@@ -4,14 +4,6 @@ import { isValidEthereumAddress } from "@/utils/address";
 import logger from "@/utils/logger";
 import { UserProfile } from "@zk-medical/shared";
 
-/**
- * Audit Controller - Handles audit trail queries and management
- */
-
-/**
- * Get user actions for a specific profile (including COMMON actions)
- * GET /api/audit/user/:userAddress/profile/:profile/actions
- */
 export const getUserActionsByProfile = async (req: Request, res: Response): Promise<void> => {
   try {
     const { userAddress, profile } = req.params;
@@ -86,10 +78,6 @@ export const getUserActionsByProfile = async (req: Request, res: Response): Prom
   }
 };
 
-/**
- * Get paginated user actions for a specific profile (including COMMON actions)
- * GET /api/audit/user/:userAddress/profile/:profile/actions/paginated
- */
 export const getUserActionsByProfilePaginated = async (
   req: Request,
   res: Response
@@ -197,14 +185,6 @@ export const getUserActionsByProfilePaginated = async (
   }
 };
 
-/**
- * Get user actions for profile-specific actions only (excludes COMMON actions)
- * GET /api/audit/user/:userAddress/profile/:profile/actions/profile-only
- */
-/**
- * Get a specific audit record by ID
- * GET /api/audit/record/:recordId
- */
 export const getAuditRecord = async (req: Request, res: Response): Promise<void> => {
   try {
     const { recordId } = req.params;
@@ -265,10 +245,6 @@ export const getAuditRecord = async (req: Request, res: Response): Promise<void>
   }
 };
 
-/**
- * Get all user actions (across all profiles)
- * GET /api/audit/user/:userAddress/actions
- */
 export const getAllUserActions = async (req: Request, res: Response): Promise<void> => {
   try {
     const { userAddress } = req.params;
@@ -325,10 +301,6 @@ export const getAllUserActions = async (req: Request, res: Response): Promise<vo
   }
 };
 
-/**
- * Get profile and action type information
- * GET /api/audit/info
- */
 export const getAuditInfo = async (req: Request, res: Response): Promise<void> => {
   try {
     const profiles = Object.keys(UserProfile)
@@ -362,10 +334,6 @@ export const getAuditInfo = async (req: Request, res: Response): Promise<void> =
   }
 };
 
-/**
- * Log file access or download audit record
- * POST /api/audit/log-access
- */
 export const logFileAccess = async (req: Request, res: Response): Promise<void> => {
   try {
     const { userAddress, encryptedCID, accessType, success, resourceType, metadata } = req.body;
@@ -451,10 +419,6 @@ export const logFileAccess = async (req: Request, res: Response): Promise<void> 
   }
 };
 
-/**
- * Log failed study join attempt
- * POST /api/audit/log-failed-join
- */
 export const logFailedJoinStudy = async (req: Request, res: Response): Promise<void> => {
   try {
     const { userAddress, studyId, reason, errorDetails, metadata } = req.body;

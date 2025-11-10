@@ -55,26 +55,22 @@ export async function updateUser(req: Request, res: Response) {
     if (!walletAddress) {
       return res.status(400).json({ error: "walletAddress param is required" });
     }
-    // Validate that we have something to update
     if (!updateData || Object.keys(updateData).length === 0) {
       return res.status(400).json({ error: "No update data provided" });
     }
 
     logger.info({ walletAddress, updateData }, "updateUser called");
 
-    // Check if user exists first
     const isUserExists = await checkIfUserExists(req, res, walletAddress);
     if (!isUserExists) {
       logger.info({ walletAddress }, "User not found in updateUser");
       return res.status(404).json({ error: "User not found" });
     }
 
-    // Get current user data to capture old username
     const currentUser = await getUserByWalletAddress(req.supabase, walletAddress);
     const oldUsername = currentUser?.username || "";
     const newUsername = updateData.username;
 
-    // Update the user
     const updatedUser = await updateUserByWalletAddress(req.supabase, walletAddress, {
       username: updateData.username,
     });
@@ -82,7 +78,6 @@ export async function updateUser(req: Request, res: Response) {
     if (!updatedUser) {
       logger?.error({ walletAddress }, "User update returned null");
 
-      // Log failed username change
       if (newUsername) {
         await auditService
           .logUsernameChange(walletAddress, oldUsername, newUsername, false, {
@@ -99,7 +94,6 @@ export async function updateUser(req: Request, res: Response) {
       return res.status(500).json({ error: "Failed to update user" });
     }
 
-    // Log successful username change
     if (newUsername && newUsername !== oldUsername) {
       await auditService
         .logUsernameChange(walletAddress, oldUsername, newUsername, true, {
@@ -117,7 +111,6 @@ export async function updateUser(req: Request, res: Response) {
   } catch (err: any) {
     logger?.error({ err, walletAddress }, "Error in updateUser");
 
-    // Log failed username change
     if (updateData?.username && typeof updateData.username === "string") {
       const newUsername = updateData.username;
       await auditService
@@ -132,7 +125,6 @@ export async function updateUser(req: Request, res: Response) {
         });
     }
 
-    // Return validation errors directly to the user
     if (err.message && err.message.includes("Invalid username")) {
       return res.status(400).json({ error: err.message });
     }

@@ -1,8 +1,3 @@
-/**
- * Study Service for API Backend
- * Handles StudyFactory contract interactions on Sepolia testnet
- */
-
 import { createWalletClient, createPublicClient, http, decodeEventLog } from "viem";
 import { sepolia } from "viem/chains";
 import { privateKeyToAccount } from "viem/accounts";
@@ -75,10 +70,6 @@ class StudyService {
     );
   }
 
-  /**
-   * Execute a contract transaction with simulation, execution, and receipt handling
-   * @private
-   */
   private async executeContractTransaction(
     address: string,
     functionName: string,
@@ -96,7 +87,6 @@ class StudyService {
         `${context} - Starting contract call`
       );
 
-      // Simulate the transaction first
       const simulationResult = await this.publicClient.simulateContract({
         account: this.account,
         address: address as `0x${string}`,
@@ -158,10 +148,6 @@ class StudyService {
     }
   }
 
-  /**
-   * Helper to convert array of 4 numbers to BigInt tuple
-   * @private
-   */
   private convertToBigIntTuple(
     arr: readonly number[] | number[] | undefined
   ): [bigint, bigint, bigint, bigint] {
@@ -175,10 +161,6 @@ class StudyService {
     ];
   }
 
-  /**
-   * Helper to log consent operation results
-   * @private
-   */
   private logConsentResult(
     operation: "revoke" | "grant",
     result: { success: boolean; transactionHash?: string; error?: string },
@@ -201,11 +183,6 @@ class StudyService {
     }
   }
 
-  /**
-   * Convert StudyCriteria to contract format
-   * Returns object that matches the struct format for viem
-   * Uses safe default values for disabled criteria to avoid validation errors
-   */
   private formatCriteriaForContract(criteria: StudyCriteria) {
     logger.info({ criteria }, "formatCriteriaForContract called");
 
@@ -308,9 +285,6 @@ class StudyService {
     };
   }
 
-  /**
-   * Deploy study to StudyFactory contract
-   */
   async deployStudy(params: StudyDeploymentParams): Promise<StudyDeploymentResult> {
     try {
       logger.info(
@@ -589,9 +563,6 @@ class StudyService {
     }
   }
 
-  /**
-   * Get current study count from contract
-   */
   async getStudyCount(): Promise<number> {
     try {
       const count = await this.publicClient.readContract({
@@ -606,9 +577,6 @@ class StudyService {
     }
   }
 
-  /**
-   * Check if service is properly configured
-   */
   async healthCheck(): Promise<{ healthy: boolean; error?: string }> {
     try {
       await this.getStudyCount();
@@ -735,11 +703,6 @@ class StudyService {
     }
   }
 
-  /**
-   * Revoke consent for a study
-   * @param studyAddress The address of the study contract
-   * @param participantWallet The wallet address of the participant revoking consent
-   */
   async revokeStudyConsent(
     studyAddress: string,
     participantWallet: string
@@ -780,11 +743,6 @@ class StudyService {
     }
   }
 
-  /**
-   * Grant consent for a study (after previously revoking)
-   * @param studyAddress The address of the study contract
-   * @param participantWallet The wallet address of the participant granting consent
-   */
   async grantStudyConsent(
     studyAddress: string,
     participantWallet: string
@@ -825,11 +783,6 @@ class StudyService {
     }
   }
 
-  /**
-   * Check if a participant has active consent for a study
-   * @param studyAddress The address of the study contract
-   * @param participantWallet The wallet address to check
-   */
   async hasActiveConsent(
     studyAddress: string,
     participantWallet: string

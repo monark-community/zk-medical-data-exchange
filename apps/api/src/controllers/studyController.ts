@@ -14,23 +14,14 @@ import { auditService } from "@/services/auditService";
 import { studyService } from "@/services/studyService";
 import { SEPOLIA_TESTNET_CHAIN_ID } from "@/constants/blockchain";
 
-/**
- * Helper to extract audit metadata from request
- */
 const getAuditMetadata = (req: Request) => ({
   startTime: Date.now(),
   userAgent: req.get("User-Agent") || "",
   ipAddress: req.ip || req.socket?.remoteAddress || "",
 });
 
-/**
- * Helper to calculate audit duration
- */
 const getAuditDuration = (startTime: number) => Date.now() - startTime;
 
-/**
- * Helper to update and sync participant count for a study
- */
 const updateStudyParticipantCount = async (
   supabase: any,
   studyId: string | number,
@@ -48,9 +39,6 @@ const updateStudyParticipantCount = async (
   return activeCount;
 };
 
-/**
- * Helper for consent operations (revoke/grant)
- */
 const handleConsentOperation = async (
   req: Request,
   res: Response,
@@ -246,9 +234,6 @@ const handleConsentOperation = async (
   }
 };
 
-/**
- * Helper function to get the count of active participants (with consent) for a study
- */
 const getActiveParticipantCount = async (supabase: any, studyId: string | number) => {
   const { count, error } = await supabase
     .from(TABLES.STUDY_PARTICIPATIONS!.name)
@@ -264,9 +249,6 @@ const getActiveParticipantCount = async (supabase: any, studyId: string | number
   return count || 0;
 };
 
-/**
- * Helper function to transform a study object into the API response format
- */
 const transformStudyForResponse = (study: any, isEnrolled?: boolean, hasConsented?: boolean) => {
   let criteriaDetails = null;
   if (study.criteria_json) {
@@ -327,10 +309,6 @@ const transformStudyForResponse = (study: any, isEnrolled?: boolean, hasConsente
   return transformed;
 };
 
-/**
- * Create a new medical study (with database storage)
- * POST /studies
- */
 export const createStudy = async (req: Request, res: Response) => {
   const { startTime, userAgent, ipAddress } = getAuditMetadata(req);
   let creatorAddress = "";
@@ -509,10 +487,6 @@ export const createStudy = async (req: Request, res: Response) => {
   }
 };
 
-/**
- * Deploy study to blockchain
- * POST /studies/:id/deploy
- */
 export const deployStudy = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
@@ -645,10 +619,6 @@ export const deployStudy = async (req: Request, res: Response) => {
   }
 };
 
-/**
- * Get all available studies
- * GET /api/studies
- */
 export const getStudies = async (req: Request, res: Response) => {
   try {
     const { status, template, createdBy, page = 1, limit } = req.query;
@@ -711,10 +681,6 @@ export const getStudies = async (req: Request, res: Response) => {
   }
 };
 
-/**
- * Get a specific study by ID
- * GET /api/studies/:id
- */
 export const getStudyById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
@@ -764,10 +730,6 @@ export const getStudyById = async (req: Request, res: Response) => {
   }
 };
 
-/**
- * Update study status (e.g., when deployed to blockchain)
- * PATCH /api/studies/:id
- */
 export const updateStudy = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
@@ -807,10 +769,6 @@ export const updateStudy = async (req: Request, res: Response) => {
   }
 };
 
-/**
- * Record study participation (after ZK proof verification)
- * POST /api/studies/:id/participants
- */
 export const participateInStudy = async (req: Request, res: Response) => {
   const { startTime, userAgent, ipAddress } = getAuditMetadata(req);
 
@@ -956,11 +914,6 @@ export const participateInStudy = async (req: Request, res: Response) => {
   }
 };
 
-/**
- * Delete a study from the database
- * DELETE /studies/:id
- *
- */
 export const deleteStudy = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
@@ -1044,11 +997,6 @@ export const deleteStudy = async (req: Request, res: Response) => {
   }
 };
 
-/**
- * Get study criteria
- * GET /api/studies/:id/criteria
- *
- */
 export const getStudyCriteria = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
@@ -1092,17 +1040,12 @@ export const getStudyCriteria = async (req: Request, res: Response) => {
   }
 };
 
-/**
- * Get all studies that a user is enrolled in
- * GET /api/studies/enrolled/:walletAddress
- */
 export const getEnrolledStudies = async (req: Request, res: Response) => {
   try {
     const { walletAddress } = req.params;
 
     logger.info({ walletAddress }, "GET /api/studies/enrolled/:walletAddress");
 
-    // First, get all study IDs and consent status the user is enrolled in
     const { data: participations, error: participationError } = await req.supabase
       .from(TABLES.STUDY_PARTICIPATIONS!.name)
       .select(
@@ -1168,18 +1111,10 @@ export const getEnrolledStudies = async (req: Request, res: Response) => {
   }
 };
 
-/**
- * Revoke consent for a study participation
- * POST /api/studies/:id/consent/revoke
- */
 export const revokeStudyConsent = async (req: Request, res: Response) => {
   return handleConsentOperation(req, res, "revoke");
 };
 
-/**
- * Grant consent for a study participation (after previously revoking)
- * POST /api/studies/:id/consent/grant
- */
 export const grantStudyConsent = async (req: Request, res: Response) => {
   return handleConsentOperation(req, res, "grant");
 };

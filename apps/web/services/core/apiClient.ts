@@ -26,7 +26,6 @@ apiClient.interceptors.response.use(
   async (error) => {
     const status = error.response?.status;
 
-    // Log the error for debugging
     console.error("API Error:", {
       url: error.config?.url,
       method: error.config?.method,
