@@ -17,7 +17,7 @@ export const getUserActionsByProfile = async (req: Request, res: Response): Prom
       return;
     }
 
-    const userProfile = parseInt(profile as string);
+    const userProfile = Number.parseInt(profile as string);
     if (isNaN(userProfile) || !Object.values(UserProfile).includes(userProfile)) {
       res.status(400).json({
         success: false,
@@ -27,7 +27,7 @@ export const getUserActionsByProfile = async (req: Request, res: Response): Prom
       return;
     }
 
-    const limitNum = parseInt(limit as string);
+    const limitNum = Number.parseInt(limit as string);
     if (isNaN(limitNum) || limitNum < 1 || limitNum > 100) {
       res.status(400).json({
         success: false,
@@ -93,7 +93,7 @@ export const getUserActionsByProfilePaginated = async (
       });
       return;
     }
-    const userProfile = parseInt(profile as string);
+    const userProfile = Number.parseInt(profile as string);
     if (isNaN(userProfile) || !Object.values(UserProfile).includes(userProfile)) {
       res.status(400).json({
         success: false,
@@ -103,7 +103,7 @@ export const getUserActionsByProfilePaginated = async (
       return;
     }
 
-    const offsetNum = parseInt(offset as string);
+    const offsetNum = Number.parseInt(offset as string);
     if (isNaN(offsetNum) || offsetNum < 0) {
       res.status(400).json({
         success: false,
@@ -112,7 +112,7 @@ export const getUserActionsByProfilePaginated = async (
       return;
     }
 
-    const limitNum = parseInt(limit as string);
+    const limitNum = Number.parseInt(limit as string);
     if (isNaN(limitNum) || limitNum < 1 || limitNum > 100) {
       res.status(400).json({
         success: false,
@@ -197,7 +197,7 @@ export const getAuditRecord = async (req: Request, res: Response): Promise<void>
       return;
     }
 
-    const recordIdNum = parseInt(recordId);
+    const recordIdNum = Number.parseInt(recordId);
     if (isNaN(recordIdNum) || recordIdNum < 0) {
       res.status(400).json({
         success: false,
@@ -258,7 +258,7 @@ export const getAllUserActions = async (req: Request, res: Response): Promise<vo
       return;
     }
 
-    const limitNum = parseInt(limit as string);
+    const limitNum = Number.parseInt(limit as string);
     if (isNaN(limitNum) || limitNum < 1 || limitNum > 100) {
       res.status(400).json({
         success: false,
@@ -439,7 +439,7 @@ export const logFailedJoinStudy = async (req: Request, res: Response): Promise<v
       return;
     }
 
-    const studyIdNum = parseInt(studyId);
+    const studyIdNum = Number.parseInt(studyId);
     if (isNaN(studyIdNum) || studyIdNum < 0) {
       res.status(400).json({
         success: false,

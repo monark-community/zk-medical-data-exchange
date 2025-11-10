@@ -627,7 +627,7 @@ export const deployStudy = async (req: Request, res: Response) => {
       return res.status(400).json({ error: "Study ID is required" });
     }
 
-    const studyId = parseInt(id);
+    const studyId = Number.parseInt(id);
 
     if (isNaN(studyId)) {
       return res.status(400).json({ error: "Invalid study ID" });
@@ -1059,7 +1059,7 @@ export const deleteStudy = async (req: Request, res: Response) => {
       return res.status(400).json({ error: "Wallet ID is required" });
     }
 
-    const studyId = parseInt(id);
+    const studyId = Number.parseInt(id);
 
     if (isNaN(studyId)) {
       return res.status(400).json({ error: "Invalid study ID" });
