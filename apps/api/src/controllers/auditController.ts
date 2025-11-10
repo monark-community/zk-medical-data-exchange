@@ -18,7 +18,7 @@ export const getUserActionsByProfile = async (req: Request, res: Response): Prom
     }
 
     const userProfile = Number.parseInt(profile as string);
-    if (isNaN(userProfile) || !Object.values(UserProfile).includes(userProfile)) {
+    if (Number.isNaN(userProfile) || !Object.values(UserProfile).includes(userProfile)) {
       res.status(400).json({
         success: false,
         error:
@@ -28,7 +28,7 @@ export const getUserActionsByProfile = async (req: Request, res: Response): Prom
     }
 
     const limitNum = Number.parseInt(limit as string);
-    if (isNaN(limitNum) || limitNum < 1 || limitNum > 100) {
+    if (Number.isNaN(limitNum) || limitNum < 1 || limitNum > 100) {
       res.status(400).json({
         success: false,
         error: "Invalid limit. Must be between 1 and 100",
@@ -94,7 +94,7 @@ export const getUserActionsByProfilePaginated = async (
       return;
     }
     const userProfile = Number.parseInt(profile as string);
-    if (isNaN(userProfile) || !Object.values(UserProfile).includes(userProfile)) {
+    if (Number.isNaN(userProfile) || !Object.values(UserProfile).includes(userProfile)) {
       res.status(400).json({
         success: false,
         error:
@@ -104,7 +104,7 @@ export const getUserActionsByProfilePaginated = async (
     }
 
     const offsetNum = Number.parseInt(offset as string);
-    if (isNaN(offsetNum) || offsetNum < 0) {
+    if (Number.isNaN(offsetNum) || offsetNum < 0) {
       res.status(400).json({
         success: false,
         error: "Invalid offset. Must be >= 0",
@@ -113,7 +113,7 @@ export const getUserActionsByProfilePaginated = async (
     }
 
     const limitNum = Number.parseInt(limit as string);
-    if (isNaN(limitNum) || limitNum < 1 || limitNum > 100) {
+    if (Number.isNaN(limitNum) || limitNum < 1 || limitNum > 100) {
       res.status(400).json({
         success: false,
         error: "Invalid limit. Must be between 1 and 100",
@@ -198,7 +198,7 @@ export const getAuditRecord = async (req: Request, res: Response): Promise<void>
     }
 
     const recordIdNum = Number.parseInt(recordId);
-    if (isNaN(recordIdNum) || recordIdNum < 0) {
+    if (Number.isNaN(recordIdNum) || recordIdNum < 0) {
       res.status(400).json({
         success: false,
         error: "Invalid record ID. Must be a non-negative number",
@@ -259,7 +259,7 @@ export const getAllUserActions = async (req: Request, res: Response): Promise<vo
     }
 
     const limitNum = Number.parseInt(limit as string);
-    if (isNaN(limitNum) || limitNum < 1 || limitNum > 100) {
+    if (Number.isNaN(limitNum) || limitNum < 1 || limitNum > 100) {
       res.status(400).json({
         success: false,
         error: "Invalid limit. Must be between 1 and 100",
@@ -304,14 +304,14 @@ export const getAllUserActions = async (req: Request, res: Response): Promise<vo
 export const getAuditInfo = async (req: Request, res: Response): Promise<void> => {
   try {
     const profiles = Object.keys(UserProfile)
-      .filter((key) => isNaN(Number(key)))
+      .filter((key) => Number.isNaN(Number(key)))
       .map((key) => ({
         name: key,
         value: UserProfile[key as keyof typeof UserProfile],
       }));
 
     const actionTypes = Object.keys(ActionType)
-      .filter((key) => isNaN(Number(key)))
+      .filter((key) => Number.isNaN(Number(key)))
       .map((key) => ({
         name: key,
         value: ActionType[key as keyof typeof ActionType],
@@ -440,7 +440,7 @@ export const logFailedJoinStudy = async (req: Request, res: Response): Promise<v
     }
 
     const studyIdNum = Number.parseInt(studyId);
-    if (isNaN(studyIdNum) || studyIdNum < 0) {
+    if (Number.isNaN(studyIdNum) || studyIdNum < 0) {
       res.status(400).json({
         success: false,
         error: "Invalid studyId. Must be a non-negative number",

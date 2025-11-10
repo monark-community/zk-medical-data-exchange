@@ -119,9 +119,9 @@ function generateABIs(): void {
   ];
 
   for (const contract of contracts) {
-    const normalizedPath = contract.path.replace(/\//g, path.sep);
-    const contractFile = contractFiles.find((file) => 
-      file.includes(path.sep + normalizedPath) || file.endsWith(normalizedPath)
+    const normalizedPath = contract.path.replaceAll("/", path.sep);
+    const contractFile = contractFiles.find(
+      (file) => file.includes(path.sep + normalizedPath) || file.endsWith(normalizedPath)
     );
 
     if (contractFile) {

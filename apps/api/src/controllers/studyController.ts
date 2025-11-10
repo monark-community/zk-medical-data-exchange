@@ -629,7 +629,7 @@ export const deployStudy = async (req: Request, res: Response) => {
 
     const studyId = Number.parseInt(id);
 
-    if (isNaN(studyId)) {
+    if (Number.isNaN(studyId)) {
       return res.status(400).json({ error: "Invalid study ID" });
     }
 
@@ -1061,7 +1061,7 @@ export const deleteStudy = async (req: Request, res: Response) => {
 
     const studyId = Number.parseInt(id);
 
-    if (isNaN(studyId)) {
+    if (Number.isNaN(studyId)) {
       return res.status(400).json({ error: "Invalid study ID" });
     }
 

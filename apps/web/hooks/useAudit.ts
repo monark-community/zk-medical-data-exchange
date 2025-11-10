@@ -114,7 +114,7 @@ export const useAudit = ({
       try {
         let response;
 
-        const currentOffset = reset ? 0 : 0;
+        const currentOffset = reset ? 0 : records.length;
 
         response = await getUserActionsByProfilePaginated(
           userAddress,
