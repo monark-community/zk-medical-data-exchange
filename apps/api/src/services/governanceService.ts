@@ -24,9 +24,9 @@ export enum VoteChoice {
 }
 
 export enum ProposalState {
-  Active = 0, 
+  Active = 0,
   Passed = 1,
-  Failed = 2
+  Failed = 2,
 }
 
 export enum ProposalCategory {
@@ -154,7 +154,9 @@ class GovernanceService {
     );
   }
 
-  async createProposal(params: CreateProposalParams): Promise<GovernanceResult<CreateProposalResult>> {
+  async createProposal(
+    params: CreateProposalParams
+  ): Promise<GovernanceResult<CreateProposalResult>> {
     try {
       logger.info({ params }, "Creating proposal");
 
@@ -187,13 +189,13 @@ class GovernanceService {
             data: log.data,
             topics: log.topics,
           });
-
+          logger.info({ decoded }, "Decoded event log");
           if (decoded.eventName === "ProposalCreated" && decoded.args) {
             proposalId = Number((decoded.args as any).proposalId);
             break;
           }
         } catch {
-            // Ignore logs that don't match
+          // Ignore logs that don't match
         }
       }
 
@@ -214,23 +216,21 @@ class GovernanceService {
       });
 
       // Save to database for fast queries
-      const { error: dbError } = await this.supabase
-        .from(PROPOSALS!.name)
-        .insert({
-          id: proposalId,
-          title: params.title,
-          description: params.description,
-          category: params.category,
-          proposer: params.walletAddress,
-          start_time: Number(blockchainProposal[5]),
-          end_time: Number(blockchainProposal[6]),
-          votes_for: 0,
-          votes_against: 0,
-          total_voters: 0,
-          state: ProposalState.Active,
-          deployment_tx_hash: hash,
-          chain_id: 11155111, // Sepolia
-        });
+      const { error: dbError } = await this.supabase.from(PROPOSALS!.name).insert({
+        id: proposalId,
+        title: params.title,
+        description: params.description,
+        category: params.category,
+        proposer: params.walletAddress,
+        start_time: Number(blockchainProposal[5]),
+        end_time: Number(blockchainProposal[6]),
+        votes_for: 0,
+        votes_against: 0,
+        total_voters: 0,
+        state: ProposalState.Active,
+        deployment_tx_hash: hash,
+        chain_id: 11155111, // Sepolia
+      });
 
       if (dbError) {
         logger.error({ error: dbError, proposalId }, "Failed to save proposal to database");
@@ -253,7 +253,6 @@ class GovernanceService {
       };
     }
   }
-
 
   async vote(params: VoteParams): Promise<GovernanceResult<VoteResult>> {
     try {
@@ -310,8 +309,10 @@ class GovernanceService {
         .eq(PROPOSALS!.columns.id!, params.proposalId);
 
       if (updateError) {
-        logger.error({ error: updateError, proposalId: params.proposalId }, 
-          "Failed to update proposal vote counts in database");
+        logger.error(
+          { error: updateError, proposalId: params.proposalId },
+          "Failed to update proposal vote counts in database"
+        );
       }
 
       // Record individual vote in database
@@ -322,21 +323,23 @@ class GovernanceService {
         .single();
 
       if (dbProposal) {
-        const { error: voteError } = await this.supabase
-          .from(PROPOSAL_VOTES!.name)
-          .insert({
-            proposal_id: dbProposal.id,
-            voter_address: params.walletAddress,
-            choice: params.choice,
-            vote_tx_hash: hash,
-          });
+        const { error: voteError } = await this.supabase.from(PROPOSAL_VOTES!.name).insert({
+          proposal_id: dbProposal.id,
+          voter_address: params.walletAddress,
+          choice: params.choice,
+          vote_tx_hash: hash,
+        });
 
         if (voteError) {
-          logger.error({ error: voteError, proposalId: params.proposalId }, 
-            "Failed to save vote to database");
+          logger.error(
+            { error: voteError, proposalId: params.proposalId },
+            "Failed to save vote to database"
+          );
         } else {
-          logger.info({ proposalId: params.proposalId, voter: params.walletAddress }, 
-            "Vote saved to database successfully");
+          logger.info(
+            { proposalId: params.proposalId, voter: params.walletAddress },
+            "Vote saved to database successfully"
+          );
         }
       }
 
@@ -366,9 +369,11 @@ class GovernanceService {
         .single();
 
       if (dbError || !dbProposal) {
-        logger.warn({ error: dbError, proposalId }, 
-          "Proposal not found in database, falling back to blockchain");
-        
+        logger.warn(
+          { error: dbError, proposalId },
+          "Proposal not found in database, falling back to blockchain"
+        );
+
         // Fallback to blockchain if not in database
         return await this.getProposalFromBlockchain(proposalId, userAddress);
       }
@@ -419,7 +424,10 @@ class GovernanceService {
   /**
    * Fetch proposal directly from blockchain (fallback method)
    */
-  private async getProposalFromBlockchain(proposalId: number, userAddress?: string): Promise<Proposal | null> {
+  private async getProposalFromBlockchain(
+    proposalId: number,
+    userAddress?: string
+  ): Promise<Proposal | null> {
     try {
       const proposalData = await this.publicClient.readContract({
         address: this.contractAddress as `0x${string}`,
@@ -523,7 +531,7 @@ class GovernanceService {
 
         if (userVotes && userVotes.length > 0) {
           const voteMap = new Map(userVotes.map((v: any) => [v.proposal_id, v.choice]));
-          
+
           for (const proposal of proposals) {
             const dbProposal = dbProposals.find((p: any) => p.id === proposal.id);
             if (dbProposal && voteMap.has(dbProposal.id)) {
@@ -534,7 +542,7 @@ class GovernanceService {
             }
           }
         } else {
-          proposals.forEach(p => p.hasVoted = false);
+          proposals.forEach((p) => (p.hasVoted = false));
         }
       }
 
@@ -559,7 +567,10 @@ class GovernanceService {
         .order(PROPOSALS!.columns.createdAt!, { ascending: false });
 
       if (dbError) {
-        logger.error({ error: dbError, userAddress }, "Failed to fetch user proposals from database");
+        logger.error(
+          { error: dbError, userAddress },
+          "Failed to fetch user proposals from database"
+        );
         return [];
       }
 
@@ -604,7 +615,10 @@ class GovernanceService {
         .eq(PROPOSAL_VOTES!.columns.voterAddress!, userAddress);
 
       if (votesError) {
-        logger.error({ error: votesError, userAddress }, "Failed to fetch user votes from database");
+        logger.error(
+          { error: votesError, userAddress },
+          "Failed to fetch user votes from database"
+        );
         return [];
       }
 
@@ -620,7 +634,10 @@ class GovernanceService {
         .in(PROPOSALS!.columns.id!, proposalIds);
 
       if (proposalsError || !dbProposals) {
-        logger.error({ error: proposalsError, userAddress }, "Failed to fetch proposals from database");
+        logger.error(
+          { error: proposalsError, userAddress },
+          "Failed to fetch proposals from database"
+        );
         return [];
       }
 
@@ -682,13 +699,10 @@ class GovernanceService {
       }
 
       // Calculate average participation: (avg votes per proposal / total users) * 100
-      const avgVotesPerProposal = (totalProposals || 0) > 0 
-        ? (totalVotes || 0) / (totalProposals || 1) 
-        : 0;
+      const avgVotesPerProposal =
+        (totalProposals || 0) > 0 ? (totalVotes || 0) / (totalProposals || 1) : 0;
       const avgParticipation =
-        totalUsers && totalUsers > 0
-          ? Math.min(100, (avgVotesPerProposal / totalUsers) * 100)
-          : 0;
+        totalUsers && totalUsers > 0 ? Math.min(100, (avgVotesPerProposal / totalUsers) * 100) : 0;
 
       // uniqueVoters = total registered users on the platform (who can vote)
       const uniqueVoters = totalUsers || 0;
@@ -752,8 +766,10 @@ class GovernanceService {
         .eq(PROPOSALS!.columns.id!, proposalId);
 
       if (updateError) {
-        logger.error({ error: updateError, proposalId }, 
-          "Failed to update finalized proposal in database");
+        logger.error(
+          { error: updateError, proposalId },
+          "Failed to update finalized proposal in database"
+        );
       } else {
         logger.info({ proposalId }, "Finalized proposal updated in database");
       }
@@ -771,7 +787,6 @@ class GovernanceService {
       };
     }
   }
-
 }
 
 export const governanceService = new GovernanceService();

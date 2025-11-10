@@ -3,6 +3,7 @@ import React from "react";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ProposalsSection from "./ProposalsSection";
+import ProposalCreationSection from "./ProposalCreationSection";
 
 // import { useProfile } from "@/contexts/ProfileContext";
 
@@ -20,7 +21,9 @@ const GovernanceTabs = () => {
         <ProposalsSection />
       </TabsContent>
       <TabsContent value="myVotes"></TabsContent>
-      <TabsContent value="createProposal"></TabsContent>
+      <TabsContent value="createProposal">
+        <ProposalCreationSection />
+      </TabsContent>
     </Tabs>
   );
 };

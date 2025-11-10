@@ -21,7 +21,7 @@ export default function ProposalsList({
   descriptionMaxLength = 80,
 }: ProposalsListProps) {
   return (
-    <div className="p-4">
+    <div id="proposal-list" className="p-4">
       <div className="space-y-3">
         {proposals.map((proposal, index) => (
           <ProposalCard

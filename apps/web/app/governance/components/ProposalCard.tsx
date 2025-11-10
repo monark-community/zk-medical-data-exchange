@@ -1,5 +1,6 @@
-import { Proposal } from "@/interfaces/proposal";
-import { ChevronRight } from "lucide-react";
+import { Proposal, ProposalCategory } from "@/interfaces/proposal";
+import { CircleCheck, CircleMinus, Hourglass } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface ProposalCardProps {
   proposalInfo: Proposal;
@@ -8,65 +9,178 @@ interface ProposalCardProps {
   actionButtons?: React.ReactNode;
   descriptionMaxLength?: number;
   showCriteriaLabel?: boolean;
+  onVoteFor?: () => void;
+  onVoteAgainst?: () => void;
 }
+
+const getCategoryLabel = (category: ProposalCategory): string => {
+  switch (category) {
+    case ProposalCategory.Economics:
+      return "Economics";
+    case ProposalCategory.Privacy:
+      return "Privacy";
+    case ProposalCategory.Governance:
+      return "Governance";
+    case ProposalCategory.Policy:
+      return "Policy";
+    case ProposalCategory.Other:
+      return "Other";
+    default:
+      return "Other";
+  }
+};
+
+const getCategoryColor = (category: ProposalCategory): string => {
+  switch (category) {
+    case ProposalCategory.Economics:
+      return "bg-purple-100 text-purple-700";
+    case ProposalCategory.Privacy:
+      return "bg-blue-100 text-blue-700";
+    case ProposalCategory.Governance:
+      return "bg-green-100 text-green-700";
+    case ProposalCategory.Policy:
+      return "bg-orange-100 text-orange-700";
+    case ProposalCategory.Other:
+      return "bg-gray-100 text-gray-700";
+    default:
+      return "bg-gray-100 text-gray-700";
+  }
+};
+
+const shortenAddress = (address: string): string => {
+  if (!address || address.length < 10) return address;
+  return `${address.slice(0, 6)}...${address.slice(-4)}`;
+};
+
+const formatTimeRemaining = (endTime: number): string => {
+  const now = Math.floor(Date.now() / 1000);
+  const remaining = endTime - now;
+
+  if (remaining <= 0) return "Ended";
+
+  const days = Math.floor(remaining / 86400);
+  const hours = Math.floor((remaining % 86400) / 3600);
+
+  if (days > 0) return `${days} day${days > 1 ? "s" : ""}`;
+  if (hours > 0) return `${hours} hour${hours > 1 ? "s" : ""}`;
+  return "< 1 hour";
+};
 
 export default function ProposalCard({
   proposalInfo,
   isLast,
   statusBadge,
-  actionButtons,
-  descriptionMaxLength = 80,
+  onVoteFor,
+  onVoteAgainst,
+  descriptionMaxLength = 200,
 }: ProposalCardProps) {
+  const totalVotes = proposalInfo.votesFor + proposalInfo.votesAgainst;
+  const abstainVotes = proposalInfo.totalVoters - totalVotes;
+  const forPercentage = totalVotes > 0 ? (proposalInfo.votesFor / totalVotes) * 100 : 0;
+
   return (
     <div
-      className={`bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow ${
+      className={` bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow ${
         isLast ? "mb-3" : ""
       }`}
     >
-      <div className="flex items-start justify-between mb-3">
-        <div className="space-y-1 flex-1">
-          <h4 className="text-sm font-medium text-gray-900">{proposalInfo.title}</h4>
-          {proposalInfo.description && (
-            <p className="text-xs text-gray-600">
+      <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between">
+        <div className="left-section flex-1 mb-4 lg:mb-0">
+          {/* Title and Description */}
+          <div className="mb-4">
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">{proposalInfo.title}</h3>
+            <p className="text-sm text-gray-600 leading-relaxed">
               {proposalInfo.description.length > descriptionMaxLength
                 ? `${proposalInfo.description.substring(0, descriptionMaxLength)}...`
                 : proposalInfo.description}
             </p>
-          )}
+          </div>
+          {/* Header with badges and proposer */}
+          <div className="flex items-start justify-start mb-4">
+            <div className="flex items-center gap-2">
+              <span
+                className={`px-2.5 py-1 rounded-md text-xs font-medium ${getCategoryColor(
+                  proposalInfo.category
+                )}`}
+              >
+                {getCategoryLabel(proposalInfo.category)}
+              </span>
+              {statusBadge}
+            </div>
+            {/* Proposer */}
+            <div className="mb-3 pl-3">
+              <span className="text-xs text-gray-500">
+                by {shortenAddress(proposalInfo.proposer)}
+              </span>
+            </div>
+          </div>
+          {/* Voting Progress */}
+          <div className="mb-4">
+            <div className="flex items-center justify-between mb-2 text-xs">
+              <span className="font-medium text-gray-700">Voting Progress</span>
+            </div>
+
+            {/* Progress Bar */}
+            <div className="relative h-2 bg-gray-200 rounded-full overflow-hidden mb-3">
+              <div
+                className="absolute left-0 top-0 h-full bg-gray-900 transition-all"
+                style={{ width: `${forPercentage}%` }}
+              />
+            </div>
+
+            {/* Vote Counts */}
+            <div className="flex items-center justify-between text-xs">
+              <div className="flex items-center gap-1">
+                <div className="w-2 h-2 rounded-full bg-green-500" />
+                <span className="text-gray-700">For: {proposalInfo.votesFor.toLocaleString()}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-2 h-2 rounded-full bg-red-500" />
+                <span className="text-gray-700">
+                  Against: {proposalInfo.votesAgainst.toLocaleString()}
+                </span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-2 h-2 rounded-full bg-gray-400" />
+                <span className="text-gray-700">Abstain: {abstainVotes.toLocaleString()}</span>
+              </div>
+            </div>
+          </div>
         </div>
-        <div className="flex items-center space-x-2 ml-3">
-          {statusBadge}
-          {actionButtons}
-          <ChevronRight className="h-3 w-3 text-gray-400" />
+        <div className="right-section lg:ml-6 lg:flex-shrink-0 lg:w-48 w-full">
+          {/* Action Buttons */}
+          <div className="flex flex-col w-full items-center justify-between pt-4  border-gray-100">
+            <div className="bg-gray-50 w-full rounded-lg p-4 mb-4">
+              <div className="flex items-center space-x-2 mb-2">
+                <Hourglass className="w-4 h-4" />
+                Time Left
+              </div>
+              <div className="text-2xl font-bold ">{formatTimeRemaining(proposalInfo.endTime)}</div>
+            </div>
+            <div className="flex flex-col w-full items-center gap-2">
+              <Button
+                onClick={onVoteFor}
+                variant="default"
+                size="sm"
+                className="w-full bg-green-600 hover:bg-green-700 text-white"
+              >
+                {" "}
+                <CircleCheck />
+                Vote For
+              </Button>
+              <Button
+                onClick={onVoteAgainst}
+                variant="outline"
+                size="sm"
+                className="w-full border-red-600 text-red-600 hover:bg-red-50"
+              >
+                <CircleMinus />
+                Vote Against
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
-
-      {/* <div className="flex items-center justify-between text-xs text-gray-600">
-        <div className="flex items-center space-x-3">
-          <div className="flex items-center space-x-1">
-            <Users className="h-3 w-3" />
-            <span>
-              {study.currentParticipants}/{study.maxParticipants}
-            </span>
-          </div>
-
-          <div className="flex items-center space-x-1">
-            <Calendar className="h-3 w-3" />
-            <span>{new Date(study.createdAt).toLocaleDateString()}</span>
-          </div>
-        </div>
-
-        {study.templateName && (
-          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-gray-100 text-gray-700 border border-gray-200">
-            {study.templateName}
-          </span>
-        )}
-      </div>
-
-      <StudyCriteriaBadges
-        studyCriteriaSummary={study.criteriaSummary}
-        showLabel={showCriteriaLabel}
-      /> */}
     </div>
   );
 }

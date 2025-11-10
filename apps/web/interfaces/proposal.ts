@@ -38,3 +38,17 @@ export interface Proposal {
   hasVoted?: boolean;
   userVote?: VoteChoice;
 }
+
+export interface CreateProposalParams {
+  title: string;
+  description: string;
+  category: ProposalCategory;
+  walletAddress: string;
+}
+
+export interface CreateProposalResponse {
+  success: boolean;
+  data?: Proposal;
+  transactionHash?: string;
+  error?: string;
+}

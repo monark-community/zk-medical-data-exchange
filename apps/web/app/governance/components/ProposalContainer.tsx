@@ -23,8 +23,8 @@ export default function ProposalContainer({
   children,
 }: ProposalContainerProps) {
   return (
-    <div className="px-6 pb-6">
-      <div className="max-h-[360px] overflow-y-auto border rounded-lg bg-gray-50/50">
+    <div id="proposal-container" className="px-6 pb-6">
+      <div className="h-full max-h-[50vh] overflow-y-auto  rounded-lg ">
         {error ? (
           <div className="p-12 text-center">
             <AlertTriangle className="h-12 w-12 text-red-400 mx-auto mb-4" />

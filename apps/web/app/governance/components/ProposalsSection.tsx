@@ -28,7 +28,7 @@ export default function ProposalsSection() {
   };
 
   return (
-    <div className="w-full">
+    <div id="proposal-tabs-section" className="w-full ">
       <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
         <ProposalContainer
           isLoading={isLoading}
