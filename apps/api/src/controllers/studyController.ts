@@ -127,6 +127,127 @@ const updateParticipantCount = async (
     .eq(TABLES.STUDIES!.columns.id!, id);
 };
 
+const processBlockchainConsent = async (
+  studyContractAddress: string | undefined,
+  blockchainMethod: any,
+  participantWallet: string,
+  id: string,
+  operation: string,
+  res: Response
+): Promise<string | null> => {
+  if (!studyContractAddress) {
+    logger.info(
+      { studyId: id },
+      `Study not deployed to blockchain - proceeding to database update only`
+    );
+    return null;
+  }
+
+  try {
+    const blockchainResult = await executeBlockchainConsent(
+      blockchainMethod,
+      studyContractAddress,
+      participantWallet,
+      id,
+      operation
+    );
+
+    if (!blockchainResult.success) {
+      logger.error(
+        {
+          error: blockchainResult.error,
+          errorString: String(blockchainResult.error),
+          errorJSON: JSON.stringify(blockchainResult.error),
+          studyId: id,
+          participantWallet,
+        },
+        `Failed to ${operation} consent on blockchain - ABORTING (no database update)`
+      );
+      res.status(500).json({
+        error: `Failed to ${operation} consent on blockchain`,
+        details: blockchainResult.error,
+      });
+      return undefined as any;
+    }
+
+    const txHash = blockchainResult.transactionHash;
+    logger.info(
+      { studyId: id, participantWallet, txHash },
+      `Consent ${
+        operation === "revoke" ? "revoked" : "granted"
+      } on blockchain - proceeding to database update`
+    );
+    return txHash;
+  } catch (blockchainError) {
+    logger.error(
+      { error: blockchainError, studyId: id, participantWallet },
+      `Error during blockchain consent ${operation} - ABORTING (no database update)`
+    );
+    res.status(500).json({
+      error: `Error during blockchain consent ${operation}`,
+      details: blockchainError instanceof Error ? blockchainError.message : "Unknown error",
+    });
+    return undefined as any;
+  }
+};
+
+const logConsentAudit = async (
+  auditLogger: any,
+  participantWallet: string,
+  studyId: string,
+  success: boolean,
+  metadata: any,
+  operation: string
+) => {
+  await auditLogger(participantWallet, studyId, success, metadata).catch((error: any) => {
+    logger.error(
+      { error },
+      `Failed to log consent ${operation} ${success ? "audit event" : "failure"}`
+    );
+  });
+};
+
+const handleConsentError = async (
+  error: unknown,
+  req: Request,
+  res: Response,
+  operation: string,
+  auditLogger: any,
+  auditMetadata: { userAgent: string; ipAddress: string; duration: number }
+) => {
+  logger.error(
+    {
+      error:
+        error instanceof Error
+          ? {
+              message: error.message,
+              stack: error.stack,
+              name: error.name,
+            }
+          : error,
+      studyId: req.params.id,
+    },
+    `${operation.charAt(0).toUpperCase() + operation.slice(1)} consent error`
+  );
+
+  const { participantWallet } = req.body;
+  if (participantWallet) {
+    await logConsentAudit(
+      auditLogger,
+      participantWallet,
+      String(req.params.id),
+      false,
+      {
+        error: error instanceof Error ? error.message : "Unknown error",
+        ...auditMetadata,
+      },
+      operation
+    );
+  }
+
+  res.status(500).json({ error: "Internal server error" });
+};
+
 const handleConsentOperation = async (
   req: Request,
   res: Response,
@@ -176,58 +297,18 @@ const handleConsentOperation = async (
       return res.status(400).json({ error: message });
     }
 
-    let blockchainTxHash = null;
     const studyContractAddress = (participation.study as any)?.contract_address;
+    const blockchainTxHash = await processBlockchainConsent(
+      studyContractAddress,
+      blockchainMethod,
+      participantWallet,
+      id,
+      operation,
+      res
+    );
 
-    if (studyContractAddress) {
-      try {
-        const blockchainResult = await executeBlockchainConsent(
-          blockchainMethod,
-          studyContractAddress,
-          participantWallet,
-          id,
-          operation
-        );
-
-        if (!blockchainResult.success) {
-          logger.error(
-            {
-              error: blockchainResult.error,
-              errorString: String(blockchainResult.error),
-              errorJSON: JSON.stringify(blockchainResult.error),
-              studyId: id,
-              participantWallet,
-            },
-            `Failed to ${operation} consent on blockchain - ABORTING (no database update)`
-          );
-          return res.status(500).json({
-            error: `Failed to ${operation} consent on blockchain`,
-            details: blockchainResult.error,
-          });
-        }
-
-        blockchainTxHash = blockchainResult.transactionHash;
-        logger.info(
-          { studyId: id, participantWallet, txHash: blockchainTxHash },
-          `Consent ${
-            isRevoke ? "revoked" : "granted"
-          } on blockchain - proceeding to database update`
-        );
-      } catch (blockchainError) {
-        logger.error(
-          { error: blockchainError, studyId: id, participantWallet },
-          `Error during blockchain consent ${operation} - ABORTING (no database update)`
-        );
-        return res.status(500).json({
-          error: `Error during blockchain consent ${operation}`,
-          details: blockchainError instanceof Error ? blockchainError.message : "Unknown error",
-        });
-      }
-    } else {
-      logger.info(
-        { studyId: id },
-        `Study not deployed to blockchain - proceeding to database update only`
-      );
+    if (blockchainTxHash === undefined) {
+      return;
     }
 
     const newConsentStatus = !isRevoke;
@@ -257,14 +338,19 @@ const handleConsentOperation = async (
       await updateParticipantCount(req.supabase, id, studyRecord, delta);
     }
 
-    await auditLogger(participantWallet, String(id), true, {
-      blockchainTxHash,
-      userAgent,
-      ipAddress,
-      duration: getAuditDuration(startTime),
-    }).catch((error) => {
-      logger.error({ error }, `Failed to log consent ${operation} audit event`);
-    });
+    await logConsentAudit(
+      auditLogger,
+      participantWallet,
+      String(id),
+      true,
+      {
+        blockchainTxHash,
+        userAgent,
+        ipAddress,
+        duration: getAuditDuration(startTime),
+      },
+      operation
+    );
 
     res.status(200).json({
       success: true,
@@ -272,34 +358,11 @@ const handleConsentOperation = async (
       blockchainTxHash,
     });
   } catch (error) {
-    logger.error(
-      {
-        error:
-          error instanceof Error
-            ? {
-                message: error.message,
-                stack: error.stack,
-                name: error.name,
-              }
-            : error,
-        studyId: req.params.id,
-      },
-      `${operation.charAt(0).toUpperCase() + operation.slice(1)} consent error`
-    );
-
-    const { participantWallet } = req.body;
-    if (participantWallet) {
-      await auditLogger(participantWallet, String(req.params.id), false, {
-        error: error instanceof Error ? error.message : "Unknown error",
-        userAgent,
-        ipAddress,
-        duration: getAuditDuration(startTime),
-      }).catch((auditError) => {
-        logger.error({ auditError }, `Failed to log consent ${operation} failure`);
-      });
-    }
-
-    res.status(500).json({ error: "Internal server error" });
+    await handleConsentError(error, req, res, operation, auditLogger, {
+      userAgent,
+      ipAddress,
+      duration: getAuditDuration(startTime),
+    });
   }
 };
 
