@@ -402,7 +402,7 @@ router.post("/proposals", createProposal);
  * /governance/proposals/{id}/vote:
  *   post:
  *     summary: Vote on a proposal
- *     description: Cast a vote (For/Against/Abstain) on an active proposal
+ *     description: Cast a vote (For/Against) on an active proposal
  *     tags: [Governance]
  *     security:
  *       - bearerAuth: []
@@ -427,7 +427,7 @@ router.post("/proposals", createProposal);
  *               choice:
  *                 type: number
  *                 enum: [1, 2, 3]
- *                 description: "1: For, 2: Against, 3: Abstain"
+ *                 description: "1: For, 2: Against, 3"
  *                 example: 1
  *               walletAddress:
  *                 type: string
@@ -470,7 +470,7 @@ router.post("/proposals", createProposal);
  *                   example: false
  *                 error:
  *                   type: string
- *                   example: "Invalid vote choice (must be 1: For, 2: Against, 3: Abstain)"
+ *                   example: "Invalid vote choice (must be 1: For, 2: Against)"
  *       500:
  *         description: Internal server error
  *         content:
