@@ -39,6 +39,94 @@ const updateStudyParticipantCount = async (
   return activeCount;
 };
 
+const validateConsentRequest = (
+  id: string | undefined,
+  participantWallet: string | undefined,
+  res: Response
+): id is string => {
+  if (!id) {
+    res.status(400).json({ error: "Study ID is required" });
+    return false;
+  }
+  if (!participantWallet) {
+    res.status(400).json({ error: "Participant wallet address is required" });
+    return false;
+  }
+  return true;
+};
+
+const fetchParticipation = async (supabase: any, id: string, participantWallet: string) => {
+  const { data, error } = await supabase
+    .from(TABLES.STUDY_PARTICIPATIONS!.name)
+    .select("*, study:study_id(*)")
+    .eq(TABLES.STUDY_PARTICIPATIONS!.columns.studyId!, id)
+    .eq(TABLES.STUDY_PARTICIPATIONS!.columns.participantWallet!, participantWallet)
+    .single();
+
+  return { data, error };
+};
+
+const canPerformConsentOperation = (currentStatus: boolean, isRevoke: boolean): boolean => {
+  return isRevoke ? currentStatus === true : currentStatus === false;
+};
+
+const executeBlockchainConsent = async (
+  blockchainMethod: any,
+  contractAddress: string,
+  participantWallet: string,
+  id: string,
+  operation: string
+) => {
+  logger.info(
+    { studyId: id, participantWallet, studyContractAddress: contractAddress },
+    `Calling blockchain ${operation} consent`
+  );
+
+  const result = await blockchainMethod(contractAddress, participantWallet);
+
+  logger.info(
+    {
+      studyId: id,
+      participantWallet,
+      blockchainResult: result,
+      success: result.success,
+      error: result.error,
+      txHash: result.transactionHash,
+    },
+    `Blockchain ${operation} consent result`
+  );
+
+  return result;
+};
+
+const updateConsentInDatabase = async (
+  supabase: any,
+  id: string,
+  participantWallet: string,
+  newStatus: boolean
+) => {
+  const { error } = await supabase
+    .from(TABLES.STUDY_PARTICIPATIONS!.name)
+    .update({ has_consented: newStatus })
+    .eq(TABLES.STUDY_PARTICIPATIONS!.columns.studyId!, id)
+    .eq(TABLES.STUDY_PARTICIPATIONS!.columns.participantWallet!, participantWallet);
+
+  return error;
+};
+
+const updateParticipantCount = async (
+  supabase: any,
+  id: string,
+  studyRecord: any,
+  delta: number
+) => {
+  const newCount = Math.max(0, studyRecord.current_participants + delta);
+  await supabase
+    .from(TABLES.STUDIES!.name)
+    .update({ current_participants: newCount })
+    .eq(TABLES.STUDIES!.columns.id!, id);
+};
+
 const handleConsentOperation = async (
   req: Request,
   res: Response,
@@ -57,18 +145,17 @@ const handleConsentOperation = async (
     const { id } = req.params;
     const { participantWallet } = req.body;
 
-    if (!participantWallet) {
-      return res.status(400).json({ error: "Participant wallet address is required" });
+    if (!validateConsentRequest(id, participantWallet, res)) {
+      return;
     }
 
     logger.info({ studyId: id, participantWallet }, `POST /api/studies/:id/consent/${operation}`);
 
-    const { data: participation, error: participationError } = await req.supabase
-      .from(TABLES.STUDY_PARTICIPATIONS!.name)
-      .select("*, study:study_id(*)")
-      .eq(TABLES.STUDY_PARTICIPATIONS!.columns.studyId!, id)
-      .eq(TABLES.STUDY_PARTICIPATIONS!.columns.participantWallet!, participantWallet)
-      .single();
+    const { data: participation, error: participationError } = await fetchParticipation(
+      req.supabase,
+      id,
+      participantWallet
+    );
 
     if (participationError || !participation) {
       logger.warn(
@@ -80,11 +167,7 @@ const handleConsentOperation = async (
 
     const currentConsentStatus = participation.has_consented ?? true;
 
-    const canPerformOperation = isRevoke
-      ? currentConsentStatus === true
-      : currentConsentStatus === false;
-
-    if (!canPerformOperation) {
+    if (!canPerformConsentOperation(currentConsentStatus, isRevoke)) {
       const message = isRevoke ? "Consent already revoked" : "Consent already active";
       logger.warn(
         { studyId: id, participantWallet, currentConsent: currentConsentStatus },
@@ -98,23 +181,12 @@ const handleConsentOperation = async (
 
     if (studyContractAddress) {
       try {
-        logger.info(
-          { studyId: id, participantWallet, studyContractAddress },
-          `Calling blockchain ${operation} consent`
-        );
-
-        const blockchainResult = await blockchainMethod(studyContractAddress, participantWallet);
-
-        logger.info(
-          {
-            studyId: id,
-            participantWallet,
-            blockchainResult,
-            success: blockchainResult.success,
-            error: blockchainResult.error,
-            txHash: blockchainResult.transactionHash,
-          },
-          `Blockchain ${operation} consent result`
+        const blockchainResult = await executeBlockchainConsent(
+          blockchainMethod,
+          studyContractAddress,
+          participantWallet,
+          id,
+          operation
         );
 
         if (!blockchainResult.success) {
@@ -159,11 +231,12 @@ const handleConsentOperation = async (
     }
 
     const newConsentStatus = !isRevoke;
-    const { error: updateError } = await req.supabase
-      .from(TABLES.STUDY_PARTICIPATIONS!.name)
-      .update({ has_consented: newConsentStatus })
-      .eq(TABLES.STUDY_PARTICIPATIONS!.columns.studyId!, id)
-      .eq(TABLES.STUDY_PARTICIPATIONS!.columns.participantWallet!, participantWallet);
+    const updateError = await updateConsentInDatabase(
+      req.supabase,
+      id,
+      participantWallet,
+      newConsentStatus
+    );
 
     if (updateError) {
       logger.error(
@@ -181,11 +254,7 @@ const handleConsentOperation = async (
     const studyRecord = participation.study as any;
     if (studyRecord) {
       const delta = isRevoke ? -1 : 1;
-      const newCount = Math.max(0, studyRecord.current_participants + delta);
-      await req.supabase
-        .from(TABLES.STUDIES!.name)
-        .update({ current_participants: newCount })
-        .eq(TABLES.STUDIES!.columns.id!, id);
+      await updateParticipantCount(req.supabase, id, studyRecord, delta);
     }
 
     await auditLogger(participantWallet, String(id), true, {
