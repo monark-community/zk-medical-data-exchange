@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import { createPublicClient, createWalletClient, http } from "viem";
 import type { PublicClient, WalletClient } from "viem";
 import { sepolia } from "viem/chains";
