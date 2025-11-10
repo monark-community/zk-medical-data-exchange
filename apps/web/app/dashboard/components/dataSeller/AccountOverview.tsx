@@ -33,7 +33,6 @@ const AccountOverview: React.FC<AccountOverviewProps> = ({ walletAddress }) => {
 
     eventBus.on("medicalDataUploaded", fetchStats);
     eventBus.on("medicalDataDeleted", fetchStats);
-    // eventBus.on("medicalDataUploaded", fetchStats);
 
     if (walletAddress) {
       fetchStats();
