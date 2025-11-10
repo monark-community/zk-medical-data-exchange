@@ -37,7 +37,7 @@ const UserMenu = () => {
     return currentProfile === UserProfile.DATA_SELLER ? "Researcher" : "Data Seller";
   };
   return (
-    <DropdownMenu>
+    <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
         <Button variant="outline">
           <ProfileAvatar size={32} radius={48} />
