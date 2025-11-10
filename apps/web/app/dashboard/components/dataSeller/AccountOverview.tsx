@@ -7,6 +7,7 @@ import { useProfile } from "@/contexts/ProfileContext";
 import { UserProfile } from "@zk-medical/shared";
 import { getUserStats, DataSellerStats, ResearcherStats } from "@/services/api/userService";
 import { Spinner } from "@/components/ui/spinner";
+import eventBus from "@/lib/eventBus";
 
 interface AccountOverviewProps {
   walletAddress: string;
@@ -30,11 +31,19 @@ const AccountOverview: React.FC<AccountOverviewProps> = ({ walletAddress }) => {
       }
     };
 
+    eventBus.on("medicalDataUploaded", fetchStats);
+    eventBus.on("medicalDataDeleted", fetchStats);
+    // eventBus.on("medicalDataUploaded", fetchStats);
+
     if (walletAddress) {
       fetchStats();
     }
-  }, [walletAddress, currentProfile]);
 
+    return () => {
+      eventBus.off("medicalDataUploaded", fetchStats);
+      eventBus.off("medicalDataDeleted", fetchStats);
+    };
+  }, [walletAddress, currentProfile]);
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
