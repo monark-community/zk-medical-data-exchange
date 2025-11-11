@@ -4,7 +4,7 @@ import { apiClient } from "@/services/core/apiClient";
 export const getProposals = async (): Promise<Proposal[]> => {
   const { data } = await apiClient.get(`/governance/proposals`);
 
-  return data.proposals;
+  return data.data;
 };
 
 export const createProposal = async (
@@ -15,6 +15,7 @@ export const createProposal = async (
       `/governance/proposals`,
       proposal
     );
+
     return { success: data.success };
   } catch (error: any) {
     const errorMessage = error.response?.data?.error || error.message || "Network error";

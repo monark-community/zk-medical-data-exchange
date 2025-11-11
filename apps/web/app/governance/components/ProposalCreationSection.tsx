@@ -1,40 +1,11 @@
 "use client";
-import { useState } from "react";
 import { Gavel } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { createProposal } from "@/services/api/governanceService";
-import { CreateProposalParams } from "@/interfaces/proposal";
-import { useAccount } from "wagmi";
-import { Spinner } from "@/components/ui/spinner";
+import CreateProposalDialog from "./CreateProposalDialog";
 
 const ProposalCreationSection = () => {
-  const [isWaitingForProposalCreation, setIsWaitingForProposalCreation] = useState(false);
-  const { address: walletAddress } = useAccount();
-
-  const handleCreateProposal = async () => {
-    const proposal = {
-      title: "Implement new privacy features",
-      description: "This proposal aims to add enhanced privacy controls for users",
-      category: 1,
-      walletAddress: walletAddress,
-    } as CreateProposalParams;
-
-    setIsWaitingForProposalCreation(true);
-    try {
-      const result = await createProposal(proposal);
-      if (result.success) {
-        console.log("Proposal created successfully");
-        // TODO: Show success message to user pourt dire que la proposal est bien faite
-      } else {
-        console.error("Failed to create proposal:", result.error);
-        // TODO: handle le messge d'erreur pour l'user
-      }
-    } catch (error) {
-      console.error("Unexpected error creating proposal:", error);
-      // TODO: handle le messge d'erreur pour l'user
-    } finally {
-      setIsWaitingForProposalCreation(false);
-    }
+  const handleProposalCreated = () => {
+    // TODO: Refresh proposals list or show notification
+    console.log("Proposal created successfully");
   };
 
   return (
@@ -53,19 +24,7 @@ const ProposalCreationSection = () => {
               Create a new governance proposal to improve the Cura platform
             </p>
           </div>
-          {isWaitingForProposalCreation ? (
-            <Button className="bg-gradient-to-r from-blue-600 to-teal-600" size="lg">
-              <Spinner className="size-12 text-blue-600" />
-            </Button>
-          ) : (
-            <Button
-              className="bg-gradient-to-r from-blue-600 to-teal-600"
-              onClick={handleCreateProposal}
-              size="lg"
-            >
-              Create Proposal
-            </Button>
-          )}
+          <CreateProposalDialog onProposalCreated={handleProposalCreated} />
         </div>
       </div>
     </div>

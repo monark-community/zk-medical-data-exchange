@@ -10,7 +10,6 @@ export enum ProposalState {
   Active = 0,
   Passed = 1,
   Failed = 2,
-  Executed = 3,
 }
 
 export enum ProposalCategory {
@@ -42,8 +41,9 @@ export interface Proposal {
 export interface CreateProposalParams {
   title: string;
   description: string;
-  category: ProposalCategory;
+  category: number;
   walletAddress: string;
+  duration: number;
 }
 
 export interface CreateProposalResponse {

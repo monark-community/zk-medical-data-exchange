@@ -74,9 +74,7 @@ export default function ProposalCard({
   onVoteAgainst,
   descriptionMaxLength = 200,
 }: ProposalCardProps) {
-  const totalVotes = proposalInfo.votesFor + proposalInfo.votesAgainst;
-  const abstainVotes = proposalInfo.totalVoters - totalVotes;
-  const forPercentage = totalVotes > 0 ? (proposalInfo.votesFor / totalVotes) * 100 : 0;
+  // const voteForPercentage = (proposalInfo.votesFor / proposalInfo.totalVoters) * 100;
 
   return (
     <div
@@ -116,20 +114,16 @@ export default function ProposalCard({
           </div>
           {/* Voting Progress */}
           <div className="mb-4">
-            <div className="flex items-center justify-between mb-2 text-xs">
+            <div className="flex items-center justify-between mb-2 text-m">
               <span className="font-medium text-gray-700">Voting Progress</span>
             </div>
 
-            {/* Progress Bar */}
-            <div className="relative h-2 bg-gray-200 rounded-full overflow-hidden mb-3">
-              <div
-                className="absolute left-0 top-0 h-full bg-gray-900 transition-all"
-                style={{ width: `${forPercentage}%` }}
-              />
-            </div>
+            {/* Progress Bar  ADD if Quorum implement*/}
+
+            {/* <Progress value={voteForPercentage}  /> */}
 
             {/* Vote Counts */}
-            <div className="flex items-center justify-between text-xs">
+            <div className="flex items-center justify-between text-s">
               <div className="flex items-center gap-1">
                 <div className="w-2 h-2 rounded-full bg-green-500" />
                 <span className="text-gray-700">For: {proposalInfo.votesFor.toLocaleString()}</span>
@@ -139,10 +133,6 @@ export default function ProposalCard({
                 <span className="text-gray-700">
                   Against: {proposalInfo.votesAgainst.toLocaleString()}
                 </span>
-              </div>
-              <div className="flex items-center gap-1">
-                <div className="w-2 h-2 rounded-full bg-gray-400" />
-                <span className="text-gray-700">Abstain: {abstainVotes.toLocaleString()}</span>
               </div>
             </div>
           </div>
