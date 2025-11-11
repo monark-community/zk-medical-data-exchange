@@ -42,14 +42,14 @@ export default function EndStudyDialog({
     setIsEnding(true);
     
     try {
-      // TODO: Backend implementation needed here
-      // This should include:
-      // 1. Update study status to "completed" in database
-      // 2. Finalize blockchain transaction
-      // 3. Calculate final costs and participant compensation
-      // 4. Notify all enrolled participants
-      // 5. Archive study data and make it accessible
+      // Update study status to "completed" in database
       await endStudy(studyId);
+      
+      // TODO: Additional backend implementation needed:
+      // 1. Finalize blockchain transaction
+      // 2. Calculate final costs and participant compensation
+      // 3. Notify all enrolled participants
+      // 4. Archive study data and make it accessible
       
       setShowSuccess(true);
       
