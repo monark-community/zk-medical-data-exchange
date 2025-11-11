@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+import React, { useEffect, useState } from "react";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Config, UseAccountReturnType } from "wagmi";
@@ -20,8 +20,17 @@ const DashboardTabs = ({
 }) => {
   const { currentProfile } = useProfile();
 
+  const defaultTab = currentProfile === UserProfile.DATA_SELLER ? "dataVault" : "studies";
+  const [activeTab, setActiveTab] = useState(defaultTab);
+
+  useEffect(() => {
+    if (activeTab === "dataVault" && currentProfile !== UserProfile.DATA_SELLER) {
+      setActiveTab("studies");
+    }
+  }, [currentProfile, activeTab]);
+
   return (
-    <Tabs defaultValue="dataVault" className="w-full">
+    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
       <TabsList className="w-full h-10">
         {/* Only show Data Vault tab for Data Sellers */}
         {currentProfile === UserProfile.DATA_SELLER && (

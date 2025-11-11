@@ -101,7 +101,6 @@ export const STUDY_FORM_MAPPINGS = {
   ],
 } as const;
 
-// Default form values
 export const DEFAULT_STUDY_INFO = {
   title: "",
   description: "",

@@ -17,9 +17,6 @@ type UploadResponse = {
 
 const contentCache: Record<string, CacheEntry> = {};
 
-/**
- * Manages cache size using LRU (Least Recently Used) eviction
- */
 const manageCacheSize = (): void => {
   if (Object.keys(contentCache).length >= MAX_CACHE_SIZE) {
     let lruKey: string | null = null;
@@ -124,7 +121,6 @@ export const ipfsDelete = async (
       data: { file_id: fileId },
     });
 
-    // Clear cache
     if (contentCache[cid]) {
       delete contentCache[cid];
     }

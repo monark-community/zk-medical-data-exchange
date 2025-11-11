@@ -4,20 +4,11 @@ import { isValidEthereumAddress } from "@/utils/address";
 import logger from "@/utils/logger";
 import { UserProfile } from "@zk-medical/shared";
 
-/**
- * Audit Controller - Handles audit trail queries and management
- */
-
-/**
- * Get user actions for a specific profile (including COMMON actions)
- * GET /api/audit/user/:userAddress/profile/:profile/actions
- */
 export const getUserActionsByProfile = async (req: Request, res: Response): Promise<void> => {
   try {
     const { userAddress, profile } = req.params;
     const { limit = "20" } = req.query;
 
-    // Validate user address format
     if (!isValidEthereumAddress(userAddress)) {
       res.status(400).json({
         success: false,
@@ -26,9 +17,8 @@ export const getUserActionsByProfile = async (req: Request, res: Response): Prom
       return;
     }
 
-    // Validate and convert profile
-    const userProfile = parseInt(profile as string);
-    if (isNaN(userProfile) || !Object.values(UserProfile).includes(userProfile)) {
+    const userProfile = Number.parseInt(profile as string);
+    if (Number.isNaN(userProfile) || !Object.values(UserProfile).includes(userProfile)) {
       res.status(400).json({
         success: false,
         error:
@@ -37,9 +27,8 @@ export const getUserActionsByProfile = async (req: Request, res: Response): Prom
       return;
     }
 
-    // Validate limit
-    const limitNum = parseInt(limit as string);
-    if (isNaN(limitNum) || limitNum < 1 || limitNum > 100) {
+    const limitNum = Number.parseInt(limit as string);
+    if (Number.isNaN(limitNum) || limitNum < 1 || limitNum > 100) {
       res.status(400).json({
         success: false,
         error: "Invalid limit. Must be between 1 and 100",
@@ -89,10 +78,6 @@ export const getUserActionsByProfile = async (req: Request, res: Response): Prom
   }
 };
 
-/**
- * Get paginated user actions for a specific profile (including COMMON actions)
- * GET /api/audit/user/:userAddress/profile/:profile/actions/paginated
- */
 export const getUserActionsByProfilePaginated = async (
   req: Request,
   res: Response
@@ -101,7 +86,6 @@ export const getUserActionsByProfilePaginated = async (
     const { userAddress, profile } = req.params;
     const { offset = "0", limit = "20", latestFirst = "true" } = req.query;
 
-    // Validate user address format
     if (!isValidEthereumAddress(userAddress)) {
       res.status(400).json({
         success: false,
@@ -109,10 +93,8 @@ export const getUserActionsByProfilePaginated = async (
       });
       return;
     }
-
-    // Validate and convert profile
-    const userProfile = parseInt(profile as string);
-    if (isNaN(userProfile) || !Object.values(UserProfile).includes(userProfile)) {
+    const userProfile = Number.parseInt(profile as string);
+    if (Number.isNaN(userProfile) || !Object.values(UserProfile).includes(userProfile)) {
       res.status(400).json({
         success: false,
         error:
@@ -121,9 +103,8 @@ export const getUserActionsByProfilePaginated = async (
       return;
     }
 
-    // Validate offset
-    const offsetNum = parseInt(offset as string);
-    if (isNaN(offsetNum) || offsetNum < 0) {
+    const offsetNum = Number.parseInt(offset as string);
+    if (Number.isNaN(offsetNum) || offsetNum < 0) {
       res.status(400).json({
         success: false,
         error: "Invalid offset. Must be >= 0",
@@ -131,9 +112,8 @@ export const getUserActionsByProfilePaginated = async (
       return;
     }
 
-    // Validate limit
-    const limitNum = parseInt(limit as string);
-    if (isNaN(limitNum) || limitNum < 1 || limitNum > 100) {
+    const limitNum = Number.parseInt(limit as string);
+    if (Number.isNaN(limitNum) || limitNum < 1 || limitNum > 100) {
       res.status(400).json({
         success: false,
         error: "Invalid limit. Must be between 1 and 100",
@@ -141,7 +121,6 @@ export const getUserActionsByProfilePaginated = async (
       return;
     }
 
-    // Convert latestFirst to boolean
     const latestFirstBool = latestFirst === "true";
 
     const result = await auditService.getUserActionsForProfilePaginated(
@@ -206,19 +185,10 @@ export const getUserActionsByProfilePaginated = async (
   }
 };
 
-/**
- * Get user actions for profile-specific actions only (excludes COMMON actions)
- * GET /api/audit/user/:userAddress/profile/:profile/actions/profile-only
- */
-/**
- * Get a specific audit record by ID
- * GET /api/audit/record/:recordId
- */
 export const getAuditRecord = async (req: Request, res: Response): Promise<void> => {
   try {
     const { recordId } = req.params;
 
-    // Validate record ID
     if (!recordId) {
       res.status(400).json({
         success: false,
@@ -227,8 +197,8 @@ export const getAuditRecord = async (req: Request, res: Response): Promise<void>
       return;
     }
 
-    const recordIdNum = parseInt(recordId);
-    if (isNaN(recordIdNum) || recordIdNum < 0) {
+    const recordIdNum = Number.parseInt(recordId);
+    if (Number.isNaN(recordIdNum) || recordIdNum < 0) {
       res.status(400).json({
         success: false,
         error: "Invalid record ID. Must be a non-negative number",
@@ -275,16 +245,11 @@ export const getAuditRecord = async (req: Request, res: Response): Promise<void>
   }
 };
 
-/**
- * Get all user actions (across all profiles)
- * GET /api/audit/user/:userAddress/actions
- */
 export const getAllUserActions = async (req: Request, res: Response): Promise<void> => {
   try {
     const { userAddress } = req.params;
     const { limit = "20" } = req.query;
 
-    // Validate user address format
     if (!isValidEthereumAddress(userAddress)) {
       res.status(400).json({
         success: false,
@@ -293,9 +258,8 @@ export const getAllUserActions = async (req: Request, res: Response): Promise<vo
       return;
     }
 
-    // Validate limit
-    const limitNum = parseInt(limit as string);
-    if (isNaN(limitNum) || limitNum < 1 || limitNum > 100) {
+    const limitNum = Number.parseInt(limit as string);
+    if (Number.isNaN(limitNum) || limitNum < 1 || limitNum > 100) {
       res.status(400).json({
         success: false,
         error: "Invalid limit. Must be between 1 and 100",
@@ -337,21 +301,17 @@ export const getAllUserActions = async (req: Request, res: Response): Promise<vo
   }
 };
 
-/**
- * Get profile and action type information
- * GET /api/audit/info
- */
 export const getAuditInfo = async (req: Request, res: Response): Promise<void> => {
   try {
     const profiles = Object.keys(UserProfile)
-      .filter((key) => isNaN(Number(key)))
+      .filter((key) => Number.isNaN(Number(key)))
       .map((key) => ({
         name: key,
         value: UserProfile[key as keyof typeof UserProfile],
       }));
 
     const actionTypes = Object.keys(ActionType)
-      .filter((key) => isNaN(Number(key)))
+      .filter((key) => Number.isNaN(Number(key)))
       .map((key) => ({
         name: key,
         value: ActionType[key as keyof typeof ActionType],
@@ -374,15 +334,10 @@ export const getAuditInfo = async (req: Request, res: Response): Promise<void> =
   }
 };
 
-/**
- * Log file access or download audit record
- * POST /api/audit/log-access
- */
 export const logFileAccess = async (req: Request, res: Response): Promise<void> => {
   try {
     const { userAddress, encryptedCID, accessType, success, resourceType, metadata } = req.body;
 
-    // Validate required fields
     if (!userAddress || !encryptedCID || !accessType) {
       res.status(400).json({
         success: false,
@@ -391,7 +346,6 @@ export const logFileAccess = async (req: Request, res: Response): Promise<void> 
       return;
     }
 
-    // Validate user address format
     if (!isValidEthereumAddress(userAddress)) {
       res.status(400).json({
         success: false,
@@ -400,7 +354,6 @@ export const logFileAccess = async (req: Request, res: Response): Promise<void> 
       return;
     }
 
-    // Validate access type
     if (!["view", "download"].includes(accessType)) {
       res.status(400).json({
         success: false,
@@ -409,12 +362,11 @@ export const logFileAccess = async (req: Request, res: Response): Promise<void> 
       return;
     }
 
-    // Log the file access
     const result = await auditService.logDataAccess(
       userAddress,
       encryptedCID,
       accessType,
-      success !== false, // Default to true if not specified
+      success !== false,
       resourceType,
       metadata || {}
     );
@@ -463,6 +415,97 @@ export const logFileAccess = async (req: Request, res: Response): Promise<void> 
     res.status(500).json({
       success: false,
       error: "Internal server error while logging file access",
+    });
+  }
+};
+
+export const logFailedJoinStudy = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { userAddress, studyId, reason, errorDetails, metadata } = req.body;
+
+    if (!userAddress || !studyId) {
+      res.status(400).json({
+        success: false,
+        error: "Missing required fields: userAddress, studyId",
+      });
+      return;
+    }
+
+    if (!isValidEthereumAddress(userAddress)) {
+      res.status(400).json({
+        success: false,
+        error: "Invalid user address format",
+      });
+      return;
+    }
+
+    const studyIdNum = Number.parseInt(studyId);
+    if (Number.isNaN(studyIdNum) || studyIdNum < 0) {
+      res.status(400).json({
+        success: false,
+        error: "Invalid studyId. Must be a non-negative number",
+      });
+      return;
+    }
+
+    const enrichedMetadata = {
+      reason: reason || "Unknown error",
+      errorDetails,
+      ...metadata,
+    };
+
+    const result = await auditService.logStudyParticipation(
+      userAddress,
+      studyIdNum.toString(),
+      false,
+      enrichedMetadata
+    );
+
+    if (result.success) {
+      logger.info(
+        {
+          userAddress,
+          studyId: studyIdNum,
+          reason,
+          txHash: result.txHash,
+        },
+        "Failed study join attempt logged successfully"
+      );
+
+      res.json({
+        success: true,
+        data: {
+          txHash: result.txHash,
+          message: "Failed study join attempt logged successfully",
+        },
+      });
+    } else {
+      logger.error(
+        {
+          userAddress,
+          studyId: studyIdNum,
+          error: result.error,
+        },
+        "Failed to log failed study join attempt"
+      );
+
+      res.status(500).json({
+        success: false,
+        error: result.error || "Failed to log failed study join attempt",
+      });
+    }
+  } catch (error) {
+    logger.error(
+      {
+        error,
+        body: req.body,
+      },
+      "Failed to log failed study join attempt"
+    );
+
+    res.status(500).json({
+      success: false,
+      error: "Internal server error while logging failed study join attempt",
     });
   }
 };

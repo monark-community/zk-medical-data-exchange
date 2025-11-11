@@ -230,6 +230,31 @@ const AuditSection: React.FC<AuditSectionProps> = ({ className = "" }) => {
         </Card>
       )}
 
+      {/* Empty State - Show when data has been loaded but no records exist */}
+      {hasDataLoaded && records.length === 0 && !isLoading && (
+        <Card className="border-0 shadow-lg bg-gradient-to-br from-slate-50 to-gray-50">
+          <CardContent className="py-12">
+            <div className="flex flex-col items-center space-y-6 text-center">
+              <div className="relative">
+                <div className="absolute inset-0 bg-gradient-to-r from-slate-400 to-gray-500 rounded-full blur-lg opacity-20"></div>
+                <div className="relative bg-gradient-to-r from-slate-400 to-gray-500 p-6 rounded-full">
+                  <Activity className="h-12 w-12 text-white" />
+                </div>
+              </div>
+              <div className="space-y-3">
+                <h3 className="text-2xl font-bold bg-gradient-to-r from-slate-700 to-gray-600 bg-clip-text text-transparent">
+                  No Audit Logs Yet
+                </h3>
+                <p className="text-gray-600 max-w-md">
+                  Your activity history is empty. Start interacting with studies, uploading data, or
+                  managing your privacy settings to see audit logs here.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Audit Record Dialog */}
       <AuditRecordDialog record={selectedRecord} open={dialogOpen} onOpenChange={setDialogOpen} />
     </div>
