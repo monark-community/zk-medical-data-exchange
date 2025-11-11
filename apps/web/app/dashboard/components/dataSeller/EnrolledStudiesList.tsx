@@ -27,6 +27,7 @@ export default function EnrolledStudiesList({
     const isGranting = grantingStudyId === study.id;
     const hasConsent = study.hasConsented ?? true;
     const isStudyFull = study.currentParticipants >= study.maxParticipants;
+    const isCompleted = study.status === "completed";
 
     return (
       <div className="flex items-center gap-2">
@@ -45,8 +46,8 @@ export default function EnrolledStudiesList({
           )}
         </div>
 
-        {/* Revoke Button - Only show if consent is active */}
-        {hasConsent && (
+        {/* Revoke Button - Only show if consent is active and study is not completed */}
+        {hasConsent && !isCompleted && (
           <Button
             variant="outline"
             size="sm"
@@ -80,8 +81,8 @@ export default function EnrolledStudiesList({
           </Button>
         )}
 
-        {/* Grant Button - Only show if consent is revoked */}
-        {!hasConsent && (
+        {/* Grant Button - Only show if consent is revoked and study is not completed */}
+        {!hasConsent && !isCompleted && (
           <Button
             variant="outline"
             size="sm"
