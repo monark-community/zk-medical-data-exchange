@@ -17,20 +17,22 @@ export enum ActionType {
   PROPOSAL_CREATION = 1,
   VOTE_CAST = 2,
   PROPOSAL_REMOVAL = 3,
+  USERNAME_CHANGE = 4,
   // RESEARCHER ACTIONS
-  STUDY_CREATION = 4,
-  STUDY_STATUS_CHANGE = 5,
-  STUDY_AGGREGATED_DATA_ACCESS = 6,
-  PERMISSION_CHANGE = 7,
+  STUDY_CREATION = 5,
+  STUDY_STATUS_CHANGE = 6,
+  STUDY_AGGREGATED_DATA_ACCESS = 7,
+  PERMISSION_CHANGE = 8,
   // DATA SELLER ACTIONS
-  STUDY_PARTICIPATION = 8,
-  STUDY_CONSENT_REVOKED = 9,
-  DATA_UPLOAD = 10,
-  DATA_ACCESS = 11,
-  DATA_DELETED = 12,
+  STUDY_PARTICIPATION = 9,
+  STUDY_CONSENT_REVOKED = 10,
+  STUDY_CONSENT_GRANTED = 11,
+  DATA_UPLOAD = 12,
+  DATA_ACCESS = 13,
+  DATA_DELETED = 14,
   // ADMIN
-  ADMIN_ACTION = 13,
-  SYSTEM_CONFIG = 14,
+  ADMIN_ACTION = 15,
+  SYSTEM_CONFIG = 16,
 }
 
 export interface AuditRecord {
@@ -79,9 +81,6 @@ export interface AuditInfoResponse {
 // API FUNCTIONS
 // ========================================
 
-/**
- * Get audit system information (profiles and action types)
- */
 export const getAuditInfo = async (): Promise<AuditInfoResponse> => {
   try {
     const response = await apiClient.get("/audit/info");
@@ -99,9 +98,6 @@ export const getAuditInfo = async (): Promise<AuditInfoResponse> => {
   }
 };
 
-/**
- * Get all user actions across all profiles
- */
 export const getAllUserActions = async (
   userAddress: string,
   limit: number = 100
@@ -125,9 +121,6 @@ export const getAllUserActions = async (
   }
 };
 
-/**
- * Get user actions for a specific profile (including COMMON actions)
- */
 export const getUserActionsByProfile = async (
   userAddress: string,
   profile: UserProfile,
@@ -139,9 +132,6 @@ export const getUserActionsByProfile = async (
   return response.data;
 };
 
-/**
- * Get paginated user actions for a specific profile (including COMMON actions)
- */
 export const getUserActionsByProfilePaginated = async (
   userAddress: string,
   profile: UserProfile,
@@ -169,7 +159,6 @@ export const getUserActionsByProfilePaginated = async (
       status: error.response?.status,
     });
 
-    // Return a consistent error response
     return {
       success: false,
       data: {
@@ -187,17 +176,11 @@ export const getUserActionsByProfilePaginated = async (
   }
 };
 
-/**
- * Get a specific audit record by ID
- */
 export const getAuditRecord = async (recordId: number): Promise<AuditResponse> => {
   const response = await apiClient.get(`/audit/record/${recordId}`);
   return response.data;
 };
 
-/**
- * Log file access (view or download) audit record
- */
 export const logFileAccess = async (
   userAddress: string,
   encryptedCID: string,
@@ -247,42 +230,24 @@ export const logFileAccess = async (
 // UTILITY FUNCTIONS
 // ========================================
 
-/**
- * Get human-readable profile name
- */
 export const getProfileName = (profile: UserProfile): string => {
   return UserProfile[profile] || "Unknown";
 };
 
-/**
- * Get human-readable action type name
- */
 export const getActionTypeName = (actionType: ActionType): string => {
   return ActionType[actionType] || "Unknown";
 };
 
-/**
- * Format timestamp to readable date
- */
 export const formatAuditTimestamp = (timestamp: number): string => {
   return new Date(timestamp * 1000).toLocaleString();
 };
 
-/**
- * Get CSS class for action success status
- */
 export const getSuccessStatusClass = (success: boolean): string => {
   return success
     ? "text-green-600 bg-green-50 border-green-200"
     : "text-red-600 bg-red-50 border-red-200";
 };
 
-/**
- * Get CSS class for user profile
- */
-/**
- * Get CSS class for profile badge styling
- */
 export const getProfileClass = (profile: UserProfile): string => {
   switch (profile) {
     case UserProfile.RESEARCHER:

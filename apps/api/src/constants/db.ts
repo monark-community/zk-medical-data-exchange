@@ -89,6 +89,7 @@ export const TABLES: Record<string, TableDefinition> = {
       enrolledAt: "enrolled_at",
       matchedCriteria: "matched_criteria",
       eligibilityScore: "eligibility_score",
+      hasConsented: "has_consented",
     },
   },
 

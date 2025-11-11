@@ -20,44 +20,36 @@ export interface UseAuditOptions {
 }
 
 export interface UseAuditReturn {
-  // Data
   records: AuditRecord[];
   pagination: PaginationInfo | null;
   auditInfo: AuditInfoResponse["data"] | null;
 
-  // Loading states
   isLoading: boolean;
   isLoadingMore: boolean;
   isLoadingInfo: boolean;
-  hasDataLoaded: boolean; // Track if data has been loaded at least once
+  hasDataLoaded: boolean;
 
-  // Error states
   error: string | null;
 
-  // Refresh state
-  canRefresh: boolean; // Whether refresh is available (not in cooldown)
-  refreshCooldownSeconds: number; // Remaining cooldown time in seconds
+  canRefresh: boolean;
+  refreshCooldownSeconds: number;
 
-  // Actions
   // eslint-disable-next-line no-unused-vars
   fetchRecords: (reset?: boolean) => Promise<void>;
   fetchMoreRecords: () => Promise<void>;
   // eslint-disable-next-line no-unused-vars
   goToPage: (page: number) => Promise<void>;
   refresh: () => Promise<void>;
-  loadInitialData: () => Promise<void>; // Trigger initial data load
+  loadInitialData: () => Promise<void>;
 
-  // Current state
-  currentProfile: UserProfile; // Changed from UserProfile | "all" to just UserProfile
+  currentProfile: UserProfile;
 }
 export const useAudit = ({
   userAddress,
-  autoFetch = false, // Changed default to false for manual control
+  autoFetch = false,
 }: UseAuditOptions = {}): UseAuditReturn => {
-  // Get current profile from context
   const { currentProfile } = useProfile();
 
-  // State
   const [records, setRecords] = useState<AuditRecord[]>([]);
   const [pagination, setPagination] = useState<PaginationInfo | null>(null);
   const [auditInfo, setAuditInfo] = useState<AuditInfoResponse["data"] | null>(null);
@@ -65,22 +57,19 @@ export const useAudit = ({
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [isLoadingInfo, setIsLoadingInfo] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [hasDataLoaded, setHasDataLoaded] = useState(false); // Track if data has been loaded
-  const [refreshCooldownSeconds, setRefreshCooldownSeconds] = useState(0); // Cooldown timer
-  const currentLimit = 20; // Fixed page size
+  const [hasDataLoaded, setHasDataLoaded] = useState(false);
+  const [refreshCooldownSeconds, setRefreshCooldownSeconds] = useState(0);
+  const currentLimit = 20;
 
-  // In-memory page cache for current session
   const [pageCache, setPageCache] = useState<
     Map<string, { records: AuditRecord[]; pagination: PaginationInfo }>
   >(new Map());
 
   const fetchInProgressRef = useRef(false);
 
-  // Limit refresh to 20s cooldown
   const lastRefreshTimeRef = useRef<number>(0);
-  const REFRESH_COOLDOWN_MS = 20000;
+  const REFRESH_COOLDOWN_MS = 20000; // 20s
 
-  // Helper function to generate cache key
   const getCacheKey = useCallback(
     (page: number) => {
       return `${userAddress}_${currentProfile}_${page}`;
@@ -107,7 +96,6 @@ export const useAudit = ({
     }
   }, []);
 
-  // Fetch records function
   const fetchRecords = useCallback(
     async (reset: boolean = true) => {
       if (!userAddress) {
@@ -115,7 +103,6 @@ export const useAudit = ({
         return;
       }
 
-      // Prevent duplicate calls
       if (fetchInProgressRef.current) {
         return;
       }
@@ -127,15 +114,14 @@ export const useAudit = ({
       try {
         let response;
 
-        // Always use paginated endpoint
-        const currentOffset = reset ? 0 : 0; // Always use 0 for now, fetchMoreRecords will handle pagination
+        const currentOffset = reset ? 0 : records.length;
 
         response = await getUserActionsByProfilePaginated(
           userAddress,
           currentProfile,
           currentOffset,
           currentLimit,
-          true // latest first
+          true
         );
 
         if (response.success && response.data.records && response.data.pagination) {
@@ -145,7 +131,6 @@ export const useAudit = ({
           if (reset) {
             setRecords(newRecords);
 
-            // Cache the first page in memory
             const cacheKey = getCacheKey(1);
             setPageCache((prev) => {
               const newCache = new Map(prev);
@@ -159,7 +144,7 @@ export const useAudit = ({
             setRecords((prevRecords) => [...prevRecords, ...newRecords]);
           }
           setPagination(newPagination);
-          setHasDataLoaded(true); // Mark that data has been loaded
+          setHasDataLoaded(true);
         } else {
           console.error("getUserActionsByProfilePaginated failed:", response.error);
           setError(response.error || "Failed to fetch audit records");
@@ -175,7 +160,6 @@ export const useAudit = ({
     [userAddress, currentProfile, currentLimit, getCacheKey]
   );
 
-  // Fetch more records (pagination)
   const fetchMoreRecords = useCallback(async () => {
     if (!pagination?.hasMore || isLoadingMore || !userAddress) {
       return;
@@ -188,7 +172,7 @@ export const useAudit = ({
       const response = await getUserActionsByProfilePaginated(
         userAddress,
         currentProfile,
-        records.length, // Use current records length as offset
+        records.length,
         currentLimit,
         true
       );
@@ -207,12 +191,10 @@ export const useAudit = ({
     }
   }, [userAddress, currentProfile, currentLimit, records.length, pagination, isLoadingMore]);
 
-  // Refresh function - force reload and clear in-memory cache
   const refresh = useCallback(async () => {
     const now = Date.now();
     const timeSinceLastRefresh = now - lastRefreshTimeRef.current;
 
-    // Check if cooldown period has passed
     if (timeSinceLastRefresh < REFRESH_COOLDOWN_MS) {
       const remainingTime = Math.ceil((REFRESH_COOLDOWN_MS - timeSinceLastRefresh) / 1000);
       setRefreshCooldownSeconds(remainingTime);
@@ -222,18 +204,17 @@ export const useAudit = ({
 
     lastRefreshTimeRef.current = now;
     setRefreshCooldownSeconds(0);
-    setPageCache(new Map()); // Clear in-memory cache on refresh
+    setPageCache(new Map());
     await fetchRecords(true);
   }, [fetchRecords, REFRESH_COOLDOWN_MS]);
 
-  // Effect to handle cooldown countdown
   useEffect(() => {
     if (refreshCooldownSeconds > 0) {
       const timer = setTimeout(() => {
         setRefreshCooldownSeconds((prev) => {
           const newValue = prev - 1;
           if (newValue === 0) {
-            setError(null); // Clear the cooldown error message
+            setError(null);
           }
           return newValue;
         });
@@ -243,19 +224,16 @@ export const useAudit = ({
     }
   }, [refreshCooldownSeconds]);
 
-  // Load initial data function - for manual first load
   const loadInitialData = useCallback(async () => {
     await fetchRecords(true);
   }, [fetchRecords]);
 
-  // Navigate to specific page with in-memory caching
   const goToPage = useCallback(
     async (page: number) => {
       if (!userAddress || !pagination) return;
 
       const cacheKey = getCacheKey(page);
 
-      // Check if page is already cached in memory
       const cachedData = pageCache.get(cacheKey);
       if (cachedData) {
         setRecords(cachedData.records);
@@ -280,11 +258,9 @@ export const useAudit = ({
           const newRecords = response.data.records;
           const newPagination = response.data.pagination;
 
-          // Update current state
           setRecords(newRecords);
           setPagination(newPagination);
 
-          // Cache this page in memory
           setPageCache((prev) => {
             const newCache = new Map(prev);
             newCache.set(cacheKey, {
@@ -305,54 +281,39 @@ export const useAudit = ({
     [userAddress, currentProfile, currentLimit, pagination, pageCache, getCacheKey]
   );
 
-  // Auto-fetch on mount and when dependencies change
   useEffect(() => {
-    // Auto-fetch if explicitly enabled
     if (userAddress && autoFetch) {
       fetchRecords(true);
     }
   }, [userAddress, currentProfile, currentLimit, autoFetch, fetchRecords]);
 
-  // Fetch audit info on mount
   useEffect(() => {
     fetchAuditInfo();
   }, [fetchAuditInfo]);
 
-  // Clear data and cache when profile changes
   useEffect(() => {
     setRecords([]);
     setPagination(null);
-    setPageCache(new Map()); // Clear in-memory cache when profile changes
-    setHasDataLoaded(false); // Reset data loaded flag
+    setPageCache(new Map());
+    setHasDataLoaded(false);
   }, [currentProfile, userAddress]);
 
   return {
-    // Data
     records,
     pagination,
     auditInfo,
-
-    // Loading states
     isLoading,
     isLoadingMore,
     isLoadingInfo,
     hasDataLoaded,
-
-    // Error states
     error,
-
-    // Refresh state
     canRefresh: refreshCooldownSeconds === 0,
     refreshCooldownSeconds,
-
-    // Actions
     fetchRecords,
     fetchMoreRecords,
     goToPage,
     refresh,
     loadInitialData,
-
-    // Current state
     currentProfile,
   };
 };

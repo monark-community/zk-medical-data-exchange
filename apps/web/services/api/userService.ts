@@ -64,7 +64,6 @@ export const getUserStats = async (
   try {
     if (!walletAddress) throw new Error("Missing wallet address");
 
-    // Convert UserProfile enum to string
     const profileString = UserProfile[profile];
 
     const response = await apiClient.get(`/user/stats/${walletAddress}/${profileString}`);

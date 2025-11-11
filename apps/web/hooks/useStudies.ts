@@ -50,7 +50,6 @@ export function useStudies(walletAddress?: string, fetchAll = false): UseStudies
   }, [walletAddress, fetchAll]);
 
   const refetchWithDelay = async () => {
-    // Small delay to ensure the deletion is processed on the server
     setTimeout(() => {
       fetchStudies();
     }, 500);

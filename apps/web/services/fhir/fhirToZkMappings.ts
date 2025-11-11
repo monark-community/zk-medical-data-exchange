@@ -18,8 +18,6 @@ import {
 import { AggregatedMedicalData } from "./types/aggregatedMedicalData";
 import { ExtractedMedicalData } from "./types/extractedMedicalData";
 
-// TODO: [LT] Verify when generating zkproof if everything in this file is actually useful/needed
-
 // ========================================
 // GENDER MAPPINGS (FHIR Patient.gender)
 // ========================================

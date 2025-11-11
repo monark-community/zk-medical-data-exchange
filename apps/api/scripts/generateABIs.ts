@@ -103,13 +103,13 @@ function generateABIs(): void {
     {
       name: "StudyFactory",
       export: "STUDY_FACTORY_ABI",
-      path: "StudyFactory.sol/StudyFactory.json",
+      path: "studies/StudyFactory.sol/StudyFactory.json",
     },
-    { name: "Study", export: "STUDY_ABI", path: "Study.sol/Study.json" },
+    { name: "Study", export: "STUDY_ABI", path: "studies/Study.sol/Study.json" },
     {
       name: "Groth16Verifier",
       export: "MEDICAL_ELIGIBILITY_VERIFIER_ABI",
-      path: "MedicalEligibilityVerifier.sol/Groth16Verifier.json",
+      path: "studies/MedicalEligibilityVerifier.sol/Groth16Verifier.json",
     },
     {
       name: "AuditTrail",
@@ -119,7 +119,10 @@ function generateABIs(): void {
   ];
 
   for (const contract of contracts) {
-    const contractFile = contractFiles.find((file) => file.includes(`/${contract.path}`));
+    const normalizedPath = contract.path.replaceAll("/", path.sep);
+    const contractFile = contractFiles.find(
+      (file) => file.includes(path.sep + normalizedPath) || file.endsWith(normalizedPath)
+    );
 
     if (contractFile) {
       console.log(`Processing ${contract.name}...`);
