@@ -5,11 +5,17 @@ interface StudyCriteriaBadgesProps {
   showLabel?: boolean;
 }
 
-export default function StudyCriteriaBadges({ 
-  studyCriteriaSummary: studyCriteria, 
-  showLabel = false
+export default function StudyCriteriaBadges({
+  studyCriteriaSummary: studyCriteria,
+  showLabel = false,
 }: StudyCriteriaBadgesProps) {
   if (!studyCriteria) return null;
+
+  // Check if any criteria is enabled
+  const hasAnyCriteria = Object.values(studyCriteria).some((value) => value === true);
+
+  // Don't render anything if no criteria are enabled
+  if (!hasAnyCriteria) return null;
 
   return (
     <div className="mt-2 pt-2 border-t border-gray-100">
