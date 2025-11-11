@@ -215,10 +215,6 @@ export default function StudyCompletionSummary({
                         <span className="text-gray-600">Anonymized:</span>
                         <span className="font-medium text-green-600">100%</span>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Quality Score:</span>
-                        <span className="font-medium text-gray-900">98.5%</span>
-                      </div>
                     </div>
                   </div>
                 </div>

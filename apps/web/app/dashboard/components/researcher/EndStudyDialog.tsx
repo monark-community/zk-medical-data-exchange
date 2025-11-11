@@ -10,7 +10,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, Users, DollarSign, Database, CheckCircle } from "lucide-react";
+import { AlertTriangle, Users, Database, CheckCircle } from "lucide-react";
 import { endStudy } from "@/services/api/studyService";
 
 interface EndStudyDialogProps {
@@ -68,7 +68,6 @@ export default function EndStudyDialog({
 
   // Placeholder values - will be replaced with actual data later
   const enrolledUsers = 42;
-  const estimatedCost = 150;
   const dataAccessCount = 156;
 
   return (
@@ -151,16 +150,8 @@ export default function EndStudyDialog({
               <div className="flex-1">
                 <p className="text-sm font-medium text-gray-900">Data Access Records</p>
                 <p className="text-sm text-gray-600">
-                  {dataAccessCount} data points have been accessed
+                  {dataAccessCount} data points have been collected for your study
                 </p>
-              </div>
-            </div>
-
-            <div className="flex items-center space-x-3">
-              <DollarSign className="h-5 w-5 text-indigo-600 flex-shrink-0" />
-              <div className="flex-1">
-                <p className="text-sm font-medium text-gray-900">Estimated Final Cost</p>
-                <p className="text-sm text-gray-600">~${estimatedCost} in transaction fees</p>
               </div>
             </div>
           </div>
