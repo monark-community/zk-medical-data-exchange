@@ -33,24 +33,26 @@ export default function EndStudyDialog({
   const [showSuccess, setShowSuccess] = useState(false);
 
   const handleCancel = () => {
-    if (!isEnding) {
-      onOpenChange(false);
-      setTimeout(() => setShowSuccess(false), 300);
-    }
-  };
+  if (!isEnding) {
+    onOpenChange(false);
+  }
+};
 
   const handleProceed = async () => {
     setIsEnding(true);
     
     try {
-      await Promise.all([
-        endStudy(studyId),
-        new Promise(resolve => setTimeout(resolve, 3000))
-      ]);
+      // TODO: Backend implementation needed here
+      // This should include:
+      // 1. Update study status to "completed" in database
+      // 2. Finalize blockchain transaction
+      // 3. Calculate final costs and participant compensation
+      // 4. Notify all enrolled participants
+      // 5. Archive study data and make it accessible
+      await endStudy(studyId);
       
       setShowSuccess(true);
       
-      // Wait 2 seconds to show success, then close
       setTimeout(() => {
         setIsEnding(false);
         setShowSuccess(false);

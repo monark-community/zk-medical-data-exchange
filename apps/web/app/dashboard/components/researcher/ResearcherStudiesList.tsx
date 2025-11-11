@@ -43,7 +43,6 @@ export default function ResearcherStudiesList({
 
   const renderActionButtons = (study: StudySummary) => (
     <div className="flex items-center space-x-2">
-      {/* Show Results button for completed studies */}
       {study.status === "completed" && (
         <Button
           variant="outline"
@@ -60,7 +59,6 @@ export default function ResearcherStudiesList({
         </Button>
       )}
       
-      {/* End Study button for non-completed studies */}
       {study.status !== "completed" && (
         <Button
           variant="outline"

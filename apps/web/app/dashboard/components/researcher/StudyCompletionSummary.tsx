@@ -62,7 +62,6 @@ export default function StudyCompletionSummary({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[95vw] lg:max-w-6xl w-full max-h-[90vh] overflow-y-auto">
-        {/* Success Header */}
         <DialogHeader>
           <div className="flex items-center justify-center mb-4">
             <div className="h-16 w-16 rounded-full bg-green-100 flex items-center justify-center">
@@ -75,10 +74,8 @@ export default function StudyCompletionSummary({
           <p className="text-center text-sm text-gray-600 mt-2">{studyTitle}</p>
         </DialogHeader>
 
-        {/* Summary Stats - Horizontal on large screens, vertical on mobile */}
         <div className="py-6">
           <div className="flex flex-col lg:flex-row gap-6">
-            {/* Left Column - Key Metrics */}
             <div className="flex-1 space-y-6">
               <div>
                 <h3 className="font-semibold text-gray-900 mb-4 flex items-center space-x-2">
@@ -128,7 +125,6 @@ export default function StudyCompletionSummary({
                 </div>
               </div>
 
-              {/* Study Data Access */}
               <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg p-4 border border-indigo-100">
                 <h3 className="font-semibold text-gray-900 mb-3">Study Data Access</h3>
                 <p className="text-sm text-gray-600 mb-4">
@@ -151,7 +147,6 @@ export default function StudyCompletionSummary({
               </div>
             </div>
 
-            {/* Right Column - Completion Details */}
             <div className="flex-1 space-y-6">
               <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 space-y-4 h-full">
                 <h3 className="font-semibold text-gray-900 flex items-center space-x-2">
@@ -232,7 +227,6 @@ export default function StudyCompletionSummary({
           </div>
         </div>
 
-        {/* Footer */}
         <DialogFooter className="!flex-row !justify-center">
           <Button
             onClick={() => onOpenChange(false)}
