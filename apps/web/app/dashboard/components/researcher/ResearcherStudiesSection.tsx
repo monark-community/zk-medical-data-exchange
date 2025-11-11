@@ -110,6 +110,7 @@ export default function ResearcherStudiesSection() {
             studies={studies}
             onDeleteStudy={handleDeleteStudy}
             deletingStudyId={deletingStudyId}
+            onStudyEnded={refetch}
           />
         </StudiesContainer>
       </div>
