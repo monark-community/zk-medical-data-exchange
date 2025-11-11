@@ -160,6 +160,17 @@ export const deployStudy = async (studyId: number) => {
   return data;
 };
 
+/**
+ * End a study by updating its status to completed
+ */
+export const endStudy = async (studyId: number) => {
+  const { data } = await updateStudyStatus(studyId, { status: "completed" });
+  return data;
+};
+
+/**
+ * Delete a study from the database
+ */
 export const deleteStudy = async (studyId: number, walletId: string) => {
   const { data } = await apiClient.delete(`/studies/${studyId}`, {
     data: { walletId },
