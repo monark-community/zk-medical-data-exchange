@@ -94,7 +94,7 @@ const CreateProposalField = ({ onSuccess }: CreateProposalFieldProps) => {
           const description = (
             document.getElementById("proposal-description") as HTMLTextAreaElement
           ).value;
-          console.log({ title, description, category, duration });
+          console.log(`Creating proposal:`, { title, description, category, duration });
           if (!walletAddress) {
             setError("Wallet address not found. Please log in again.");
             openResultAlertDialog();
@@ -104,9 +104,9 @@ const CreateProposalField = ({ onSuccess }: CreateProposalFieldProps) => {
           const proposal: CreateProposalParams = {
             title,
             description,
-            category: parseInt(category, 10),
+            category: parseInt(category),
             walletAddress,
-            duration: parseInt(duration, 10),
+            duration: parseInt(duration),
           };
 
           setPendingProposal(proposal);

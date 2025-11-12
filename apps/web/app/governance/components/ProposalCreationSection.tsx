@@ -1,11 +1,14 @@
 "use client";
 import { Gavel } from "lucide-react";
-import CreateProposalDialog from "./CreateProposalDialog";
+import CreateProposalDialog from "@/app/governance/components/CreateProposalDialog";
+import MyProposalsSection from "@/app/governance/components/myProposalsSection";
+import emitter from "@/lib/eventBus";
 
 const ProposalCreationSection = () => {
   const handleProposalCreated = () => {
     // TODO: Refresh proposals list or show notification
     console.log("Proposal created successfully");
+    emitter.emit("proposalUpdated");
   };
 
   return (
@@ -16,15 +19,19 @@ const ProposalCreationSection = () => {
             <Gavel className="h-6 w-6" /> <span>Create New Proposal</span>
           </h3>
         </div>
-        <div className="p-12 flex flex-col items-center justify-center space-y-6">
-          <Gavel className="h-16 w-16 text-gray-300" />
-          <div className="text-center space-y-2">
-            <h4 className="text-xl font-semibold">Proposal Creation</h4>
-            <p className="text-muted-foreground">
-              Create a new governance proposal to improve the Cura platform
-            </p>
+        <div className="flex flex-row">
+          <div className="p-12 flex flex-col items-center justify-center space-y-6">
+            <Gavel className="h-16 w-16 text-gray-300" />
+            <div className="text-center space-y-2">
+              <h4 className="text-xl font-semibold">Proposal Creation</h4>
+              <p className="text-muted-foreground">
+                Create a new governance proposal to improve the Cura platform
+              </p>
+            </div>
+            <CreateProposalDialog onProposalCreated={handleProposalCreated} />
           </div>
-          <CreateProposalDialog onProposalCreated={handleProposalCreated} />
+
+          <MyProposalsSection />
         </div>
       </div>
     </div>

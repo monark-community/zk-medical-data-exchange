@@ -31,7 +31,7 @@ const CreateProposalDialog = ({ onProposalCreated }: CreateProposalDialogProps) 
       <DialogTrigger asChild>
         <Button className="bg-gradient-to-r from-blue-600 to-teal-600" size="lg">
           <Gavel className="h-5 w-5 mr-2" />
-          Create Proposal
+          Create New Proposal
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">

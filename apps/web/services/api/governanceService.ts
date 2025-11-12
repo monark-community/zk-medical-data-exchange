@@ -6,6 +6,11 @@ export const getProposals = async (): Promise<Proposal[]> => {
 
   return data.data;
 };
+export const getProposalsByWalletAddress = async (walletAddress: string): Promise<Proposal[]> => {
+  const { data } = await apiClient.get(`/governance/users/${walletAddress}/proposals`);
+
+  return data.data;
+};
 
 export const createProposal = async (
   proposal: CreateProposalParams

@@ -53,17 +53,24 @@ const shortenAddress = (address: string): string => {
 };
 
 const formatTimeRemaining = (endTime: number): string => {
+  if (endTime === null || endTime === undefined) return "Ended";
+
   const now = Math.floor(Date.now() / 1000);
-  const remaining = endTime - now;
+  const remaining = Math.floor(endTime - now);
+  // console.log("endTime:", endTime);
+  // console.log("now:", now);
+  // console.log("remaining", remaining);
 
   if (remaining <= 0) return "Ended";
 
   const days = Math.floor(remaining / 86400);
   const hours = Math.floor((remaining % 86400) / 3600);
+  const minutes = Math.floor((remaining % 3600) / 60);
 
-  if (days > 0) return `${days} day${days > 1 ? "s" : ""}`;
-  if (hours > 0) return `${hours} hour${hours > 1 ? "s" : ""}`;
-  return "< 1 hour";
+  if (days > 0) return `${days} day${days > 1 ? "s" : ""}${hours > 0 ? ` ${hours}h` : ""}`;
+  if (hours > 0) return `${hours} hour${hours > 1 ? "s" : ""}${minutes > 0 ? ` ${minutes}m` : ""}`;
+  if (minutes > 0) return `${minutes} minute${minutes > 1 ? "s" : ""}`;
+  return "< 1 minute";
 };
 
 export default function ProposalCard({
