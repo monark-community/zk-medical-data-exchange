@@ -41,10 +41,10 @@ async function generateFreshProof() {
         if (aMatch && bMatch && cMatch && publicMatch) {
           try {
             // Extract and clean up the proof components
-            const aStr = aMatch[1].replace(/'/g, '"').replace(/\s+/g, "");
-            const bStr = bMatch[1].replace(/'/g, '"');
-            const cStr = cMatch[1].replace(/'/g, '"').replace(/\s+/g, "");
-            const publicStr = publicMatch[1].replace(/'/g, '"');
+            const aStr = aMatch[1].replaceAll("'", '"').replaceAll(/\s+/g, "");
+            const bStr = bMatch[1].replaceAll("'", '"');
+            const cStr = cMatch[1].replaceAll("'", '"').replaceAll(/\s+/g, "");
+            const publicStr = publicMatch[1].replaceAll("'", '"');
 
             const proof = {
               a: JSON.parse(`[${aStr}]`).map((x) => BigInt(x)),

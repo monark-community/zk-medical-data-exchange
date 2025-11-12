@@ -9,21 +9,14 @@ let aesKey: string | null = null;
 let cachedAddress: string | null = null;
 let keyTimestamp: number | null = null;
 
-// Cache duration - memory-only, shorter duration (1 hour)
 const CACHE_DURATION = 60 * 60 * 1000; // 1 hour
 
-/**
- * Store AES key in memory only (not localStorage for security)
- */
 export function addAESKeyToStore(key: string, walletAddress?: string) {
   aesKey = key;
   cachedAddress = walletAddress || null;
   keyTimestamp = Date.now();
 }
 
-/**
- * Retrieve AES key from memory cache if valid
- */
 export function getAESKey(currentWalletAddress?: string): string | null {
   if (aesKey && keyTimestamp) {
     const now = Date.now();
@@ -40,18 +33,12 @@ export function getAESKey(currentWalletAddress?: string): string | null {
   return null;
 }
 
-/**
- * Clear AES key from memory
- */
 export function clearAESKey() {
   aesKey = null;
   cachedAddress = null;
   keyTimestamp = null;
 }
 
-/**
- * Check if we have a valid AES key for the current wallet
- */
 export function hasValidAESKey(currentWalletAddress?: string): boolean {
   return getAESKey(currentWalletAddress) !== null;
 }

@@ -4,7 +4,6 @@ import { createClient } from "@supabase/supabase-js";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { Config } from "@/config/config";
 
-// This is made to add custom properties to the Express Request object
 declare global {
   // eslint-disable-next-line no-unused-vars
   namespace Express {

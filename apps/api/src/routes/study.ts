@@ -9,6 +9,8 @@ import {
   deployStudy,
   deleteStudy,
   getEnrolledStudies,
+  revokeStudyConsent,
+  grantStudyConsent,
 } from "@/controllers/studyController";
 
 const router = Router();
@@ -323,5 +325,81 @@ router.delete("/:id", deleteStudy);
  *         description: Participant already enrolled in this study
  */
 router.post("/:id/participants", participateInStudy);
+
+/**
+ * @swagger
+ * /studies/{id}/consent/revoke:
+ *   post:
+ *     summary: Revoke consent for study participation
+ *     description: Allows a participant to revoke their consent for data usage in a study
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Study ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - participantWallet
+ *             properties:
+ *               participantWallet:
+ *                 type: string
+ *                 pattern: "^0x[a-fA-F0-9]{40}$"
+ *                 description: Participant's wallet address
+ *     responses:
+ *       200:
+ *         description: Consent revoked successfully
+ *       400:
+ *         description: Invalid request or consent already revoked
+ *       404:
+ *         description: Participation not found
+ *       500:
+ *         description: Internal server error
+ */
+router.post("/:id/consent/revoke", revokeStudyConsent);
+
+/**
+ * @swagger
+ * /studies/{id}/consent/grant:
+ *   post:
+ *     summary: Grant consent for study participation
+ *     description: Allows a participant to grant their consent for data usage in a study after previously revoking
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Study ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - participantWallet
+ *             properties:
+ *               participantWallet:
+ *                 type: string
+ *                 pattern: "^0x[a-fA-F0-9]{40}$"
+ *                 description: Participant's wallet address
+ *     responses:
+ *       200:
+ *         description: Consent granted successfully
+ *       400:
+ *         description: Invalid request or consent already active
+ *       404:
+ *         description: Participation not found
+ *       500:
+ *         description: Internal server error
+ */
+router.post("/:id/consent/grant", grantStudyConsent);
 
 export default router;

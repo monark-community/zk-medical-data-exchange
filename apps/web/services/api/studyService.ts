@@ -22,7 +22,10 @@ export interface StudySummary {
   complexityScore: number;
   templateName?: string;
   createdAt: string;
+  durationDays?: number;
   contractAddress?: string;
+  isEnrolled?: boolean;
+  hasConsented?: boolean;
   criteriaSummary: {
     requiresAge: boolean;
     requiresGender: boolean;
@@ -95,9 +98,6 @@ export interface CreateStudyResponse {
 // CORE API FUNCTIONS
 // ========================================
 
-/**
- * Get list of studies with optional filtering
- */
 export const getStudies = async (params?: {
   status?: string;
   page?: number;
@@ -114,15 +114,11 @@ export const getStudies = async (params?: {
   return data;
 };
 
-/**
- * Get all studies that a user is enrolled in
- */
 export const getEnrolledStudies = async (walletAddress: string): Promise<StudySummary[]> => {
   try {
     const { data } = await apiClient.get(`/studies/enrolled/${walletAddress}`);
     return data.studies || [];
   } catch (error: any) {
-    // If no enrolled studies, return empty array
     if (error.response?.status === 404 || error.response?.data?.studies === null) {
       return [];
     }
@@ -130,23 +126,16 @@ export const getEnrolledStudies = async (walletAddress: string): Promise<StudySu
   }
 };
 
-/**
- * Get detailed information about a specific study
- */
 export const getStudyDetails = async (studyId: number): Promise<StudyDetails> => {
   const { data } = await apiClient.get(`/studies/${studyId}`);
   return data.study;
 };
 
-/**
- * Create a new study
- */
 export const createStudy = async (studyData: CreateStudyRequest): Promise<CreateStudyResponse> => {
   try {
     const response = await apiClient.post<CreateStudyResponse>("/studies", studyData);
     return response.data;
   } catch (error: any) {
-    // Handle axios errors
     if (error.response?.data?.error) {
       throw new Error(error.response.data.error);
     }
@@ -154,9 +143,6 @@ export const createStudy = async (studyData: CreateStudyRequest): Promise<Create
   }
 };
 
-/**
- * Update study status and deployment information
- */
 export const updateStudyStatus = async (
   studyId: number,
   updates: {
@@ -169,11 +155,16 @@ export const updateStudyStatus = async (
   return data;
 };
 
-/**
- * Deploy a study to the blockchain
- */
 export const deployStudy = async (studyId: number) => {
   const { data } = await apiClient.post(`/studies/${studyId}/deployment`);
+  return data;
+};
+
+/**
+ * End a study by updating its status to completed
+ */
+export const endStudy = async (studyId: number) => {
+  const { data } = await updateStudyStatus(studyId, { status: "completed" });
   return data;
 };
 
@@ -186,10 +177,6 @@ export const deleteStudy = async (studyId: number, walletId: string) => {
   });
   return data;
 };
-
-/**
- * Study application request
- */
 export interface StudyApplicationRequest {
   studyId: number;
   participantWallet: string;
@@ -202,17 +189,7 @@ export interface StudyApplicationRequest {
   dataCommitment: string;
 }
 
-/**
- * Study application process - all sensitive operations on client
- */
 export class StudyApplicationService {
-  /**
-   * Complete study application process with client-side ZK proof generation
-   *
-   * @param studyId - ID of study to apply to
-   * @param medicalData - Patient's medical data
-   * @param walletAddress - Patient's wallet address
-   */
   static async applyToStudy(
     studyId: number,
     medicalData: ExtractedMedicalData,
@@ -226,6 +203,22 @@ export class StudyApplicationService {
       const isEligible = checkEligibility(medicalData, studyCriteria);
 
       if (!isEligible) {
+        console.log("Eligibility criteria not met. Logging failed attempt...");
+        try {
+          await apiClient.post("/audit/log-failed-join", {
+            userAddress: walletAddress,
+            studyId: studyId.toString(),
+            reason: "Eligibility criteria not met",
+            errorDetails: "User medical data does not match study requirements",
+            metadata: {
+              stage: "client_eligibility_check",
+            },
+          });
+          console.log("Failed join attempt logged to audit trail");
+        } catch (auditError) {
+          console.error("Failed to log audit entry (non-critical):", auditError);
+        }
+
         return {
           success: false,
           message:
@@ -266,6 +259,23 @@ export class StudyApplicationService {
       };
     } catch (error) {
       console.error("Study application failed:", error);
+
+      try {
+        await apiClient.post("/audit/log-failed-join", {
+          userAddress: walletAddress,
+          studyId: studyId.toString(),
+          reason: "Application process error",
+          errorDetails: error instanceof Error ? error.message : "Unknown error",
+          metadata: {
+            stage: "application_process",
+            errorType: error instanceof Error ? error.constructor.name : "unknown",
+          },
+        });
+        console.log("Failed join attempt logged to audit trail");
+      } catch (auditError) {
+        console.error("Failed to log audit entry (non-critical):", auditError);
+      }
+
       return {
         success: false,
         message: error instanceof Error ? error.message : "Application failed",
@@ -273,9 +283,6 @@ export class StudyApplicationService {
     }
   }
 
-  /**
-   * Fetch study criteria
-   */
   private static async getStudyCriteria(studyId: number): Promise<StudyCriteria> {
     console.log("Fetching criteria for study ID:", studyId);
     try {
@@ -288,9 +295,6 @@ export class StudyApplicationService {
     }
   }
 
-  /**
-   * Submit application with proof
-   */
   private static async submitApplication(request: StudyApplicationRequest): Promise<void> {
     try {
       const response = await apiClient.post(`/studies/${request.studyId}/participants`, request);
@@ -319,9 +323,6 @@ export class StudyApplicationService {
 // REACT HOOKS
 // ========================================
 
-/**
- * Hook for study creation with proper typing and error handling
- */
 export const useCreateStudy = () => {
   const createStudyAsync = async (
     title: string,
@@ -337,7 +338,6 @@ export const useCreateStudy = () => {
       description,
       maxParticipants,
       durationDays,
-      // Use template if selected, otherwise use custom criteria
       ...(selectedTemplate ? { templateName: selectedTemplate } : { customCriteria: criteria }),
       ...(createdBy ? { createdBy } : {}),
     };
@@ -346,4 +346,52 @@ export const useCreateStudy = () => {
   };
 
   return { createStudy: createStudyAsync };
+};
+
+export const revokeStudyConsent = async (
+  studyId: number,
+  participantWallet: string
+): Promise<{ success: boolean; blockchainTxHash?: string }> => {
+  try {
+    const response = await apiClient.post(`/studies/${studyId}/consent/revoke`, {
+      participantWallet,
+    });
+
+    return response.data;
+  } catch (error) {
+    console.error("Failed to revoke consent:", error);
+
+    if (error && typeof error === "object" && "response" in error) {
+      const axiosError = error as any;
+      const errorMessage = axiosError.response?.data?.error || axiosError.message;
+      throw new Error(`Failed to revoke consent: ${errorMessage}`);
+    }
+
+    const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+    throw new Error(`Failed to revoke consent: ${errorMessage}`);
+  }
+};
+
+export const grantStudyConsent = async (
+  studyId: number,
+  participantWallet: string
+): Promise<{ success: boolean; blockchainTxHash?: string }> => {
+  try {
+    const response = await apiClient.post(`/studies/${studyId}/consent/grant`, {
+      participantWallet,
+    });
+
+    return response.data;
+  } catch (error) {
+    console.error("Failed to grant consent:", error);
+
+    if (error && typeof error === "object" && "response" in error) {
+      const axiosError = error as any;
+      const errorMessage = axiosError.response?.data?.error || axiosError.message;
+      throw new Error(`Failed to grant consent: ${errorMessage}`);
+    }
+
+    const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+    throw new Error(`Failed to grant consent: ${errorMessage}`);
+  }
 };

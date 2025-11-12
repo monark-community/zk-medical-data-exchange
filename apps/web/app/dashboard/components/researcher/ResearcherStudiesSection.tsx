@@ -8,7 +8,7 @@ import StudyCreationDialog from "@/components/StudyCreationDialog";
 import { useStudies } from "@/hooks/useStudies";
 import { deleteStudy } from "@/services/api/studyService";
 import ResearcherStudiesList from "@/app/dashboard/components/researcher/ResearcherStudiesList";
-import StudySectionHeader from "@/app/dashboard/components/shared/StudySectionHeader";
+import DashboardSectionHeader from "@/app/dashboard/components/shared/DashboardSectionHeader";
 import StudiesContainer from "@/app/dashboard/components/shared/StudiesContainer";
 
 export default function ResearcherStudiesSection() {
@@ -65,26 +65,24 @@ export default function ResearcherStudiesSection() {
   };
 
   return (
-    <div className="w-full">
-      <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
-        <StudySectionHeader
-          title="Your Medical Studies"
-          icon={<BookOpen className="h-8 w-8" />}
-          action={
-            <div className="relative group">
-              <div className="absolute -inset-1 bg-gradient-to-r from-emerald-600 via-teal-500 to-cyan-600 rounded-lg blur opacity-25 group-hover:opacity-40 transition duration-300"></div>
-              <Button
-                onClick={() => setIsDialogOpen(true)}
-                size="lg"
-                className="relative w-full sm:w-auto bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-700 hover:to-cyan-700 text-white font-semibold px-8 py-6 text-base shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02]"
-              >
-                <Plus className="mr-3 h-5 w-5" />
-                Create New Study
-              </Button>
-            </div>
-          }
-        />
+    <div className="w-full space-y-8">
+      <DashboardSectionHeader
+        icon={<BookOpen className="h-8 w-8 text-white" />}
+        title="Your Medical Studies"
+        description="Create and manage your research studies with zero-knowledge privacy"
+        action={
+          <Button
+            onClick={() => setIsDialogOpen(true)}
+            size="lg"
+            className="bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-700 hover:to-cyan-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300"
+          >
+            <Plus className="mr-2 h-5 w-5" />
+            Create New Study
+          </Button>
+        }
+      />
 
+      <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
         <StudiesContainer
           isLoading={isLoading}
           error={error}
@@ -112,6 +110,7 @@ export default function ResearcherStudiesSection() {
             studies={studies}
             onDeleteStudy={handleDeleteStudy}
             deletingStudyId={deletingStudyId}
+            onStudyEnded={refetch}
           />
         </StudiesContainer>
       </div>

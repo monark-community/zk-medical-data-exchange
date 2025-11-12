@@ -60,9 +60,6 @@ export const generateDataCommitment = (medicalData: ExtractedMedicalData, salt: 
   }
 };
 
-/**
- * Generates a cryptographically secure salt for commitment
- */
 export const generateSecureSalt = (): number => {
   return crypto.getRandomValues(new Uint32Array(1))[0];
 };

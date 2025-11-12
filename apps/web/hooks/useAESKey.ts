@@ -15,7 +15,6 @@ export function useAESKey(account: ReturnType<typeof useAccount>) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Initialize key from cache or request new one
   const initializeKey = async (forceRefresh = false) => {
     if (isLoading || !isConnected || !address) return;
 
@@ -23,7 +22,6 @@ export function useAESKey(account: ReturnType<typeof useAccount>) {
     setError(null);
 
     try {
-      // Try cached key first (unless forcing refresh)
       const cachedKey = getAESKey(address);
       if (!forceRefresh && cachedKey) {
         setAESKey(cachedKey);
@@ -31,7 +29,6 @@ export function useAESKey(account: ReturnType<typeof useAccount>) {
         return cachedKey;
       }
 
-      // Request new signature and generate key
       const walletKey = await deriveKeyFromWallet();
       const newKey = generateAESKey(walletKey);
 
@@ -49,12 +46,10 @@ export function useAESKey(account: ReturnType<typeof useAccount>) {
     }
   };
 
-  // Auto-initialize when wallet connects or address changes
   useEffect(() => {
     if (isConnected && address) {
       initializeKey();
     } else {
-      // Clear key when wallet disconnects
       setAESKey(null);
       setError(null);
     }

@@ -11,7 +11,12 @@ import DashboardSectionHeader from "@/app/dashboard/components/shared/DashboardS
 import { useState, useEffect } from "react";
 import { getAggregatedMedicalData } from "@/services/core/medicalDataAggregator";
 import { convertToZkReady } from "@/services/fhir";
-import { StudyApplicationService, getEnrolledStudies } from "@/services/api/studyService";
+import {
+  StudyApplicationService,
+  getEnrolledStudies,
+  revokeStudyConsent,
+  grantStudyConsent,
+} from "@/services/api/studyService";
 
 type ViewMode = "enrolled" | "available";
 
@@ -20,11 +25,11 @@ export default function DataSellerStudiesSection() {
   const { studies, isLoading, error, refetch } = useStudies(undefined, true);
   const [applyingStudyId, setApplyingStudyId] = useState<number | null>(null);
   const [revokingStudyId, setRevokingStudyId] = useState<number | null>(null);
+  const [grantingStudyId, setGrantingStudyId] = useState<number | null>(null);
   const [enrolledStudies, setEnrolledStudies] = useState<any[]>([]);
   const [enrolledLoading, setEnrolledLoading] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("available");
 
-  // Fetch enrolled studies when wallet address changes
   useEffect(() => {
     if (walletAddress) {
       setEnrolledLoading(true);
@@ -73,7 +78,6 @@ export default function DataSellerStudiesSection() {
 
       if (result.success) {
         alert(`${result.message}`);
-        // Refetch both all studies and enrolled studies
         refetch();
         if (walletAddress) {
           getEnrolledStudies(walletAddress)
@@ -106,34 +110,77 @@ export default function DataSellerStudiesSection() {
     try {
       console.log("Revoking consent for study:", studyId);
 
-      // TODO: Implement consent revocation API call
-      // For now, just show a placeholder message
-      alert("Consent revocation feature is coming soon!");
+      const result = await revokeStudyConsent(studyId, walletAddress);
 
-      // When implemented, it should:
-      // 1. Call API to update study_participations status to 'revoked'
-      // 2. Optionally call blockchain to record revocation
-      // 3. Refetch enrolled studies list
+      if (result.success) {
+        console.log("Consent revoked successfully!");
+        if (result.blockchainTxHash) {
+          console.log("Blockchain transaction:", result.blockchainTxHash);
+        }
 
-      // Example implementation:
-      // const result = await revokeStudyConsent(studyId, walletAddress);
-      // if (result.success) {
-      //   alert("Consent revoked successfully");
-      //   if (walletAddress) {
-      //     getEnrolledStudies(walletAddress)
-      //       .then((data) => setEnrolledStudies(data))
-      //       .catch((error) => console.error("Failed to fetch enrolled studies:", error));
-      //   }
-      // }
-    } catch (error: any) {
-      console.error("Error during consent revocation:", error);
-      alert(`Revocation failed: ${error.message || error}`);
+        setEnrolledLoading(true);
+        const updatedStudies = await getEnrolledStudies(walletAddress);
+        setEnrolledStudies(updatedStudies);
+        setEnrolledLoading(false);
+
+        alert("Consent revoked successfully!");
+      }
+    } catch (error) {
+      console.error("Failed to revoke consent:", error);
+      alert(
+        `Failed to revoke consent: ${error instanceof Error ? error.message : "Unknown error"}`
+      );
     } finally {
       setRevokingStudyId(null);
     }
   };
 
-  // Filter out enrolled studies from available studies
+  const handleGrantConsent = async (studyId: number) => {
+    if (!walletAddress) {
+      alert("Wallet not connected");
+      return;
+    }
+
+    if (grantingStudyId === studyId) {
+      return;
+    }
+
+    setGrantingStudyId(studyId);
+
+    try {
+      console.log("Granting consent for study:", studyId);
+
+      const result = await grantStudyConsent(studyId, walletAddress);
+
+      if (result.success) {
+        console.log("Consent granted successfully!");
+        if (result.blockchainTxHash) {
+          console.log("Blockchain transaction:", result.blockchainTxHash);
+        }
+
+        setEnrolledLoading(true);
+        const updatedStudies = await getEnrolledStudies(walletAddress);
+        setEnrolledStudies(updatedStudies);
+        setEnrolledLoading(false);
+
+        alert("Consent granted successfully!");
+      }
+    } catch (error) {
+      console.error("Failed to grant consent:", error);
+
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      if (errorMessage.includes("full") || errorMessage.includes("Full")) {
+        alert(
+          "Cannot grant consent: This study is now full. The maximum number of active participants has been reached."
+        );
+      } else {
+        alert(`Failed to grant consent: ${errorMessage}`);
+      }
+    } finally {
+      setGrantingStudyId(null);
+    }
+  };
+
   const enrolledStudyIds = new Set(enrolledStudies.map((s) => s.id));
   const availableStudies = studies.filter((study) => !enrolledStudyIds.has(study.id));
 
@@ -256,7 +303,9 @@ export default function DataSellerStudiesSection() {
             <EnrolledStudiesList
               studies={enrolledStudies}
               onRevokeConsent={handleRevokeConsent}
+              onGrantConsent={handleGrantConsent}
               revokingStudyId={revokingStudyId}
+              grantingStudyId={grantingStudyId}
               walletAddress={walletAddress}
             />
           </StudiesContainer>
