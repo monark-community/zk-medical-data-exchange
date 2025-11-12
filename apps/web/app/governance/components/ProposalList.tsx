@@ -4,10 +4,7 @@ import { getProposalStatusColor } from "../ProposalUtils";
 
 interface ProposalsListProps {
   proposals: Proposal[];
-  // eslint-disable-next-line no-unused-vars
-  renderActionButtons: (proposal: Proposal) => React.ReactNode;
   descriptionMaxLength?: number;
-  showCriteriaLabel?: boolean;
 }
 
 /**
@@ -17,7 +14,6 @@ interface ProposalsListProps {
  */
 export default function ProposalsList({
   proposals,
-  renderActionButtons,
   descriptionMaxLength = 80,
 }: ProposalsListProps) {
   return (
@@ -37,7 +33,6 @@ export default function ProposalsList({
                 {ProposalState[proposal.state]}
               </span>
             }
-            actionButtons={renderActionButtons(proposal)}
             descriptionMaxLength={descriptionMaxLength}
           />
         ))}

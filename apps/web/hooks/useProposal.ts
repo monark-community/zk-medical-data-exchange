@@ -5,19 +5,19 @@ import React, { useState, useCallback } from "react";
 import { useAccount } from "wagmi";
 
 export function useProposals() {
-  const { address } = useAccount();
+  const { address: walletAddress } = useAccount();
   const [proposals, setProposals] = React.useState<Proposal[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchProposals = useCallback(async () => {
-    if (!address) return;
+    if (!walletAddress) return;
 
     setIsLoading(true);
     setError(null);
 
     try {
-      const proposals = await getProposals();
+      const proposals = await getProposals(walletAddress);
       console.log("Fetched proposals:", proposals);
       setProposals(proposals);
     } catch (error) {
@@ -27,7 +27,7 @@ export function useProposals() {
     } finally {
       setIsLoading(false);
     }
-  }, [address]);
+  }, [walletAddress]);
 
   React.useEffect(() => {
     fetchProposals();

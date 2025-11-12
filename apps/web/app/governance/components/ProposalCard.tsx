@@ -1,6 +1,9 @@
 import { Proposal, ProposalCategory } from "@/interfaces/proposal";
 import { CircleCheck, CircleMinus, Hourglass } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useAccount } from "wagmi";
+import { useState } from "react";
+import VoteConfirmationDialog from "@/components/VoteConfirmationDialog";
 
 interface ProposalCardProps {
   proposalInfo: Proposal;
@@ -29,7 +32,18 @@ const getCategoryLabel = (category: ProposalCategory): string => {
       return "Other";
   }
 };
-
+const getVoteLabel = (vote: number): string => {
+  switch (vote) {
+    case 1:
+      return "For";
+    case 2:
+      return "Against";
+    case 3:
+      return "Abstain";
+    default:
+      return "Abstain";
+  }
+};
 const getCategoryColor = (category: ProposalCategory): string => {
   switch (category) {
     case ProposalCategory.Economics:
@@ -77,11 +91,17 @@ export default function ProposalCard({
   proposalInfo,
   isLast,
   statusBadge,
-  onVoteFor,
-  onVoteAgainst,
   descriptionMaxLength = 200,
 }: ProposalCardProps) {
   // const voteForPercentage = (proposalInfo.votesFor / proposalInfo.totalVoters) * 100;
+  const { address: walletAddress } = useAccount();
+  const [voteDialogOpen, setVoteDialogOpen] = useState(false);
+  const [selectedVote, setSelectedVote] = useState<number>(1);
+
+  const handleVoteClick = (voteChoice: number) => {
+    setSelectedVote(voteChoice);
+    setVoteDialogOpen(true);
+  };
 
   return (
     <div
@@ -141,11 +161,22 @@ export default function ProposalCard({
                   Against: {proposalInfo.votesAgainst.toLocaleString()}
                 </span>
               </div>
+              <div className="flex items-center gap-1">
+                <div className="w-2 h-2 rounded-full bg-grey-500" />
+                <span className="text-gray-700">
+                  Abstain:{" "}
+                  {(
+                    proposalInfo.totalVoters -
+                    (proposalInfo.votesAgainst + proposalInfo.votesFor)
+                  ).toLocaleString()}
+                </span>
+              </div>
             </div>
           </div>
         </div>
         <div className="right-section lg:ml-6 lg:flex-shrink-0 lg:w-48 w-full">
           {/* Action Buttons */}
+
           <div className="flex flex-col w-full items-center justify-between pt-4  border-gray-100">
             <div className="bg-gray-50 w-full rounded-lg p-4 mb-4">
               <div className="flex items-center space-x-2 mb-2">
@@ -154,27 +185,70 @@ export default function ProposalCard({
               </div>
               <div className="text-2xl font-bold ">{formatTimeRemaining(proposalInfo.endTime)}</div>
             </div>
-            <div className="flex flex-col w-full items-center gap-2">
-              <Button
-                onClick={onVoteFor}
-                variant="default"
-                size="sm"
-                className="w-full bg-green-600 hover:bg-green-700 text-white"
-              >
-                {" "}
-                <CircleCheck />
-                Vote For
-              </Button>
-              <Button
-                onClick={onVoteAgainst}
-                variant="outline"
-                size="sm"
-                className="w-full border-red-600 text-red-600 hover:bg-red-50"
-              >
-                <CircleMinus />
-                Vote Against
-              </Button>
-            </div>
+            {proposalInfo.hasVoted ? (
+              <div className="flex flex-col w-full items-center gap-3">
+                <div
+                  className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium ${
+                    proposalInfo.userVote === 1
+                      ? "bg-green-100 text-green-800"
+                      : proposalInfo.userVote === 2
+                      ? "bg-red-100 text-red-800"
+                      : "bg-gray-100 text-gray-800"
+                  }`}
+                >
+                  {proposalInfo.userVote === 1 ? (
+                    <CircleCheck className="w-4 h-4" />
+                  ) : proposalInfo.userVote === 2 ? (
+                    <CircleMinus className="w-4 h-4" />
+                  ) : (
+                    <Hourglass className="w-4 h-4" />
+                  )}
+                  <span>You voted {getVoteLabel(proposalInfo.userVote!)}</span>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col w-full items-center gap-2">
+                <Button
+                  onClick={() => handleVoteClick(1)}
+                  variant="default"
+                  size="sm"
+                  className="w-full bg-green-600 hover:bg-green-700 text-white"
+                >
+                  <CircleCheck />
+                  Vote For
+                </Button>
+                <Button
+                  onClick={() => handleVoteClick(2)}
+                  variant="outline"
+                  size="sm"
+                  className="w-full border-red-600 text-red-600 hover:bg-red-50"
+                >
+                  <CircleMinus />
+                  Vote Against
+                </Button>
+                <Button
+                  onClick={() => handleVoteClick(3)}
+                  variant="outline"
+                  size="sm"
+                  className="w-full border-gray-600 text-gray-600 hover:bg-gray-50"
+                >
+                  <CircleMinus />
+                  Abstain
+                </Button>
+              </div>
+            )}
+
+            {/* Vote Confirmation Dialog */}
+            {walletAddress && (
+              <VoteConfirmationDialog
+                open={voteDialogOpen}
+                onOpenChange={setVoteDialogOpen}
+                voteChoice={selectedVote}
+                proposalId={proposalInfo.id}
+                proposalTitle={proposalInfo.title}
+                walletAddress={walletAddress}
+              />
+            )}
           </div>
         </div>
       </div>

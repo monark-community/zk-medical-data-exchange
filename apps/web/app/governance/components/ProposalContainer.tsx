@@ -1,5 +1,6 @@
-import { BookOpen, Loader2, AlertTriangle } from "lucide-react";
+import { BookOpen, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 
 interface ProposalContainerProps {
   isLoading: boolean;
@@ -39,8 +40,12 @@ export default function ProposalContainer({
             </Button>
           </div>
         ) : isLoading ? (
-          <div className="p-12 text-center">
-            <Loader2 className="h-12 w-12 text-gray-400 mx-auto mb-4 animate-spin" />
+          <div
+            className="flex flex-col items-center justify-center p-12 h-full text-center"
+            role="status"
+            aria-live="polite"
+          >
+            <Spinner className="h-12 w-12 text-blue-600 mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">Loading proposals...</h3>
             <p className="text-gray-600">Fetching governance proposals</p>
           </div>

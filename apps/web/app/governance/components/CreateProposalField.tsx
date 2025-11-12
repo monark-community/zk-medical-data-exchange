@@ -101,12 +101,17 @@ const CreateProposalField = ({ onSuccess }: CreateProposalFieldProps) => {
             return;
           }
 
+          const days = parseInt(duration, 10) || 0;
+
+          // convert days to seconds
+          const durationSeconds = days * 24 * 60 * 60;
           const proposal: CreateProposalParams = {
             title,
             description,
-            category: parseInt(category),
+            category: parseInt(category, 10),
             walletAddress,
-            duration: parseInt(duration),
+            // store as UTC unix timestamp (seconds) when the proposal will close
+            duration: durationSeconds,
           };
 
           setPendingProposal(proposal);
