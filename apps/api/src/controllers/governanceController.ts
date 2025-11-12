@@ -34,7 +34,7 @@ export async function getAllProposals(req: Request, res: Response) {
     logger.info({ userAddress }, "GET /governance/proposals");
 
     const proposals = await governanceService.getAllProposals(userAddress);
-    logger.info({ count: proposals.length }, "Fetched proposals"); // empty
+    logger.info({ count: proposals.length }, "Fetched proposals");
     return res.status(200).json({
       success: true,
       data: proposals,

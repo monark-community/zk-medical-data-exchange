@@ -596,9 +596,32 @@ class GovernanceService {
         totalVoters: dbProposal.total_voters,
         state: dbProposal.state,
         timeRemaining: Math.max(0, dbProposal.end_time - now),
-        hasVoted: false, // User is the proposer, voting status not relevant
       }));
 
+      // Fetch user votes for all proposals if userAddress provided
+      if (userAddress) {
+        const proposalIds = dbProposals.map((p: any) => p.id);
+        const { data: userVotes } = await this.supabase
+          .from(PROPOSAL_VOTES!.name)
+          .select("proposal_id, choice")
+          .eq(PROPOSAL_VOTES!.columns.voterAddress!, userAddress)
+          .in(PROPOSAL_VOTES!.columns.proposalId!, proposalIds);
+
+        if (userVotes && userVotes.length > 0) {
+          const voteMap = new Map(userVotes.map((v: any) => [v.proposal_id, v.choice]));
+
+          for (const proposal of proposals) {
+            if (voteMap.has(proposal.id)) {
+              proposal.hasVoted = true;
+              proposal.userVote = voteMap.get(proposal.id) as VoteChoice;
+            } else {
+              proposal.hasVoted = false;
+            }
+          }
+        } else {
+          proposals.forEach((p) => (p.hasVoted = false));
+        }
+      }
       logger.info({ count: proposals.length }, "Fetched user proposals from database");
 
       return proposals;
