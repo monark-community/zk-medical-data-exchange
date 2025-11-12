@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { StudySummary } from "@/services/api/studyService";
-import { Trash2, Loader2, StopCircle, BarChart3 } from "lucide-react";
+import { Trash2, StopCircle, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import StudiesList from "@/app/dashboard/components/shared/StudiesList";
 import EndStudyDialog from "./EndStudyDialog";
