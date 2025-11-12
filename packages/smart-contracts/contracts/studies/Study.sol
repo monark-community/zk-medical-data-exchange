@@ -4,6 +4,11 @@ pragma solidity ^0.8.28;
 import "./MedicalEligibilityVerifier.sol";
 
 contract Study {
+    enum StudyStatus {
+        ACTIVE,
+        ENDED
+    }
+    
     // Study criteria that EXACTLY match our enhanced Circom circuit public inputs
     // ALL criteria are optional with enable flags for maximum flexibility
     struct StudyCriteria {
@@ -51,6 +56,10 @@ contract Study {
     uint256 public currentParticipants; // Total enrolled (regardless of consent)
     uint256 public activeParticipants;  // Only those with active consent
     
+    StudyStatus public status;
+    uint256 public endedAt;
+    uint256 public constant K_ANONYMITY_THRESHOLD = 10;
+    
     StudyCriteria public criteria;
     Groth16Verifier public immutable zkVerifier;
 
@@ -65,6 +74,22 @@ contract Study {
     event EligibilityVerified(address indexed participant, bool eligible);
     event ConsentRevoked(address indexed participant, uint256 timestamp);
     event ConsentGranted(address indexed participant, uint256 timestamp);
+    event StudyEnded(uint256 timestamp, uint256 finalParticipantCount);
+    
+    modifier onlyCreator() {
+        require(msg.sender == studyCreator, "Only study creator can perform this action");
+        _;
+    }
+    
+    modifier onlyActive() {
+        require(status == StudyStatus.ACTIVE, "Study is not active");
+        _;
+    }
+    
+    modifier onlyEnded() {
+        require(status == StudyStatus.ENDED, "Study has not ended");
+        _;
+    }
     
     constructor(
         string memory _title,
@@ -77,6 +102,9 @@ contract Study {
         maxParticipants = _maxParticipants;
         criteria = _criteria;
         zkVerifier = Groth16Verifier(_zkVerifierAddress);
+        status = StudyStatus.ACTIVE;
+        
+        require(_maxParticipants >= K_ANONYMITY_THRESHOLD, "Study must allow at least 10 participants for minimal required anonymity");
     }
     
     /**
@@ -91,7 +119,7 @@ contract Study {
         uint[2][2] calldata _pB,
         uint[2] calldata _pC,
         uint256 dataCommitment
-    ) external {
+    ) external onlyActive {
         require(currentParticipants < maxParticipants, "Study is full");
         require(!participants[msg.sender], "Already participating");
         
@@ -172,5 +200,31 @@ contract Study {
         require(participants[addr], "Not a participant");
         require(hasConsented[addr], "Participant has revoked consent");
         return participantDataCommitments[addr];
+    }
+    
+    function endStudy() external onlyCreator onlyActive {
+        require(activeParticipants >= K_ANONYMITY_THRESHOLD, 
+            "Cannot end study: minimum 10 participants with active consent required for minimal required anonymity");
+        
+        status = StudyStatus.ENDED;
+        endedAt = block.timestamp;
+        
+        emit StudyEnded(block.timestamp, activeParticipants);
+    }
+    
+    function meetsKAnonymityThreshold() external view returns (bool) {
+        return activeParticipants >= K_ANONYMITY_THRESHOLD;
+    }
+    
+    function getStudyStatus() external view returns (StudyStatus) {
+        return status;
+    }
+    
+    function getParticipantList() external view onlyEnded returns (address[] memory) {
+        return participantList;
+    }
+    
+    function getActiveConsentCount() external view returns (uint256) {
+        return activeParticipants;
     }
 }

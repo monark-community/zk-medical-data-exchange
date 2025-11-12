@@ -813,6 +813,135 @@ class StudyService {
       };
     }
   }
+
+  async endStudy(
+    studyAddress: string
+  ): Promise<{ success: boolean; transactionHash?: string; error?: string }> {
+    try {
+      logger.info({ studyAddress }, "Ending study on blockchain");
+
+      const result = await this.executeContractTransaction(
+        studyAddress,
+        "endStudy",
+        [],
+        "End study"
+      );
+
+      if (result.success) {
+        logger.info(
+          {
+            transactionHash: result.transactionHash,
+            studyAddress,
+          },
+          "Study ended successfully on blockchain"
+        );
+      } else {
+        logger.error({ error: result.error, studyAddress }, "Failed to end study on blockchain");
+      }
+
+      return {
+        success: result.success,
+        transactionHash: result.transactionHash,
+        error: result.error,
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.error(
+        {
+          error,
+          errorMessage,
+          errorStack: error instanceof Error ? error.stack : undefined,
+          studyAddress,
+        },
+        "Exception in endStudy"
+      );
+      return {
+        success: false,
+        error: errorMessage,
+      };
+    }
+  }
+
+  async meetsKAnonymityThreshold(studyAddress: string): Promise<{ meets: boolean; error?: string }> {
+    try {
+      const meets = await this.publicClient.readContract({
+        address: studyAddress as `0x${string}`,
+        abi: STUDY_ABI,
+        functionName: "meetsKAnonymityThreshold",
+        args: [],
+      });
+
+      logger.info(
+        {
+          studyAddress,
+          meetsThreshold: meets,
+        },
+        "Checked k-anonymity threshold"
+      );
+
+      return { meets: Boolean(meets) };
+    } catch (error) {
+      logger.error({ error, studyAddress }, "Failed to check k-anonymity threshold");
+      return {
+        meets: false,
+        error: error instanceof Error ? error.message : "Unknown error checking threshold",
+      };
+    }
+  }
+
+  async getStudyStatus(studyAddress: string): Promise<{ status: number; error?: string }> {
+    try {
+      const status = await this.publicClient.readContract({
+        address: studyAddress as `0x${string}`,
+        abi: STUDY_ABI,
+        functionName: "getStudyStatus",
+        args: [],
+      });
+
+      logger.info(
+        {
+          studyAddress,
+          status,
+        },
+        "Retrieved study status"
+      );
+
+      return { status: Number(status) };
+    } catch (error) {
+      logger.error({ error, studyAddress }, "Failed to get study status");
+      return {
+        status: 0,
+        error: error instanceof Error ? error.message : "Unknown error getting status",
+      };
+    }
+  }
+
+  async getActiveConsentCount(studyAddress: string): Promise<{ count: number; error?: string }> {
+    try {
+      const count = await this.publicClient.readContract({
+        address: studyAddress as `0x${string}`,
+        abi: STUDY_ABI,
+        functionName: "getActiveConsentCount",
+        args: [],
+      });
+
+      logger.info(
+        {
+          studyAddress,
+          activeConsentCount: count,
+        },
+        "Retrieved active consent count"
+      );
+
+      return { count: Number(count) };
+    } catch (error) {
+      logger.error({ error, studyAddress }, "Failed to get active consent count");
+      return {
+        count: 0,
+        error: error instanceof Error ? error.message : "Unknown error getting count",
+      };
+    }
+  }
 }
 
 export const studyService = new StudyService();
