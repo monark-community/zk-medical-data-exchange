@@ -32,7 +32,7 @@ const ProposalCreationSection = () => {
             <CreateProposalDialog onProposalCreated={handleProposalCreated} />
           </div>
 
-          <ProposalsSection variant="my" showEnhancedHeader={true} />
+          <ProposalsSection variant="myProposals" showEnhancedHeader={true} />
         </div>
       </div>
     </div>

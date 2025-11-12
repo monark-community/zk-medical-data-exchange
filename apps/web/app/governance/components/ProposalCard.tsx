@@ -71,9 +71,6 @@ const formatTimeRemaining = (endTime: number): string => {
 
   const now = Math.floor(Date.now() / 1000);
   const remaining = Math.floor(endTime - now);
-  // console.log("endTime:", endTime);
-  // console.log("now:", now);
-  // console.log("remaining", remaining);
 
   if (remaining <= 0) return "Ended";
 

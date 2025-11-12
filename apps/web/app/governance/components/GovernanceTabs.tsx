@@ -20,7 +20,9 @@ const GovernanceTabs = () => {
       <TabsContent value="proposals">
         <ProposalsSection />
       </TabsContent>
-      <TabsContent value="myVotes"></TabsContent>
+      <TabsContent value="myVotes">
+        <ProposalsSection variant="myVotes" showEnhancedHeader={true} />
+      </TabsContent>
       <TabsContent value="createProposal">
         <ProposalCreationSection />
       </TabsContent>
