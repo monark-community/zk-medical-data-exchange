@@ -102,7 +102,8 @@ export default function ProposalCard({
     setSelectedVote(voteChoice);
     setVoteDialogOpen(true);
   };
-
+  const timeRemaining = formatTimeRemaining(proposalInfo.endTime);
+  const isProposalEnded = timeRemaining === "Ended";
   return (
     <div
       className={` bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow ${
@@ -185,26 +186,32 @@ export default function ProposalCard({
               </div>
               <div className="text-2xl font-bold ">{formatTimeRemaining(proposalInfo.endTime)}</div>
             </div>
-            {proposalInfo.hasVoted ? (
+            {proposalInfo.hasVoted || isProposalEnded ? (
               <div className="flex flex-col w-full items-center gap-3">
-                <div
-                  className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium ${
-                    proposalInfo.userVote === 1
-                      ? "bg-green-100 text-green-800"
-                      : proposalInfo.userVote === 2
-                      ? "bg-red-100 text-red-800"
-                      : "bg-gray-100 text-gray-800"
-                  }`}
-                >
-                  {proposalInfo.userVote === 1 ? (
-                    <CircleCheck className="w-4 h-4" />
-                  ) : proposalInfo.userVote === 2 ? (
-                    <CircleMinus className="w-4 h-4" />
-                  ) : (
-                    <Hourglass className="w-4 h-4" />
-                  )}
-                  <span>You voted {getVoteLabel(proposalInfo.userVote!)}</span>
-                </div>
+                {proposalInfo.userVote && [1, 2, 3].includes(proposalInfo.userVote) ? (
+                  <div
+                    className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium ${
+                      proposalInfo.userVote === 1
+                        ? "bg-green-100 text-green-800"
+                        : proposalInfo.userVote === 2
+                        ? "bg-red-100 text-red-800"
+                        : "bg-gray-100 text-gray-800"
+                    }`}
+                  >
+                    {proposalInfo.userVote === 1 ? (
+                      <CircleCheck className="w-4 h-4" />
+                    ) : proposalInfo.userVote === 2 ? (
+                      <CircleMinus className="w-4 h-4" />
+                    ) : (
+                      <Hourglass className="w-4 h-4" />
+                    )}
+                    <span>You voted {getVoteLabel(proposalInfo.userVote)}</span>
+                  </div>
+                ) : (
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md text-sm font-medium bg-gray-100 text-gray-800">
+                    <span>You didn't vote for this proposal</span>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="flex flex-col w-full items-center gap-2">

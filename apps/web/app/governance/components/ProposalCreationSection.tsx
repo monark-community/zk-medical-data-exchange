@@ -1,8 +1,9 @@
 "use client";
 import { Gavel } from "lucide-react";
 import CreateProposalDialog from "@/app/governance/components/CreateProposalDialog";
-import MyProposalsSection from "@/app/governance/components/myProposalsSection";
+
 import emitter from "@/lib/eventBus";
+import ProposalsSection from "./ProposalsSection";
 
 const ProposalCreationSection = () => {
   const handleProposalCreated = () => {
@@ -31,7 +32,7 @@ const ProposalCreationSection = () => {
             <CreateProposalDialog onProposalCreated={handleProposalCreated} />
           </div>
 
-          <MyProposalsSection />
+          <ProposalsSection variant="my" showEnhancedHeader={true} />
         </div>
       </div>
     </div>
