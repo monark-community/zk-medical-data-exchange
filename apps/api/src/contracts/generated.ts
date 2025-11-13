@@ -1,5 +1,5 @@
 // Auto-generated contract ABIs
-// Generated on 2025-11-08T19:53:42.105Z
+// Generated on 2025-11-13T01:21:13.074Z
 
 // ABI type definitions
 interface ABIInput {
@@ -1068,22 +1068,9 @@ export const STUDY_ABI: ABI = [
       },
       {
         "indexed": false,
-        "internalType": "uint256",
-        "name": "timestamp",
-        "type": "uint256"
-      }
-    ],
-    "name": "ConsentGranted",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "participant",
-        "type": "address"
+        "internalType": "bytes32",
+        "name": "commitmentHash",
+        "type": "bytes32"
       },
       {
         "indexed": false,
@@ -1092,7 +1079,7 @@ export const STUDY_ABI: ABI = [
         "type": "uint256"
       }
     ],
-    "name": "ConsentRevoked",
+    "name": "CommitmentRegistered",
     "type": "event"
   },
   {
@@ -1134,8 +1121,14 @@ export const STUDY_ABI: ABI = [
     "type": "event"
   },
   {
-    "inputs": [],
-    "name": "activeParticipants",
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "commitmentTimestamps",
     "outputs": [
       {
         "internalType": "uint256",
@@ -1350,6 +1343,30 @@ export const STUDY_ABI: ABI = [
     "type": "function"
   },
   {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "addr",
+        "type": "address"
+      }
+    ],
+    "name": "getRegisteredCommitment",
+    "outputs": [
+      {
+        "internalType": "bytes32",
+        "name": "commitmentHash",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "uint256",
+        "name": "timestamp",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "inputs": [],
     "name": "getStudyCriteria",
     "outputs": [
@@ -1525,70 +1542,6 @@ export const STUDY_ABI: ABI = [
     "type": "function"
   },
   {
-    "inputs": [],
-    "name": "getTotalEnrolled",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "participant",
-        "type": "address"
-      }
-    ],
-    "name": "grantConsent",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "addr",
-        "type": "address"
-      }
-    ],
-    "name": "hasActiveConsent",
-    "outputs": [
-      {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "name": "hasConsented",
-    "outputs": [
-      {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
     "inputs": [
       {
         "internalType": "address",
@@ -1628,6 +1581,11 @@ export const STUDY_ABI: ABI = [
         "internalType": "uint256",
         "name": "dataCommitment",
         "type": "uint256"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "challenge",
+        "type": "bytes32"
       }
     ],
     "name": "joinStudy",
@@ -1708,14 +1666,38 @@ export const STUDY_ABI: ABI = [
   {
     "inputs": [
       {
+        "internalType": "uint256",
+        "name": "dataCommitment",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "challenge",
+        "type": "bytes32"
+      }
+    ],
+    "name": "registerCommitment",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
         "internalType": "address",
-        "name": "participant",
+        "name": "",
         "type": "address"
       }
     ],
-    "name": "revokeConsent",
-    "outputs": [],
-    "stateMutability": "nonpayable",
+    "name": "registeredCommitments",
+    "outputs": [
+      {
+        "internalType": "bytes32",
+        "name": "",
+        "type": "bytes32"
+      }
+    ],
+    "stateMutability": "view",
     "type": "function"
   },
   {
@@ -1739,6 +1721,35 @@ export const STUDY_ABI: ABI = [
         "internalType": "string",
         "name": "",
         "type": "string"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "addr",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "dataCommitment",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "challenge",
+        "type": "bytes32"
+      }
+    ],
+    "name": "verifyCommitmentMatch",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
       }
     ],
     "stateMutability": "view",

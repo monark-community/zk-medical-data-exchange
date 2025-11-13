@@ -38,8 +38,4 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# zk circuit files (large files, generate locally)
-# Allow .wasm, .key, and .zkey files (needed for client-side verification)
-# /public/circuits/*.wasm
-# /public/circuits/*.zkey
 /public/circuits/*.ptau
