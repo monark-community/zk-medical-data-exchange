@@ -19,7 +19,6 @@ import {
   HeartPulse,
   FileText,
   Calendar,
-  Loader2,
   Activity,
   Stethoscope,
   FileStack,
@@ -35,6 +34,7 @@ import {
 } from "lucide-react";
 import eventBus from "@/lib/eventBus";
 import { fetchCIDs } from "@/services/api";
+import { Spinner } from "@/components/ui/spinner";
 
 // Helper function to get icon and colors based on resource type
 const getResourceTypeStyle = (resourceType: string) => {
@@ -248,7 +248,7 @@ export default function FilesSection({
       {deleting && (
         <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-10 flex flex-col items-center justify-center rounded-lg">
           <div className="relative">
-            <Loader2 className="w-12 h-12 animate-spin text-red-600" />
+            <Spinner className="size-12 text-red-600" />
             <div className="absolute inset-0 w-12 h-12 rounded-full border-2 border-red-200 animate-ping opacity-75" />
           </div>
           <p className="mt-4 text-gray-700 font-semibold">Deleting file...</p>
@@ -258,7 +258,7 @@ export default function FilesSection({
       {loading ? (
         <div className="flex flex-col items-center justify-center py-16 px-4">
           <div className="relative">
-            <Loader2 className="w-12 h-12 animate-spin text-blue-600" />
+            <Spinner className="size-12 text-blue-600" />
             <div className="absolute inset-0 w-12 h-12 rounded-full border-2 border-blue-200 animate-ping opacity-75" />
           </div>
           <p className="mt-4 text-gray-600 font-medium">Loading your medical files...</p>
