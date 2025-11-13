@@ -8,6 +8,7 @@ import {
   type StudyCriteria,
 } from "@zk-medical/shared";
 import logger from "@/utils/logger";
+import { generateStudyKeyPair, storeStudyKeyPair } from "@/services/keyManagementService.js";
 import crypto from "crypto";
 import { TABLES } from "@/constants/db";
 import { auditService } from "@/services/auditService";
@@ -724,6 +725,18 @@ export const deployStudy = async (req: Request, res: Response) => {
 
     if (updateError) {
       logger.error({ error: updateError, studyId }, "Failed to update study with deployment info");
+    }
+
+    try {
+      logger.info({ studyId }, "Generating encryption keys for study");
+      const keyPair = await generateStudyKeyPair(studyId);
+      await storeStudyKeyPair(studyId, keyPair);
+      logger.info({ studyId, keyId: keyPair.keyId }, "Encryption keys generated and stored");
+    } catch (keyError) {
+      logger.error(
+        { error: keyError, studyId },
+        "Failed to generate encryption keys - study deployed but encryption unavailable"
+      );
     }
 
     logger.info(

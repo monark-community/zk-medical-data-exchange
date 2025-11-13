@@ -6,7 +6,7 @@ import logger from '../utils/logger.js';
 import { db } from '@/config/database.js';
 import { TABLES } from '../constants/db.js';
 import type { MedicalData } from '@/types/medicalData.js';
-import { decryptStudyData } from '@/services/encryptionService.js';
+import { decryptFromDatabase } from '@/services/hybridEncryptionService.js';
 import { computeAggregateStatistics } from '@/services/statisticsService.js';
 import { validateKAnonymity } from '@/services/privacyService.js';
 
@@ -215,10 +215,10 @@ export class DataAggregationService {
 
     for (const record of encryptedRecords) {
       try {
-        const decrypted = await decryptStudyData(
+        const decrypted = await decryptFromDatabase(
           studyId,
           record.encrypted_data,
-          record.encryption_iv
+          record.encryption_metadata
         );
         decryptedData.push(decrypted);
       } catch (error) {
