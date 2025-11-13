@@ -681,7 +681,8 @@ class StudyService {
       c: [string, string];
     },
     participantWallet: string,
-    dataCommitment: string
+    dataCommitment: string,
+    challenge: string
   ) {
     let blockchainTxHash = null;
     if (contractAddress) {
@@ -690,7 +691,8 @@ class StudyService {
           contractAddress,
           participantWallet,
           proofjson,
-          dataCommitment
+          dataCommitment,
+          challenge
         );
 
         if (blockchainResult.success) {
@@ -732,7 +734,7 @@ class StudyService {
     participantWallet: string,
     proof: { a: [string, string]; b: [[string, string], [string, string]]; c: [string, string] },
     dataCommitment: string,
-    challenge?: string
+    challenge: string
   ): Promise<{ success: boolean; transactionHash?: string; error?: string }> {
     logger.info(
       { studyAddress, participantWallet, dataCommitment, proof },
