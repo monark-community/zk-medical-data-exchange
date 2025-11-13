@@ -754,7 +754,6 @@ class StudyService {
         pC = [BigInt(proof.c[0]), BigInt(proof.c[1])];
         commitment = BigInt(dataCommitment);
 
-        logger.info({ pA, pB, pC, commitment }, "Proof converted to BigInt format");
       } catch (conversionError) {
         logger.error({ 
           error: conversionError, 
