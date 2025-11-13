@@ -40,12 +40,19 @@ export async function uploadStudyData(req: Request, res: Response): Promise<void
   const userAgent = req.get('User-Agent') || '';
   const ipAddress = req.ip || req.socket?.remoteAddress || '';
 
-  logger.info({ studyId: id, participantAddress: req.body.participantAddress }, 'uploadStudyData called');
+  logger.info({ 
+    studyId: id, 
+    participantAddress: req.body.participantAddress,
+    step: 'START',
+    timestamp: new Date().toISOString()
+  }, '🚀 [UPLOAD] Starting data upload process');
 
   try {
     // Validate request body
+    logger.info({ studyId: id, step: 'VALIDATION' }, '🔍 [UPLOAD] Validating request body');
     const validationError = validateUploadRequest(req.body);
     if (validationError) {
+      logger.error({ studyId: id, error: validationError, step: 'VALIDATION' }, '❌ [UPLOAD] Request validation failed');
       res.status(400).json({ error: validationError });
       return;
     }
@@ -58,7 +65,17 @@ export async function uploadStudyData(req: Request, res: Response): Promise<void
       ipfsHash,
     } = req.body as UploadDataRequest;
 
+    logger.info({ 
+      studyId: id, 
+      participantAddress,
+      dataSize: encryptedData?.length,
+      hasMetadata: !!encryptionMetadata,
+      hasHash: !!dataHash,
+      step: 'VALIDATION'
+    }, '✅ [UPLOAD] Request validated successfully');
+
     // 1. Verify study exists
+    logger.info({ studyId: id, step: 'STUDY_LOOKUP' }, '🔍 [UPLOAD] Looking up study in database');
     const { data: study, error: studyError } = await db
       .from(TABLES.STUDIES!.name!)
       .select('*')
@@ -66,60 +83,84 @@ export async function uploadStudyData(req: Request, res: Response): Promise<void
       .single();
 
     if (studyError || !study) {
-      logger.warn({ studyId: id, error: studyError }, 'Study not found');
+      logger.error({ studyId: id, error: studyError, step: 'STUDY_LOOKUP' }, '❌ [UPLOAD] Study not found in database');
       res.status(404).json({ error: 'Study not found' });
       return;
     }
 
-    // 2. Verify study is ACTIVE
-    if (!study.blockchain_address) {
-      logger.warn({ studyId: id }, 'Study not yet deployed to blockchain');
+    logger.info({ 
+      studyId: id, 
+      studyTitle: study.title,
+      studyStatus: study.status,
+      contractAddress: study.contract_address,
+      step: 'STUDY_LOOKUP'
+    }, '✅ [UPLOAD] Study found in database');
+
+    // 2. Verify study is deployed to blockchain
+    logger.info({ studyId: id, contractAddress: study.contract_address, step: 'CONTRACT_CHECK' }, '🔍 [UPLOAD] Checking if study has contract address');
+    if (!study.contract_address) {
+      logger.error({ studyId: id, step: 'CONTRACT_CHECK' }, '❌ [UPLOAD] Study has no contract_address field');
       res.status(400).json({ error: 'Study must be deployed before data upload' });
       return;
     }
+    logger.info({ studyId: id, contractAddress: study.contract_address, step: 'CONTRACT_CHECK' }, '✅ [UPLOAD] Study has valid contract address');
 
     // 3. Verify study is in ACTIVE status (not ended)
-    const onChainStatus = await studyService.getStudyStatus(study.blockchain_address);
+    logger.info({ studyId: id, contractAddress: study.contract_address, step: 'STATUS_CHECK' }, '🔍 [UPLOAD] Checking on-chain study status');
+    const onChainStatus = await studyService.getStudyStatus(study.contract_address);
+    logger.info({ studyId: id, onChainStatus: onChainStatus.status, step: 'STATUS_CHECK' }, '📊 [UPLOAD] On-chain status retrieved');
+    
     if (onChainStatus.status !== 0) { // 0 = ACTIVE, 1 = ENDED
-      logger.warn({ studyId: id, status: onChainStatus.status }, 'Study is not active');
+      logger.error({ studyId: id, status: onChainStatus.status, step: 'STATUS_CHECK' }, '❌ [UPLOAD] Study is not active (status should be 0)');
       res.status(400).json({ error: 'Study is not accepting data - study has ended' });
       return;
     }
+    logger.info({ studyId: id, step: 'STATUS_CHECK' }, '✅ [UPLOAD] Study is ACTIVE');
 
     // 4. Verify participant is enrolled in the study (check blockchain)
+    logger.info({ studyId: id, participantAddress, contractAddress: study.contract_address, step: 'ENROLLMENT_CHECK' }, '🔍 [UPLOAD] Verifying participant enrollment');
     const isEnrolled = await verifyParticipantEnrollment(
-      study.blockchain_address,
+      study.contract_address,
       participantAddress
     );
 
     if (!isEnrolled) {
-      logger.warn({ studyId: id, participantAddress }, 'Participant not enrolled in study');
+      logger.error({ studyId: id, participantAddress, step: 'ENROLLMENT_CHECK' }, '❌ [UPLOAD] Participant not enrolled in study');
       res.status(403).json({ 
         error: 'Participant not enrolled in this study',
         message: 'You must join the study before uploading data'
       });
       return;
     }
+    logger.info({ studyId: id, participantAddress, step: 'ENROLLMENT_CHECK' }, '✅ [UPLOAD] Participant enrollment verified');
 
     // 5. Verify encryption metadata is valid
+    logger.info({ studyId: id, step: 'METADATA_VALIDATION' }, '🔍 [UPLOAD] Validating encryption metadata');
     const metadataError = validateEncryptionMetadata(encryptionMetadata);
     if (metadataError) {
+      logger.error({ studyId: id, error: metadataError, step: 'METADATA_VALIDATION' }, '❌ [UPLOAD] Encryption metadata validation failed');
       res.status(400).json({ error: metadataError });
       return;
     }
+    logger.info({ studyId: id, step: 'METADATA_VALIDATION' }, '✅ [UPLOAD] Encryption metadata valid');
 
     // 6. Verify data hash matches
+    logger.info({ studyId: id, providedHash: dataHash, step: 'HASH_VERIFICATION' }, '🔍 [UPLOAD] Computing and verifying data hash');
     const computedHash = computeDataHash(encryptedData);
+    logger.info({ studyId: id, providedHash: dataHash, computedHash, step: 'HASH_VERIFICATION' }, '📊 [UPLOAD] Hash comparison');
+    
     if (computedHash !== dataHash) {
-      logger.warn({ studyId: id, participantAddress }, 'Data hash mismatch');
+      logger.error({ studyId: id, participantAddress, providedHash: dataHash, computedHash, step: 'HASH_VERIFICATION' }, '❌ [UPLOAD] Data hash mismatch');
       res.status(400).json({ 
         error: 'Data integrity check failed',
         message: 'Provided hash does not match encrypted data'
       });
       return;
     }
+    logger.info({ studyId: id, step: 'HASH_VERIFICATION' }, '✅ [UPLOAD] Data hash verified');
 
     // 7. Check if participant has already uploaded data
+    logger.info({ studyId: id, participantAddress, step: 'DUPLICATE_CHECK' }, '🔍 [UPLOAD] Checking for duplicate uploads');
     const { data: existingData } = await db
       .from('study_participant_data')
       .select('id')
@@ -128,31 +169,31 @@ export async function uploadStudyData(req: Request, res: Response): Promise<void
       .single();
 
     if (existingData) {
-      logger.warn({ studyId: id, participantAddress }, 'Participant already uploaded data');
+      logger.warn({ studyId: id, participantAddress, existingDataId: existingData.id, step: 'DUPLICATE_CHECK' }, '⚠️ [UPLOAD] Participant already uploaded data');
       res.status(409).json({ 
         error: 'Data already uploaded',
         message: 'You have already submitted data to this study'
       });
       return;
     }
+    logger.info({ studyId: id, step: 'DUPLICATE_CHECK' }, '✅ [UPLOAD] No duplicate found');
 
     // 8. Store encrypted data in database
+    logger.info({ studyId: id, participantAddress, step: 'DATABASE_INSERT' }, '💾 [UPLOAD] Inserting encrypted data into database');
     const { data: uploadRecord, error: insertError } = await db
       .from('study_participant_data')
       .insert({
         study_id: parseInt(id!),
-        participant_address: participantAddress.toLowerCase(),
-        encrypted_data: encryptedData,
-        encryption_metadata: JSON.stringify(encryptionMetadata),
-        data_commitment_hash: dataHash,
-        ipfs_hash: ipfsHash || null,
+        participant_wallet: participantAddress.toLowerCase(),
+        encrypted_medical_data: encryptedData,
+        data_hash: dataHash,
         uploaded_at: new Date().toISOString(),
       })
       .select()
       .single();
 
     if (insertError) {
-      logger.error({ studyId: id, participantAddress, error: insertError }, 'Failed to store participant data');
+      logger.error({ studyId: id, participantAddress, error: insertError, step: 'DATABASE_INSERT' }, '❌ [UPLOAD] Failed to store participant data in database');
       
       // Log failed upload
       auditService.logAction({
@@ -177,7 +218,16 @@ export async function uploadStudyData(req: Request, res: Response): Promise<void
       return;
     }
 
+    logger.info({ 
+      studyId: id, 
+      participantAddress, 
+      uploadId: uploadRecord.id, 
+      dataSize: encryptedData.length,
+      step: 'DATABASE_INSERT'
+    }, '✅ [UPLOAD] Data successfully inserted into database');
+
     // 9. Log successful upload
+    logger.info({ studyId: id, uploadId: uploadRecord.id, step: 'AUDIT_LOG' }, '📝 [UPLOAD] Logging audit event');
     auditService.logAction({
       user: participantAddress,
       userProfile: UserProfile.DATA_SELLER,
@@ -198,7 +248,13 @@ export async function uploadStudyData(req: Request, res: Response): Promise<void
       logger.error({ auditError }, 'Failed to log audit event for successful upload');
     });
 
-    logger.info({ studyId: id, participantAddress, uploadId: uploadRecord.id }, 'Study data uploaded successfully');
+    logger.info({ 
+      studyId: id, 
+      participantAddress, 
+      uploadId: uploadRecord.id,
+      duration: Date.now() - startTime,
+      step: 'SUCCESS'
+    }, '🎉 [UPLOAD] Study data uploaded successfully - COMPLETE');
 
     res.status(201).json({
       success: true,
@@ -358,14 +414,14 @@ export async function triggerDataAggregation(req: Request, res: Response): Promi
       return;
     }
 
-    if (!study.blockchain_address) {
+    if (!study.contract_address) {
       logger.warn({ studyId: id }, 'Study not deployed to blockchain');
       res.status(400).json({ error: 'Study must be deployed to blockchain' });
       return;
     }
 
     // 3. Verify study has ENDED
-    const onChainStatus = await studyService.getStudyStatus(study.blockchain_address);
+    const onChainStatus = await studyService.getStudyStatus(study.contract_address);
     if (onChainStatus.status !== 1) { // 1 = ENDED
       logger.warn({ studyId: id, status: onChainStatus.status }, 'Study is not ended');
       res.status(400).json({ 
@@ -377,7 +433,7 @@ export async function triggerDataAggregation(req: Request, res: Response): Promi
     }
 
     // 4. Verify requester is the study creator
-    const isCreator = await verifyStudyCreator(study.blockchain_address, researcherAddress);
+    const isCreator = await verifyStudyCreator(study.contract_address, researcherAddress);
     if (!isCreator) {
       logger.warn({ studyId: id, researcherAddress }, 'Unauthorized - not study creator');
       
@@ -430,7 +486,7 @@ export async function triggerDataAggregation(req: Request, res: Response): Promi
     
     const result = await aggregationService.aggregateStudyData(
       parseInt(id!),
-      study.blockchain_address
+      study.contract_address
     );
 
     // 7. Log successful aggregation
@@ -542,13 +598,13 @@ export async function getAggregatedData(req: Request, res: Response): Promise<vo
       return;
     }
 
-    if (!study.blockchain_address) {
+    if (!study.contract_address) {
       res.status(400).json({ error: 'Study not deployed to blockchain' });
       return;
     }
 
     // 3. Verify study has ENDED
-    const onChainStatus = await studyService.getStudyStatus(study.blockchain_address);
+    const onChainStatus = await studyService.getStudyStatus(study.contract_address);
     if (onChainStatus.status !== 1) { // 1 = ENDED
       res.status(400).json({ 
         error: 'Study must be ended',
@@ -558,7 +614,7 @@ export async function getAggregatedData(req: Request, res: Response): Promise<vo
     }
 
     // 4. Verify requester is the study creator
-    const isCreator = await verifyStudyCreator(study.blockchain_address, researcherAddress);
+    const isCreator = await verifyStudyCreator(study.contract_address, researcherAddress);
     if (!isCreator) {
       logger.warn({ studyId: id, researcherAddress }, 'Unauthorized - not study creator');
 
@@ -703,7 +759,7 @@ export async function getAccessLogs(req: Request, res: Response): Promise<void> 
     // 2. Verify study exists
     const { data: study, error: studyError } = await db
       .from(TABLES.STUDIES!.name!)
-      .select('blockchain_address')
+      .select('contract_address')
       .eq('id', id!)
       .single();
 
@@ -713,7 +769,7 @@ export async function getAccessLogs(req: Request, res: Response): Promise<void> 
     }
 
     // 3. Verify requester is the study creator
-    const isCreator = await verifyStudyCreator(study.blockchain_address, researcherAddress);
+    const isCreator = await verifyStudyCreator(study.contract_address, researcherAddress);
     if (!isCreator) {
       res.status(403).json({ 
         error: 'Unauthorized',
@@ -793,18 +849,75 @@ async function verifyParticipantEnrollment(
   participantAddress: string
 ): Promise<boolean> {
   try {
-    // Check if participant has an active enrollment record in the database
-    const { data: participation } = await db
-      .from(TABLES.STUDY_PARTICIPATIONS!.name!)
-      .select('consent_given')
-      .eq(TABLES.STUDY_PARTICIPATIONS!.columns.participantWallet!, participantAddress.toLowerCase())
-      .eq('study:blockchain_address', studyAddress)
+    logger.info({ 
+      studyAddress, 
+      participantAddress,
+      step: 'ENROLLMENT_DB_QUERY'
+    }, '🔍 [UPLOAD] Querying database for participant enrollment');
+
+    // First, find the study ID from the contract address
+    const { data: study, error: studyError } = await db
+      .from(TABLES.STUDIES!.name!)
+      .select('id')
+      .eq('contract_address', studyAddress)
       .single();
 
-    // Participant is enrolled if they have a record with consent_given = true
-    return participation?.consent_given === true;
+    if (studyError || !study) {
+      logger.error({ 
+        studyAddress, 
+        error: studyError,
+        step: 'ENROLLMENT_DB_QUERY'
+      }, '❌ [UPLOAD] Study not found by contract address');
+      return false;
+    }
+
+    logger.info({ 
+      studyAddress,
+      studyId: study.id,
+      step: 'ENROLLMENT_DB_QUERY'
+    }, '✅ [UPLOAD] Study found by contract address');
+
+    // Now check if participant is enrolled in this study
+    const { data: participation, error: participationError } = await db
+      .from(TABLES.STUDY_PARTICIPATIONS!.name!)
+      .select('*')
+      .eq(TABLES.STUDY_PARTICIPATIONS!.columns.studyId!, study.id)
+      .eq(TABLES.STUDY_PARTICIPATIONS!.columns.participantWallet!, participantAddress)
+      .single();
+
+    if (participationError) {
+      logger.warn({ 
+        studyId: study.id,
+        participantAddress,
+        error: participationError,
+        step: 'ENROLLMENT_DB_QUERY'
+      }, '⚠️ [UPLOAD] No participation record found in database');
+      return false;
+    }
+
+    logger.info({ 
+      studyId: study.id,
+      participantAddress,
+      participation: {
+        hasConsented: participation?.has_consented,
+        enrolledAt: participation?.enrolled_at,
+        status: participation?.status,
+      },
+      step: 'ENROLLMENT_DB_QUERY'
+    }, '📊 [UPLOAD] Participation record found');
+
+    // Participant is enrolled if they have a record with has_consented = true
+    const isEnrolled = participation?.has_consented === true;
+    
+    if (isEnrolled) {
+      logger.info({ studyId: study.id, participantAddress, step: 'ENROLLMENT_DB_QUERY' }, '✅ [UPLOAD] Participant has valid enrollment with consent');
+    } else {
+      logger.warn({ studyId: study.id, participantAddress, hasConsented: participation?.has_consented, step: 'ENROLLMENT_DB_QUERY' }, '⚠️ [UPLOAD] Participant enrollment exists but has_consented is not true');
+    }
+
+    return isEnrolled;
   } catch (error) {
-    logger.error({ error, studyAddress, participantAddress }, 'Error verifying participant enrollment');
+    logger.error({ error, studyAddress, participantAddress, step: 'ENROLLMENT_DB_QUERY' }, '❌ [UPLOAD] Error verifying participant enrollment');
     return false;
   }
 }
@@ -835,32 +948,69 @@ function validateUploadRequest(body: any): string | null {
 }
 
 function validateEncryptionMetadata(metadata: any): string | null {
+  logger.info({ 
+    metadata,
+    metadataType: typeof metadata,
+    metadataKeys: metadata ? Object.keys(metadata) : [],
+    hasEncryptedKey: !!metadata?.encryptedKey,
+    encryptedKeyType: typeof metadata?.encryptedKey,
+    encryptedKeyValue: metadata?.encryptedKey,
+    hasIv: !!metadata?.iv,
+    ivType: typeof metadata?.iv,
+    ivValue: metadata?.iv,
+    ivLength: metadata?.iv?.length,
+    hasAuthTag: !!metadata?.authTag,
+    authTagType: typeof metadata?.authTag,
+    authTagValue: metadata?.authTag,
+    authTagLength: metadata?.authTag?.length,
+    step: 'METADATA_VALIDATION_DETAIL'
+  }, '🔍 [UPLOAD] Detailed encryption metadata inspection');
+
   if (!metadata.encryptedKey || typeof metadata.encryptedKey !== 'string') {
+    logger.error({ metadata, field: 'encryptedKey', step: 'METADATA_VALIDATION_DETAIL' }, '❌ [UPLOAD] encryptedKey validation failed');
     return 'encryptionMetadata.encryptedKey is required';
   }
 
-  if (!metadata.iv || typeof metadata.iv !== 'string') {
-    return 'encryptionMetadata.iv is required';
+  // IV and authTag are optional since they may be embedded in encryptedData
+  // When using AES-GCM, the IV and auth tag are often prepended/appended to the ciphertext
+  if (metadata.iv !== undefined && typeof metadata.iv !== 'string') {
+    logger.error({ metadata, field: 'iv', ivType: typeof metadata.iv, step: 'METADATA_VALIDATION_DETAIL' }, '❌ [UPLOAD] iv must be a string if provided');
+    return 'encryptionMetadata.iv must be a string';
   }
 
-  if (!metadata.authTag || typeof metadata.authTag !== 'string') {
-    return 'encryptionMetadata.authTag is required';
+  if (metadata.authTag !== undefined && typeof metadata.authTag !== 'string') {
+    logger.error({ metadata, field: 'authTag', authTagType: typeof metadata.authTag, step: 'METADATA_VALIDATION_DETAIL' }, '❌ [UPLOAD] authTag must be a string if provided');
+    return 'encryptionMetadata.authTag must be a string';
   }
 
-  // Validate base64 format
+  logger.info({ 
+    hasIv: !!metadata.iv,
+    ivLength: metadata.iv?.length || 0,
+    hasAuthTag: !!metadata.authTag,
+    authTagLength: metadata.authTag?.length || 0,
+    step: 'METADATA_VALIDATION_DETAIL'
+  }, '📊 [UPLOAD] IV and authTag are optional (may be embedded in encryptedData)');
+
+  // Validate base64 format for encryptedKey
   const base64Regex = /^[A-Za-z0-9+/]+=*$/;
   
   if (!base64Regex.test(metadata.encryptedKey)) {
+    logger.error({ encryptedKey: metadata.encryptedKey, step: 'METADATA_VALIDATION_DETAIL' }, '❌ [UPLOAD] encryptedKey not valid base64');
     return 'encryptionMetadata.encryptedKey must be valid base64';
   }
 
-  if (!base64Regex.test(metadata.iv)) {
+  // Validate base64 for iv if provided and not empty
+  if (metadata.iv && metadata.iv.length > 0 && !base64Regex.test(metadata.iv)) {
+    logger.error({ iv: metadata.iv, step: 'METADATA_VALIDATION_DETAIL' }, '❌ [UPLOAD] iv not valid base64');
     return 'encryptionMetadata.iv must be valid base64';
   }
 
-  if (!base64Regex.test(metadata.authTag)) {
+  // Validate base64 for authTag if provided and not empty
+  if (metadata.authTag && metadata.authTag.length > 0 && !base64Regex.test(metadata.authTag)) {
+    logger.error({ authTag: metadata.authTag, step: 'METADATA_VALIDATION_DETAIL' }, '❌ [UPLOAD] authTag not valid base64');
     return 'encryptionMetadata.authTag must be valid base64';
   }
 
+  logger.info({ step: 'METADATA_VALIDATION_DETAIL' }, '✅ [UPLOAD] All encryption metadata validation passed');
   return null;
 }

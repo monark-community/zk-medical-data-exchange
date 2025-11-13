@@ -17,6 +17,11 @@ import {
   revokeStudyConsent,
   grantStudyConsent,
 } from "@/services/api/studyService";
+import { 
+  uploadStudyData, 
+  getStudyPublicKey 
+} from "@/services/api/studyDataService";
+import { encryptMedicalDataForUpload } from "@/utils/encryption";
 
 type ViewMode = "enrolled" | "available";
 
@@ -54,41 +59,136 @@ export default function DataSellerStudiesSection() {
 
     setApplyingStudyId(studyId);
 
-    try {
-      console.log("Starting secure study application process...");
+    const startTime = Date.now();
+    console.log("🚀 [APPLY] ============================================");
+    console.log("🚀 [APPLY] Starting study application process");
+    console.log("🚀 [APPLY] Study ID:", studyId);
+    console.log("🚀 [APPLY] Wallet Address:", walletAddress);
+    console.log("🚀 [APPLY] Timestamp:", new Date().toISOString());
+    console.log("🚀 [APPLY] ============================================");
 
+    try {
+      console.log("📊 [APPLY] Step 1: Fetching aggregated medical data from vault");
+
+      // 1. Get aggregated medical data from vault
       const data = await getAggregatedMedicalData(walletAddress);
 
-      console.log("Aggregated medical data retrieved for study application:", data);
+      console.log("✅ [APPLY] Medical data retrieved:", {
+        hasData: !!data,
+        dataKeys: data ? Object.keys(data) : [],
+      });
 
       if (!data || Object.keys(data).length === 0) {
+        console.error("❌ [APPLY] No medical data available");
         throw new Error("No medical data available for study application.");
       }
 
+      console.log("📝 [APPLY] Step 2: Converting to ZK-ready format");
       const zkReadyMedicalData = convertToZkReady(data);
       if (!zkReadyMedicalData) {
+        console.error("❌ [APPLY] Failed to convert medical data to ZK format");
         throw new Error("No valid medical data available for study application.");
       }
+      console.log("✅ [APPLY] ZK-ready data prepared:", zkReadyMedicalData);
 
+      // 2. Apply to study (checks eligibility, enrolls participant)
+      console.log("📝 [APPLY] Step 3: Submitting study application (enrollment + eligibility)...");
       const result = await StudyApplicationService.applyToStudy(
         studyId,
         zkReadyMedicalData,
         walletAddress
       );
 
-      if (result.success) {
-        alert(`${result.message}`);
-        refetch();
-        if (walletAddress) {
-          getEnrolledStudies(walletAddress)
-            .then((data) => setEnrolledStudies(data))
-            .catch((error) => console.error("Failed to fetch enrolled studies:", error));
-        }
-      } else {
+      if (!result.success) {
+        console.error("❌ [APPLY] Application failed:", result.message);
         throw new Error(result.message);
       }
+
+      console.log("✅ [APPLY] Successfully enrolled in study!");
+      console.log("✅ [APPLY] Application result:", result);
+
+      // 3. Automatically encrypt and upload medical data
+      console.log("🔐 [APPLY] Step 4: Encrypting and uploading medical data");
+      try {
+        // Get study's public key for encryption
+        console.log("🔑 [APPLY] Fetching study's RSA public key...");
+        const publicKeyResponse = await getStudyPublicKey(studyId);
+        console.log("✅ [APPLY] Public key retrieved:", {
+          publicKeyLength: publicKeyResponse.publicKey?.length,
+        });
+        
+        // Encrypt the medical data using hybrid encryption
+        console.log("🔐 [APPLY] Encrypting medical data with hybrid RSA+AES...");
+        const encryptionStart = Date.now();
+        const { encryptedData, encryptedKey } = await encryptMedicalDataForUpload(
+          data, // Use the full aggregated medical data
+          publicKeyResponse.publicKey
+        );
+        const encryptionDuration = Date.now() - encryptionStart;
+        console.log("✅ [APPLY] Data encrypted successfully:", {
+          encryptedDataLength: encryptedData.length,
+          encryptedKeyLength: encryptedKey.length,
+          durationMs: encryptionDuration,
+        });
+
+        // Compute hash of ENCRYPTED data for integrity verification
+        console.log("🔐 [APPLY] Computing SHA-256 hash of encrypted data...");
+        const encoder = new TextEncoder();
+        const encryptedDataBuffer = encoder.encode(encryptedData); // Hash the encrypted data, not original
+        const hashBuffer = await window.crypto.subtle.digest('SHA-256', encryptedDataBuffer);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        const dataHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        console.log("✅ [APPLY] Data hash computed from encrypted data:", dataHash);
+
+        // Upload encrypted data
+        console.log("📤 [APPLY] Uploading encrypted data to backend...");
+        const uploadStart = Date.now();
+        await uploadStudyData(studyId, {
+          participantAddress: walletAddress,
+          encryptedData,
+          encryptionMetadata: {
+            encryptedKey,
+            iv: '', // IV is included in encryptedData
+            authTag: '', // Auth tag is included in encryptedData
+          },
+          dataHash,
+        });
+        const uploadDuration = Date.now() - uploadStart;
+        console.log("✅ [APPLY] Medical data successfully uploaded!", {
+          durationMs: uploadDuration,
+        });
+
+        const totalDuration = Date.now() - startTime;
+        console.log("🎉 [APPLY] ============================================");
+        console.log("🎉 [APPLY] COMPLETE! Total duration:", totalDuration, "ms");
+        console.log("🎉 [APPLY] ============================================");
+      } catch (uploadError: any) {
+        console.error("❌ [APPLY] ============================================");
+        console.error("❌ [APPLY] Upload failed!");
+        console.error("❌ [APPLY] Error:", uploadError);
+        console.error("❌ [APPLY] Error message:", uploadError.message);
+        console.error("❌ [APPLY] Error stack:", uploadError.stack);
+        console.error("❌ [APPLY] ============================================");
+        // Note: Don't throw here - enrollment was successful, upload can be retried
+        alert(`Enrolled successfully, but data upload failed: ${uploadError.message}. Please contact support.`);
+      }
+
+      alert(`${result.message}\n\nYour medical data has been automatically encrypted and uploaded to the study.`);
+      refetch();
+      if (walletAddress) {
+        getEnrolledStudies(walletAddress)
+          .then((data) => setEnrolledStudies(data))
+          .catch((error) => console.error("Failed to fetch enrolled studies:", error));
+      }
     } catch (error: any) {
-      console.error("Error during study application:", error);
+      const totalDuration = Date.now() - startTime;
+      console.error("❌ [APPLY] ============================================");
+      console.error("❌ [APPLY] Application failed!");
+      console.error("❌ [APPLY] Error:", error);
+      console.error("❌ [APPLY] Error message:", error.message);
+      console.error("❌ [APPLY] Error stack:", error.stack);
+      console.error("❌ [APPLY] Duration before failure:", totalDuration, "ms");
+      console.error("❌ [APPLY] ============================================");
       alert(`Application failed: ${error.message || error}`);
     } finally {
       setApplyingStudyId(null);

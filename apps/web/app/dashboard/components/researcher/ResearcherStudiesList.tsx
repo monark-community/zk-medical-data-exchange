@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 import { StudySummary } from "@/services/api/studyService";
-import { Trash2, Loader2, StopCircle, BarChart3 } from "lucide-react";
+import { Trash2, Loader2, StopCircle, BarChart3, Database } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import StudiesList from "@/app/dashboard/components/shared/StudiesList";
 import EndStudyDialog from "./EndStudyDialog";
 import StudyCompletionSummary from "./StudyCompletionSummary";
+import { ViewAggregatedDataDialog } from "./ViewAggregatedDataDialog";
 
 interface ResearcherStudiesListProps {
   studies: StudySummary[];
@@ -24,8 +25,10 @@ export default function ResearcherStudiesList({
 }: ResearcherStudiesListProps) {
   const [endStudyDialogOpen, setEndStudyDialogOpen] = useState(false);
   const [summaryDialogOpen, setSummaryDialogOpen] = useState(false);
+  const [aggregatedDataDialogOpen, setAggregatedDataDialogOpen] = useState(false);
   const [selectedStudy, setSelectedStudy] = useState<StudySummary | null>(null);
   const [summaryStudy, setSummaryStudy] = useState<{ id: number; title: string } | null>(null);
+  const [aggregatedDataStudy, setAggregatedDataStudy] = useState<StudySummary | null>(null);
 
   const handleEndStudyClick = (study: StudySummary) => {
     setSelectedStudy(study);
@@ -41,8 +44,31 @@ export default function ResearcherStudiesList({
     setSummaryDialogOpen(true);
   };
 
+  const handleViewAggregatedData = (study: StudySummary) => {
+    setAggregatedDataStudy(study);
+    setAggregatedDataDialogOpen(true);
+  };
+
   const renderActionButtons = (study: StudySummary) => (
     <div className="flex items-center space-x-2">
+      {/* View Aggregated Data button for completed studies */}
+      {study.status === "completed" && (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleViewAggregatedData(study);
+          }}
+          className="h-7 px-3 text-blue-700 hover:text-blue-800 hover:bg-blue-50 border-blue-300 bg-blue-50/50 text-xs font-semibold shadow-sm"
+          title="View anonymized aggregated data"
+        >
+          <Database className="h-3.5 w-3.5 mr-1" />
+          View Data
+        </Button>
+      )}
+
+      {/* Show Results button */}
       {study.status === "completed" && (
         <Button
           variant="outline"
@@ -59,6 +85,7 @@ export default function ResearcherStudiesList({
         </Button>
       )}
       
+      {/* End Study button */}
       {study.status !== "completed" && (
         <Button
           variant="outline"
@@ -120,6 +147,18 @@ export default function ResearcherStudiesList({
           onOpenChange={setSummaryDialogOpen}
           studyTitle={summaryStudy.title}
           studyId={summaryStudy.id}
+        />
+      )}
+
+      {aggregatedDataStudy && aggregatedDataStudy.contractAddress && (
+        <ViewAggregatedDataDialog
+          open={aggregatedDataDialogOpen}
+          onOpenChange={setAggregatedDataDialogOpen}
+          studyId={aggregatedDataStudy.id}
+          studyAddress={aggregatedDataStudy.contractAddress}
+          studyTitle={aggregatedDataStudy.title}
+          studyStatus={aggregatedDataStudy.status.toUpperCase()}
+          isCreator={true}
         />
       )}
     </>
