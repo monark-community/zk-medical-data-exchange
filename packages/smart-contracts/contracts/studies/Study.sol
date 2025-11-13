@@ -54,13 +54,12 @@ contract Study {
     StudyCriteria public criteria;
     Groth16Verifier public immutable zkVerifier;
 
-    // Participant tracking (NO private medical data stored on-chain!)
     mapping(address => bool) public participants;
     mapping(address => bool) public hasConsented; // Tracks active consent status
     mapping(address => uint256) public participantDataCommitments; // Hash of their private data
     address[] public participantList;
     
-    // 🔒 Anti-Gaming: Store commitment hashes on-chain
+    // Anti-Gaming: Store commitment hashes on-chain
     // Maps: wallet => studyId => commitmentHash
     // commitmentHash = keccak256(wallet, dataCommitment, challenge)
     mapping(address => bytes32) public registeredCommitments;
