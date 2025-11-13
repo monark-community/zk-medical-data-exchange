@@ -140,4 +140,14 @@ export const TABLES: Record<string, TableDefinition> = {
       votedAt: "voted_at",
     },
   },
+  PROPOSAL_COMMENTS: {
+    name: "proposal_comments",
+    columns: {
+      id: "id",
+      proposalId: "proposal_id",
+      commenterAddress: "commenter_address",
+      content: "content",
+      createdAt: "created_at",
+    },
+  },
 };
