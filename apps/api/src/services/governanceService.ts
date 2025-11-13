@@ -13,7 +13,7 @@ import { GOVERNANCE_DAO_ABI } from "@/contracts/generated";
 import { TABLES } from "@/constants/db";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-const { USERS, PROPOSALS, PROPOSAL_VOTES } = TABLES;
+const { USERS, PROPOSALS, PROPOSAL_VOTES, PROPOSAL_COMMENTS } = TABLES;
 
 // Enums matching Solidity contract
 /* eslint-disable no-unused-vars */
@@ -53,6 +53,26 @@ export interface Proposal {
   timeRemaining?: number;
   hasVoted?: boolean;
   userVote?: VoteChoice;
+  // Array of comments for the proposal (discussion flow)
+  comments?: Comment[];
+}
+
+export interface Comment {
+  id: number;
+  proposalId: number;
+  commenterAddress: string;
+  content: string;
+  createdAt: string; // ISO string
+}
+
+export interface AddCommentParams {
+  proposalId: number;
+  commenterAddress: string;
+  content: string;
+}
+
+export interface AddCommentResult {
+  comment: Comment;
 }
 
 export interface PlatformStats {
@@ -356,7 +376,72 @@ class GovernanceService {
     }
   }
 
-  async getProposal(proposalId: number, userAddress?: string): Promise<Proposal | null> {
+  /**
+   * Add a comment to a proposal (stored in database cache)
+   */
+  async addComment(params: AddCommentParams): Promise<GovernanceResult<AddCommentResult>> {
+    try {
+      logger.info({ params }, "Adding comment to proposal");
+
+      if (!params.content || params.content.trim().length === 0) {
+        return { success: false, error: "Comment content cannot be empty" };
+      }
+
+      // ensure proposal exists in DB (or on-chain fallback)
+      const { data: dbProposal } = await this.supabase
+        .from(PROPOSALS!.name)
+        .select("id")
+        .eq(PROPOSALS!.columns.id!, params.proposalId)
+        .single();
+
+      if (!dbProposal) {
+        // If not in DB, check blockchain quickly
+        const onChain = await this.publicClient.readContract({
+          address: this.contractAddress as `0x${string}`,
+          abi: GOVERNANCE_DAO_ABI,
+          functionName: "getProposal",
+          args: [BigInt(params.proposalId)],
+        }).catch(() => null);
+
+        if (!onChain) {
+          return { success: false, error: "Proposal not found" };
+        }
+      }
+
+      const now = new Date().toISOString();
+
+      const { data: inserted, error } = await this.supabase
+        .from(PROPOSAL_COMMENTS!.name)
+        .insert({
+          proposal_id: params.proposalId,
+          commenter_address: params.commenterAddress,
+          content: params.content.trim(),
+          created_at: now,
+        })
+        .select("*")
+        .single();
+
+      if (error) {
+        logger.error({ error, params }, "Failed to insert comment into database");
+        return { success: false, error: "Failed to save comment" };
+      }
+
+      const comment: Comment = {
+        id: inserted.id,
+        proposalId: inserted.proposal_id,
+        commenterAddress: inserted.commenter_address,
+        content: inserted.content,
+        createdAt: inserted.created_at,
+      };
+
+      return { success: true, data: { comment } };
+    } catch (error: any) {
+      logger.error({ error, params }, "Failed to add comment");
+      return { success: false, error: error.message || "Failed to add comment" };
+    }
+  }
+
+  async getProposal(proposalId: number, userAddress?: string, includeComments = false): Promise<Proposal | null> {
     try {
       logger.info({ proposalId, userAddress }, "Fetching proposal from database");
 
@@ -408,6 +493,31 @@ class GovernanceService {
           proposal.userVote = userVote.choice;
         } else {
           proposal.hasVoted = false;
+        }
+      }
+
+      // Optionally fetch comments for this proposal from the comments table
+      if (includeComments) {
+        try {
+          const { data: commentsData, error: commentsError } = await this.supabase
+            .from(PROPOSAL_COMMENTS!.name)
+            .select("id, proposal_id, commenter_address, content, created_at")
+            .eq(PROPOSAL_COMMENTS!.columns.proposalId!, dbProposal.id)
+            .order(PROPOSAL_COMMENTS!.columns.createdAt!, { ascending: true });
+
+          if (!commentsError && commentsData) {
+            proposal.comments = commentsData.map((c: any) => ({
+              id: c.id,
+              proposalId: c.proposal_id,
+              commenterAddress: c.commenter_address,
+              content: c.content,
+              createdAt: c.created_at,
+            }));
+          } else {
+            proposal.comments = [];
+          }
+        } catch (err) {
+          proposal.comments = [];
         }
       }
 
@@ -654,6 +764,41 @@ class GovernanceService {
       return [];
     }
   }
+
+    /**
+     * Get comments for a proposal with pagination
+     */
+    async getComments(proposalId: number, page = 1, limit = 20): Promise<{ comments: Comment[]; total: number; page: number; limit: number }> {
+      try {
+        const offset = Math.max(0, (page - 1) * limit);
+
+        const { data: commentsData, error } = await this.supabase
+          .from(PROPOSAL_COMMENTS!.name)
+          .select('id, proposal_id, commenter_address, content, created_at', { count: 'exact' })
+          .eq(PROPOSAL_COMMENTS!.columns.proposalId!, proposalId)
+          .order(PROPOSAL_COMMENTS!.columns.createdAt!, { ascending: true })
+          .range(offset, offset + limit - 1);
+
+        if (error) {
+          logger.error({ error, proposalId, page, limit }, 'Failed to fetch proposal comments from database');
+          return { comments: [], total: 0, page, limit };
+        }
+
+        const total = (commentsData as any)?.length ?? 0;
+        const comments: Comment[] = (commentsData as any || []).map((c: any) => ({
+          id: c.id,
+          proposalId: c.proposal_id,
+          commenterAddress: c.commenter_address,
+          content: c.content,
+          createdAt: c.created_at,
+        }));
+
+        return { comments, total, page, limit };
+      } catch (error: any) {
+        logger.error({ error, proposalId, page, limit }, 'Failed to get comments');
+        return { comments: [], total: 0, page, limit };
+      }
+    }
 
   async getPlatformStats(): Promise<PlatformStats> {
     try {
