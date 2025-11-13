@@ -1,5 +1,5 @@
 import { Proposal, ProposalCategory } from "@/interfaces/proposal";
-import { CircleCheck, CircleMinus, Hourglass } from "lucide-react";
+import { CircleCheck, CircleMinus, CircleX, Hourglass } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAccount } from "wagmi";
 import { useState } from "react";
@@ -227,10 +227,10 @@ export default function ProposalCard({
                   size="sm"
                   className="w-full border-red-600 text-red-600 hover:bg-red-50"
                 >
-                  <CircleMinus />
+                  <CircleX />
                   Vote Against
                 </Button>
-                <Button
+                {/* <Button
                   onClick={() => handleVoteClick(3)}
                   variant="outline"
                   size="sm"
@@ -238,7 +238,7 @@ export default function ProposalCard({
                 >
                   <CircleMinus />
                   Abstain
-                </Button>
+                </Button> */}
               </div>
             )}
 

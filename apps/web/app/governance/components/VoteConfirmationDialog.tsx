@@ -10,7 +10,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { CircleCheck, CircleMinus, Hourglass, AlertTriangle } from "lucide-react";
+import { CircleCheck, CircleMinus, AlertTriangle, CircleX } from "lucide-react";
 import { vote } from "@/services/api/governanceService";
 import emitter from "@/lib/eventBus";
 
@@ -23,7 +23,17 @@ interface VoteConfirmationDialogProps {
   proposalTitle: string;
   walletAddress: string;
 }
+function normalizeVoteError(err: any): string {
+  if (!err) return "Unexpected error";
 
+  const message = err.message || err.toString();
+
+  if (message.includes("already voted")) return "You already voted on this proposal.";
+  if (message.includes("proposal closed")) return "This proposal is no longer open for voting.";
+
+  // fallback
+  return "We couldn’t process your vote. Please try again.";
+}
 const getVoteLabel = (voteChoice: number): string => {
   switch (voteChoice) {
     case 1:
@@ -42,9 +52,9 @@ const getVoteIcon = (voteChoice: number) => {
     case 1:
       return <CircleCheck className="w-6 h-6 text-green-600" />;
     case 2:
-      return <CircleMinus className="w-6 h-6 text-red-600" />;
+      return <CircleX className="w-6 h-6 text-red-600" />;
     case 3:
-      return <Hourglass className="w-6 h-6 text-gray-600" />;
+      return <CircleMinus className="w-6 h-6 text-gray-600" />;
     default:
       return null;
   }
@@ -88,10 +98,10 @@ export default function VoteConfirmationDialog({
         // Close dialog
         onOpenChange(false);
       } else {
-        setError(result.error || "Failed to submit vote");
+        setError(normalizeVoteError(result.error) || "Failed to submit vote");
       }
     } catch (err: any) {
-      setError(err.message || "An unexpected error occurred");
+      setError(normalizeVoteError(err) || "An unexpected error occurred");
     } finally {
       setIsVoting(false);
     }
