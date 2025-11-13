@@ -1,7 +1,8 @@
 import { StudySummary } from "@/services/api/studyService";
-import { UserMinus, Loader2, CheckCircle2, XCircle, UserPlus } from "lucide-react";
+import { UserMinus, CheckCircle2, XCircle, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import StudiesList from "@/app/dashboard/components/shared/StudiesList";
+import { Spinner } from "@/components/ui/spinner";
 
 interface EnrolledStudiesListProps {
   studies: StudySummary[];
@@ -69,7 +70,7 @@ export default function EnrolledStudiesList({
           >
             {isRevoking ? (
               <>
-                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                <Spinner className="size-3 text-blue-600" />
                 Revoking...
               </>
             ) : (
@@ -118,7 +119,7 @@ export default function EnrolledStudiesList({
           >
             {isGranting ? (
               <>
-                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                <Spinner className="size-3 text-blue-600" />
                 Granting...
               </>
             ) : isStudyFull ? (

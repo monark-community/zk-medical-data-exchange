@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 import { StudySummary } from "@/services/api/studyService";
-import { Trash2, Loader2, StopCircle, BarChart3 } from "lucide-react";
+import { Trash2, StopCircle, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import StudiesList from "@/app/dashboard/components/shared/StudiesList";
 import EndStudyDialog from "./EndStudyDialog";
 import StudyCompletionSummary from "./StudyCompletionSummary";
+import { Spinner } from "@/components/ui/spinner";
 
 interface ResearcherStudiesListProps {
   studies: StudySummary[];
@@ -16,11 +17,11 @@ interface ResearcherStudiesListProps {
   onStudyEnded?: () => void;
 }
 
-export default function ResearcherStudiesList({ 
-  studies, 
-  onDeleteStudy, 
+export default function ResearcherStudiesList({
+  studies,
+  onDeleteStudy,
   deletingStudyId,
-  onStudyEnded
+  onStudyEnded,
 }: ResearcherStudiesListProps) {
   const [endStudyDialogOpen, setEndStudyDialogOpen] = useState(false);
   const [summaryDialogOpen, setSummaryDialogOpen] = useState(false);
@@ -58,7 +59,7 @@ export default function ResearcherStudiesList({
           Show Results
         </Button>
       )}
-      
+
       {study.status !== "completed" && (
         <Button
           variant="outline"
@@ -74,7 +75,7 @@ export default function ResearcherStudiesList({
           End Study
         </Button>
       )}
-      
+
       <Button
         variant="outline"
         size="sm"
@@ -87,7 +88,7 @@ export default function ResearcherStudiesList({
         title="Delete study"
       >
         {deletingStudyId === study.id ? (
-          <Loader2 className="h-3 w-3 animate-spin" />
+          <Spinner className="size-3 text-blue-600" />
         ) : (
           <Trash2 className="h-3 w-3" />
         )}
@@ -103,7 +104,7 @@ export default function ResearcherStudiesList({
         descriptionMaxLength={80}
         showCriteriaLabel={false}
       />
-      
+
       {selectedStudy && (
         <EndStudyDialog
           open={endStudyDialogOpen}
@@ -113,7 +114,7 @@ export default function ResearcherStudiesList({
           onStudyEnded={handleStudyEnded}
         />
       )}
-      
+
       {summaryStudy && (
         <StudyCompletionSummary
           open={summaryDialogOpen}
