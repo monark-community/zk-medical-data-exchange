@@ -38,8 +38,6 @@ const getVoteLabel = (vote: number): string => {
       return "For";
     case 2:
       return "Against";
-    case 3:
-      return "Abstain";
     default:
       return "Abstain";
   }
@@ -199,9 +197,7 @@ export default function ProposalCard({
                       <CircleCheck className="w-4 h-4" />
                     ) : proposalInfo.userVote === 2 ? (
                       <CircleMinus className="w-4 h-4" />
-                    ) : (
-                      <Hourglass className="w-4 h-4" />
-                    )}
+                    ) : null}
                     <span>You voted {getVoteLabel(proposalInfo.userVote)}</span>
                   </div>
                 ) : (
@@ -230,15 +226,6 @@ export default function ProposalCard({
                   <CircleX />
                   Vote Against
                 </Button>
-                {/* <Button
-                  onClick={() => handleVoteClick(3)}
-                  variant="outline"
-                  size="sm"
-                  className="w-full border-gray-600 text-gray-600 hover:bg-gray-50"
-                >
-                  <CircleMinus />
-                  Abstain
-                </Button> */}
               </div>
             )}
 

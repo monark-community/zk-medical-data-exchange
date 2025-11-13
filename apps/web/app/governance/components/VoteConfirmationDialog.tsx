@@ -18,7 +18,7 @@ interface VoteConfirmationDialogProps {
   open: boolean;
   // eslint-disable-next-line no-unused-vars
   onOpenChange: (open: boolean) => void;
-  voteChoice: number; // 1: For, 2: Against, 3: Abstain
+  voteChoice: number; // 1: For, 2: Against
   proposalId: number;
   proposalTitle: string;
   walletAddress: string;
@@ -40,10 +40,8 @@ const getVoteLabel = (voteChoice: number): string => {
       return "For";
     case 2:
       return "Against";
-    case 3:
-      return "Abstain";
     default:
-      return "Unknown";
+      return "Abstain";
   }
 };
 
