@@ -13,6 +13,7 @@ import { TABLES } from "@/constants/db";
 import { auditService } from "@/services/auditService";
 import { studyService } from "@/services/studyService";
 import { SEPOLIA_TESTNET_CHAIN_ID } from "@/constants/blockchain";
+import { verifyMessage } from "ethers";
 
 const getAuditMetadata = (req: Request) => ({
   startTime: Date.now(),
@@ -901,6 +902,179 @@ export const updateStudy = async (req: Request, res: Response) => {
   }
 };
 
+/**
+ * Generate challenge for data commitment
+ * POST /api/studies/data-commitment
+ */
+export const generateDataCommitmentChallenge = async (req: Request, res: Response) => {
+  try {
+    const { studyId, participantWallet, dataCommitment, signature } = req.body;
+
+    if (!studyId) {
+      return res.status(400).json({ error: "Study ID is required" });
+    }
+
+    if (!participantWallet) {
+      return res.status(400).json({ error: "Participant wallet address is required" });
+    }
+
+    if (!dataCommitment) {
+      return res.status(400).json({ error: "Data commitment is required" });
+    }
+
+    if (!signature) {
+      return res.status(400).json({ error: "Signature is required" });
+    }
+
+    const recoveredAddress = verifyMessage(dataCommitment.toString(), signature);
+
+    if (recoveredAddress.toLowerCase() !== participantWallet.toLowerCase()) {
+      return res.status(400).json({ error: "Invalid signature" });
+    }
+
+    const { data: studyData, error: studyError } = await req.supabase
+      .from(TABLES.STUDIES!.name)
+      .select("id, status, contract_address")
+      .eq(TABLES.STUDIES!.columns.id!, studyId)
+      .single();
+
+    if (studyError || !studyData) {
+      return res.status(404).json({ error: "Study not found" });
+    }
+
+    if (studyData.status !== "active") {
+      return res.status(400).json({ error: "Study is not accepting participants" });
+    }
+
+    const { data: existingCommitment } = await req.supabase
+      .from(TABLES.DATA_COMMITMENTS!.name)
+      .select("*")
+      .eq(TABLES.DATA_COMMITMENTS!.columns.studyId!, studyId)
+      .eq(TABLES.DATA_COMMITMENTS!.columns.walletAddress!, participantWallet.toLowerCase())
+      .single();
+
+    if (existingCommitment) {
+      if (existingCommitment.proof_submitted) {
+        return res.status(400).json({ 
+          error: "You have already submitted a proof for this study" 
+        });
+      }
+
+      const expiresAt = new Date(existingCommitment.expires_at);
+      const now = new Date();
+      
+      if (now < expiresAt) {
+        logger.info(
+          { 
+            studyId, 
+            participantWallet,
+            expiresAt,
+          },
+          "Returning existing valid challenge"
+        );
+        
+        return res.status(200).json({
+          success: true,
+          challenge: existingCommitment.challenge,
+          message: "Using existing challenge (not expired)",
+          expiresAt: expiresAt.toISOString(),
+        });
+      }
+
+      await req.supabase
+        .from(TABLES.DATA_COMMITMENTS!.name)
+        .delete()
+        .eq(TABLES.DATA_COMMITMENTS!.columns.id!, existingCommitment.id);
+      
+      logger.info(
+        { studyId, participantWallet },
+        "Deleted expired commitment"
+      );
+    }
+
+    const challenge = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours from now
+
+    const { error: commitmentError } = await req.supabase
+      .from(TABLES.DATA_COMMITMENTS!.name)
+      .insert({
+        study_id: studyId,
+        wallet_address: participantWallet.toLowerCase(),
+        data_commitment: dataCommitment,
+        signature: signature,
+        challenge: challenge,
+        proof_submitted: false,
+        expires_at: expiresAt.toISOString(),
+      })
+      .select()
+      .single();
+
+    if (commitmentError) {
+      logger.error({ error: commitmentError }, "Failed to store commitment");
+      return res.status(500).json({ error: "Failed to generate challenge" });
+    }
+
+    logger.info(
+      {
+        studyId,
+        participantWallet,
+        dataCommitment: dataCommitment.substring(0, 20) + "...", 
+        challenge: challenge.substring(0, 20) + "...",
+        expiresAt,
+      },
+      "Generated data commitment challenge - now registering on blockchain"
+    );
+
+    if (studyData.contract_address) {
+      try {
+        const blockchainResult = await studyService.registerCommitmentOnChain(
+          studyData.contract_address,
+          participantWallet,
+          dataCommitment,
+          challenge
+        );
+
+        if (blockchainResult.success) {
+          logger.info(
+            { 
+              txHash: blockchainResult.transactionHash,
+              participantWallet 
+            },
+            "Commitment registered on blockchain"
+          );
+        } else {
+          logger.warn(
+            { 
+              error: blockchainResult.error,
+              participantWallet 
+            },
+            "Failed to register commitment on blockchain - continuing with off-chain only"
+          );
+        }
+      } catch (blockchainError) {
+        logger.error(
+          { error: blockchainError },
+          "Error during blockchain commitment registration - continuing anyway"
+        );
+      }
+    }
+
+    return res.status(200).json({
+      success: true,
+      challenge,
+      expiresAt: expiresAt.toISOString(),
+      message: "Challenge generated successfully"
+    });
+  } catch (error) {
+    logger.error({ error }, "Generate data commitment challenge error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+/**
+ * Record study participation (after ZK proof verification)
+ * POST /api/studies/:id/participants
+ */
 export const participateInStudy = async (req: Request, res: Response) => {
   const { startTime, userAgent, ipAddress } = getAuditMetadata(req);
 
@@ -926,6 +1100,95 @@ export const participateInStudy = async (req: Request, res: Response) => {
     if (!dataCommitment) {
       return res.status(400).json({ error: "Data commitment is required" });
     }
+
+    const { data: storedCommitment, error: commitmentFetchError } = await req.supabase
+      .from(TABLES.DATA_COMMITMENTS!.name)
+      .select("*")
+      .eq(TABLES.DATA_COMMITMENTS!.columns.studyId!, id)
+      .eq(TABLES.DATA_COMMITMENTS!.columns.walletAddress!, participantWallet.toLowerCase())
+      .single();
+
+    if (commitmentFetchError || !storedCommitment) {
+      logger.warn(
+        { studyId: id, participantWallet },
+        "No commitment found - user must request challenge first"
+      );
+      return res.status(400).json({ 
+        error: "No commitment found. Please request a challenge first.",
+        code: "COMMITMENT_NOT_FOUND"
+      });
+    }
+
+    if (storedCommitment.data_commitment !== dataCommitment) {
+      logger.error(
+        { 
+          studyId: id, 
+          participantWallet,
+          submitted: dataCommitment.substring(0, 20) + "...",
+          stored: storedCommitment.data_commitment.substring(0, 20) + "...",
+        },
+        "Data commitment mismatch - possible tampering detected"
+      );
+      return res.status(400).json({ 
+        error: "Data commitment does not match stored value",
+        code: "COMMITMENT_MISMATCH"
+      });
+    }
+
+    if (storedCommitment.proof_submitted) {
+      logger.warn(
+        { studyId: id, participantWallet },
+        "Proof already submitted for this commitment"
+      );
+      return res.status(400).json({ 
+        error: "Proof already submitted for this study",
+        code: "PROOF_ALREADY_SUBMITTED"
+      });
+    }
+
+    const expiresAt = new Date(storedCommitment.expires_at);
+    const now = new Date();
+    
+    if (now > expiresAt) {
+      logger.warn(
+        { studyId: id, participantWallet, expiresAt },
+        "Challenge expired - user must request new challenge"
+      );
+      return res.status(400).json({ 
+        error: "Challenge has expired. Please request a new challenge.",
+        code: "CHALLENGE_EXPIRED"
+      });
+    }
+
+    if (publicInputsJson) {
+      try {
+        const publicInputs = typeof publicInputsJson === 'string' 
+          ? JSON.parse(publicInputsJson) 
+          : publicInputsJson;
+        
+        if (publicInputs.challenge && publicInputs.challenge !== storedCommitment.challenge) {
+          logger.error(
+            { studyId: id, participantWallet },
+            "Challenge in proof does not match stored challenge"
+          );
+          return res.status(400).json({ 
+            error: "Invalid proof: challenge mismatch",
+            code: "CHALLENGE_MISMATCH"
+          });
+        }
+      } catch (parseError) {
+        logger.error({ parseError }, "Failed to parse public inputs");
+      }
+    }
+
+    logger.info(
+      { 
+        studyId: id, 
+        participantWallet,
+        commitmentId: storedCommitment.id,
+      },
+      "Commitment verification passed"
+    );
 
     const { data: studyData, error: studyError } = await req.supabase
       .from(TABLES.STUDIES!.name)
@@ -982,6 +1245,26 @@ export const participateInStudy = async (req: Request, res: Response) => {
       return res.status(500).json({ error: "Failed to record participation" });
     }
 
+    const { error: commitmentUpdateError } = await req.supabase
+      .from(TABLES.DATA_COMMITMENTS!.name)
+      .update({ 
+        proof_submitted: true,
+        proof_submitted_at: new Date().toISOString(),
+      })
+      .eq(TABLES.DATA_COMMITMENTS!.columns.id!, storedCommitment.id);
+
+    if (commitmentUpdateError) {
+      logger.error(
+        { error: commitmentUpdateError, commitmentId: storedCommitment.id },
+        "Failed to mark commitment as used"
+      );
+    } else {
+      logger.info(
+        { commitmentId: storedCommitment.id, participantWallet },
+        "Marked commitment as used - prevents replay attacks"
+      );
+    }
+
     await req.supabase
       .from(TABLES.STUDIES!.name)
       .update({ current_participants: studyData.current_participants + 1 })
@@ -993,7 +1276,8 @@ export const participateInStudy = async (req: Request, res: Response) => {
       studyData.contract_address,
       proofJson,
       participantWallet,
-      dataCommitment
+      dataCommitment,
+      storedCommitment.challenge 
     );
 
     await req.supabase

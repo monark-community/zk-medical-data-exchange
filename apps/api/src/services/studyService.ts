@@ -589,6 +589,90 @@ class StudyService {
     }
   }
 
+  /**
+   * Register commitment hash on blockchain
+   * Called after backend validates signature and before issuing challenge
+   * 
+   * @param contractAddress Study contract address
+   * @param participantWallet User's wallet address
+   * @param dataCommitment Poseidon hash of medical data
+   * @param challenge Random challenge from backend
+   * @returns Transaction hash if successful
+   */
+  async registerCommitmentOnChain(
+    contractAddress: string,
+    participantWallet: string,
+    dataCommitment: string,
+    challenge: string
+  ): Promise<{ success: boolean; transactionHash?: string; error?: string }> {
+    try {
+      logger.info(
+        {
+          contractAddress,
+          participantWallet,
+          dataCommitment: dataCommitment.substring(0, 20) + "...",
+          challenge: challenge.substring(0, 20) + "...",
+        },
+        "Registering commitment on blockchain"
+      );
+
+      const challengeBytes32 = challenge.startsWith('0x') ? challenge : `0x${challenge}`;
+      
+      const commitmentBigInt = BigInt(dataCommitment);
+
+      const simulationResult = await this.publicClient.simulateContract({
+        account: this.account,
+        address: contractAddress as `0x${string}`,
+        abi: STUDY_ABI,
+        functionName: "registerCommitment",
+        args: [commitmentBigInt, challengeBytes32],
+      });
+
+      logger.info(
+        {
+          gasEstimate: simulationResult.request.gas?.toString(),
+        },
+        "Commitment registration simulation successful"
+      );
+
+      const transactionHash = await this.walletClient.writeContract(simulationResult.request);
+
+      logger.info({ transactionHash }, "Commitment registration transaction submitted");
+
+      const receipt = await this.publicClient.waitForTransactionReceipt({
+        hash: transactionHash,
+      });
+
+      if (receipt.status === "reverted") {
+        logger.error({ transactionHash }, "Commitment registration transaction reverted");
+        throw new Error("Transaction reverted - commitment may already exist");
+      }
+
+      logger.info(
+        {
+          transactionHash,
+          gasUsed: receipt.gasUsed.toString(),
+          participantWallet,
+        },
+        "Commitment registered on blockchain successfully"
+      );
+
+      return {
+        success: true,
+        transactionHash,
+      };
+    } catch (error) {
+      logger.error(
+        { error, contractAddress, participantWallet },
+        "Failed to register commitment on blockchain"
+      );
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error registering commitment",
+      };
+    }
+  }
+
   async joinBlockchainStudy(
     contractAddress: string,
     proofjson: {
@@ -597,7 +681,8 @@ class StudyService {
       c: [string, string];
     },
     participantWallet: string,
-    dataCommitment: string
+    dataCommitment: string,
+    challenge: string
   ) {
     let blockchainTxHash = null;
     if (contractAddress) {
@@ -606,7 +691,8 @@ class StudyService {
           contractAddress,
           participantWallet,
           proofjson,
-          dataCommitment
+          dataCommitment,
+          challenge
         );
 
         if (blockchainResult.success) {
@@ -647,28 +733,49 @@ class StudyService {
     studyAddress: string,
     participantWallet: string,
     proof: { a: [string, string]; b: [[string, string], [string, string]]; c: [string, string] },
-    dataCommitment: string
+    dataCommitment: string,
+    challenge: string
   ): Promise<{ success: boolean; transactionHash?: string; error?: string }> {
     logger.info(
       { studyAddress, participantWallet, dataCommitment, proof },
       "Recording study participation on blockchain"
     );
 
+    let pA: [bigint, bigint];
+    let pB: [[bigint, bigint], [bigint, bigint]];
+    let pC: [bigint, bigint];
+    let commitment: bigint;
+
     try {
-      const pA: [bigint, bigint] = [BigInt(proof.a[0]), BigInt(proof.a[1])];
-      const pB: [[bigint, bigint], [bigint, bigint]] = [
-        [BigInt(proof.b[0][0]), BigInt(proof.b[0][1])],
-        [BigInt(proof.b[1][0]), BigInt(proof.b[1][1])],
-      ];
-      const pC: [bigint, bigint] = [BigInt(proof.c[0]), BigInt(proof.c[1])];
-      const commitment = BigInt(dataCommitment);
+       try {
+        pA = [BigInt(proof.a[0]), BigInt(proof.a[1])];
+        pB = [
+          [BigInt(proof.b[0][0]), BigInt(proof.b[0][1])],
+          [BigInt(proof.b[1][0]), BigInt(proof.b[1][1])],
+        ];
+        pC = [BigInt(proof.c[0]), BigInt(proof.c[1])];
+        commitment = BigInt(dataCommitment);
+
+      } catch (conversionError) {
+        logger.error({ 
+          error: conversionError, 
+          proof, 
+          dataCommitment 
+        }, "Failed to convert proof to BigInt");
+        throw new Error(`Invalid proof format: ${conversionError instanceof Error ? conversionError.message : 'Unknown error'}`);
+      }
 
       logger.info({ pA, pB, pC, commitment }, "Proof converted to BigInt format");
+
+      let challengeBytes32 = challenge 
+        ? (challenge.startsWith('0x') ? challenge : `0x${challenge}`)
+        : `0x${'0'.repeat(64)}`; 
+
 
       const result = await this.executeContractTransaction(
         studyAddress,
         "joinStudy",
-        [pA, pB, pC, commitment],
+        [pA, pB, pC, commitment, challengeBytes32],
         "Participation recording"
       );
 

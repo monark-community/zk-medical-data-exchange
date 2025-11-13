@@ -1,12 +1,8 @@
 import { apiClient } from "@/services/core/apiClient";
 import { StudyCriteria } from "@zk-medical/shared";
 import { ExtractedMedicalData } from "@/services/fhir/types/extractedMedicalData";
-import {
-  checkEligibility,
-  generateDataCommitment,
-  generateSecureSalt,
-  generateZKProof,
-} from "@/services/zk/zkProofGenerator";
+import { checkEligibility, generateDataCommitment, generateSecureSalt, generateZKProof } from "@/services/zk/zkProofGenerator";
+import { BrowserProvider } from "ethers";
 
 // ========================================
 // TYPES
@@ -196,6 +192,28 @@ export class StudyApplicationService {
     walletAddress: string
   ): Promise<{ success: boolean; message: string }> {
     try {
+      const salt = generateSecureSalt();
+      const dataCommitment = generateDataCommitment(medicalData, salt);
+      
+      if (!window.ethereum) {
+        throw new Error("MetaMask not found. Please install MetaMask to continue.");
+      }
+      
+      const provider = new BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
+      const signature = await signer.signMessage(dataCommitment.toString());
+
+      const { data } = await apiClient.post('/studies/data-commitment', {
+        studyId,
+        participantWallet: walletAddress,
+        dataCommitment: dataCommitment.toString(),
+        signature
+      });
+      
+      if (!data.challenge) {
+        throw new Error("Data commitment generation failed.");
+      }
+      
       console.log("Fetching study criteria");
       const studyCriteria = await this.getStudyCriteria(studyId);
 
@@ -228,19 +246,15 @@ export class StudyApplicationService {
 
       console.log("Eligibility confirmed! Proceeding with commitment and proof generation...");
 
-      console.log("Generating data commitment");
-      const salt = generateSecureSalt();
-      const dataCommitment = generateDataCommitment(medicalData, salt);
-
       console.log("Generating ZK proof");
       const { proof, publicSignals } = await generateZKProof(
         medicalData,
         studyCriteria,
         dataCommitment,
-        salt
+        salt,
+        data.challenge
       );
 
-      console.log("Submitting application (no sensitive data sent)...");
       const applicationRequest: StudyApplicationRequest = {
         studyId,
         participantWallet: walletAddress,

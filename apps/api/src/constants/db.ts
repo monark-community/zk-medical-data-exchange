@@ -83,6 +83,7 @@ export const TABLES: Record<string, TableDefinition> = {
       publicInputsJson: "public_inputs_json",
       dataCommitment: "data_commitment",
       verificationTxHash: "verification_tx_hash",
+      blockchainTxHash: "blockchain_tx_hash",
       status: "status",
       eligibilityCheckedAt: "eligibility_checked_at",
       verifiedAt: "verified_at",
@@ -99,6 +100,22 @@ export const TABLES: Record<string, TableDefinition> = {
       id: "id",
       username: "username",
       createdAt: "created_at",
+    },
+  },
+
+  DATA_COMMITMENTS: {
+    name: "data_commitments",
+    columns: {
+      id: "id",
+      studyId: "study_id",
+      walletAddress: "wallet_address",
+      dataCommitment: "data_commitment",
+      signature: "signature",
+      challenge: "challenge",
+      proofSubmitted: "proof_submitted",
+      proofSubmittedAt: "proof_submitted_at",
+      createdAt: "created_at",
+      expiresAt: "expires_at",
     },
   },
 };
