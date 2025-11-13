@@ -942,6 +942,32 @@ class StudyService {
       };
     }
   }
+
+  async getStudyCreator(studyAddress: string): Promise<string> {
+    try {
+      const creator = await this.publicClient.readContract({
+        address: studyAddress as `0x${string}`,
+        abi: STUDY_ABI,
+        functionName: "creator",
+        args: [],
+      });
+
+      logger.info(
+        {
+          studyAddress,
+          creator,
+        },
+        "Retrieved study creator"
+      );
+
+      return creator as string;
+    } catch (error) {
+      logger.error({ error, studyAddress }, "Failed to get study creator");
+      throw new Error(
+        error instanceof Error ? error.message : "Unknown error getting creator"
+      );
+    }
+  }
 }
 
 export const studyService = new StudyService();
