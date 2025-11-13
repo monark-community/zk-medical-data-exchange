@@ -1,8 +1,3 @@
-/**
- * Vote Confirmation Dialog Component
- * Confirms voting action before submission
- */
-
 "use client";
 
 import { useState } from "react";

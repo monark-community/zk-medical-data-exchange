@@ -3,7 +3,7 @@ import { CircleCheck, CircleMinus, Hourglass } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAccount } from "wagmi";
 import { useState } from "react";
-import VoteConfirmationDialog from "@/components/VoteConfirmationDialog";
+import VoteConfirmationDialog from "@/app/governance/components/VoteConfirmationDialog";
 
 interface ProposalCardProps {
   proposalInfo: Proposal;
