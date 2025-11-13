@@ -20,7 +20,7 @@ export const GENDER_VALUES = {
   FEMALE: 2,
   OTHER: 0,
   UNKNOWN: 0,
-  ANY: 3, // For study criteria only
+  ANY: 0,
 } as const;
 
 /**
@@ -77,6 +77,24 @@ export const ACTIVITY_LEVEL_VALUES = {
 } as const;
 
 /**
+ * FHIR activity level SNOMED CT codes to internal values
+ * LOINC codes: 41950-7 (Number of days per week engaged in moderate to vigorous physical activity)
+ *              89558-1 (Physical activity level)
+ * Note: Some activity levels have 2 codes mapping to same level
+ */
+export const FHIR_ACTIVITY_LEVEL_SNOMED = {
+  "160646008": ACTIVITY_LEVEL_VALUES.SEDENTARY, // Level 0 - No moderate/vigorous activity
+  "267124003": ACTIVITY_LEVEL_VALUES.LIGHTLY_ACTIVE, // Level 1 - 1–4 mixed activity sessions in 4 weeks
+  "160647004": ACTIVITY_LEVEL_VALUES.LIGHTLY_ACTIVE, // Level 1 - 1–4 mixed activity sessions in 4 weeks
+  "160648009": ACTIVITY_LEVEL_VALUES.LIGHTLY_ACTIVE, // Level 2 - 5–11 mixed activity sessions
+  "160649001": ACTIVITY_LEVEL_VALUES.MODERATELY_ACTIVE, // Level 3 - ≥12 moderate activity sessions
+  "160650001": ACTIVITY_LEVEL_VALUES.VERY_ACTIVE, // Level 4 - ≥12 moderate/vigorous mixed sessions
+  "267126001": ACTIVITY_LEVEL_VALUES.VERY_ACTIVE, // Level 4 - ≥12 moderate/vigorous mixed sessions
+  "160651002": ACTIVITY_LEVEL_VALUES.EXTREMELY_ACTIVE, // Level 5 - ≥12 vigorous activity sessions
+  "267127005": ACTIVITY_LEVEL_VALUES.EXTREMELY_ACTIVE, // Level 5 - ≥12 vigorous activity sessions
+} as const;
+
+/**
  * Diabetes status value mappings
  * Used in: FHIR Condition, Study criteria, ZK proofs
  */
@@ -121,13 +139,13 @@ export const FHIR_GENDER_CODES = {
  */
 export const FHIR_BLOOD_TYPE_SNOMED = {
   "278149003": BLOOD_TYPE_VALUES.A_POSITIVE, // A+
-  "278148006": BLOOD_TYPE_VALUES.A_NEGATIVE, // A-
-  "278152006": BLOOD_TYPE_VALUES.B_POSITIVE, // B+
-  "278151004": BLOOD_TYPE_VALUES.B_NEGATIVE, // B-
-  "278154007": BLOOD_TYPE_VALUES.AB_POSITIVE, // AB+
-  "278153001": BLOOD_TYPE_VALUES.AB_NEGATIVE, // AB-
-  "278155008": BLOOD_TYPE_VALUES.O_POSITIVE, // O+
-  "278156009": BLOOD_TYPE_VALUES.O_NEGATIVE, // O-
+  "278152006": BLOOD_TYPE_VALUES.A_NEGATIVE, // A-
+  "278150003": BLOOD_TYPE_VALUES.B_POSITIVE, // B+
+  "278153001": BLOOD_TYPE_VALUES.B_NEGATIVE, // B-
+  "278151004": BLOOD_TYPE_VALUES.AB_POSITIVE, // AB+
+  "278154007": BLOOD_TYPE_VALUES.AB_NEGATIVE, // AB-
+  "278147001": BLOOD_TYPE_VALUES.O_POSITIVE, // O+
+  "278148006": BLOOD_TYPE_VALUES.O_NEGATIVE, // O-
 } as const;
 
 /**
@@ -159,8 +177,9 @@ export const FHIR_SMOKING_SNOMED = {
   "266919005": SMOKING_VALUES.NEVER_SMOKED, // Never smoked
   "77176002": SMOKING_VALUES.CURRENT_SMOKER, // Current smoker
   "8517006": SMOKING_VALUES.FORMER_SMOKER, // Former smoker
-  "428041000124106": SMOKING_VALUES.CURRENT_SMOKER, // Current some day smoker
-  "428061000124105": SMOKING_VALUES.CURRENT_SMOKER, // Current heavy tobacco smoker
+  "428041000124106": SMOKING_VALUES.CURRENT_SMOKER, // Current occasional smoker
+  "449868002": SMOKING_VALUES.CURRENT_SMOKER, // Daily Smoker
+  "8392000": SMOKING_VALUES.NEVER_SMOKED, // Ex-smoker
 } as const;
 
 /**
@@ -196,9 +215,8 @@ export const FHIR_DIABETES_ICD10 = {
 export const FHIR_DIABETES_SNOMED = {
   "46635009": DIABETES_VALUES.TYPE_1, // Type 1 diabetes
   "44054006": DIABETES_VALUES.TYPE_2, // Type 2 diabetes
-  "9414007": DIABETES_VALUES.TYPE_2, // Secondary diabetes
+  "9414007": DIABETES_VALUES.PRE_DIABETES, // Secondary diabetes
   "73211009": DIABETES_VALUES.UNSPECIFIED, // Diabetes mellitus (unspecified)
-  "15771004": DIABETES_VALUES.PRE_DIABETES, // Pre-diabetes
 } as const;
 
 /**
@@ -219,11 +237,17 @@ export const FHIR_HEART_DISEASE_ICD10 = {
  */
 export const FHIR_HEART_DISEASE_SNOMED = {
   "22298006": HEART_DISEASE_VALUES.PREVIOUS_HEART_ATTACK, // Myocardial infarction
+  "414545008": HEART_DISEASE_VALUES.PREVIOUS_HEART_ATTACK, // History of myocardial infarction
   "57054005": HEART_DISEASE_VALUES.PREVIOUS_HEART_ATTACK, // Acute myocardial infarction
   "194828000": HEART_DISEASE_VALUES.CARDIOVASCULAR_CONDITION, // Angina
+  "429457004": HEART_DISEASE_VALUES.CARDIOVASCULAR_CONDITION, // Cardiovascular disease
   "84114007": HEART_DISEASE_VALUES.CARDIOVASCULAR_CONDITION, // Heart failure
+  "49601007": HEART_DISEASE_VALUES.CARDIOVASCULAR_CONDITION, // Disorder of cardiovascular system
   "53741008": HEART_DISEASE_VALUES.CARDIOVASCULAR_CONDITION, // Coronary arteriosclerosis
-  "429559004": HEART_DISEASE_VALUES.FAMILY_HISTORY, // Typical angina (family history)
+  "429559004": HEART_DISEASE_VALUES.PREVIOUS_HEART_ATTACK, // Typical angina (family history)
+  "275104002": HEART_DISEASE_VALUES.FAMILY_HISTORY, // Family history of ischemic heart disease
+  "297242006": HEART_DISEASE_VALUES.FAMILY_HISTORY, // Family history of cardiovascular disease
+  "275120007": HEART_DISEASE_VALUES.FAMILY_HISTORY, // Chronic ischemic heart disease
 } as const;
 
 /**

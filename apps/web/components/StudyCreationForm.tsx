@@ -164,6 +164,7 @@ const NumberInput = ({
   placeholder,
   min,
   max,
+  id,
 }: {
   value: number;
   onChange: (value: number) => void;
@@ -172,6 +173,7 @@ const NumberInput = ({
   placeholder?: string;
   min?: number;
   max?: number;
+  id?: string;
 }) => {
   const [displayValue, setDisplayValue] = useState(value.toString());
 
@@ -190,14 +192,14 @@ const NumberInput = ({
     }
 
     const numValue = Number(newValue);
-    if (!isNaN(numValue)) {
+    if (!Number.isNaN(numValue)) {
       onChange(numValue);
     }
   };
 
   const handleBlur = () => {
     // If field is empty on blur, restore the original value
-    if (displayValue === "" || isNaN(Number(displayValue))) {
+    if (displayValue === "" || Number.isNaN(Number(displayValue))) {
       setDisplayValue(value.toString());
       onBlur?.(value);
     } else {
@@ -223,6 +225,7 @@ const NumberInput = ({
       placeholder={placeholder}
       min={min}
       max={max}
+      id={id}
     />
   );
 };
@@ -489,6 +492,20 @@ const StudyCreationForm = ({
               placeholder="Enter maximum participants"
             />
           </div>
+          <div className="space-y-2">
+            <label htmlFor="duration-days" className="block text-sm font-semibold text-gray-700">
+              Duration (Days)
+            </label>
+            <NumberInput
+              id="duration-days"
+              value={studyInfo.durationDays}
+              onChange={(value) => setStudyInfo({ ...studyInfo, durationDays: value })}
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200"
+              min={1}
+              max={365}
+              placeholder="Enter study duration in days"
+            />
+          </div>
           <div className="lg:col-span-2 space-y-2">
             <label className="block text-sm font-semibold text-gray-700">Description</label>
             <textarea
@@ -573,7 +590,9 @@ const StudyCreationForm = ({
               <label className="block text-sm font-semibold text-gray-700">Allowed Gender</label>
               <select
                 value={criteria.allowedGender}
-                onChange={(e) => updateCriteria({ allowedGender: Number(e.target.value) })}
+                onChange={(e) => {
+                  updateCriteria({ allowedGender: Number(e.target.value) });
+                }}
                 className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 bg-white"
               >
                 {STUDY_FORM_MAPPINGS.genderOptions.map((option) => (

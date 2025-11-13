@@ -16,7 +16,6 @@ export async function verifyAuthentication(req: Request, res: Response): Promise
     const web3AuthUser = req.web3AuthUser;
     if (!web3AuthUser) {
       logger.error("Web3AuthUser not found in request after middleware verification");
-      // Log failed authentication attempt (non-blocking)
       auditService
         .logAuthentication("unknown", false, {
           reason: "missing_web3auth_user",
@@ -50,7 +49,6 @@ export async function verifyAuthentication(req: Request, res: Response): Promise
     if (!isUserCreated) {
       await createUser(req, res, walletAddress);
     }
-    // Log successful authentication (non-blocking)
     auditService
       .logAuthentication(walletAddress, true, {
         userAgent,
@@ -78,7 +76,6 @@ export async function verifyAuthentication(req: Request, res: Response): Promise
   } catch (error) {
     logger.error({ error }, "Authentication verification error");
 
-    // Log failed authentication attempt (non-blocking)
     auditService
       .logAuthentication(walletAddress || "unknown", false, {
         error: error instanceof Error ? error.message : "unknown_error",

@@ -16,6 +16,7 @@ import { AuditRecord } from "@/services/api/auditService";
 import AuditTable from "./AuditTable";
 import AuditPagination from "./AuditPagination";
 import AuditRecordDialog from "./AuditRecordDialog";
+import DashboardSectionHeader from "@/app/dashboard/components/shared/DashboardSectionHeader";
 
 interface AuditSectionProps {
   className?: string;
@@ -91,47 +92,25 @@ const AuditSection: React.FC<AuditSectionProps> = ({ className = "" }) => {
 
   return (
     <div className={`space-y-8 ${className}`}>
-      {/* Header */}
-      <div className="relative">
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-indigo-500/10 rounded-xl blur-xl"></div>
-        <Card className="relative border-0 shadow-lg bg-gradient-to-r from-white to-blue-50/50">
-          <CardHeader className="pb-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <div className="relative">
-                  <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg blur opacity-20"></div>
-                  <div className="relative bg-gradient-to-r from-blue-600 to-indigo-600 p-3 rounded-lg">
-                    <Shield className="h-6 w-6 text-white" />
-                  </div>
-                </div>
-                <div>
-                  <CardTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                    Privacy & Audit Center
-                  </CardTitle>
-                  <CardDescription className="text-gray-600 mt-1">
-                    Monitor your data activity and privacy trail on the blockchain
-                  </CardDescription>
-                </div>
-              </div>
-
-              <div className="flex items-center space-x-3">
-                <Button
-                  onClick={handleRefresh}
-                  disabled={isLoading || !canRefresh}
-                  variant="outline"
-                  size="sm"
-                  className="border-blue-200 hover:border-blue-300 hover:bg-blue-50 transition-all duration-200"
-                >
-                  <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />
-                  <span>
-                    {refreshCooldownSeconds > 0 ? `Wait ${refreshCooldownSeconds}s` : "Refresh"}
-                  </span>
-                </Button>
-              </div>
-            </div>
-          </CardHeader>
-        </Card>
-      </div>
+      <DashboardSectionHeader
+        icon={<Shield className="h-8 w-8 text-white" />}
+        title="Privacy & Audit Center"
+        description="Monitor your data activity and privacy trail on the blockchain"
+        action={
+          <Button
+            onClick={handleRefresh}
+            disabled={isLoading || !canRefresh}
+            variant="outline"
+            size="sm"
+            className="border-blue-200 hover:border-blue-300 hover:bg-blue-50 transition-all duration-200"
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />
+            <span>
+              {refreshCooldownSeconds > 0 ? `Wait ${refreshCooldownSeconds}s` : "Refresh"}
+            </span>
+          </Button>
+        }
+      />
 
       {/* Initial Load State - Show when no data has been loaded */}
       {!hasDataLoaded && !isLoading && !error && (
@@ -248,6 +227,31 @@ const AuditSection: React.FC<AuditSectionProps> = ({ className = "" }) => {
               />
             </div>
           )}
+        </Card>
+      )}
+
+      {/* Empty State - Show when data has been loaded but no records exist */}
+      {hasDataLoaded && records.length === 0 && !isLoading && (
+        <Card className="border-0 shadow-lg bg-gradient-to-br from-slate-50 to-gray-50">
+          <CardContent className="py-12">
+            <div className="flex flex-col items-center space-y-6 text-center">
+              <div className="relative">
+                <div className="absolute inset-0 bg-gradient-to-r from-slate-400 to-gray-500 rounded-full blur-lg opacity-20"></div>
+                <div className="relative bg-gradient-to-r from-slate-400 to-gray-500 p-6 rounded-full">
+                  <Activity className="h-12 w-12 text-white" />
+                </div>
+              </div>
+              <div className="space-y-3">
+                <h3 className="text-2xl font-bold bg-gradient-to-r from-slate-700 to-gray-600 bg-clip-text text-transparent">
+                  No Audit Logs Yet
+                </h3>
+                <p className="text-gray-600 max-w-md">
+                  Your activity history is empty. Start interacting with studies, uploading data, or
+                  managing your privacy settings to see audit logs here.
+                </p>
+              </div>
+            </div>
+          </CardContent>
         </Card>
       )}
 

@@ -1,15 +1,10 @@
-/**
- * Study Service for API Backend
- * Handles StudyFactory contract interactions on Sepolia testnet
- */
-
 import { createWalletClient, createPublicClient, http, decodeEventLog } from "viem";
 import { sepolia } from "viem/chains";
 import { privateKeyToAccount } from "viem/accounts";
 import type { StudyCriteria } from "@zk-medical/shared";
 import logger from "@/utils/logger";
 import { Config } from "@/config/config";
-import { STUDY_FACTORY_ABI } from "../contracts/generated";
+import { STUDY_ABI, STUDY_FACTORY_ABI } from "../contracts/generated";
 
 export interface StudyDeploymentParams {
   title: string;
@@ -43,10 +38,8 @@ class StudyService {
       throw new Error("SEPOLIA_PRIVATE_KEY environment variable is required");
     }
 
-    // Ensure private key is properly formatted with 0x prefix
     const formattedPrivateKey = privateKey.startsWith("0x") ? privateKey : `0x${privateKey}`;
 
-    // Validate private key format (should be 64 hex characters + 0x prefix = 66 total)
     if (formattedPrivateKey.length !== 66) {
       throw new Error(
         `Invalid private key format. Expected 64 hex characters, got ${
@@ -77,15 +70,122 @@ class StudyService {
     );
   }
 
-  /**
-   * Convert StudyCriteria to contract format
-   * Returns object that matches the struct format for viem
-   * Uses safe default values for disabled criteria to avoid validation errors
-   */
+  private async executeContractTransaction(
+    address: string,
+    functionName: string,
+    args: any[],
+    context: string
+  ): Promise<{ success: boolean; transactionHash?: string; receipt?: any; error?: string }> {
+    try {
+      logger.info(
+        {
+          address,
+          functionName,
+          args,
+          account: this.account.address,
+        },
+        `${context} - Starting contract call`
+      );
+
+      const simulationResult = await this.publicClient.simulateContract({
+        account: this.account,
+        address: address as `0x${string}`,
+        abi: STUDY_ABI,
+        functionName,
+        args,
+      });
+
+      logger.info(
+        {
+          gasEstimate: simulationResult.request.gas?.toString(),
+        },
+        `${context} simulation successful`
+      );
+
+      const transactionHash = await this.walletClient.writeContract(simulationResult.request);
+
+      logger.info({ transactionHash }, `${context} transaction submitted`);
+
+      const receipt = await this.publicClient.waitForTransactionReceipt({
+        hash: transactionHash,
+      });
+
+      if (receipt.status === "reverted") {
+        logger.error({ transactionHash }, `${context} transaction reverted`);
+        throw new Error(`Transaction reverted - ${context.toLowerCase()} failed`);
+      }
+
+      logger.info(
+        {
+          transactionHash,
+          gasUsed: receipt.gasUsed.toString(),
+        },
+        `${context} completed successfully`
+      );
+
+      return {
+        success: true,
+        transactionHash,
+        receipt,
+      };
+    } catch (error) {
+      logger.error(
+        {
+          error,
+          errorMessage: error instanceof Error ? error.message : String(error),
+          errorDetails: error instanceof Error ? error.stack : undefined,
+          address,
+          functionName,
+          args,
+        },
+        `Failed to execute ${context.toLowerCase()}`
+      );
+      return {
+        success: false,
+        error:
+          error instanceof Error ? error.message : `Unknown error during ${context.toLowerCase()}`,
+      };
+    }
+  }
+
+  private convertToBigIntTuple(
+    arr: readonly number[] | number[] | undefined
+  ): [bigint, bigint, bigint, bigint] {
+    const defaultArray = [0, 0, 0, 0] as const;
+    const source = arr || defaultArray;
+    return [
+      BigInt(source[0] ?? 0),
+      BigInt(source[1] ?? 0),
+      BigInt(source[2] ?? 0),
+      BigInt(source[3] ?? 0),
+    ];
+  }
+
+  private logConsentResult(
+    operation: "revoke" | "grant",
+    result: { success: boolean; transactionHash?: string; error?: string },
+    studyAddress: string,
+    participantWallet: string
+  ): void {
+    if (result.success) {
+      logger.info(
+        {
+          transactionHash: result.transactionHash,
+          participantWallet,
+        },
+        `Consent ${operation === "revoke" ? "revoked" : "granted"} on blockchain successfully`
+      );
+    } else {
+      logger.error(
+        { error: result.error, studyAddress, participantWallet },
+        `Failed to ${operation} consent on blockchain`
+      );
+    }
+  }
+
   private formatCriteriaForContract(criteria: StudyCriteria) {
     logger.info({ criteria }, "formatCriteriaForContract called");
 
-    // Helper function to get safe range defaults for disabled criteria
     const getSafeRange = (
       enable: number,
       min: number,
@@ -96,7 +196,6 @@ class StudyService {
       if (enable === 1) {
         return { min: BigInt(min || defaultMin), max: BigInt(max || defaultMax) };
       }
-      // For disabled criteria, use safe defaults that pass validation
       return { min: BigInt(defaultMin), max: BigInt(defaultMax) };
     };
 
@@ -150,7 +249,6 @@ class StudyService {
       500
     );
 
-    // Return as an object matching the struct fields
     return {
       enableAge: BigInt(criteria.enableAge || 0),
       minAge: ageRange.min,
@@ -162,21 +260,11 @@ class StudyService {
       minBMI: bmiRange.min,
       maxBMI: bmiRange.max,
       enableBloodType: BigInt(criteria.enableBloodType || 0),
-      allowedBloodTypes: [
-        BigInt((criteria.allowedBloodTypes || [0, 0, 0, 0])[0]),
-        BigInt((criteria.allowedBloodTypes || [0, 0, 0, 0])[1]),
-        BigInt((criteria.allowedBloodTypes || [0, 0, 0, 0])[2]),
-        BigInt((criteria.allowedBloodTypes || [0, 0, 0, 0])[3]),
-      ] as [bigint, bigint, bigint, bigint],
+      allowedBloodTypes: this.convertToBigIntTuple(criteria.allowedBloodTypes),
       enableGender: BigInt(criteria.enableGender || 0),
       allowedGender: BigInt(criteria.allowedGender || 0),
       enableLocation: BigInt(criteria.enableLocation || 0),
-      allowedRegions: [
-        BigInt((criteria.allowedRegions || [0, 0, 0, 0])[0]),
-        BigInt((criteria.allowedRegions || [0, 0, 0, 0])[1]),
-        BigInt((criteria.allowedRegions || [0, 0, 0, 0])[2]),
-        BigInt((criteria.allowedRegions || [0, 0, 0, 0])[3]),
-      ] as [bigint, bigint, bigint, bigint],
+      allowedRegions: this.convertToBigIntTuple(criteria.allowedRegions),
       enableBloodPressure: BigInt(criteria.enableBloodPressure || 0),
       minSystolic: systolicRange.min,
       maxSystolic: systolicRange.max,
@@ -197,9 +285,6 @@ class StudyService {
     };
   }
 
-  /**
-   * Deploy study to StudyFactory contract
-   */
   async deployStudy(params: StudyDeploymentParams): Promise<StudyDeploymentResult> {
     try {
       logger.info(
@@ -230,7 +315,6 @@ class StudyService {
         );
       }
 
-      // Check authorization status first
       try {
         const openCreation = await this.publicClient.readContract({
           address: Config.STUDY_FACTORY_ADDRESS,
@@ -251,7 +335,6 @@ class StudyService {
           functionName: "owner",
         });
 
-        // Check if ZK verifier address has code deployed
         const zkVerifierCode = await this.publicClient.getCode({
           address: Config.ZK_VERIFIER_ADDRESS as `0x${string}`,
         });
@@ -287,7 +370,6 @@ class StudyService {
         );
       }
 
-      // Log all parameters before contract call
       logger.info(
         {
           title: params.title,
@@ -302,7 +384,6 @@ class StudyService {
         "Parameters for createStudy contract call"
       );
 
-      // Prepare contract call with simulation
       logger.info("Starting contract simulation");
 
       let request;
@@ -348,17 +429,14 @@ class StudyService {
         );
       }
 
-      // Execute transaction
       const transactionHash = await this.walletClient.writeContract(request);
 
       logger.info({ transactionHash }, "Study deployment transaction submitted");
 
-      // Wait for confirmation
       const receipt = await this.publicClient.waitForTransactionReceipt({
         hash: transactionHash,
       });
 
-      // Parse events to get study ID and address
       logger.info(
         {
           receipt: {
@@ -370,7 +448,6 @@ class StudyService {
         "Transaction receipt received"
       );
 
-      // Check if transaction reverted
       if (receipt.status === "reverted") {
         logger.error(
           {
@@ -450,7 +527,6 @@ class StudyService {
         );
       }
 
-      // Ensure we have the correct StudyCreated event
       if (decodedEvent.eventName !== "StudyCreated") {
         throw new Error(`Expected StudyCreated event, got ${decodedEvent.eventName}`);
       }
@@ -487,9 +563,6 @@ class StudyService {
     }
   }
 
-  /**
-   * Get current study count from contract
-   */
   async getStudyCount(): Promise<number> {
     try {
       const count = await this.publicClient.readContract({
@@ -504,9 +577,6 @@ class StudyService {
     }
   }
 
-  /**
-   * Check if service is properly configured
-   */
   async healthCheck(): Promise<{ healthy: boolean; error?: string }> {
     try {
       await this.getStudyCount();
@@ -518,7 +588,338 @@ class StudyService {
       };
     }
   }
+
+  /**
+   * Register commitment hash on blockchain
+   * Called after backend validates signature and before issuing challenge
+   * 
+   * @param contractAddress Study contract address
+   * @param participantWallet User's wallet address
+   * @param dataCommitment Poseidon hash of medical data
+   * @param challenge Random challenge from backend
+   * @returns Transaction hash if successful
+   */
+  async registerCommitmentOnChain(
+    contractAddress: string,
+    participantWallet: string,
+    dataCommitment: string,
+    challenge: string
+  ): Promise<{ success: boolean; transactionHash?: string; error?: string }> {
+    try {
+      logger.info(
+        {
+          contractAddress,
+          participantWallet,
+          dataCommitment: dataCommitment.substring(0, 20) + "...",
+          challenge: challenge.substring(0, 20) + "...",
+        },
+        "Registering commitment on blockchain"
+      );
+
+      const challengeBytes32 = challenge.startsWith('0x') ? challenge : `0x${challenge}`;
+      
+      const commitmentBigInt = BigInt(dataCommitment);
+
+      const simulationResult = await this.publicClient.simulateContract({
+        account: this.account,
+        address: contractAddress as `0x${string}`,
+        abi: STUDY_ABI,
+        functionName: "registerCommitment",
+        args: [commitmentBigInt, challengeBytes32],
+      });
+
+      logger.info(
+        {
+          gasEstimate: simulationResult.request.gas?.toString(),
+        },
+        "Commitment registration simulation successful"
+      );
+
+      const transactionHash = await this.walletClient.writeContract(simulationResult.request);
+
+      logger.info({ transactionHash }, "Commitment registration transaction submitted");
+
+      const receipt = await this.publicClient.waitForTransactionReceipt({
+        hash: transactionHash,
+      });
+
+      if (receipt.status === "reverted") {
+        logger.error({ transactionHash }, "Commitment registration transaction reverted");
+        throw new Error("Transaction reverted - commitment may already exist");
+      }
+
+      logger.info(
+        {
+          transactionHash,
+          gasUsed: receipt.gasUsed.toString(),
+          participantWallet,
+        },
+        "Commitment registered on blockchain successfully"
+      );
+
+      return {
+        success: true,
+        transactionHash,
+      };
+    } catch (error) {
+      logger.error(
+        { error, contractAddress, participantWallet },
+        "Failed to register commitment on blockchain"
+      );
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error registering commitment",
+      };
+    }
+  }
+
+  async joinBlockchainStudy(
+    contractAddress: string,
+    proofjson: {
+      a: [string, string];
+      b: [[string, string], [string, string]];
+      c: [string, string];
+    },
+    participantWallet: string,
+    dataCommitment: string,
+    challenge: string
+  ) {
+    let blockchainTxHash = null;
+    if (contractAddress) {
+      try {
+        const blockchainResult = await this.sendParticipationToBlockchain(
+          contractAddress,
+          participantWallet,
+          proofjson,
+          dataCommitment,
+          challenge
+        );
+
+        if (blockchainResult.success) {
+          blockchainTxHash = blockchainResult.transactionHash;
+          logger.info(
+            {
+              participantWallet,
+              txHash: blockchainTxHash,
+            },
+            "Participation recorded on blockchain successfully"
+          );
+        } else {
+          logger.error(
+            {
+              error: blockchainResult.error,
+              participantWallet,
+            },
+            "Failed to record participation on blockchain - continuing anyway"
+          );
+        }
+      } catch (blockchainError) {
+        logger.error(
+          {
+            error: blockchainError,
+            participantWallet,
+          },
+          "Error during blockchain participation recording"
+        );
+      }
+    } else {
+      logger.info("Study has no blockchain address - skipping blockchain recording");
+    }
+
+    return blockchainTxHash;
+  }
+
+  async sendParticipationToBlockchain(
+    studyAddress: string,
+    participantWallet: string,
+    proof: { a: [string, string]; b: [[string, string], [string, string]]; c: [string, string] },
+    dataCommitment: string,
+    challenge: string
+  ): Promise<{ success: boolean; transactionHash?: string; error?: string }> {
+    logger.info(
+      { studyAddress, participantWallet, dataCommitment, proof },
+      "Recording study participation on blockchain"
+    );
+
+    let pA: [bigint, bigint];
+    let pB: [[bigint, bigint], [bigint, bigint]];
+    let pC: [bigint, bigint];
+    let commitment: bigint;
+
+    try {
+       try {
+        pA = [BigInt(proof.a[0]), BigInt(proof.a[1])];
+        pB = [
+          [BigInt(proof.b[0][0]), BigInt(proof.b[0][1])],
+          [BigInt(proof.b[1][0]), BigInt(proof.b[1][1])],
+        ];
+        pC = [BigInt(proof.c[0]), BigInt(proof.c[1])];
+        commitment = BigInt(dataCommitment);
+
+      } catch (conversionError) {
+        logger.error({ 
+          error: conversionError, 
+          proof, 
+          dataCommitment 
+        }, "Failed to convert proof to BigInt");
+        throw new Error(`Invalid proof format: ${conversionError instanceof Error ? conversionError.message : 'Unknown error'}`);
+      }
+
+      logger.info({ pA, pB, pC, commitment }, "Proof converted to BigInt format");
+
+      let challengeBytes32 = challenge 
+        ? (challenge.startsWith('0x') ? challenge : `0x${challenge}`)
+        : `0x${'0'.repeat(64)}`; 
+
+
+      const result = await this.executeContractTransaction(
+        studyAddress,
+        "joinStudy",
+        [pA, pB, pC, commitment, challengeBytes32],
+        "Participation recording"
+      );
+
+      if (result.success) {
+        logger.info(
+          { transactionHash: result.transactionHash, participantWallet },
+          "Participation recorded on blockchain successfully"
+        );
+      } else {
+        logger.error(
+          { error: result.error, studyAddress, participantWallet },
+          "Failed to record participation on blockchain"
+        );
+      }
+
+      return {
+        success: result.success,
+        transactionHash: result.transactionHash,
+        error: result.error,
+      };
+    } catch (conversionError) {
+      logger.error(
+        { error: conversionError, proof, dataCommitment },
+        "Failed to convert proof to BigInt"
+      );
+      return {
+        success: false,
+        error: `Invalid proof format: ${
+          conversionError instanceof Error ? conversionError.message : "Unknown error"
+        }`,
+      };
+    }
+  }
+
+  async revokeStudyConsent(
+    studyAddress: string,
+    participantWallet: string
+  ): Promise<{ success: boolean; transactionHash?: string; error?: string }> {
+    try {
+      logger.info({ studyAddress, participantWallet }, "Revoking study consent on blockchain");
+
+      const result = await this.executeContractTransaction(
+        studyAddress,
+        "revokeConsent",
+        [participantWallet as `0x${string}`],
+        "Consent revocation"
+      );
+
+      this.logConsentResult("revoke", result, studyAddress, participantWallet);
+
+      return {
+        success: result.success,
+        transactionHash: result.transactionHash,
+        error: result.error,
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.error(
+        {
+          error,
+          errorMessage,
+          errorStack: error instanceof Error ? error.stack : undefined,
+          studyAddress,
+          participantWallet,
+        },
+        "Exception in revokeStudyConsent"
+      );
+      return {
+        success: false,
+        error: errorMessage,
+      };
+    }
+  }
+
+  async grantStudyConsent(
+    studyAddress: string,
+    participantWallet: string
+  ): Promise<{ success: boolean; transactionHash?: string; error?: string }> {
+    try {
+      logger.info({ studyAddress, participantWallet }, "Granting study consent on blockchain");
+
+      const result = await this.executeContractTransaction(
+        studyAddress,
+        "grantConsent",
+        [participantWallet as `0x${string}`],
+        "Consent grant"
+      );
+
+      this.logConsentResult("grant", result, studyAddress, participantWallet);
+
+      return {
+        success: result.success,
+        transactionHash: result.transactionHash,
+        error: result.error,
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.error(
+        {
+          error,
+          errorMessage,
+          errorStack: error instanceof Error ? error.stack : undefined,
+          studyAddress,
+          participantWallet,
+        },
+        "Exception in grantStudyConsent"
+      );
+      return {
+        success: false,
+        error: errorMessage,
+      };
+    }
+  }
+
+  async hasActiveConsent(
+    studyAddress: string,
+    participantWallet: string
+  ): Promise<{ hasConsent: boolean; error?: string }> {
+    try {
+      const hasConsent = await this.publicClient.readContract({
+        address: studyAddress as `0x${string}`,
+        abi: STUDY_ABI,
+        functionName: "hasActiveConsent",
+        args: [participantWallet as `0x${string}`],
+      });
+
+      logger.info(
+        {
+          studyAddress,
+          participantWallet,
+          hasConsent,
+        },
+        "Checked consent status"
+      );
+
+      return { hasConsent: Boolean(hasConsent) };
+    } catch (error) {
+      logger.error({ error, studyAddress, participantWallet }, "Failed to check consent status");
+      return {
+        hasConsent: false,
+        error: error instanceof Error ? error.message : "Unknown error checking consent",
+      };
+    }
+  }
 }
 
-// Export singleton instance
 export const studyService = new StudyService();

@@ -6,6 +6,7 @@ import {
   getAllUserActions,
   getAuditInfo,
   logFileAccess,
+  logFailedJoinStudy,
 } from "@/controllers/auditController";
 
 const router = Router();
@@ -250,6 +251,64 @@ router.get(
  *         description: Internal server error
  */
 router.post("/log-access", logFileAccess);
+
+/**
+ * @swagger
+ * /audit/log-failed-join:
+ *   post:
+ *     summary: Log a failed study join attempt
+ *     description: Records when a user fails to join a study (e.g., criteria not met, proof generation failed)
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - userAddress
+ *               - studyId
+ *             properties:
+ *               userAddress:
+ *                 type: string
+ *                 description: Ethereum address of the user
+ *                 example: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb"
+ *               studyId:
+ *                 type: string
+ *                 description: ID of the study
+ *                 example: "1"
+ *               reason:
+ *                 type: string
+ *                 description: Reason for the failure
+ *                 example: "Criteria not met"
+ *               errorDetails:
+ *                 type: string
+ *                 description: Detailed error information
+ *               metadata:
+ *                 type: object
+ *                 description: Additional metadata
+ *     responses:
+ *       200:
+ *         description: Failed join attempt logged successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     txHash:
+ *                       type: string
+ *                     message:
+ *                       type: string
+ *       400:
+ *         description: Invalid request data
+ *       500:
+ *         description: Internal server error
+ */
+router.post("/log-failed-join", logFailedJoinStudy);
 
 /**
  * @swagger

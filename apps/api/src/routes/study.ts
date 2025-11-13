@@ -3,10 +3,15 @@ import {
   createStudy,
   getStudies,
   getStudyById,
+  getStudyCriteria,
   updateStudy,
   participateInStudy,
   deployStudy,
   deleteStudy,
+  getEnrolledStudies,
+  revokeStudyConsent,
+  grantStudyConsent,
+  generateDataCommitmentChallenge,
 } from "@/controllers/studyController";
 
 const router = Router();
@@ -48,6 +53,38 @@ const router = Router();
  *         description: List of studies
  */
 router.get("/", getStudies);
+
+/**
+ * @swagger
+ * /studies/enrolled/{walletAddress}:
+ *   get:
+ *     summary: Get all studies a user is enrolled in
+ *     description: Retrieves all studies where the user is an enrolled participant
+ *     parameters:
+ *       - name: walletAddress
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *           pattern: "^0x[a-fA-F0-9]{40}$"
+ *         description: Participant's wallet address
+ *         example: "0x742d35Cc6635C0532925a3b8D97C6b009af2af9f"
+ *     responses:
+ *       200:
+ *         description: List of enrolled studies
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 studies:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *       500:
+ *         description: Internal server error
+ */
+router.get("/enrolled/:walletAddress", getEnrolledStudies);
 
 /**
  * @swagger
@@ -99,6 +136,25 @@ router.post("/", createStudy);
  *         description: Study not found
  */
 router.get("/:id", getStudyById);
+
+/**
+ * @swagger
+ * /studies/{id}/criteria:
+ *   get:
+ *     summary: Get study criteria by ID
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Study criteria
+ *       404:
+ *         description: Study not found
+ */
+router.get("/:id/criteria", getStudyCriteria);
 
 /**
  * @swagger
@@ -218,6 +274,58 @@ router.delete("/:id", deleteStudy);
 
 /**
  * @swagger
+ * /studies/data-commitment:
+ *   post:
+ *     summary: Generate challenge for data commitment
+ *     description: Generate a cryptographic challenge for verifying data commitment before study participation
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - studyId
+ *               - participantWallet
+ *               - dataCommitment
+ *             properties:
+ *               studyId:
+ *                 type: number
+ *                 description: ID of the study to participate in
+ *                 example: 123
+ *               participantWallet:
+ *                 type: string
+ *                 description: Participant's wallet address
+ *                 example: "0x742d35Cc6635C0532925a3b8D97C6b009af2af9f"
+ *                 pattern: "^0x[a-fA-F0-9]{40}$"
+ *               dataCommitment:
+ *                 type: string
+ *                 description: Hash commitment of the participant's medical data
+ *     responses:
+ *       200:
+ *         description: Challenge generated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 challenge:
+ *                   type: string
+ *                 message:
+ *                   type: string
+ *       400:
+ *         description: Invalid request or study not accepting participants
+ *       404:
+ *         description: Study not found
+ *       500:
+ *         description: Internal server error
+ */
+router.post("/data-commitment", generateDataCommitmentChallenge);
+
+/**
+ * @swagger
  * /studies/{id}/participants:
  *   post:
  *     summary: Add a new participant to the study
@@ -270,5 +378,81 @@ router.delete("/:id", deleteStudy);
  *         description: Participant already enrolled in this study
  */
 router.post("/:id/participants", participateInStudy);
+
+/**
+ * @swagger
+ * /studies/{id}/consent/revoke:
+ *   post:
+ *     summary: Revoke consent for study participation
+ *     description: Allows a participant to revoke their consent for data usage in a study
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Study ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - participantWallet
+ *             properties:
+ *               participantWallet:
+ *                 type: string
+ *                 pattern: "^0x[a-fA-F0-9]{40}$"
+ *                 description: Participant's wallet address
+ *     responses:
+ *       200:
+ *         description: Consent revoked successfully
+ *       400:
+ *         description: Invalid request or consent already revoked
+ *       404:
+ *         description: Participation not found
+ *       500:
+ *         description: Internal server error
+ */
+router.post("/:id/consent/revoke", revokeStudyConsent);
+
+/**
+ * @swagger
+ * /studies/{id}/consent/grant:
+ *   post:
+ *     summary: Grant consent for study participation
+ *     description: Allows a participant to grant their consent for data usage in a study after previously revoking
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Study ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - participantWallet
+ *             properties:
+ *               participantWallet:
+ *                 type: string
+ *                 pattern: "^0x[a-fA-F0-9]{40}$"
+ *                 description: Participant's wallet address
+ *     responses:
+ *       200:
+ *         description: Consent granted successfully
+ *       400:
+ *         description: Invalid request or consent already active
+ *       404:
+ *         description: Participation not found
+ *       500:
+ *         description: Internal server error
+ */
+router.post("/:id/consent/grant", grantStudyConsent);
 
 export default router;

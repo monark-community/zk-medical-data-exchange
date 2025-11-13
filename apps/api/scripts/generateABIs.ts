@@ -89,7 +89,7 @@ function findContractFiles(dir: string): string[] {
 }
 
 function generateABIs(): void {
-  console.log("🔧 Generating contract ABIs...");
+  console.log("Generating contract ABIs...");
 
   if (!fs.existsSync(OUTPUT_DIR)) {
     fs.mkdirSync(OUTPUT_DIR, { recursive: true });
@@ -103,13 +103,13 @@ function generateABIs(): void {
     {
       name: "StudyFactory",
       export: "STUDY_FACTORY_ABI",
-      path: "StudyFactory.sol/StudyFactory.json",
+      path: "studies/StudyFactory.sol/StudyFactory.json",
     },
-    { name: "Study", export: "STUDY_ABI", path: "Study.sol/Study.json" },
+    { name: "Study", export: "STUDY_ABI", path: "studies/Study.sol/Study.json" },
     {
       name: "Groth16Verifier",
       export: "MEDICAL_ELIGIBILITY_VERIFIER_ABI",
-      path: "MedicalEligibilityVerifier.sol/Groth16Verifier.json",
+      path: "studies/MedicalEligibilityVerifier.sol/Groth16Verifier.json",
     },
     {
       name: "AuditTrail",
@@ -124,10 +124,10 @@ function generateABIs(): void {
   ];
 
   for (const contract of contracts) {
-    const contractFile = contractFiles.find((file) => {
-      const normalizedFile = file.replace(/\\/g, "/");
-      return normalizedFile.includes(`/${contract.path}`);
-    });
+    const normalizedPath = contract.path.replaceAll("/", path.sep);
+    const contractFile = contractFiles.find(
+      (file) => file.includes(path.sep + normalizedPath) || file.endsWith(normalizedPath)
+    );
 
     if (contractFile) {
       console.log(`Processing ${contract.name}...`);
@@ -135,7 +135,6 @@ function generateABIs(): void {
 
       if (abi) {
         abis[contract.export] = abi;
-        console.log(`Extracted ABI for ${contract.name}`);
       }
     } else {
       console.error(`Contract file not found for ${contract.name}`);
@@ -148,7 +147,6 @@ function generateABIs(): void {
 
   let output = `// Auto-generated contract ABIs\n// Generated on ${new Date().toISOString()}\n\n`;
 
-  // Add type definitions at the top of the generated file
   output += `// ABI type definitions\ninterface ABIInput {\n  internalType: string;\n  name: string;\n  type: string;\n  components?: ABIInput[];\n  indexed?: boolean; // For event inputs\n}\n\ninterface ABIOutput {\n  internalType: string;\n  name: string;\n  type: string;\n  components?: ABIOutput[];\n}\n\ninterface ABIItem {\n  type: 'function' | 'event' | 'constructor' | 'fallback' | 'receive' | 'error';\n  name?: string;\n  inputs?: ABIInput[];\n  outputs?: ABIOutput[];\n  stateMutability?: 'pure' | 'view' | 'nonpayable' | 'payable';\n  anonymous?: boolean;\n}\n\nexport type ABI = readonly ABIItem[];\n\n`;
 
   for (const contract of contracts) {
@@ -163,25 +161,15 @@ function generateABIs(): void {
 
   fs.writeFileSync(OUTPUT_FILE, output);
 
-  console.log(`Contract ABIs generated successfully!`);
-  console.log(`Output: ${OUTPUT_FILE}`);
+  console.log(`Contract ABIs generated successfully at ${OUTPUT_FILE}`);
   console.log(`Generated ${Object.keys(abis).length} contract ABIs`);
 }
 
-const isMainModule = 
-  import.meta.url === `file://${process.argv[1]}` ||
-  import.meta.url.endsWith(process.argv[1]?.replace(/\\/g, '/') || '');
-
-if (isMainModule) {
-  try {
-    generateABIs();
-  } catch (error) {
-    console.error(
-      "Failed to generate ABIs:",
-      error instanceof Error ? error.message : String(error)
-    );
-    process.exit(1);
-  }
+try {
+  generateABIs();
+} catch (error) {
+  console.error("Failed to generate ABIs:", error instanceof Error ? error.message : String(error));
+  process.exit(1);
 }
 
 export { generateABIs };

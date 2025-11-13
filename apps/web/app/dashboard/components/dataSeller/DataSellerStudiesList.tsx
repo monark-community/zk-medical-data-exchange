@@ -2,17 +2,20 @@ import { StudySummary } from "@/services/api/studyService";
 import { UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import StudiesList from "@/app/dashboard/components/shared/StudiesList";
+import { Spinner } from "@/components/ui/spinner";
 
 interface DataSellerStudiesListProps {
   studies: StudySummary[];
   // eslint-disable-next-line no-unused-vars
   onApplyToStudy: (id: number) => Promise<void>;
+  applyingStudyId: number | null;
   walletAddress?: string;
 }
 
 export default function DataSellerStudiesList({
   studies,
   onApplyToStudy,
+  applyingStudyId,
   walletAddress,
 }: DataSellerStudiesListProps) {
   const canApply = (study: StudySummary) => {
@@ -20,6 +23,8 @@ export default function DataSellerStudiesList({
   };
 
   const renderActionButtons = (study: StudySummary) => {
+    const isApplying = applyingStudyId === study.id;
+
     if (canApply(study)) {
       return (
         <Button
@@ -29,12 +34,21 @@ export default function DataSellerStudiesList({
             e.stopPropagation();
             onApplyToStudy(study.id);
           }}
-          disabled={!walletAddress}
+          disabled={!walletAddress || isApplying}
           className="h-7 px-3 text-green-600 hover:text-green-700 hover:bg-green-50 border-green-200"
           title={walletAddress ? "Apply to study" : "Connect wallet to apply"}
         >
-          <UserPlus className="h-3 w-3 mr-1" />
-          Apply
+          {isApplying ? (
+            <>
+              <Spinner className="size-3 text-blue-600" />
+              Applying...
+            </>
+          ) : (
+            <>
+              <UserPlus className="h-3 w-3 mr-1" />
+              Apply
+            </>
+          )}
         </Button>
       );
     }

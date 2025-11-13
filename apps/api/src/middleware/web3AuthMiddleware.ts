@@ -181,7 +181,6 @@ export function verifyWeb3AuthToken(req: Request, res: Response, next: NextFunct
         return;
       }
 
-      // Convert all wallet addresses to checksum format
       if (web3AuthUser.wallets && Array.isArray(web3AuthUser.wallets)) {
         web3AuthUser.wallets = web3AuthUser.wallets.map((wallet) => ({
           ...wallet,

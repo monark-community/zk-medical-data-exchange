@@ -25,16 +25,16 @@ export function useAuthRedirect() {
   const pathname = usePathname();
 
   useEffect(() => {
-    const allowedPaths = ["/", "/research", "/breakthrough", "/how-it-works"];
-    const isCalledFromVisitorPage = allowedPaths.includes(pathname);
+    const publicPaths = ["/", "/research", "/breakthroughs", "/how-it-works"];
+    const isPublicPage = publicPaths.includes(pathname);
 
-    if (!isConnected || !hasSessionTokens()) {
+    if ((!isConnected || !hasSessionTokens()) && !isPublicPage) {
       deleteCredentials();
       router.push("/");
       return;
     }
 
-    if (isConnected && hasSessionTokens() && isCalledFromVisitorPage) {
+    if (isConnected && hasSessionTokens() && isPublicPage) {
       router.push("/dashboard");
     }
   }, [isConnected, router, pathname]);

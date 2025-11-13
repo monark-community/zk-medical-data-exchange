@@ -4,7 +4,7 @@ import AuditSection from "@/components/audit/AuditSection";
 
 const PrivacySection = () => {
   return (
-    <div className="container mx-auto px-4 py-6">
+    <div className="w-full space-y-8">
       <AuditSection />
     </div>
   );

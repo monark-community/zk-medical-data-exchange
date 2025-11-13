@@ -17,14 +17,6 @@ export type TableDefinition = {
  *                 If omitted, all columns in the table will be returned.
  *
  * @returns A string of comma-separated column names suitable for SQL queries.
- *
- * @example
- * getColumns(TABLES.DATA_VAULT);
- * // "id, wallet_address, encrypted_cid, created_at, resource_type"
- *
- * @example
- * getColumns(TABLES.DATA_VAULT, ["id", "walletAddress"]);
- * // "id, wallet_address"
  */
 export const getColumns = (table: TableDefinition, subset?: string[]): string => {
   const keys = subset ?? Object.keys(table.columns);
@@ -81,7 +73,6 @@ export const TABLES: Record<string, TableDefinition> = {
     },
   },
 
-  // TODO: [LT] Review if we have unnecessary/missing columns in this table when implementing participation
   STUDY_PARTICIPATIONS: {
     name: "study_participations",
     columns: {
@@ -90,12 +81,16 @@ export const TABLES: Record<string, TableDefinition> = {
       participantWallet: "participant_wallet",
       proofJson: "proof_json",
       publicInputsJson: "public_inputs_json",
+      dataCommitment: "data_commitment",
       verificationTxHash: "verification_tx_hash",
+      blockchainTxHash: "blockchain_tx_hash",
       status: "status",
       eligibilityCheckedAt: "eligibility_checked_at",
       verifiedAt: "verified_at",
+      enrolledAt: "enrolled_at",
       matchedCriteria: "matched_criteria",
       eligibilityScore: "eligibility_score",
+      hasConsented: "has_consented",
     },
   },
 
@@ -138,6 +133,21 @@ export const TABLES: Record<string, TableDefinition> = {
       choice: "choice",
       voteTxHash: "vote_tx_hash",
       votedAt: "voted_at",
+    },
+  },
+  DATA_COMMITMENTS: {
+    name: "data_commitments",
+    columns: {
+      id: "id",
+      studyId: "study_id",
+      walletAddress: "wallet_address",
+      dataCommitment: "data_commitment",
+      signature: "signature",
+      challenge: "challenge",
+      proofSubmitted: "proof_submitted",
+      proofSubmittedAt: "proof_submitted_at",
+      createdAt: "created_at",
+      expiresAt: "expires_at",
     },
   },
 };

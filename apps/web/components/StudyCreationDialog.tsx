@@ -1,8 +1,3 @@
-/**
- * Study Creation Dialog Component
- * Using shadcn/ui Dialog for better accessibility and UX
- */
-
 "use client";
 
 import { useState } from "react";
@@ -31,9 +26,7 @@ export default function StudyCreationDialog({
 
   const handleStudyCreated = () => {
     setIsCreatingStudy(false);
-    // Call the optional callback
     onStudyCreated?.();
-    // Close the dialog
     onOpenChange(false);
   };
 
@@ -43,7 +36,6 @@ export default function StudyCreationDialog({
 
   const handleOpenChange = (newOpen: boolean) => {
     if (!newOpen && isCreatingStudy) {
-      // Show confirmation if study is being created
       if (window.confirm("Study creation is in progress. Are you sure you want to cancel?")) {
         setIsCreatingStudy(false);
         onOpenChange(false);

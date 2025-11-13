@@ -13,9 +13,105 @@ import {
   ColumnDef,
   flexRender,
 } from "@tanstack/react-table";
-import { ChevronLeft, ChevronRight, HeartPulse, FileText, Calendar, Loader2 } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  HeartPulse,
+  FileText,
+  Calendar,
+  Activity,
+  Stethoscope,
+  FileStack,
+  User,
+  Code,
+  Database,
+  Settings,
+  AlertCircle,
+  FileCode,
+  BookOpen,
+  Binary,
+  FileQuestion,
+} from "lucide-react";
 import eventBus from "@/lib/eventBus";
 import { fetchCIDs } from "@/services/api";
+import { Spinner } from "@/components/ui/spinner";
+
+// Helper function to get icon and colors based on resource type
+const getResourceTypeStyle = (resourceType: string) => {
+  switch (resourceType) {
+    case "Observation":
+      return {
+        icon: Activity,
+        gradient: "from-emerald-500 to-teal-500",
+      };
+    case "Condition":
+      return {
+        icon: Stethoscope,
+        gradient: "from-red-500 to-orange-500",
+      };
+    case "Patient":
+      return {
+        icon: User,
+        gradient: "from-blue-500 to-indigo-500",
+      };
+    case "Bundle":
+      return {
+        icon: FileStack,
+        gradient: "from-slate-500 to-gray-600",
+      };
+    case "Binary":
+      return {
+        icon: Binary,
+        gradient: "from-purple-500 to-violet-500",
+      };
+    case "CapabilityStatement":
+      return {
+        icon: Settings,
+        gradient: "from-cyan-500 to-sky-500",
+      };
+    case "CodeSystem":
+      return {
+        icon: Code,
+        gradient: "from-amber-500 to-orange-500",
+      };
+    case "OperationDefinition":
+      return {
+        icon: FileCode,
+        gradient: "from-indigo-500 to-purple-500",
+      };
+    case "OperationOutcome":
+      return {
+        icon: AlertCircle,
+        gradient: "from-yellow-500 to-amber-500",
+      };
+    case "Parameters":
+      return {
+        icon: Database,
+        gradient: "from-teal-500 to-cyan-500",
+      };
+    case "StructureDefinition":
+      return {
+        icon: BookOpen,
+        gradient: "from-violet-500 to-fuchsia-500",
+      };
+    case "ValueSet":
+      return {
+        icon: FileText,
+        gradient: "from-pink-500 to-rose-500",
+      };
+    case "NotSupported":
+      return {
+        icon: FileQuestion,
+        gradient: "from-gray-400 to-gray-500",
+      };
+    default:
+      // Fallback for any unknown types
+      return {
+        icon: HeartPulse,
+        gradient: "from-blue-500 to-teal-500",
+      };
+  }
+};
 
 export default function FilesSection({
   walletAddress,
@@ -80,12 +176,16 @@ export default function FilesSection({
       header: "Details Card",
       cell: ({ row }) => {
         const data = row.original;
+        const { icon: Icon, gradient } = getResourceTypeStyle(data.resourceType);
+
         return (
           <Card className="w-full border-2 border-gray-200 hover:border-blue-300 hover:shadow-lg transition-all duration-200 bg-white">
             <CardHeader className="flex flex-row items-center space-x-4 justify-between p-6">
               <div className="flex flex-row items-center space-x-4 flex-1">
-                <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-teal-500 rounded-xl flex items-center justify-center shadow-md">
-                  <HeartPulse className="text-white w-7 h-7" />
+                <div
+                  className={`w-14 h-14 bg-gradient-to-br ${gradient} rounded-xl flex items-center justify-center shadow-md`}
+                >
+                  <Icon className="text-white w-7 h-7" />
                 </div>
                 <div className="flex flex-col space-y-1">
                   <CardTitle className="text-lg font-semibold text-gray-800">
@@ -143,12 +243,12 @@ export default function FilesSection({
   }
 
   return (
-    <div className="w-full p-6 pt-0 relative">
+    <div className="w-full p-6 relative">
       {/* Deleting Overlay */}
       {deleting && (
         <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-10 flex flex-col items-center justify-center rounded-lg">
           <div className="relative">
-            <Loader2 className="w-12 h-12 animate-spin text-red-600" />
+            <Spinner className="size-12 text-red-600" />
             <div className="absolute inset-0 w-12 h-12 rounded-full border-2 border-red-200 animate-ping opacity-75" />
           </div>
           <p className="mt-4 text-gray-700 font-semibold">Deleting file...</p>
@@ -158,7 +258,7 @@ export default function FilesSection({
       {loading ? (
         <div className="flex flex-col items-center justify-center py-16 px-4">
           <div className="relative">
-            <Loader2 className="w-12 h-12 animate-spin text-blue-600" />
+            <Spinner className="size-12 text-blue-600" />
             <div className="absolute inset-0 w-12 h-12 rounded-full border-2 border-blue-200 animate-ping opacity-75" />
           </div>
           <p className="mt-4 text-gray-600 font-medium">Loading your medical files...</p>
