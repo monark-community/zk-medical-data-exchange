@@ -132,6 +132,11 @@ export const getStudyDetails = async (studyId: number): Promise<StudyDetails> =>
   return data.study;
 };
 
+export const getParticipants = async (studyId: number): Promise<{ participants: string[] }> => {
+  const { data } = await apiClient.get(`/studies/${studyId}/participants`);
+  return data;
+};
+
 export const createStudy = async (studyData: CreateStudyRequest): Promise<CreateStudyResponse> => {
   try {
     const response = await apiClient.post<CreateStudyResponse>("/studies", studyData);

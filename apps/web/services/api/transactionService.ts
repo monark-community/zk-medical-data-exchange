@@ -1,0 +1,20 @@
+import { apiClient } from "@/services/core/apiClient";
+
+export const verifyTransaction = async (
+  transactionHash: string,
+  studyId: number
+): Promise<{ verified: boolean; reasons: string[] }> => {
+  console.log("Verifying transaction:", { transactionHash, studyId });
+  try {
+    const response = await apiClient.post("/transaction/verify", {
+      data: { transactionHash, studyId },
+    });
+
+    const verified = Boolean(response.data?.success ?? true);
+    const reasons = response.data?.reasons ?? ["success"];
+    return { verified, reasons };
+  } catch (error: any) {
+    const message = error?.response?.data?.error || error.message || "Unknown error";
+    throw new Error(`Failed to verify transaction: ${message}`);
+  }
+};

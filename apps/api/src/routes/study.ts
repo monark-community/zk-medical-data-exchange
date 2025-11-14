@@ -12,6 +12,7 @@ import {
   revokeStudyConsent,
   grantStudyConsent,
   generateDataCommitmentChallenge,
+  fetchParticipants,
 } from "@/controllers/studyController";
 
 const router = Router();
@@ -136,6 +137,25 @@ router.post("/", createStudy);
  *         description: Study not found
  */
 router.get("/:id", getStudyById);
+
+/**
+ * @swagger
+ * /studies/participants/{id}:
+ *   get:
+ *     summary: Get study by ID
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Study details
+ *       404:
+ *         description: Study not found
+ */
+router.get("/:id/participants", fetchParticipants);
 
 /**
  * @swagger

@@ -67,6 +67,23 @@ const fetchParticipation = async (supabase: any, id: string, participantWallet: 
   return { data, error };
 };
 
+export const fetchParticipants = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { data } = await req.supabase
+      .from(TABLES.STUDY_PARTICIPATIONS!.name)
+      .select(TABLES.STUDY_PARTICIPATIONS!.columns.participantWallet!)
+      .eq(TABLES.STUDY_PARTICIPATIONS!.columns.studyId!, id);
+
+    return res.json({
+      participants: data?.map((row: any) => row.participant_wallet) || [],
+    });
+  } catch (error) {
+    logger.error({ error, studyId: req.params.id }, "Failed to fetch participants");
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
 const canPerformConsentOperation = (currentStatus: boolean, isRevoke: boolean): boolean => {
   return isRevoke ? currentStatus === true : currentStatus === false;
 };

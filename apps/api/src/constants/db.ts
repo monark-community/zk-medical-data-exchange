@@ -150,4 +150,15 @@ export const TABLES: Record<string, TableDefinition> = {
       expiresAt: "expires_at",
     },
   },
+  TRANSACTIONS: {
+    name: "transactions",
+    columns: {
+      id: "id",
+      fromWallet: "from_wallet",
+      toWallet: "to_wallet",
+      value: "value",
+      studyId: "study_id",
+      createdAt: "created_at",
+    },
+  },
 };
