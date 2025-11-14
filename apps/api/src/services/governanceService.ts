@@ -399,12 +399,14 @@ class GovernanceService {
 
       if (!dbProposal) {
         // If not in DB, check blockchain quickly
-        const onChain = await this.publicClient.readContract({
-          address: this.contractAddress as `0x${string}`,
-          abi: GOVERNANCE_DAO_ABI,
-          functionName: "getProposal",
-          args: [BigInt(params.proposalId)],
-        }).catch(() => null);
+        const onChain = await this.publicClient
+          .readContract({
+            address: this.contractAddress as `0x${string}`,
+            abi: GOVERNANCE_DAO_ABI,
+            functionName: "getProposal",
+            args: [BigInt(params.proposalId)],
+          })
+          .catch(() => null);
 
         if (!onChain) {
           return { success: false, error: "Proposal not found" };
@@ -444,7 +446,11 @@ class GovernanceService {
     }
   }
 
-  async getProposal(proposalId: number, userAddress?: string, includeComments = false): Promise<Proposal | null> {
+  async getProposal(
+    proposalId: number,
+    userAddress?: string,
+    includeComments = false
+  ): Promise<Proposal | null> {
     try {
       logger.info({ proposalId, userAddress }, "Fetching proposal from database");
 
@@ -522,6 +528,7 @@ class GovernanceService {
             proposal.comments = [];
           }
         } catch (err) {
+          logger.error({ err }, "Failed to include comment");
           proposal.comments = [];
         }
       }
@@ -807,40 +814,47 @@ class GovernanceService {
     }
   }
 
-    /**
-     * Get comments for a proposal with pagination
-     */
-    async getComments(proposalId: number, page = 1, limit = 20): Promise<{ comments: Comment[]; total: number; page: number; limit: number }> {
-      try {
-        const offset = Math.max(0, (page - 1) * limit);
+  /**
+   * Get comments for a proposal with pagination
+   */
+  async getComments(
+    proposalId: number,
+    page = 1,
+    limit = 20
+  ): Promise<{ comments: Comment[]; total: number; page: number; limit: number }> {
+    try {
+      const offset = Math.max(0, (page - 1) * limit);
 
-        const { data: commentsData, error } = await this.supabase
-          .from(PROPOSAL_COMMENTS!.name)
-          .select('id, proposal_id, commenter_address, content, created_at', { count: 'exact' })
-          .eq(PROPOSAL_COMMENTS!.columns.proposalId!, proposalId)
-          .order(PROPOSAL_COMMENTS!.columns.createdAt!, { ascending: true })
-          .range(offset, offset + limit - 1);
+      const { data: commentsData, error } = await this.supabase
+        .from(PROPOSAL_COMMENTS!.name)
+        .select("id, proposal_id, commenter_address, content, created_at", { count: "exact" })
+        .eq(PROPOSAL_COMMENTS!.columns.proposalId!, proposalId)
+        .order(PROPOSAL_COMMENTS!.columns.createdAt!, { ascending: true })
+        .range(offset, offset + limit - 1);
 
-        if (error) {
-          logger.error({ error, proposalId, page, limit }, 'Failed to fetch proposal comments from database');
-          return { comments: [], total: 0, page, limit };
-        }
-
-        const total = (commentsData as any)?.length ?? 0;
-        const comments: Comment[] = (commentsData as any || []).map((c: any) => ({
-          id: c.id,
-          proposalId: c.proposal_id,
-          commenterAddress: c.commenter_address,
-          content: c.content,
-          createdAt: c.created_at,
-        }));
-
-        return { comments, total, page, limit };
-      } catch (error: any) {
-        logger.error({ error, proposalId, page, limit }, 'Failed to get comments');
+      if (error) {
+        logger.error(
+          { error, proposalId, page, limit },
+          "Failed to fetch proposal comments from database"
+        );
         return { comments: [], total: 0, page, limit };
       }
+
+      const total = (commentsData as any)?.length ?? 0;
+      const comments: Comment[] = ((commentsData as any) || []).map((c: any) => ({
+        id: c.id,
+        proposalId: c.proposal_id,
+        commenterAddress: c.commenter_address,
+        content: c.content,
+        createdAt: c.created_at,
+      }));
+
+      return { comments, total, page, limit };
+    } catch (error: any) {
+      logger.error({ error, proposalId, page, limit }, "Failed to get comments");
+      return { comments: [], total: 0, page, limit };
     }
+  }
 
   async getPlatformStats(): Promise<PlatformStats> {
     try {
