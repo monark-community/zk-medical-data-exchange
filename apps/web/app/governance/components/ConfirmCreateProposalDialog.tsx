@@ -41,11 +41,13 @@ const ConfirmCreateProposalDialog = ({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Confirm Proposal Creation</DialogTitle>
-          <DialogDescription>
-            Are you sure you want to create this proposal?
-            {proposalTitle && (
-              <div className="mt-2 font-semibold text-foreground">"{proposalTitle}"</div>
-            )}
+          <DialogDescription asChild>
+            <div>
+              <p>Are you sure you want to create this proposal?</p>
+              {proposalTitle && (
+                <div className="mt-2 font-semibold text-foreground">"{proposalTitle}"</div>
+              )}
+            </div>
           </DialogDescription>
         </DialogHeader>
         <DialogFooter className="sm:justify-end">
