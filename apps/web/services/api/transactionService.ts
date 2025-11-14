@@ -18,3 +18,13 @@ export const verifyTransaction = async (
     throw new Error(`Failed to verify transaction: ${message}`);
   }
 };
+
+export const getTransactionsByStudyId = async (studyId: number) => {
+  try {
+    const response = await apiClient.get(`/transaction/study/${studyId}`);
+    return response.data;
+  } catch (error: any) {
+    const message = error?.response?.data?.error || error.message || "Unknown error";
+    throw new Error(`Failed to fetch transactions: ${message}`);
+  }
+};

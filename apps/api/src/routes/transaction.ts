@@ -1,4 +1,4 @@
-import { verifyTransaction } from "@/controllers/transactionController";
+import { getTransactionsByStudyId, verifyTransaction } from "@/controllers/transactionController";
 import { Router } from "express";
 
 const router = Router();
@@ -56,5 +56,57 @@ const router = Router();
  */
 
 router.post("/verify", verifyTransaction);
+
+/**
+ * @swagger
+ * /transaction/{id}:
+ *   get:
+ *     summary: Get transactions by study ID
+ *     description: Retrieves all transactions associated with a specific study ID.
+ *     tags:
+ *       - Transaction
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID of the study
+ *     responses:
+ *       200:
+ *         description: List of transactions
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 transactions:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: integer
+ *                       fromWallet:
+ *                         type: string
+ *                       toWallet:
+ *                         type: string
+ *                       value:
+ *                         type: number
+ *                       studyId:
+ *                         type: integer
+ *                       createdAt:
+ *                         type: string
+ *                         format: date-time
+ *       400:
+ *         description: Bad request (invalid study ID)
+ *       401:
+ *         description: Unauthorized - Invalid token
+ *       500:
+ *         description: Internal server error
+ */
+router.get("/study/:id", getTransactionsByStudyId);
 
 export default router;

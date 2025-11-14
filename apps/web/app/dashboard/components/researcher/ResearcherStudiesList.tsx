@@ -17,6 +17,14 @@ interface ResearcherStudiesListProps {
   onStudyEnded?: () => void;
 }
 
+export type StudyData = {
+  studyId: number;
+  participantsCount: number;
+  dataPointsCollected: number;
+  transactionHash: string;
+  durationDays: number;
+};
+
 export default function ResearcherStudiesList({
   studies,
   onDeleteStudy,
@@ -27,6 +35,7 @@ export default function ResearcherStudiesList({
   const [summaryDialogOpen, setSummaryDialogOpen] = useState(false);
   const [selectedStudy, setSelectedStudy] = useState<StudySummary | null>(null);
   const [summaryStudy, setSummaryStudy] = useState<{ id: number; title: string } | null>(null);
+  const [studyData, setStudyData] = useState<StudyData | null>(null);
 
   const handleEndStudyClick = (study: StudySummary) => {
     setSelectedStudy(study);
@@ -112,6 +121,7 @@ export default function ResearcherStudiesList({
           studyTitle={selectedStudy.title}
           studyId={selectedStudy.id}
           onStudyEnded={handleStudyEnded}
+          setStudyData={setStudyData}
         />
       )}
 
@@ -121,6 +131,7 @@ export default function ResearcherStudiesList({
           onOpenChange={setSummaryDialogOpen}
           studyTitle={summaryStudy.title}
           studyId={summaryStudy.id}
+          studyData={studyData}
         />
       )}
     </>

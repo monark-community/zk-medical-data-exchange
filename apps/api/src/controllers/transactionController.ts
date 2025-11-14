@@ -14,6 +14,40 @@ const publicClient = createPublicClient({
   transport: http(RPC_URL),
 });
 
+export const getEthereumPriceUSD = async (): Promise<number> => {
+  try {
+    const response = await fetch(
+      "https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd"
+    );
+    const data = (await response.json()) as { ethereum: { usd: number } };
+    return data.ethereum.usd;
+  } catch (error: any) {
+    const message = error?.response?.data?.error || error.message || "Unknown error";
+    throw new Error(`Failed to fetch Ethereum price: ${message}`);
+  }
+};
+
+export const getTransactionsByStudyId = async (req: Request, res: Response) => {
+  const { studyId } = req.params;
+
+  try {
+    const transactions = await req.supabase
+      .from(TABLES.TRANSACTIONS!.name)
+      .select("*")
+      .eq(TABLES.TRANSACTIONS!.columns.studyId!, studyId);
+
+    if (transactions.error) {
+      logger.error({ error: transactions.error }, "Failed to fetch transactions");
+      return res.status(500).json({ error: "Failed to fetch transactions" });
+    }
+
+    return res.status(200).json({ transactions: transactions.data });
+  } catch (error) {
+    logger.error({ error, studyId }, "getTransactionsByStudyId error");
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};
+
 export const verifyTransaction = async (req: Request, res: Response) => {
   const { studyId, transactionHash } = req.body.data;
 
@@ -119,6 +153,8 @@ export const verifyTransaction = async (req: Request, res: Response) => {
       participant_wallet: string;
     }[];
 
+    const priceUSD = await getEthereumPriceUSD();
+
     let payloads = [];
     for (const participant of participantsData) {
       const insertPayload: Record<string, any> = {
@@ -127,6 +163,7 @@ export const verifyTransaction = async (req: Request, res: Response) => {
         [TABLES.TRANSACTIONS!.columns.toWallet!]: participant.participant_wallet,
         [TABLES.TRANSACTIONS!.columns.studyId!]: studyId,
         [TABLES.TRANSACTIONS!.columns.value!]: perHeadEth,
+        [TABLES.TRANSACTIONS!.columns.valueUSD!]: perHeadEth * priceUSD,
       };
       payloads.push(insertPayload);
     }

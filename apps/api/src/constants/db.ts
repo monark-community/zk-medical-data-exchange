@@ -158,6 +158,7 @@ export const TABLES: Record<string, TableDefinition> = {
       fromWallet: "from_wallet",
       toWallet: "to_wallet",
       value: "value",
+      valueUSD: "value_usd",
       studyId: "study_id",
       createdAt: "created_at",
     },

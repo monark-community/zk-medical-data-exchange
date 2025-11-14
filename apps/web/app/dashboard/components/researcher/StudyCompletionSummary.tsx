@@ -18,6 +18,12 @@ import {
   TrendingUp,
   Clock,
 } from "lucide-react";
+import { StudyData } from "./ResearcherStudiesList";
+import { useEffect, useState } from "react";
+import { createPublicClient, http } from "viem";
+import { sepolia } from "viem/chains";
+import { Config } from "@/config/config";
+import { getTransactionsByStudyId } from "@/services/api/transactionService";
 
 interface StudyCompletionSummaryProps {
   open: boolean;
@@ -25,23 +31,62 @@ interface StudyCompletionSummaryProps {
   onOpenChange: (open: boolean) => void;
   studyTitle: string;
   studyId: number;
+  studyData: StudyData | null;
 }
+
+const publicClient = createPublicClient({
+  chain: sepolia,
+  transport: http(Config.SEPOLIA_RPC_URL),
+});
 
 export default function StudyCompletionSummary({
   open,
   onOpenChange,
   studyTitle,
+  studyData,
 }: StudyCompletionSummaryProps) {
-  const totalParticipants = 42;
+  const [txInfo, setTxInfo] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchTx = async () => {
+      if (!studyData?.transactionHash) return;
+      setLoading(true);
+      setError(null);
+      try {
+        const hash = studyData.transactionHash as `0x${string}`;
+
+        const tx = await publicClient.getTransaction({ hash });
+        const receipt = await publicClient.getTransactionReceipt({ hash });
+
+        const transactions = await getTransactionsByStudyId(studyData.studyId);
+        const total = transactions.reduce((acc: number, tx: any) => acc + Number(tx.value_usd), 0);
+
+        setTxInfo({
+          hash,
+          from: tx.from,
+          to: tx.to,
+          valueUsd: total.toFixed(2),
+          blockNumber: receipt?.blockNumber,
+          gasUsed: receipt?.gasUsed,
+          participantsCount: studyData.participantsCount,
+          createdAt: new Date(transactions[0].created_at).toLocaleDateString(),
+        });
+      } catch (err: any) {
+        console.error("Failed to fetch tx info:", err);
+        setError(err.message ?? String(err));
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTx();
+  }, [studyData?.transactionHash]);
+
+  // TODO: Fetch datapoints and duration from backend
   const dataPointsCollected = 1248;
-  const totalCost = 156.75;
-  const transactionHash = "0x742d35cc6634c0532925a3b844bc9e7fe3c";
   const studyDuration = "45 days";
-  const completionDate = new Date().toLocaleDateString("en-US", {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  });
 
   const handleAccessData = () => {
     // TODO: Implement data access functionality
@@ -87,7 +132,9 @@ export default function StudyCompletionSummary({
                       <Users className="h-8 w-8 text-indigo-600 flex-shrink-0" />
                       <div>
                         <p className="text-sm text-gray-600">Total Participants</p>
-                        <p className="text-2xl font-bold text-gray-900">{totalParticipants}</p>
+                        <p className="text-2xl font-bold text-gray-900">
+                          {txInfo.participantsCount || "-"}
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -117,7 +164,9 @@ export default function StudyCompletionSummary({
                       <DollarSign className="h-8 w-8 text-amber-600 flex-shrink-0" />
                       <div>
                         <p className="text-sm text-gray-600">Total Cost</p>
-                        <p className="text-2xl font-bold text-gray-900">${totalCost}</p>
+                        <p className="text-2xl font-bold text-gray-900">
+                          ${txInfo.valueUsd || "-"}
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -157,7 +206,9 @@ export default function StudyCompletionSummary({
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between items-start">
                       <span className="text-gray-600">Completion Date:</span>
-                      <span className="font-medium text-gray-900 text-right">{completionDate}</span>
+                      <span className="font-medium text-gray-900 text-right">
+                        {txInfo.createdAt || "-"}
+                      </span>
                     </div>
                     <div className="flex justify-between items-start">
                       <span className="text-gray-600">Transaction Hash:</span>
@@ -165,17 +216,19 @@ export default function StudyCompletionSummary({
                         onClick={handleViewTransaction}
                         className="font-mono text-xs text-indigo-600 hover:text-indigo-700 flex items-center space-x-1"
                       >
-                        <span>{transactionHash}...</span>
+                        <span>{txInfo.transactionHash}...</span>
                         <ExternalLink className="h-3 w-3" />
                       </button>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">Gas Fees:</span>
-                      <span className="font-medium text-gray-900">$12.50</span>
+                      <span className="font-medium text-gray-900">{txInfo.gasUsed || "-"}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">Participant Compensation:</span>
-                      <span className="font-medium text-gray-900">$144.25</span>
+                      <span className="font-medium text-gray-900">
+                        {txInfo.valueUsd / txInfo.participantsCount || "-"}
+                      </span>
                     </div>
                   </div>
 
@@ -190,11 +243,9 @@ export default function StudyCompletionSummary({
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600">Block Number:</span>
-                        <span className="font-medium text-gray-900">#12,345,678</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Confirmations:</span>
-                        <span className="font-medium text-gray-900">42</span>
+                        <span className="font-medium text-gray-900">
+                          {txInfo.blockNumber || "-"}
+                        </span>
                       </div>
                     </div>
                   </div>
