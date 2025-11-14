@@ -80,8 +80,8 @@ contract GovernanceDAO {
         address indexed updatedBy
     );
 
-    modifier onlyOwner() {
-        require(msg.sender == owner, "Only owner can call this function");
+    modifier onlyOwner(address caller) {
+        require(caller == owner, "Only owner can call this function");
         _;
     }
 
@@ -97,20 +97,21 @@ contract GovernanceDAO {
         _;
     }
 
-    modifier hasNotVoted(uint256 proposalId) {
-        require(!hasVoted[proposalId][msg.sender], "Already voted on this proposal");
+    modifier hasNotVoted(uint256 proposalId, address voter) {
+        require(!hasVoted[proposalId][voter], "Already voted on this proposal");
         _;
     }
 
-    constructor() {
-        owner = msg.sender;
+    constructor(address caller) {
+        owner = caller;
     }
 
     function createProposal(
         string memory title,
         string memory description,
         ProposalCategory category,
-        uint256 duration
+        uint256 duration,
+        address caller
     ) external returns (uint256) {
         require(bytes(title).length > 0, "Title cannot be empty");
         require(bytes(description).length > 0, "Description cannot be empty");
@@ -124,7 +125,7 @@ contract GovernanceDAO {
             title: title,
             description: description,
             category: category,
-            proposer: msg.sender,
+            proposer: caller,
             startTime: startTime,
             endTime: endTime,
             votesFor: 0,
@@ -133,12 +134,12 @@ contract GovernanceDAO {
             state: ProposalState.Active
         });
 
-        userProposals[msg.sender].push(proposalId);
+        userProposals[caller].push(proposalId);
         proposalCount++;
 
         emit ProposalCreated(
             proposalId,
-            msg.sender,
+            caller,
             title,
             category,
             startTime,
@@ -148,16 +149,16 @@ contract GovernanceDAO {
         return proposalId;
     }
 
-    function vote(uint256 proposalId, VoteChoice choice) 
+    function vote(uint256 proposalId, VoteChoice choice, address caller) 
         external
         proposalExists(proposalId)
         votingActive(proposalId)
-        hasNotVoted(proposalId)
+        hasNotVoted(proposalId, caller)
     {
         require(choice != VoteChoice.None, "Invalid vote choice");
 
-        hasVoted[proposalId][msg.sender] = true;
-        votes[proposalId][msg.sender] = choice;
+        hasVoted[proposalId][caller] = true;
+        votes[proposalId][caller] = choice;
 
         if (choice == VoteChoice.For) {
             proposals[proposalId].votesFor++;
@@ -167,11 +168,11 @@ contract GovernanceDAO {
 
         proposals[proposalId].totalVoters++;
 
-        userVotes[msg.sender].push(proposalId);
-        userVoteCount[msg.sender]++;
+        userVotes[caller].push(proposalId);
+        userVoteCount[caller]++;
         totalVotesCast++;
 
-        emit VoteCast(proposalId, msg.sender, choice, block.timestamp);
+        emit VoteCast(proposalId, caller, choice, block.timestamp);
     }
 
     function finalizeProposal(uint256 proposalId) 
@@ -307,17 +308,17 @@ contract GovernanceDAO {
         return (proposalCount, active, totalVotesCast, 0);
     }
 
-    function setVotingPeriod(uint256 newPeriod) external onlyOwner {
+    function setVotingPeriod(uint256 newPeriod, address caller) external onlyOwner(caller) {
         require(newPeriod >= 1 days, "Voting period must be at least 1 day");
         require(newPeriod <= 30 days, "Voting period cannot exceed 30 days");
 
         uint256 oldPeriod = votingPeriod;
         votingPeriod = newPeriod;
 
-        emit VotingPeriodUpdated(oldPeriod, newPeriod, msg.sender);
+        emit VotingPeriodUpdated(oldPeriod, newPeriod, caller);
     }
 
-    function renounceOwnership() external onlyOwner {
+    function renounceOwnership(address caller) external onlyOwner(caller) {
         owner = address(0);
     }
 

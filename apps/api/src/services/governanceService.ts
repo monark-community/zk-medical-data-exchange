@@ -193,7 +193,7 @@ class GovernanceService {
         address: this.contractAddress as `0x${string}`,
         abi: GOVERNANCE_DAO_ABI,
         functionName: "createProposal",
-        args: [params.title, params.description, params.category, BigInt(params.duration)],
+        args: [params.title, params.description, params.category, BigInt(params.duration), params.walletAddress],
       });
 
       logger.info({ hash }, "Proposal creation transaction sent");
@@ -301,7 +301,7 @@ class GovernanceService {
         address: this.contractAddress as `0x${string}`,
         abi: GOVERNANCE_DAO_ABI,
         functionName: "vote",
-        args: [BigInt(params.proposalId), params.choice],
+        args: [BigInt(params.proposalId), params.choice, params.walletAddress],
       });
 
       logger.info({ hash }, "Vote transaction sent");
@@ -922,7 +922,6 @@ class GovernanceService {
     try {
       logger.info({ proposalId }, "Finalizing proposal on blockchain");
 
-      // Step 1: Finalize on blockchain
       const hash = await this.walletClient.writeContract({
         address: this.contractAddress as `0x${string}`,
         abi: GOVERNANCE_DAO_ABI,
@@ -936,7 +935,6 @@ class GovernanceService {
 
       logger.info({ receipt }, "Proposal finalized on blockchain successfully");
 
-      // Step 2: Update database cache
       const proposalData = await this.publicClient.readContract({
         address: this.contractAddress as `0x${string}`,
         abi: GOVERNANCE_DAO_ABI,
