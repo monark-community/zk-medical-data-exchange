@@ -86,20 +86,14 @@ export default function VoteConfirmationDialog({
   const handleConfirmVote = async () => {
     setError(null);
 
-    // Show non-blocking popup
     show("Submitting your vote on blockchain...");
-
-    // Close the confirmation dialog immediately so user can continue
     onOpenChange(false);
 
     try {
       const result = await vote(voteChoice, proposalId, walletAddress);
 
       if (result.success) {
-        // Emit event to refresh proposals
         emitter.emit("proposalUpdated");
-
-        // Show success message
         show("Vote submitted successfully! ✓");
       } else {
         showError(normalizeVoteError(result.error) || "Failed to submit vote");
