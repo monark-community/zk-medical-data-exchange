@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, Users, Database, CheckCircle } from "lucide-react";
-import { endStudy, getParticipants } from "@/services/api/studyService";
+import { getParticipants } from "@/services/api/studyService";
 import { disperseEthEqual } from "@/utils/disperseEth";
 import { sepolia } from "viem/chains";
 import { http } from "viem";
@@ -76,19 +76,11 @@ export default function EndStudyDialog({
 
     try {
       const result = await verifyTransaction(transactionHash, studyId);
+
       if (!result.verified) {
         console.log("Transaction verification failed:", result.reasons);
         throw new Error("Transaction could not be verified");
       }
-    } catch (error) {
-      console.error("Transaction verification failed:", error);
-      setIsEnding(false);
-      alert("Failed to verify transaction. Please try again.");
-      return;
-    }
-
-    try {
-      // await endStudy(studyId);
 
       setShowSuccess(true);
       setTimeout(() => {
@@ -98,9 +90,10 @@ export default function EndStudyDialog({
         onStudyEnded?.();
       }, 2000);
     } catch (error) {
-      console.error("Failed to update study status in backend:", error);
+      console.error("Transaction verification failed:", error);
       setIsEnding(false);
-      alert("Failed to end study. Please try again.");
+      alert("Failed to verify transaction. Please try again.");
+      return;
     }
   };
   // Placeholder values - will be replaced with actual data later

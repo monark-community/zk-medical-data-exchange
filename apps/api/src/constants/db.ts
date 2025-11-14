@@ -154,6 +154,7 @@ export const TABLES: Record<string, TableDefinition> = {
     name: "transactions",
     columns: {
       id: "id",
+      transactionHash: "transaction_hash",
       fromWallet: "from_wallet",
       toWallet: "to_wallet",
       value: "value",

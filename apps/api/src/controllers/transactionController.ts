@@ -6,7 +6,8 @@ import { sepolia } from "viem/chains";
 import { Config } from "@/config/config";
 
 const RPC_URL = Config.SEPOLIA_RPC_URL;
-const perHeadWei = parseEther("0.001");
+const perHeadEth = 0.001;
+const perHeadWei = parseEther(String(perHeadEth));
 
 const publicClient = createPublicClient({
   chain: sepolia,
@@ -121,22 +122,23 @@ export const verifyTransaction = async (req: Request, res: Response) => {
     let payloads = [];
     for (const participant of participantsData) {
       const insertPayload: Record<string, any> = {
-        [TABLES.TRANSACTIONS!.columns.id!]: transactionHash,
+        [TABLES.TRANSACTIONS!.columns.transactionHash!]: transactionHash,
         [TABLES.TRANSACTIONS!.columns.fromWallet!]: tx.from,
         [TABLES.TRANSACTIONS!.columns.toWallet!]: participant.participant_wallet,
         [TABLES.TRANSACTIONS!.columns.studyId!]: studyId,
-        [TABLES.TRANSACTIONS!.columns.value!]: perHeadWei,
+        [TABLES.TRANSACTIONS!.columns.value!]: perHeadEth,
       };
       payloads.push(insertPayload);
     }
 
-    const { error: insertErr } = await req.supabase
-      .from(TABLES.TRANSACTIONS!.name)
-      .insert(payloads);
+    await req.supabase.from(TABLES.TRANSACTIONS!.name).insert(payloads);
 
-    if (insertErr) {
-      logger.error({ insertErr, payloads }, "Failed to insert transaction record");
-    }
+    await req.supabase
+      .from(TABLES.STUDIES!.name)
+      .update({ [TABLES.STUDIES!.columns.status!]: "completed" })
+      .eq(TABLES.STUDIES!.columns.id!, studyId);
+
+    logger.info({ transactionHash, studyId }, "Transaction verified successfully");
 
     return res.status(200).json({
       verified,

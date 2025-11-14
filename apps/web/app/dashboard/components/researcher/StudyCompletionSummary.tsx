@@ -32,7 +32,6 @@ export default function StudyCompletionSummary({
   onOpenChange,
   studyTitle,
 }: StudyCompletionSummaryProps) {
-  // Placeholder values - will be replaced with actual data later
   const totalParticipants = 42;
   const dataPointsCollected = 1248;
   const totalCost = 156.75;
@@ -158,9 +157,7 @@ export default function StudyCompletionSummary({
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between items-start">
                       <span className="text-gray-600">Completion Date:</span>
-                      <span className="font-medium text-gray-900 text-right">
-                        {completionDate}
-                      </span>
+                      <span className="font-medium text-gray-900 text-right">{completionDate}</span>
                     </div>
                     <div className="flex justify-between items-start">
                       <span className="text-gray-600">Transaction Hash:</span>
