@@ -16,6 +16,7 @@ import { CreateProposalParams } from "@/interfaces/proposal";
 import { useAccount } from "wagmi";
 import ConfirmCreateProposalDialog from "@/app/governance/components/ConfirmCreateProposalDialog";
 import { useBlockchainTxStatusState } from "@/hooks/useTxStatus";
+import emitter from "@/lib/eventBus";
 
 interface CreateProposalFieldProps {
   onSuccess: () => void;
@@ -52,6 +53,7 @@ const CreateProposalField = ({ onSuccess }: CreateProposalFieldProps) => {
 
       if (result.success) {
         show("Proposal created successfully! ✓");
+        emitter.emit("proposalUpdated");
       } else {
         showError(result.error || "Failed to create proposal");
       }

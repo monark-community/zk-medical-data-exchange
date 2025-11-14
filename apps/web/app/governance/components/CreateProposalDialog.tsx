@@ -14,16 +14,11 @@ import {
 import { Gavel } from "lucide-react";
 import CreateProposalField from "@/app/governance/components/CreateProposalField";
 
-interface CreateProposalDialogProps {
-  onProposalCreated: () => void;
-}
-
-const CreateProposalDialog = ({ onProposalCreated }: CreateProposalDialogProps) => {
+const CreateProposalDialog = () => {
   const [open, setOpen] = React.useState(false);
 
   const handleSuccess = () => {
     setOpen(false);
-    onProposalCreated();
   };
 
   return (
