@@ -775,7 +775,7 @@ class StudyService {
       const result = await this.executeContractTransaction(
         studyAddress,
         "joinStudy",
-        [pA, pB, pC, commitment, challengeBytes32],
+        [pA, pB, pC, commitment, challengeBytes32, participantWallet as `0x${string}`],
         "Participation recording"
       );
 
