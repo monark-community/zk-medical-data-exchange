@@ -1,5 +1,5 @@
 // Auto-generated contract ABIs
-// Generated on 2025-11-14T04:15:41.053Z
+// Generated on 2025-11-14T04:24:36.699Z
 
 // ABI type definitions
 interface ABIInput {
@@ -1701,6 +1701,11 @@ export const STUDY_ABI: ABI = [
         "internalType": "bytes32",
         "name": "challenge",
         "type": "bytes32"
+      },
+      {
+        "internalType": "address",
+        "name": "participant",
+        "type": "address"
       }
     ],
     "name": "joinStudy",
@@ -1789,6 +1794,11 @@ export const STUDY_ABI: ABI = [
         "internalType": "bytes32",
         "name": "challenge",
         "type": "bytes32"
+      },
+      {
+        "internalType": "address",
+        "name": "participant",
+        "type": "address"
       }
     ],
     "name": "registerCommitment",
