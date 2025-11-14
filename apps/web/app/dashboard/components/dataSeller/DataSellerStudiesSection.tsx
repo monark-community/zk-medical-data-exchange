@@ -17,13 +17,40 @@ import {
   revokeStudyConsent,
   grantStudyConsent,
 } from "@/services/api/studyService";
-import { 
-  uploadStudyData, 
-  getStudyPublicKey 
-} from "@/services/api/studyDataService";
-import { encryptMedicalDataForUpload } from "@/utils/encryption";
+import { submitZKProofToStudy } from "@/services/api/zkAggregationService";
+import { zkAggregationService, MedicalDataForAggregation } from "@/services/zk/zkAggregationService";
+import { ExtractedMedicalData } from "@/services/fhir/types/extractedMedicalData";
 
 type ViewMode = "enrolled" | "available";
+
+/**
+ * Convert ExtractedMedicalData to MedicalDataForAggregation format
+ * This ensures all required fields are present with default values
+ */
+function convertToAggregationFormat(
+  data: ExtractedMedicalData,
+  salt: string
+): MedicalDataForAggregation {
+  // Use first region if multiple regions are present, default to 0
+  const region = data.regions && data.regions.length > 0 ? data.regions[0] : 0;
+
+  return {
+    age: data.age || 0,
+    gender: data.gender || 0,
+    region,
+    cholesterol: data.cholesterol || 0,
+    bmi: data.bmi || 0,
+    systolicBP: data.systolicBP || 0,
+    diastolicBP: data.diastolicBP || 0,
+    bloodType: data.bloodType || 0,
+    hba1c: data.hba1c || 0,
+    smokingStatus: data.smokingStatus || 0,
+    activityLevel: data.activityLevel || 0,
+    diabetesStatus: data.diabetesStatus || 0,
+    heartDiseaseHistory: data.heartDiseaseStatus || 0,
+    salt,
+  };
+}
 
 export default function DataSellerStudiesSection() {
   const { address: walletAddress } = useAccount();
@@ -106,74 +133,90 @@ export default function DataSellerStudiesSection() {
 
       console.log("✅ [APPLY] Successfully enrolled in study!");
       console.log("✅ [APPLY] Application result:", result);
+      console.log("✅ [APPLY] Salt:", result.salt);
+      console.log("✅ [APPLY] Data Commitment:", result.dataCommitment);
 
-      // 3. Automatically encrypt and upload medical data
-      console.log("🔐 [APPLY] Step 4: Encrypting and uploading medical data");
+      // 3. Generate and submit ZK proof for privacy-preserving data aggregation
+      console.log("🔐 [APPLY] Step 4: Generating ZK proof for data aggregation (NO encryption!)");
+      
+      if (!result.salt || !result.dataCommitment) {
+        throw new Error("Missing salt or data commitment from enrollment. Cannot generate proof.");
+      }
+
       try {
-        // Get study's public key for encryption
-        console.log("🔑 [APPLY] Fetching study's RSA public key...");
-        const publicKeyResponse = await getStudyPublicKey(studyId);
-        console.log("✅ [APPLY] Public key retrieved:", {
-          publicKeyLength: publicKeyResponse.publicKey?.length,
+        // Convert medical data to aggregation format
+        console.log("� [APPLY] Converting medical data to aggregation format...");
+        const aggregationData = convertToAggregationFormat(zkReadyMedicalData, result.salt);
+        console.log("✅ [APPLY] Aggregation data prepared:", {
+          hasAge: !!aggregationData.age,
+          hasGender: !!aggregationData.gender,
+          hasCholesterol: !!aggregationData.cholesterol,
+          salt: result.salt.substring(0, 10) + "...", // Log partial salt for debugging
         });
-        
-        // Encrypt the medical data using hybrid encryption
-        console.log("🔐 [APPLY] Encrypting medical data with hybrid RSA+AES...");
-        const encryptionStart = Date.now();
-        const { encryptedData, encryptedKey } = await encryptMedicalDataForUpload(
-          data, // Use the full aggregated medical data
-          publicKeyResponse.publicKey
+
+        // Generate ZK proof for aggregation
+        console.log("⚙️ [APPLY] Generating ZK proof (this may take a few seconds)...");
+        const proofStart = Date.now();
+        const proofResult = await zkAggregationService.generateAggregationProof(
+          aggregationData,
+          studyId.toString(),
+          result.dataCommitment
         );
-        const encryptionDuration = Date.now() - encryptionStart;
-        console.log("✅ [APPLY] Data encrypted successfully:", {
-          encryptedDataLength: encryptedData.length,
-          encryptedKeyLength: encryptedKey.length,
-          durationMs: encryptionDuration,
+        const proofDuration = Date.now() - proofStart;
+        console.log("✅ [APPLY] ZK proof generated successfully!", {
+          durationMs: proofDuration,
+          hasProof: !!proofResult.proof,
+          hasPublicSignals: !!proofResult.publicSignals,
+          dataCommitmentMatches: proofResult.publicSignals.dataCommitment === result.dataCommitment,
         });
 
-        // Compute hash of ENCRYPTED data for integrity verification
-        console.log("🔐 [APPLY] Computing SHA-256 hash of encrypted data...");
-        const encoder = new TextEncoder();
-        const encryptedDataBuffer = encoder.encode(encryptedData); // Hash the encrypted data, not original
-        const hashBuffer = await window.crypto.subtle.digest('SHA-256', encryptedDataBuffer);
-        const hashArray = Array.from(new Uint8Array(hashBuffer));
-        const dataHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-        console.log("✅ [APPLY] Data hash computed from encrypted data:", dataHash);
+        // Verify data commitment matches
+        if (proofResult.publicSignals.dataCommitment !== result.dataCommitment) {
+          throw new Error(
+            "Data commitment mismatch! Generated proof doesn't match enrollment commitment."
+          );
+        }
 
-        // Upload encrypted data
-        console.log("📤 [APPLY] Uploading encrypted data to backend...");
-        const uploadStart = Date.now();
-        await uploadStudyData(studyId, {
+        // Submit ZK proof to backend
+        console.log("📤 [APPLY] Submitting ZK proof to backend...");
+        const submitStart = Date.now();
+        const submitResult = await submitZKProofToStudy(studyId, {
           participantAddress: walletAddress,
-          encryptedData,
-          encryptionMetadata: {
-            encryptedKey,
-            iv: '', // IV is included in encryptedData
-            authTag: '', // Auth tag is included in encryptedData
-          },
-          dataHash,
+          proof: proofResult.proof,
+          publicSignals: proofResult.publicSignals,
         });
-        const uploadDuration = Date.now() - uploadStart;
-        console.log("✅ [APPLY] Medical data successfully uploaded!", {
-          durationMs: uploadDuration,
+        const submitDuration = Date.now() - submitStart;
+        console.log("✅ [APPLY] ZK proof submitted successfully!", {
+          durationMs: submitDuration,
+          privacyGuarantee: submitResult.privacyGuarantee,
         });
 
         const totalDuration = Date.now() - startTime;
         console.log("🎉 [APPLY] ============================================");
         console.log("🎉 [APPLY] COMPLETE! Total duration:", totalDuration, "ms");
+        console.log("🎉 [APPLY] Privacy Guarantee:", submitResult.privacyGuarantee);
         console.log("🎉 [APPLY] ============================================");
-      } catch (uploadError: any) {
-        console.error("❌ [APPLY] ============================================");
-        console.error("❌ [APPLY] Upload failed!");
-        console.error("❌ [APPLY] Error:", uploadError);
-        console.error("❌ [APPLY] Error message:", uploadError.message);
-        console.error("❌ [APPLY] Error stack:", uploadError.stack);
-        console.error("❌ [APPLY] ============================================");
-        // Note: Don't throw here - enrollment was successful, upload can be retried
-        alert(`Enrolled successfully, but data upload failed: ${uploadError.message}. Please contact support.`);
-      }
 
-      alert(`${result.message}\n\nYour medical data has been automatically encrypted and uploaded to the study.`);
+        alert(
+          `${result.message}\n\n` +
+          `✅ ZK Proof Generated & Submitted!\n\n` +
+          `Privacy Guarantee: ${submitResult.privacyGuarantee}\n\n` +
+          `Your raw medical data was NEVER sent to the server. ` +
+          `Only binned/categorized values are stored for aggregation.`
+        );
+      } catch (proofError: any) {
+        console.error("❌ [APPLY] ============================================");
+        console.error("❌ [APPLY] ZK Proof generation/submission failed!");
+        console.error("❌ [APPLY] Error:", proofError);
+        console.error("❌ [APPLY] Error message:", proofError.message);
+        console.error("❌ [APPLY] Error stack:", proofError.stack);
+        console.error("❌ [APPLY] ============================================");
+        // Note: Don't throw here - enrollment was successful, proof can be retried
+        alert(
+          `Enrolled successfully, but ZK proof submission failed: ${proofError.message}\n\n` +
+          `You can retry submitting your data later. Please contact support if this persists.`
+        );
+      }
       refetch();
       if (walletAddress) {
         getEnrolledStudies(walletAddress)

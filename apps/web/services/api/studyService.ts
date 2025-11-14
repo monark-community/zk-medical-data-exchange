@@ -194,7 +194,7 @@ export class StudyApplicationService {
     studyId: number,
     medicalData: ExtractedMedicalData,
     walletAddress: string
-  ): Promise<{ success: boolean; message: string }> {
+  ): Promise<{ success: boolean; message: string; salt?: string; dataCommitment?: string }> {
     try {
       console.log("Fetching study criteria");
       const studyCriteria = await this.getStudyCriteria(studyId);
@@ -256,6 +256,8 @@ export class StudyApplicationService {
       return {
         success: true,
         message: "Successfully applied to study! Your medical data remained private.",
+        salt: salt.toString(),
+        dataCommitment: dataCommitment.toString(),
       };
     } catch (error) {
       console.error("Study application failed:", error);

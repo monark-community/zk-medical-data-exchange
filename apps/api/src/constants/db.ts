@@ -121,6 +121,18 @@ export const TABLES: Record<string, TableDefinition> = {
     },
   },
 
+  STUDY_ZK_AGGREGATION_PROOFS: {
+    name: "study_zk_aggregation_proofs",
+    columns: {
+      id: "id",
+      studyId: "study_id",
+      participantAddress: "participant_address",
+      proof: "proof",
+      publicSignals: "public_signals",
+      submittedAt: "submitted_at",
+    },
+  },
+
   STUDY_AGGREGATED_DATA: {
     name: "study_aggregated_data",
     columns: {

@@ -130,51 +130,158 @@ export class ZKDataAggregationService {
     studyId: number,
     studyAddress: string
   ): Promise<ZKAggregationResult> {
-    try {
-      logger.info({ studyId, studyAddress }, '🔐 Starting ZK-based data aggregation');
+    const startTime = Date.now();
+    logger.info(
+      { studyId, studyAddress },
+      '🔐 [ZK-SERVICE] ============================================'
+    );
+    logger.info(
+      { studyId, studyAddress },
+      '🔐 [ZK-SERVICE] Starting ZK-based data aggregation'
+    );
 
+    try {
       // 1. Verify study has ended
+      logger.info(
+        { studyId, step: 'VERIFY_ENDED' },
+        '🔍 [ZK-SERVICE] Verifying study has ended...'
+      );
+      const verifyStart = Date.now();
       await this.verifyStudyEnded(studyAddress);
+      const verifyDuration = Date.now() - verifyStart;
+      logger.info(
+        { studyId, verifyDuration },
+        `✅ [ZK-SERVICE] Study end verified in ${verifyDuration}ms`
+      );
 
       // 2. Get participant list from blockchain
-      const participantAddresses = await this.getParticipantList(studyAddress);
       logger.info(
-        { studyId, participantCount: participantAddresses.length },
-        '✅ Retrieved participant list from blockchain'
+        { studyId, step: 'GET_PARTICIPANTS' },
+        '🔍 [ZK-SERVICE] Fetching participants from blockchain...'
+      );
+      const participantsStart = Date.now();
+      const participantAddresses = await this.getParticipantList(studyAddress);
+      const participantsDuration = Date.now() - participantsStart;
+      logger.info(
+        { studyId, participantCount: participantAddresses.length, participantsDuration },
+        `✅ [ZK-SERVICE] Retrieved ${participantAddresses.length} participants in ${participantsDuration}ms`
       );
 
       // 3. Check k-anonymity threshold
+      logger.info(
+        { studyId, step: 'K_ANONYMITY' },
+        '🔍 [ZK-SERVICE] Checking k-anonymity threshold...'
+      );
       const meetsKAnonymity = await this.validateKAnonymityThreshold(
         participantAddresses.length
       );
       if (!meetsKAnonymity) {
+        logger.error(
+          { studyId, participantCount: participantAddresses.length, minRequired: 10 },
+          '❌ [ZK-SERVICE] Study does not meet k-anonymity threshold'
+        );
         throw new Error(
           `Study does not meet k-anonymity threshold. Required: 10, Actual: ${participantAddresses.length}`
         );
       }
-
-      // 4. Fetch ZK proofs from database (NOT encrypted data!)
-      const zkProofs = await this.fetchParticipantProofs(studyId, participantAddresses);
       logger.info(
-        { studyId, proofCount: zkProofs.length },
-        '✅ Fetched ZK proofs from database (no raw data stored!)'
+        { studyId, participantCount: participantAddresses.length },
+        '✅ [ZK-SERVICE] K-anonymity threshold met'
       );
 
+      // 4. Fetch ZK proofs from database (NOT encrypted data!)
+      logger.info(
+        { studyId, step: 'FETCH_PROOFS' },
+        '🔍 [ZK-SERVICE] Fetching ZK proofs from database...'
+      );
+      const fetchStart = Date.now();
+      const zkProofs = await this.fetchParticipantProofs(studyId, participantAddresses);
+      const fetchDuration = Date.now() - fetchStart;
+      logger.info(
+        { studyId, proofCount: zkProofs.length, totalParticipants: participantAddresses.length, fetchDuration },
+        `✅ [ZK-SERVICE] Fetched ${zkProofs.length} ZK proofs in ${fetchDuration}ms (no raw data stored!)`
+      );
+
+      // GRACEFUL DEGRADATION: Handle missing proofs
+      if (zkProofs.length < participantAddresses.length) {
+        const missingCount = participantAddresses.length - zkProofs.length;
+        logger.warn(
+          { studyId, missingCount, totalParticipants: participantAddresses.length },
+          `⚠️ [ZK-SERVICE] ${missingCount} participants enrolled but missing aggregation proofs. ` +
+          `This can happen if proof generation failed during enrollment. ` +
+          `Aggregating data from ${zkProofs.length} participants only.`
+        );
+      }
+
+      if (zkProofs.length === 0) {
+        logger.error(
+          { studyId },
+          '❌ [ZK-SERVICE] No ZK aggregation proofs found'
+        );
+        throw new Error('No ZK aggregation proofs found. Participants may not have submitted data yet.');
+      }
+
       // 5. Verify all proofs are valid
+      logger.info(
+        { studyId, step: 'VERIFY_PROOFS', proofCount: zkProofs.length },
+        '🔍 [ZK-SERVICE] Verifying all ZK proofs...'
+      );
+      const verifyProofsStart = Date.now();
       await this.verifyAllProofs(zkProofs, studyId);
-      logger.info({ studyId }, '✅ All ZK proofs verified successfully');
+      const verifyProofsDuration = Date.now() - verifyProofsStart;
+      logger.info(
+        { studyId, proofCount: zkProofs.length, verifyProofsDuration },
+        `✅ [ZK-SERVICE] All ${zkProofs.length} proofs verified in ${verifyProofsDuration}ms`
+      );
 
       // 6. Aggregate public signals (binned data)
+      logger.info(
+        { studyId, step: 'AGGREGATE_DATA' },
+        '🔢 [ZK-SERVICE] Aggregating public signals...'
+      );
+      const aggregateStart = Date.now();
       const aggregatedStats = await this.aggregatePublicSignals(zkProofs);
-      logger.info({ studyId }, '✅ Aggregated statistics from public signals');
+      const aggregateDuration = Date.now() - aggregateStart;
+      logger.info(
+        { studyId, aggregateDuration },
+        `✅ [ZK-SERVICE] Aggregated statistics in ${aggregateDuration}ms`
+      );
 
       // 7. Store aggregated results
+      logger.info(
+        { studyId, step: 'STORE_RESULTS' },
+        '💾 [ZK-SERVICE] Storing aggregated data...'
+      );
+      const storeStart = Date.now();
       await this.storeAggregatedData(studyId, studyAddress, aggregatedStats);
-      logger.info({ studyId }, '✅ Stored aggregated data in database');
+      const storeDuration = Date.now() - storeStart;
+      logger.info(
+        { studyId, storeDuration },
+        `✅ [ZK-SERVICE] Stored aggregated data in ${storeDuration}ms`
+      );
 
       // 8. Audit log
+      logger.info(
+        { studyId, step: 'AUDIT' },
+        '📝 [ZK-SERVICE] Creating audit log...'
+      );
       const studyCreator = await this.getStudyCreator(studyAddress);
       await this.logDataAccess(studyId, studyCreator, 'ZK_AGGREGATION', participantAddresses.length);
+      logger.info({ studyId }, '✅ [ZK-SERVICE] Audit log created');
+
+      const totalDuration = Date.now() - startTime;
+      logger.info(
+        { studyId, participantCount: participantAddresses.length, totalDuration },
+        `🎉 [ZK-SERVICE] ============================================`
+      );
+      logger.info(
+        { studyId, totalDuration },
+        `🎉 [ZK-SERVICE] Aggregation COMPLETE in ${totalDuration}ms`
+      );
+      logger.info(
+        { studyId },
+        `🎉 [ZK-SERVICE] ============================================`
+      );
 
       return {
         studyId,
@@ -186,13 +293,27 @@ export class ZKDataAggregationService {
         privacyGuarantee: 'Zero-knowledge: Server never accessed raw medical data. Only binned/categorized values were aggregated.',
       };
     } catch (error) {
+      const totalDuration = Date.now() - startTime;
+      logger.error(
+        {
+          error: error instanceof Error ? error.message : String(error),
+          errorStack: error instanceof Error ? error.stack : undefined,
+          studyId,
+          studyAddress,
+          totalDuration,
+        },
+        '❌ [ZK-SERVICE] ============================================'
+      );
       logger.error(
         {
           error: error instanceof Error ? error.message : String(error),
           studyId,
-          studyAddress,
         },
-        '❌ Failed to aggregate study data using ZK proofs'
+        '❌ [ZK-SERVICE] Failed to aggregate study data using ZK proofs'
+      );
+      logger.error(
+        { studyId },
+        '❌ [ZK-SERVICE] ============================================'
       );
       throw error;
     }

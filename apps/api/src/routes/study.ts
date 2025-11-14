@@ -12,6 +12,11 @@ import {
   revokeStudyConsent,
   grantStudyConsent,
 } from "@/controllers/studyController";
+import {
+  submitZKProof,
+  aggregateStudyDataZK,
+  getZKAggregation,
+} from "@/controllers/zkAggregationController";
 
 const router = Router();
 
@@ -401,5 +406,69 @@ router.post("/:id/consent/revoke", revokeStudyConsent);
  *         description: Internal server error
  */
 router.post("/:id/consent/grant", grantStudyConsent);
+
+/**
+ * @swagger
+ * /studies/:id/submit-zk-proof:
+ *   post:
+ *     summary: Submit ZK proof for privacy-preserving data aggregation
+ *     description: Submit a zero-knowledge proof that proves your medical data validity without revealing raw values
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Study ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               participantAddress:
+ *                 type: string
+ *               proof:
+ *                 type: object
+ *               publicSignals:
+ *                 type: object
+ *     responses:
+ *       200:
+ *         description: ZK proof submitted successfully
+ *       400:
+ *         description: Invalid proof
+ *       500:
+ *         description: Internal server error
+ */
+router.post("/:id/submit-zk-proof", submitZKProof);
+
+/**
+ * @swagger
+ * /studies/:id/aggregate-zk:
+ *   post:
+ *     summary: Trigger ZK-based aggregation for a study
+ *     responses:
+ *       200:
+ *         description: Aggregation completed successfully
+ *       500:
+ *         description: Internal server error
+ */
+router.post("/:id/aggregate-zk", aggregateStudyDataZK);
+
+/**
+ * @swagger
+ * /studies/:id/zk-aggregation:
+ *   get:
+ *     summary: Get ZK-based aggregated statistics for a study
+ *     responses:
+ *       200:
+ *         description: Aggregated statistics retrieved successfully
+ *       404:
+ *         description: No aggregation data found
+ *       500:
+ *         description: Internal server error
+ */
+router.get("/:id/zk-aggregation", getZKAggregation);
 
 export default router;

@@ -6,3 +6,4 @@
 export * from "./studyService";
 export * from "./dataVaultService";
 export * from "./auditService";
+export * from "./zkAggregationService";
