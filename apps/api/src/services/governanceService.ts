@@ -9,7 +9,7 @@ import { privateKeyToAccount } from "viem/accounts";
 import { createClient } from "@supabase/supabase-js";
 import logger from "@/utils/logger";
 import { Config } from "@/config/config";
-import { GOVERNANCE_DAO_ABI } from "@/contracts/generated";
+import { GOVERNANCE_FACTORY_ABI, PROPOSAL_ABI } from "@/contracts/generated";
 import { TABLES } from "@/constants/db";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -122,20 +122,20 @@ class GovernanceService {
   private walletClient: any;
   private publicClient: any;
   private account: any;
-  private contractAddress: string;
+  private factoryAddress: string;
   private supabase: SupabaseClient;
 
   constructor() {
     const privateKey = Config.SEPOLIA_PRIVATE_KEY;
     const rpcUrl = Config.SEPOLIA_RPC_URL;
-    this.contractAddress = Config.GOVERNANCE_DAO_ADDRESS;
+    this.factoryAddress = Config.GOVERNANCE_DAO_ADDRESS;
 
     if (!privateKey) {
       throw new Error("SEPOLIA_PRIVATE_KEY environment variable is required");
     }
 
-    if (!this.contractAddress) {
-      throw new Error("GOVERNANCE_DAO_ADDRESS environment variable is required");
+    if (!this.factoryAddress) {
+      throw new Error("GOVERNANCE_FACTORY_ADDRESS environment variable is required");
     }
 
     const formattedPrivateKey = privateKey.startsWith("0x") ? privateKey : `0x${privateKey}`;
@@ -168,7 +168,7 @@ class GovernanceService {
 
     logger.info(
       {
-        contractAddress: this.contractAddress,
+        factoryAddress: this.factoryAddress,
         account: this.account.address,
       },
       "GovernanceService initialized"
@@ -190,8 +190,8 @@ class GovernanceService {
       }
 
       const hash = await this.walletClient.writeContract({
-        address: this.contractAddress as `0x${string}`,
-        abi: GOVERNANCE_DAO_ABI,
+        address: this.factoryAddress as `0x${string}`,
+        abi: GOVERNANCE_FACTORY_ABI,
         functionName: "createProposal",
         args: [params.title, params.description, params.category, BigInt(params.duration), params.walletAddress],
       });
@@ -203,20 +203,21 @@ class GovernanceService {
       logger.info({ receipt }, "Proposal created on blockchain successfully");
 
       let proposalId: number | undefined;
+      let proposalContract: string | undefined;
       for (const log of receipt.logs) {
         try {
           const decoded = decodeEventLog({
-            abi: GOVERNANCE_DAO_ABI,
+            abi: GOVERNANCE_FACTORY_ABI,
             data: log.data,
             topics: log.topics,
           });
-          logger.info({ decoded }, "Decoded event log");
           if (decoded.eventName === "ProposalCreated" && decoded.args) {
             proposalId = Number((decoded.args as any).proposalId);
+            proposalContract = (decoded.args as any).proposalContract as string;
             break;
           }
         } catch {
-          // Ignore logs that don't match
+          // skip non-matching logs
         }
       }
 
@@ -228,14 +229,43 @@ class GovernanceService {
         };
       }
 
-      // Fetch complete proposal data from blockchain
-      const blockchainProposal = await this.publicClient.readContract({
-        address: this.contractAddress as `0x${string}`,
-        abi: GOVERNANCE_DAO_ABI,
-        functionName: "getProposal",
-        args: [BigInt(proposalId)],
+      // Fetch per-proposal details from Proposal contract
+      const startTime = await this.publicClient.readContract({
+        address: proposalContract as `0x${string}`,
+        abi: PROPOSAL_ABI,
+        functionName: "startTime",
+        args: [],
       });
-      logger.info({ blockchainProposal }, "DEBUG getProposal result");
+      const endTime = await this.publicClient.readContract({
+        address: proposalContract as `0x${string}`,
+        abi: PROPOSAL_ABI,
+        functionName: "endTime",
+        args: [],
+      });
+      const votesFor = await this.publicClient.readContract({
+        address: proposalContract as `0x${string}`,
+        abi: PROPOSAL_ABI,
+        functionName: "votesFor",
+        args: [],
+      });
+      const votesAgainst = await this.publicClient.readContract({
+        address: proposalContract as `0x${string}`,
+        abi: PROPOSAL_ABI,
+        functionName: "votesAgainst",
+        args: [],
+      });
+      const totalVoters = await this.publicClient.readContract({
+        address: proposalContract as `0x${string}`,
+        abi: PROPOSAL_ABI,
+        functionName: "totalVoters",
+        args: [],
+      });
+      const state = await this.publicClient.readContract({
+        address: proposalContract as `0x${string}`,
+        abi: PROPOSAL_ABI,
+        functionName: "state",
+        args: [],
+      });
 
       // Save to database for fast queries
       const { error: dbError } = await this.supabase.from(PROPOSALS!.name).insert({
@@ -244,12 +274,12 @@ class GovernanceService {
         description: params.description,
         category: params.category,
         proposer: params.walletAddress,
-        start_time: Number(blockchainProposal.startTime),
-        end_time: Number(blockchainProposal.endTime),
-        votes_for: Number(blockchainProposal.votesFor),
-        votes_against: Number(blockchainProposal.votesAgainst),
-        total_voters: Number(blockchainProposal.totalVoters),
-        state: Number(blockchainProposal.state),
+        start_time: Number(startTime),
+        end_time: Number(endTime),
+        votes_for: Number(votesFor),
+        votes_against: Number(votesAgainst),
+        total_voters: Number(totalVoters),
+        state: Number(state),
         deployment_tx_hash: hash,
         chain_id: 11155111, // Sepolia
       });
@@ -297,11 +327,20 @@ class GovernanceService {
       }
 
       // Submit vote to blockchain
+      // Resolve proposal contract address from factory registry
+      const registry = await this.publicClient.readContract({
+        address: this.factoryAddress as `0x${string}`,
+        abi: GOVERNANCE_FACTORY_ABI,
+        functionName: "proposals",
+        args: [BigInt(params.proposalId)],
+      });
+      const proposalContract = (registry as any).proposalContract ?? (registry as any)[0];
+
       const hash = await this.walletClient.writeContract({
-        address: this.contractAddress as `0x${string}`,
-        abi: GOVERNANCE_DAO_ABI,
+        address: proposalContract as `0x${string}`,
+        abi: PROPOSAL_ABI,
         functionName: "vote",
-        args: [BigInt(params.proposalId), params.choice, params.walletAddress],
+        args: [params.choice, params.walletAddress],
       });
 
       logger.info({ hash }, "Vote transaction sent");
@@ -312,21 +351,40 @@ class GovernanceService {
 
       // Update database cache with new vote counts
       // Get updated proposal data from blockchain
-      const proposalData = await this.publicClient.readContract({
-        address: this.contractAddress as `0x${string}`,
-        abi: GOVERNANCE_DAO_ABI,
-        functionName: "getProposal",
-        args: [BigInt(params.proposalId)],
+      // Updated counts from proposal contract
+      const votesFor = await this.publicClient.readContract({
+        address: proposalContract as `0x${string}`,
+        abi: PROPOSAL_ABI,
+        functionName: "votesFor",
+        args: [],
+      });
+      const votesAgainst = await this.publicClient.readContract({
+        address: proposalContract as `0x${string}`,
+        abi: PROPOSAL_ABI,
+        functionName: "votesAgainst",
+        args: [],
+      });
+      const totalVoters = await this.publicClient.readContract({
+        address: proposalContract as `0x${string}`,
+        abi: PROPOSAL_ABI,
+        functionName: "totalVoters",
+        args: [],
+      });
+      const state = await this.publicClient.readContract({
+        address: proposalContract as `0x${string}`,
+        abi: PROPOSAL_ABI,
+        functionName: "state",
+        args: [],
       });
 
       // Update proposal vote counts in database
       const { error: updateError } = await this.supabase
         .from(PROPOSALS!.name)
         .update({
-          votes_for: Number((proposalData as any).votesFor ?? (proposalData as any)[7]),
-          votes_against: Number((proposalData as any).votesAgainst ?? (proposalData as any)[8]),
-          total_voters: Number((proposalData as any).totalVoters ?? (proposalData as any)[9]),
-          state: Number((proposalData as any).state ?? (proposalData as any)[10]),
+          votes_for: Number(votesFor),
+          votes_against: Number(votesAgainst),
+          total_voters: Number(totalVoters),
+          state: Number(state),
         })
         .eq(PROPOSALS!.columns.id!, params.proposalId);
 
@@ -399,16 +457,16 @@ class GovernanceService {
 
       if (!dbProposal) {
         // If not in DB, check blockchain quickly
-        const onChain = await this.publicClient
+        const onChainRegistry = await this.publicClient
           .readContract({
-            address: this.contractAddress as `0x${string}`,
-            abi: GOVERNANCE_DAO_ABI,
-            functionName: "getProposal",
+            address: this.factoryAddress as `0x${string}`,
+            abi: GOVERNANCE_FACTORY_ABI,
+            functionName: "proposals",
             args: [BigInt(params.proposalId)],
           })
           .catch(() => null);
 
-        if (!onChain) {
+        if (!onChainRegistry) {
           return { success: false, error: "Proposal not found" };
         }
       }
@@ -548,53 +606,83 @@ class GovernanceService {
     userAddress?: string
   ): Promise<Proposal | null> {
     try {
-      const proposalData = await this.publicClient.readContract({
-        address: this.contractAddress as `0x${string}`,
-        abi: GOVERNANCE_DAO_ABI,
-        functionName: "getProposal",
+      // Fetch registry entry
+      const registry = await this.publicClient.readContract({
+        address: this.factoryAddress as `0x${string}`,
+        abi: GOVERNANCE_FACTORY_ABI,
+        functionName: "proposals",
         args: [BigInt(proposalId)],
+      });
+      const proposalContract = (registry as any).proposalContract ?? (registry as any)[0];
+      const title = (registry as any).title ?? (registry as any)[1];
+      const category = Number((registry as any).category ?? (registry as any)[2]) as ProposalCategory;
+      const proposer = (registry as any).proposer ?? (registry as any)[3];
+      const startTime = Number((registry as any).startTime ?? (registry as any)[4]);
+      const endTime = Number((registry as any).endTime ?? (registry as any)[5]);
+
+      // Fetch dynamic fields from proposal contract
+      const description = await this.publicClient.readContract({
+        address: proposalContract as `0x${string}`,
+        abi: PROPOSAL_ABI,
+        functionName: "description",
+        args: [],
+      });
+      const votesFor = await this.publicClient.readContract({
+        address: proposalContract as `0x${string}`,
+        abi: PROPOSAL_ABI,
+        functionName: "votesFor",
+        args: [],
+      });
+      const votesAgainst = await this.publicClient.readContract({
+        address: proposalContract as `0x${string}`,
+        abi: PROPOSAL_ABI,
+        functionName: "votesAgainst",
+        args: [],
+      });
+      const totalVoters = await this.publicClient.readContract({
+        address: proposalContract as `0x${string}`,
+        abi: PROPOSAL_ABI,
+        functionName: "totalVoters",
+        args: [],
+      });
+      const state = await this.publicClient.readContract({
+        address: proposalContract as `0x${string}`,
+        abi: PROPOSAL_ABI,
+        functionName: "state",
+        args: [],
       });
 
       const proposal: Proposal = {
-        id: Number((proposalData as any).id ?? (proposalData as any)[0]),
-        title: (proposalData as any).title ?? (proposalData as any)[1],
-        description: (proposalData as any).description ?? (proposalData as any)[2],
-        category: Number(
-          (proposalData as any).category ?? (proposalData as any)[3]
-        ) as ProposalCategory,
-        proposer: (proposalData as any).proposer ?? (proposalData as any)[4],
-        startTime: Number((proposalData as any).startTime ?? (proposalData as any)[5]),
-        endTime: Number((proposalData as any).endTime ?? (proposalData as any)[6]),
-        votesFor: Number((proposalData as any).votesFor ?? (proposalData as any)[7]),
-        votesAgainst: Number((proposalData as any).votesAgainst ?? (proposalData as any)[8]),
-        totalVoters: Number((proposalData as any).totalVoters ?? (proposalData as any)[9]),
-        state: Number((proposalData as any).state ?? (proposalData as any)[10]) as ProposalState,
+        id: proposalId,
+        title,
+        description: description as string,
+        category,
+        proposer,
+        startTime,
+        endTime,
+        votesFor: Number(votesFor),
+        votesAgainst: Number(votesAgainst),
+        totalVoters: Number(totalVoters),
+        state: Number(state) as ProposalState,
+        timeRemaining: Math.max(0, endTime - Math.floor(Date.now() / 1000)),
       };
-
-      const timeRemaining = await this.publicClient.readContract({
-        address: this.contractAddress as `0x${string}`,
-        abi: GOVERNANCE_DAO_ABI,
-        functionName: "getTimeRemaining",
-        args: [BigInt(proposalId)],
-      });
-      proposal.timeRemaining = Number(timeRemaining);
 
       if (userAddress) {
         const hasVoted = await this.publicClient.readContract({
-          address: this.contractAddress as `0x${string}`,
-          abi: GOVERNANCE_DAO_ABI,
-          functionName: "getHasVoted",
-          args: [BigInt(proposalId), userAddress as `0x${string}`],
+          address: proposalContract as `0x${string}`,
+          abi: PROPOSAL_ABI,
+          functionName: "hasVoted",
+          args: [userAddress as `0x${string}`],
         });
 
         proposal.hasVoted = hasVoted;
 
         if (hasVoted) {
           const vote = await this.publicClient.readContract({
-            address: this.contractAddress as `0x${string}`,
-            abi: GOVERNANCE_DAO_ABI,
-            functionName: "getVote",
-            args: [BigInt(proposalId), userAddress as `0x${string}`],
+            address: proposalContract as `0x${string}`,
+            abi: PROPOSAL_ABI,
+            functionName: "votes",
+            args: [userAddress as `0x${string}`],
           });
           proposal.userVote = Number(vote) as VoteChoice;
         }
@@ -922,11 +1010,20 @@ class GovernanceService {
     try {
       logger.info({ proposalId }, "Finalizing proposal on blockchain");
 
-      const hash = await this.walletClient.writeContract({
-        address: this.contractAddress as `0x${string}`,
-        abi: GOVERNANCE_DAO_ABI,
-        functionName: "finalizeProposal",
+      // Resolve proposal contract
+      const registry = await this.publicClient.readContract({
+        address: this.factoryAddress as `0x${string}`,
+        abi: GOVERNANCE_FACTORY_ABI,
+        functionName: "proposals",
         args: [BigInt(proposalId)],
+      });
+      const proposalContract = (registry as any).proposalContract ?? (registry as any)[0];
+
+      const hash = await this.walletClient.writeContract({
+        address: proposalContract as `0x${string}`,
+        abi: PROPOSAL_ABI,
+        functionName: "finalize",
+        args: [],
       });
 
       logger.info({ hash }, "Finalize transaction sent");
@@ -935,17 +1032,17 @@ class GovernanceService {
 
       logger.info({ receipt }, "Proposal finalized on blockchain successfully");
 
-      const proposalData = await this.publicClient.readContract({
-        address: this.contractAddress as `0x${string}`,
-        abi: GOVERNANCE_DAO_ABI,
-        functionName: "getProposal",
-        args: [BigInt(proposalId)],
+      const state = await this.publicClient.readContract({
+        address: proposalContract as `0x${string}`,
+        abi: PROPOSAL_ABI,
+        functionName: "state",
+        args: [],
       });
 
       const { error: updateError } = await this.supabase
         .from(PROPOSALS!.name)
         .update({
-          state: Number((proposalData as any).state ?? (proposalData as any)[10]),
+          state: Number(state),
         })
         .eq(PROPOSALS!.columns.id!, proposalId);
 

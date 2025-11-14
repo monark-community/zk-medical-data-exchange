@@ -1,7 +1,7 @@
 import { network } from "hardhat";
 
 async function main() {
-  console.log("Deploying GovernanceDAO to Sepolia...\n");
+  console.log("Deploying GovernanceFactory to Sepolia...\n");
 
   const { viem } = await network.connect({
     network: "sepolia",
@@ -13,17 +13,16 @@ async function main() {
 
   const balance = await publicClient.getBalance({ address: deployer.account.address });
   const balanceEth = Number(balance) / 1e18;
-
   if (balanceEth < 0.01) {
     console.log(" WARNING: Low balance! Get Sepolia ETH from https://sepoliafaucet.com/\n");
   }
 
-  const governanceDAO = await viem.deployContract("GovernanceDAO", );
+  // Open creation by default so anyone can create proposals
+  const governanceFactory = await viem.deployContract("GovernanceFactory", [true]);
 
   console.log(" Deployment successful!\n");
-  console.log(`Contract Address: ${governanceDAO.address}`);
-  console.log(`Etherscan: https://sepolia.etherscan.io/address/${governanceDAO.address}`);
-  console.log(`\nUpdate .env with: GOVERNANCE_DAO_ADDRESS=${governanceDAO.address}\n`);
+  console.log(`Contract Address: ${governanceFactory.address}`);
+  console.log(`Etherscan: https://sepolia.etherscan.io/address/${governanceFactory.address}`);
 
   const deploymentInfo = {
     network: "sepolia",
@@ -31,7 +30,7 @@ async function main() {
     deployedAt: new Date().toISOString(),
     deployer: deployer.account.address,
     contracts: {
-      GovernanceDAO: governanceDAO.address,
+      GovernanceFactory: governanceFactory.address,
     },
   };
 

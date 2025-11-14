@@ -117,9 +117,14 @@ function generateABIs(): void {
       path: "audit/AuditTrail.sol/AuditTrail.json",
     },
     {
-      name: "GovernanceDAO",
-      export: "GOVERNANCE_DAO_ABI",
-      path: "governance/GovernanceDAO.sol/GovernanceDAO.json",
+      name: "GovernanceFactory",
+      export: "GOVERNANCE_FACTORY_ABI",
+      path: "governance/GovernanceFactory.sol/GovernanceFactory.json",
+    },
+    {
+      name: "Proposal",
+      export: "PROPOSAL_ABI",
+      path: "governance/Proposal.sol/Proposal.json",
     },
   ];
 

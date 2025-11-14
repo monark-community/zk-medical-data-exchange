@@ -1,5 +1,5 @@
 // Auto-generated contract ABIs
-// Generated on 2025-11-14T04:56:51.575Z
+// Generated on 2025-11-14T05:22:13.635Z
 
 // ABI type definitions
 interface ABIInput {
@@ -2751,11 +2751,74 @@ export const AUDIT_TRAIL_ABI: ABI = [
   }
 ] as const;
 
-export const GOVERNANCE_DAO_ABI: ABI = [
+export const GOVERNANCE_FACTORY_ABI: ABI = [
   {
-    "inputs": [],
+    "inputs": [
+      {
+        "internalType": "bool",
+        "name": "_openCreation",
+        "type": "bool"
+      }
+    ],
     "stateMutability": "nonpayable",
     "type": "constructor"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "bool",
+        "name": "openCreation",
+        "type": "bool"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "changedBy",
+        "type": "address"
+      }
+    ],
+    "name": "CreationModeChanged",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "creator",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "authorizedBy",
+        "type": "address"
+      }
+    ],
+    "name": "CreatorAuthorized",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "creator",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "revokedBy",
+        "type": "address"
+      }
+    ],
+    "name": "CreatorRevoked",
+    "type": "event"
   },
   {
     "anonymous": false,
@@ -2769,6 +2832,12 @@ export const GOVERNANCE_DAO_ABI: ABI = [
       {
         "indexed": true,
         "internalType": "address",
+        "name": "proposalContract",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
         "name": "proposer",
         "type": "address"
       },
@@ -2777,24 +2846,6 @@ export const GOVERNANCE_DAO_ABI: ABI = [
         "internalType": "string",
         "name": "title",
         "type": "string"
-      },
-      {
-        "indexed": false,
-        "internalType": "enum GovernanceDAO.ProposalCategory",
-        "name": "category",
-        "type": "uint8"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "startTime",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "endTime",
-        "type": "uint256"
       }
     ],
     "name": "ProposalCreated",
@@ -2810,8 +2861,351 @@ export const GOVERNANCE_DAO_ABI: ABI = [
         "type": "uint256"
       },
       {
+        "indexed": true,
+        "internalType": "address",
+        "name": "deactivatedBy",
+        "type": "address"
+      }
+    ],
+    "name": "ProposalDeactivated",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "creator",
+        "type": "address"
+      }
+    ],
+    "name": "authorizeCreator",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "authorizedCreators",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "string",
+        "name": "title",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "description",
+        "type": "string"
+      },
+      {
+        "internalType": "enum Proposal.ProposalCategory",
+        "name": "category",
+        "type": "uint8"
+      },
+      {
+        "internalType": "uint256",
+        "name": "duration",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "proposer",
+        "type": "address"
+      }
+    ],
+    "name": "createProposal",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "proposalId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "proposalAddress",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "proposalId",
+        "type": "uint256"
+      }
+    ],
+    "name": "deactivateProposal",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "openCreation",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "owner",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "proposalAddressToId",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "proposalCount",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "proposals",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "proposalContract",
+        "type": "address"
+      },
+      {
+        "internalType": "string",
+        "name": "title",
+        "type": "string"
+      },
+      {
+        "internalType": "enum Proposal.ProposalCategory",
+        "name": "category",
+        "type": "uint8"
+      },
+      {
+        "internalType": "address",
+        "name": "proposer",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "startTime",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "endTime",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "createdAt",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bool",
+        "name": "active",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "proposalsByProposer",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "creator",
+        "type": "address"
+      }
+    ],
+    "name": "revokeCreator",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bool",
+        "name": "_openCreation",
+        "type": "bool"
+      }
+    ],
+    "name": "setCreationMode",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "newOwner",
+        "type": "address"
+      }
+    ],
+    "name": "transferOwnership",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }
+] as const;
+
+export const PROPOSAL_ABI: ABI = [
+  {
+    "inputs": [
+      {
+        "internalType": "string",
+        "name": "_title",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "_description",
+        "type": "string"
+      },
+      {
+        "internalType": "enum Proposal.ProposalCategory",
+        "name": "_category",
+        "type": "uint8"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_duration",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "_proposer",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "updatedBy",
+        "type": "address"
+      }
+    ],
+    "name": "DescriptionUpdated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
         "indexed": false,
-        "internalType": "enum GovernanceDAO.ProposalState",
+        "internalType": "uint256",
+        "name": "newEndTime",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "updatedBy",
+        "type": "address"
+      }
+    ],
+    "name": "DurationExtended",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "enum Proposal.ProposalState",
         "name": "newState",
         "type": "uint8"
       },
@@ -2829,11 +3223,24 @@ export const GOVERNANCE_DAO_ABI: ABI = [
     "anonymous": false,
     "inputs": [
       {
-        "indexed": true,
-        "internalType": "uint256",
-        "name": "proposalId",
-        "type": "uint256"
+        "indexed": false,
+        "internalType": "string",
+        "name": "newTitle",
+        "type": "string"
       },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "updatedBy",
+        "type": "address"
+      }
+    ],
+    "name": "TitleUpdated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
       {
         "indexed": true,
         "internalType": "address",
@@ -2842,7 +3249,7 @@ export const GOVERNANCE_DAO_ABI: ABI = [
       },
       {
         "indexed": false,
-        "internalType": "enum GovernanceDAO.VoteChoice",
+        "internalType": "enum Proposal.VoteChoice",
         "name": "choice",
         "type": "uint8"
       },
@@ -2857,96 +3264,13 @@ export const GOVERNANCE_DAO_ABI: ABI = [
     "type": "event"
   },
   {
-    "anonymous": false,
-    "inputs": [
+    "inputs": [],
+    "name": "category",
+    "outputs": [
       {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "oldPeriod",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "newPeriod",
-        "type": "uint256"
-      },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "updatedBy",
-        "type": "address"
-      }
-    ],
-    "name": "VotingPeriodUpdated",
-    "type": "event"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "string",
-        "name": "title",
-        "type": "string"
-      },
-      {
-        "internalType": "string",
-        "name": "description",
-        "type": "string"
-      },
-      {
-        "internalType": "enum GovernanceDAO.ProposalCategory",
-        "name": "category",
+        "internalType": "enum Proposal.ProposalCategory",
+        "name": "",
         "type": "uint8"
-      },
-      {
-        "internalType": "uint256",
-        "name": "duration",
-        "type": "uint256"
-      }
-    ],
-    "name": "createProposal",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "proposalId",
-        "type": "uint256"
-      }
-    ],
-    "name": "finalizeProposal",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "proposalId",
-        "type": "uint256"
-      },
-      {
-        "internalType": "address",
-        "name": "voter",
-        "type": "address"
-      }
-    ],
-    "name": "getHasVoted",
-    "outputs": [
-      {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
       }
     ],
     "stateMutability": "view",
@@ -2954,136 +3278,20 @@ export const GOVERNANCE_DAO_ABI: ABI = [
   },
   {
     "inputs": [],
-    "name": "getPlatformStats",
+    "name": "description",
     "outputs": [
       {
-        "internalType": "uint256",
-        "name": "totalProposals",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "activeProposals",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "totalVotes",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "uniqueVoters",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "proposalId",
-        "type": "uint256"
-      }
-    ],
-    "name": "getProposal",
-    "outputs": [
-      {
-        "components": [
-          {
-            "internalType": "uint256",
-            "name": "id",
-            "type": "uint256"
-          },
-          {
-            "internalType": "string",
-            "name": "title",
-            "type": "string"
-          },
-          {
-            "internalType": "string",
-            "name": "description",
-            "type": "string"
-          },
-          {
-            "internalType": "enum GovernanceDAO.ProposalCategory",
-            "name": "category",
-            "type": "uint8"
-          },
-          {
-            "internalType": "address",
-            "name": "proposer",
-            "type": "address"
-          },
-          {
-            "internalType": "uint256",
-            "name": "startTime",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "endTime",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "votesFor",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "votesAgainst",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "totalVoters",
-            "type": "uint256"
-          },
-          {
-            "internalType": "enum GovernanceDAO.ProposalState",
-            "name": "state",
-            "type": "uint8"
-          }
-        ],
-        "internalType": "struct GovernanceDAO.Proposal",
+        "internalType": "string",
         "name": "",
-        "type": "tuple"
+        "type": "string"
       }
     ],
     "stateMutability": "view",
     "type": "function"
   },
   {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "proposalId",
-        "type": "uint256"
-      }
-    ],
-    "name": "getProposalState",
-    "outputs": [
-      {
-        "internalType": "enum GovernanceDAO.ProposalState",
-        "name": "",
-        "type": "uint8"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "proposalId",
-        "type": "uint256"
-      }
-    ],
-    "name": "getTimeRemaining",
+    "inputs": [],
+    "name": "endTime",
     "outputs": [
       {
         "internalType": "uint256",
@@ -3097,101 +3305,30 @@ export const GOVERNANCE_DAO_ABI: ABI = [
   {
     "inputs": [
       {
-        "internalType": "address",
-        "name": "user",
-        "type": "address"
-      }
-    ],
-    "name": "getUserProposals",
-    "outputs": [
-      {
-        "internalType": "uint256[]",
-        "name": "",
-        "type": "uint256[]"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "user",
-        "type": "address"
-      }
-    ],
-    "name": "getUserVotes",
-    "outputs": [
-      {
-        "internalType": "uint256[]",
-        "name": "",
-        "type": "uint256[]"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
         "internalType": "uint256",
-        "name": "proposalId",
+        "name": "extraSeconds",
         "type": "uint256"
       },
       {
         "internalType": "address",
-        "name": "voter",
+        "name": "caller",
         "type": "address"
       }
     ],
-    "name": "getVote",
-    "outputs": [
-      {
-        "internalType": "enum GovernanceDAO.VoteChoice",
-        "name": "",
-        "type": "uint8"
-      }
-    ],
-    "stateMutability": "view",
+    "name": "extendDuration",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "finalize",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
     "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "proposalId",
-        "type": "uint256"
-      }
-    ],
-    "name": "getVotingStats",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "votesFor",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "votesAgainst",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "totalVoters",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      },
       {
         "internalType": "address",
         "name": "",
@@ -3224,7 +3361,7 @@ export const GOVERNANCE_DAO_ABI: ABI = [
   },
   {
     "inputs": [],
-    "name": "proposalCount",
+    "name": "startTime",
     "outputs": [
       {
         "internalType": "uint256",
@@ -3236,68 +3373,12 @@ export const GOVERNANCE_DAO_ABI: ABI = [
     "type": "function"
   },
   {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "name": "proposals",
+    "inputs": [],
+    "name": "state",
     "outputs": [
       {
-        "internalType": "uint256",
-        "name": "id",
-        "type": "uint256"
-      },
-      {
-        "internalType": "string",
-        "name": "title",
-        "type": "string"
-      },
-      {
-        "internalType": "string",
-        "name": "description",
-        "type": "string"
-      },
-      {
-        "internalType": "enum GovernanceDAO.ProposalCategory",
-        "name": "category",
-        "type": "uint8"
-      },
-      {
-        "internalType": "address",
-        "name": "proposer",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "startTime",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "endTime",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "votesFor",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "votesAgainst",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "totalVoters",
-        "type": "uint256"
-      },
-      {
-        "internalType": "enum GovernanceDAO.ProposalState",
-        "name": "state",
+        "internalType": "enum Proposal.ProposalState",
+        "name": "",
         "type": "uint8"
       }
     ],
@@ -3306,27 +3387,20 @@ export const GOVERNANCE_DAO_ABI: ABI = [
   },
   {
     "inputs": [],
-    "name": "renounceOwnership",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
+    "name": "title",
+    "outputs": [
       {
-        "internalType": "uint256",
-        "name": "newPeriod",
-        "type": "uint256"
+        "internalType": "string",
+        "name": "",
+        "type": "string"
       }
     ],
-    "name": "setVotingPeriod",
-    "outputs": [],
-    "stateMutability": "nonpayable",
+    "stateMutability": "view",
     "type": "function"
   },
   {
     "inputs": [],
-    "name": "totalVotesCast",
+    "name": "totalVoters",
     "outputs": [
       {
         "internalType": "uint256",
@@ -3340,81 +3414,50 @@ export const GOVERNANCE_DAO_ABI: ABI = [
   {
     "inputs": [
       {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
+        "internalType": "string",
+        "name": "newDescription",
+        "type": "string"
       },
       {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "name": "userProposals",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
         "internalType": "address",
-        "name": "",
+        "name": "caller",
         "type": "address"
       }
     ],
-    "name": "userVoteCount",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
+    "name": "updateDescription",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
     "inputs": [
+      {
+        "internalType": "string",
+        "name": "newTitle",
+        "type": "string"
+      },
       {
         "internalType": "address",
-        "name": "",
+        "name": "caller",
         "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
       }
     ],
-    "name": "userVotes",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
+    "name": "updateTitle",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
     "inputs": [
       {
-        "internalType": "uint256",
-        "name": "proposalId",
-        "type": "uint256"
-      },
-      {
-        "internalType": "enum GovernanceDAO.VoteChoice",
+        "internalType": "enum Proposal.VoteChoice",
         "name": "choice",
         "type": "uint8"
+      },
+      {
+        "internalType": "address",
+        "name": "voter",
+        "type": "address"
       }
     ],
     "name": "vote",
@@ -3425,11 +3468,6 @@ export const GOVERNANCE_DAO_ABI: ABI = [
   {
     "inputs": [
       {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      },
-      {
         "internalType": "address",
         "name": "",
         "type": "address"
@@ -3438,7 +3476,7 @@ export const GOVERNANCE_DAO_ABI: ABI = [
     "name": "votes",
     "outputs": [
       {
-        "internalType": "enum GovernanceDAO.VoteChoice",
+        "internalType": "enum Proposal.VoteChoice",
         "name": "",
         "type": "uint8"
       }
@@ -3448,7 +3486,20 @@ export const GOVERNANCE_DAO_ABI: ABI = [
   },
   {
     "inputs": [],
-    "name": "votingPeriod",
+    "name": "votesAgainst",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "votesFor",
     "outputs": [
       {
         "internalType": "uint256",
