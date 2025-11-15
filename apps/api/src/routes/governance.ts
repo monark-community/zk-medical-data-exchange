@@ -12,7 +12,6 @@ import {
   vote,
   getUserProposals,
   getUserVotes,
-  finalizeProposal,
 } from "@/controllers/governanceController";
 
 const router = Router();
@@ -486,70 +485,6 @@ router.post("/proposals", createProposal);
  *                   example: Failed to cast vote
  */
 router.post("/proposals/:id/vote", vote);
-
-/**
- * @swagger
- * /governance/proposals/{id}/finalize:
- *   post:
- *     summary: Finalize a proposal after voting period ends
- *     description: Finalizes a proposal and determines its outcome (Passed/Failed) after the voting period has ended
- *     tags: [Governance]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *         description: Proposal ID
- *         example: 1
- *     responses:
- *       200:
- *         description: Proposal finalized successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 data:
- *                   type: object
- *                   properties:
- *                     proposalId:
- *                       type: number
- *                       example: 1
- *                 transactionHash:
- *                   type: string
- *                   example: "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
- *       400:
- *         description: Bad request - Invalid proposal ID or cannot finalize
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: false
- *                 error:
- *                   type: string
- *                   example: Invalid proposal ID
- *       500:
- *         description: Internal server error
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: false
- *                 error:
- *                   type: string
- *                   example: Failed to finalize proposal
- */
-router.post("/proposals/:id/finalize", finalizeProposal);
 
 /**
  * @swagger

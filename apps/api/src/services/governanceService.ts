@@ -87,10 +87,6 @@ export interface VoteResult {
   choice: VoteChoice;
 }
 
-export interface FinalizeProposalResult {
-  proposalId: number;
-}
-
 export interface GovernanceResult<T = unknown> {
   success: boolean;
   data?: T;
@@ -353,7 +349,7 @@ class GovernanceService {
       const state = await this.publicClient.readContract({
         address: proposalContract as `0x${string}`,
         abi: PROPOSAL_ABI,
-        functionName: "state",
+        functionName: "getState",
         args: [],
       });
 
@@ -445,6 +441,44 @@ class GovernanceService {
       const now = Math.floor(Date.now() / 1000);
       const timeRemaining = Math.max(0, dbProposal.end_time - now);
 
+      let currentState = dbProposal.state as ProposalState;
+
+      // Only fetch from blockchain if state might have changed (time expired but DB shows Active)
+      if (now > dbProposal.end_time && dbProposal.state === ProposalState.Active) {
+        logger.info({ proposalId }, "Voting period expired, fetching current state from blockchain");
+        
+        // Fetch current state from blockchain for accuracy
+        const registry = await this.publicClient.readContract({
+          address: this.factoryAddress as `0x${string}`,
+          abi: GOVERNANCE_FACTORY_ABI,
+          functionName: "proposals",
+          args: [BigInt(proposalId)],
+        });
+        const proposalContract = (registry as any).proposalContract ?? (registry as any)[0];
+
+        const blockchainState = await this.publicClient.readContract({
+          address: proposalContract as `0x${string}`,
+          abi: PROPOSAL_ABI,
+          functionName: "getState",
+          args: [],
+        });
+
+        currentState = Number(blockchainState) as ProposalState;
+
+        // Sync DB if state changed
+        if (currentState !== dbProposal.state) {
+          logger.info(
+            { proposalId, oldState: dbProposal.state, newState: currentState },
+            "Proposal state changed, updating database"
+          );
+          
+          await this.supabase
+            .from(PROPOSALS!.name)
+            .update({ state: currentState })
+            .eq(PROPOSALS!.columns.id!, proposalId);
+        }
+      }
+
       const proposal: Proposal = {
         id: dbProposal.id,
         title: dbProposal.title,
@@ -456,7 +490,7 @@ class GovernanceService {
         votesFor: dbProposal.votes_for,
         votesAgainst: dbProposal.votes_against,
         totalVoters: dbProposal.total_voters,
-        state: dbProposal.state,
+        state: currentState, // Use blockchain state
         timeRemaining,
       };
 
@@ -531,10 +565,12 @@ class GovernanceService {
         functionName: "totalVoters",
         args: [],
       });
-      const state = await this.publicClient.readContract({
+
+      // Get dynamic state from blockchain
+      const blockchainState = await this.publicClient.readContract({
         address: proposalContract as `0x${string}`,
         abi: PROPOSAL_ABI,
-        functionName: "state",
+        functionName: "getState",
         args: [],
       });
 
@@ -549,7 +585,7 @@ class GovernanceService {
         votesFor: Number(votesFor),
         votesAgainst: Number(votesAgainst),
         totalVoters: Number(totalVoters),
-        state: Number(state) as ProposalState,
+        state: Number(blockchainState) as ProposalState, // Use blockchain getState()
         timeRemaining: Math.max(0, endTime - Math.floor(Date.now() / 1000)),
       };
 
@@ -602,6 +638,65 @@ class GovernanceService {
       }
 
       const now = Math.floor(Date.now() / 1000);
+      
+      // Check for expired proposals that need state sync
+      const expiredActiveProposals = dbProposals.filter(
+        (p: any) => now > p.end_time && p.state === ProposalState.Active
+      );
+
+      // Sync expired proposals with blockchain
+      if (expiredActiveProposals.length > 0) {
+        logger.info(
+          { count: expiredActiveProposals.length },
+          "Found expired active proposals, syncing states from blockchain"
+        );
+
+        for (const dbProposal of expiredActiveProposals) {
+          try {
+            // Fetch proposal contract address from registry
+            const registry = await this.publicClient.readContract({
+              address: this.factoryAddress as `0x${string}`,
+              abi: GOVERNANCE_FACTORY_ABI,
+              functionName: "proposals",
+              args: [BigInt(dbProposal.id)],
+            });
+            const proposalContract = (registry as any).proposalContract ?? (registry as any)[0];
+
+            // Get current state from blockchain
+            const blockchainState = await this.publicClient.readContract({
+              address: proposalContract as `0x${string}`,
+              abi: PROPOSAL_ABI,
+              functionName: "getState",
+              args: [],
+            });
+
+            const newState = Number(blockchainState) as ProposalState;
+
+            // Update DB if state changed
+            if (newState !== dbProposal.state) {
+              logger.info(
+                { proposalId: dbProposal.id, oldState: dbProposal.state, newState },
+                "Updating expired proposal state in database"
+              );
+
+              await this.supabase
+                .from(PROPOSALS!.name)
+                .update({ state: newState })
+                .eq(PROPOSALS!.columns.id!, dbProposal.id);
+
+              // Update the in-memory object so it's reflected in the response
+              dbProposal.state = newState;
+            }
+          } catch (error) {
+            logger.error(
+              { error, proposalId: dbProposal.id },
+              "Failed to sync proposal state from blockchain"
+            );
+            // Continue with other proposals even if one fails
+          }
+        }
+      }
+
       const proposals: Proposal[] = dbProposals.map((dbProposal: any) => ({
         id: dbProposal.id,
         title: dbProposal.title,
@@ -613,7 +708,7 @@ class GovernanceService {
         votesFor: dbProposal.votes_for,
         votesAgainst: dbProposal.votes_against,
         totalVoters: dbProposal.total_voters,
-        state: dbProposal.state,
+        state: dbProposal.state, // Now synced with blockchain if expired
         timeRemaining: Math.max(0, dbProposal.end_time - now),
       }));
 
@@ -685,7 +780,7 @@ class GovernanceService {
         votesFor: dbProposal.votes_for,
         votesAgainst: dbProposal.votes_against,
         totalVoters: dbProposal.total_voters,
-        state: dbProposal.state,
+        state: dbProposal.state, // Use DB state (synced from blockchain)
         timeRemaining: Math.max(0, dbProposal.end_time - now),
       }));
 
@@ -773,7 +868,7 @@ class GovernanceService {
         votesFor: dbProposal.votes_for,
         votesAgainst: dbProposal.votes_against,
         totalVoters: dbProposal.total_voters,
-        state: dbProposal.state,
+        state: dbProposal.state, // Use DB state (synced from blockchain)
         timeRemaining: Math.max(0, dbProposal.end_time - now),
         hasVoted: true,
         userVote: voteMap.get(dbProposal.id) as VoteChoice,
@@ -846,69 +941,6 @@ class GovernanceService {
         uniqueVoters: 0,
         avgParticipation: 0,
         votingPower: 0,
-      };
-    }
-  }
-
-  async finalizeProposal(proposalId: number): Promise<GovernanceResult<FinalizeProposalResult>> {
-    try {
-      logger.info({ proposalId }, "Finalizing proposal on blockchain");
-
-      // Resolve proposal contract
-      const registry = await this.publicClient.readContract({
-        address: this.factoryAddress as `0x${string}`,
-        abi: GOVERNANCE_FACTORY_ABI,
-        functionName: "proposals",
-        args: [BigInt(proposalId)],
-      });
-      const proposalContract = (registry as any).proposalContract ?? (registry as any)[0];
-
-      const hash = await this.walletClient.writeContract({
-        address: proposalContract as `0x${string}`,
-        abi: PROPOSAL_ABI,
-        functionName: "finalize",
-        args: [],
-      });
-
-      logger.info({ hash }, "Finalize transaction sent");
-
-      const receipt = await this.publicClient.waitForTransactionReceipt({ hash });
-
-      logger.info({ receipt }, "Proposal finalized on blockchain successfully");
-
-      const state = await this.publicClient.readContract({
-        address: proposalContract as `0x${string}`,
-        abi: PROPOSAL_ABI,
-        functionName: "state",
-        args: [],
-      });
-
-      const { error: updateError } = await this.supabase
-        .from(PROPOSALS!.name)
-        .update({
-          state: Number(state),
-        })
-        .eq(PROPOSALS!.columns.id!, proposalId);
-
-      if (updateError) {
-        logger.error(
-          { error: updateError, proposalId },
-          "Failed to update finalized proposal in database"
-        );
-      } else {
-        logger.info({ proposalId }, "Finalized proposal updated in database");
-      }
-
-      return {
-        success: true,
-        data: { proposalId },
-        transactionHash: hash,
-      };
-    } catch (error: any) {
-      logger.error({ error, proposalId }, "Failed to finalize proposal");
-      return {
-        success: false,
-        error: error.message || "Failed to finalize proposal",
       };
     }
   }
