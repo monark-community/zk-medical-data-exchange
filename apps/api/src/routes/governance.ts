@@ -10,8 +10,6 @@ import {
   getProposal,
   createProposal,
   vote,
-  addComment,
-  getComments,
   getUserProposals,
   getUserVotes,
   finalizeProposal,
@@ -202,12 +200,6 @@ router.get("/proposals", getAllProposals);
  *           pattern: '^0x[a-fA-F0-9]{40}$'
  *         description: Optional wallet address to check if user has voted
  *         example: "0x742d35Cc6635C0532925a3b8D97C6b009af2af9f"
- *       - in: query
- *         name: includeComments
- *         schema:
- *           type: boolean
- *         description: Include comments in the response (default: false). For large threads prefer using /proposals/{id}/comments
- *         example: false
  *     responses:
  *       200:
  *         description: Proposal retrieved successfully
@@ -494,150 +486,6 @@ router.post("/proposals", createProposal);
  *                   example: Failed to cast vote
  */
 router.post("/proposals/:id/vote", vote);
-
-/**
- * @swagger
- * /governance/proposals/{id}/comment:
- *   post:
- *     summary: Add a comment to a proposal
- *     description: Add a discussion comment to a specific proposal
- *     tags: [Governance]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *         description: Proposal ID
- *         example: 1
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - commenterAddress
- *               - content
- *             properties:
- *               commenterAddress:
- *                 type: string
- *                 pattern: '^0x[a-fA-F0-9]{40}$'
- *                 description: Wallet address of the commenter
- *                 example: "0x742d35Cc6635C0532925a3b8D97C6b009af2af9f"
- *               content:
- *                 type: string
- *                 description: Comment text
- *                 example: "I support this proposal because..."
- *     responses:
- *       201:
- *         description: Comment added successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 data:
- *                   type: object
- *                   properties:
- *                     comment:
- *                       type: object
- *                       properties:
- *                         id:
- *                           type: number
- *                           example: 1
- *                         proposalId:
- *                           type: number
- *                           example: 1
- *                         commenterAddress:
- *                           type: string
- *                           example: "0x742d35Cc6635C0532925a3b8D97C6b009af2af9f"
- *                         content:
- *                           type: string
- *                           example: "I support this"
- *                         createdAt:
- *                           type: string
- *                           format: date-time
- *                           example: "2025-11-13T12:34:56.000Z"
- *       400:
- *         description: Bad request - Invalid input
- *       500:
- *         description: Internal server error
- */
-router.post("/proposals/:id/comment", addComment);
-
-/**
- * @swagger
- * /governance/proposals/{id}/comments:
- *   get:
- *     summary: Get paginated comments for a proposal
- *     description: Retrieve comments for a proposal with pagination support
- *     tags: [Governance]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *         description: Proposal ID
- *         example: 1
- *       - in: query
- *         name: page
- *         schema:
- *           type: integer
- *         description: Page number (1-indexed)
- *         example: 1
- *       - in: query
- *         name: limit
- *         schema:
- *           type: integer
- *         description: Number of comments per page
- *         example: 20
- *     responses:
- *       200:
- *         description: Comments retrieved successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 data:
- *                   type: object
- *                   properties:
- *                     comments:
- *                       type: array
- *                       items:
- *                         type: object
- *                         properties:
- *                           id:
- *                             type: number
- *                           proposalId:
- *                             type: number
- *                           commenterAddress:
- *                             type: string
- *                           content:
- *                             type: string
- *                           createdAt:
- *                             type: string
- *                             format: date-time
- *                     total:
- *                       type: integer
- *                     page:
- *                       type: integer
- *                     limit:
- *                       type: integer
-       500:
-         description: Internal server error
- */
-router.get("/proposals/:id/comments", getComments);
 
 /**
  * @swagger

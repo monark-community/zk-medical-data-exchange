@@ -150,14 +150,4 @@ export const TABLES: Record<string, TableDefinition> = {
       expiresAt: "expires_at",
     },
   },
-  PROPOSAL_COMMENTS: {
-    name: "proposal_comments",
-    columns: {
-      id: "id",
-      proposalId: "proposal_id",
-      commenterAddress: "commenter_address",
-      content: "content",
-      createdAt: "created_at",
-    },
-  },
 };
