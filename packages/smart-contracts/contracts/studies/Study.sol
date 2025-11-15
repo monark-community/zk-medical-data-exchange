@@ -95,21 +95,22 @@ contract Study {
      */
     function registerCommitment(
         uint256 dataCommitment,
-        bytes32 challenge
+        bytes32 challenge,
+        address participant
     ) external {
-        require(registeredCommitments[msg.sender] == bytes32(0), "Commitment already registered");
-        require(!participants[msg.sender], "Already participating in study");
+        require(registeredCommitments[participant] == bytes32(0), "Commitment already registered");
+        require(!participants[participant], "Already participating in study");
         
         bytes32 commitmentHash = keccak256(abi.encodePacked(
-            msg.sender,
+            participant,
             dataCommitment,
             challenge
         ));
-        
-        registeredCommitments[msg.sender] = commitmentHash;
-        commitmentTimestamps[msg.sender] = block.timestamp;
-        
-        emit CommitmentRegistered(msg.sender, commitmentHash, block.timestamp);
+
+        registeredCommitments[participant] = commitmentHash;
+        commitmentTimestamps[participant] = block.timestamp;
+
+        emit CommitmentRegistered(participant, commitmentHash, block.timestamp);
     }
     
     /**
@@ -125,16 +126,17 @@ contract Study {
         uint[2][2] calldata _pB,
         uint[2] calldata _pC,
         uint256 dataCommitment,
-        bytes32 challenge
+        bytes32 challenge,
+        address participant
     ) external {
         require(currentParticipants < maxParticipants, "Study is full");
-        require(!participants[msg.sender], "Already participating");
+        require(!participants[participant], "Already participating");
         
-        bytes32 storedCommitmentHash = registeredCommitments[msg.sender];
+        bytes32 storedCommitmentHash = registeredCommitments[participant];
         require(storedCommitmentHash != bytes32(0), "No commitment registered");
         
         bytes32 recomputedHash = keccak256(abi.encodePacked(
-            msg.sender,
+            participant,
             dataCommitment,
             challenge
         ));
@@ -143,20 +145,20 @@ contract Study {
         uint[1] memory pubSignals = [uint256(1)]; // Expected: eligible = 1
         bool isEligible = zkVerifier.verifyProof(_pA, _pB, _pC, pubSignals);
         
-        emit EligibilityVerified(msg.sender, isEligible);
+        emit EligibilityVerified(participant, isEligible);
         require(isEligible, "ZK proof verification failed - not eligible");
         
-        participants[msg.sender] = true;
-        hasConsented[msg.sender] = true;
-        participantDataCommitments[msg.sender] = dataCommitment;
-        participantList.push(msg.sender);
+        participants[participant] = true;
+        hasConsented[participant] = true;
+        participantDataCommitments[participant] = dataCommitment;
+        participantList.push(participant);
         currentParticipants++;
         activeParticipants++;
         
-        delete registeredCommitments[msg.sender];
+        delete registeredCommitments[participant];
         
-        emit ParticipantJoined(msg.sender, dataCommitment);
-        emit ConsentGranted(msg.sender, block.timestamp);
+        emit ParticipantJoined(participant, dataCommitment);
+        emit ConsentGranted(participant, block.timestamp);
     }
     
     /**

@@ -68,3 +68,37 @@ export const ACCOUNT_OVERVIEW_UI = {
     },
   },
 };
+export const GOVERNANCE_OVERVIEW_UI = {
+  totalProposals: {
+    icon1: "ClipboardList",
+    icon1Color: "text-blue-600",
+    icon2: "TrendingUp",
+    icon2Color: "text-green-600",
+    title: "Total Proposals",
+    color: "from-blue-50 to-blue-100 border-blue-200",
+  },
+  nbActiveVoters: {
+    icon1: "Database",
+    icon1Color: "text-teal-600",
+    icon2: "Activity",
+    icon2Color: "text-green-600",
+    title: "Active Voters",
+    color: "from-teal-50 to-teal-100 border-teal-200",
+  },
+  avgParticipationPercentage: {
+    icon1: "BookOpenText",
+    icon1Color: "text-purple-600",
+    icon2: "RefreshCcw",
+    icon2Color: "text-green-600",
+    title: "Avg Participation",
+    color: "from-purple-50 to-purple-100 border-purple-200",
+  },
+  votingPower: {
+    icon1: "ShieldCheck",
+    icon1Color: "text-green-600",
+    icon2: "Lock",
+    icon2Color: "text-green-600",
+    title: "Voting Power",
+    color: "from-green-50 to-green-100 border-green-200",
+  },
+};

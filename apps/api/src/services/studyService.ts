@@ -625,7 +625,8 @@ class StudyService {
         address: contractAddress as `0x${string}`,
         abi: STUDY_ABI,
         functionName: "registerCommitment",
-        args: [commitmentBigInt, challengeBytes32],
+        // Include participant wallet as third arg per updated contract signature
+        args: [commitmentBigInt, challengeBytes32, participantWallet as `0x${string}`],
       });
 
       logger.info(
@@ -775,7 +776,7 @@ class StudyService {
       const result = await this.executeContractTransaction(
         studyAddress,
         "joinStudy",
-        [pA, pB, pC, commitment, challengeBytes32],
+        [pA, pB, pC, commitment, challengeBytes32, participantWallet as `0x${string}`],
         "Participation recording"
       );
 

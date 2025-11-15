@@ -15,7 +15,10 @@
     "deploy:sepolia": "bunx hardhat run scripts/deploy.ts --network sepolia",
     "deploy:tenderly": "bunx hardhat run scripts/deploy.ts --network tenderly",
     "deploy:study-factory": "bunx hardhat run scripts/deployStudyFactory.ts --network sepolia",
-    "deploy:audit-trail": "bunx hardhat run scripts/deployAuditTrail.ts --network sepolia"
+    "deploy:audit-trail": "bunx hardhat run scripts/deployAuditTrail.ts --network sepolia",
+    "deploy:governance": "bunx hardhat run scripts/deployGovernanceDAO.ts --network sepolia",
+    "deploy:governance-factory": "bunx hardhat run scripts/deployGovernanceFactory.ts --network sepolia",
+    "test:governance-factory": "tsx scripts/testGovernanceFactory.ts"
   },
   "dependencies": {
     "@nomicfoundation/hardhat-ethers": "^4.0.1",
