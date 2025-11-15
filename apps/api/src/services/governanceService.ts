@@ -151,6 +151,83 @@ class GovernanceService {
     );
   }
 
+  /**
+   * Helper: read proposal registry entry from the factory
+   */
+  private async getProposalRegistryEntry(proposalId: number) {
+    const registry = await this.publicClient.readContract({
+      address: this.factoryAddress as `0x${string}`,
+      abi: GOVERNANCE_FACTORY_ABI,
+      functionName: "proposals",
+      args: [BigInt(proposalId)],
+    });
+
+    const proposalContract =
+      (registry as any).proposalContract ?? (registry as any)[0];
+    const title = (registry as any).title ?? (registry as any)[1];
+    const category = Number(
+      (registry as any).category ?? (registry as any)[2]
+    ) as ProposalCategory;
+    const proposer = (registry as any).proposer ?? (registry as any)[3];
+    const startTime = Number(
+      (registry as any).startTime ?? (registry as any)[4]
+    );
+    const endTime = Number(
+      (registry as any).endTime ?? (registry as any)[5]
+    );
+
+    return {
+      proposalContract: proposalContract as string,
+      title: title as string,
+      category,
+      proposer: proposer as string,
+      startTime,
+      endTime,
+    };
+  }
+
+  /**
+   * Helper: read voting snapshot (votes + state) from a proposal contract
+   */
+  private async getProposalVotingSnapshot(
+    proposalContract: string,
+    stateFunction: "state" | "getState"
+  ) {
+    const [votesFor, votesAgainst, totalVoters, state] = await Promise.all([
+      this.publicClient.readContract({
+        address: proposalContract as `0x${string}`,
+        abi: PROPOSAL_ABI,
+        functionName: "votesFor",
+        args: [],
+      }),
+      this.publicClient.readContract({
+        address: proposalContract as `0x${string}`,
+        abi: PROPOSAL_ABI,
+        functionName: "votesAgainst",
+        args: [],
+      }),
+      this.publicClient.readContract({
+        address: proposalContract as `0x${string}`,
+        abi: PROPOSAL_ABI,
+        functionName: "totalVoters",
+        args: [],
+      }),
+      this.publicClient.readContract({
+        address: proposalContract as `0x${string}`,
+        abi: PROPOSAL_ABI,
+        functionName: stateFunction,
+        args: [],
+      }),
+    ]);
+
+    return {
+      votesFor: Number(votesFor),
+      votesAgainst: Number(votesAgainst),
+      totalVoters: Number(totalVoters),
+      state: Number(state),
+    };
+  }
+
   async createProposal(
     params: CreateProposalParams
   ): Promise<GovernanceResult<CreateProposalResult>> {
@@ -169,7 +246,13 @@ class GovernanceService {
         address: this.factoryAddress as `0x${string}`,
         abi: GOVERNANCE_FACTORY_ABI,
         functionName: "createProposal",
-        args: [params.title, params.description, params.category, BigInt(params.duration), params.walletAddress],
+        args: [
+          params.title,
+          params.description,
+          params.category,
+          BigInt(params.duration),
+          params.walletAddress,
+        ],
       });
 
       logger.info({ hash }, "Proposal creation transaction sent");
@@ -218,30 +301,12 @@ class GovernanceService {
         functionName: "endTime",
         args: [],
       });
-      const votesFor = await this.publicClient.readContract({
-        address: proposalContract as `0x${string}`,
-        abi: PROPOSAL_ABI,
-        functionName: "votesFor",
-        args: [],
-      });
-      const votesAgainst = await this.publicClient.readContract({
-        address: proposalContract as `0x${string}`,
-        abi: PROPOSAL_ABI,
-        functionName: "votesAgainst",
-        args: [],
-      });
-      const totalVoters = await this.publicClient.readContract({
-        address: proposalContract as `0x${string}`,
-        abi: PROPOSAL_ABI,
-        functionName: "totalVoters",
-        args: [],
-      });
-      const state = await this.publicClient.readContract({
-        address: proposalContract as `0x${string}`,
-        abi: PROPOSAL_ABI,
-        functionName: "state",
-        args: [],
-      });
+
+      // Votes + state from proposal contract (use storage state here, same as before)
+      const votingSnapshot = await this.getProposalVotingSnapshot(
+        proposalContract!,
+        "state"
+      );
 
       // Save to database for fast queries
       const { error: dbError } = await this.supabase.from(PROPOSALS!.name).insert({
@@ -252,10 +317,10 @@ class GovernanceService {
         proposer: params.walletAddress,
         start_time: Number(startTime),
         end_time: Number(endTime),
-        votes_for: Number(votesFor),
-        votes_against: Number(votesAgainst),
-        total_voters: Number(totalVoters),
-        state: Number(state),
+        votes_for: votingSnapshot.votesFor,
+        votes_against: votingSnapshot.votesAgainst,
+        total_voters: votingSnapshot.totalVoters,
+        state: votingSnapshot.state,
         deployment_tx_hash: hash,
         chain_id: 11155111, // Sepolia
       });
@@ -302,16 +367,12 @@ class GovernanceService {
         return { success: false, error: "Already voted on this proposal" };
       }
 
-      // Submit vote to blockchain
       // Resolve proposal contract address from factory registry
-      const registry = await this.publicClient.readContract({
-        address: this.factoryAddress as `0x${string}`,
-        abi: GOVERNANCE_FACTORY_ABI,
-        functionName: "proposals",
-        args: [BigInt(params.proposalId)],
-      });
-      const proposalContract = (registry as any).proposalContract ?? (registry as any)[0];
+      const { proposalContract } = await this.getProposalRegistryEntry(
+        params.proposalId
+      );
 
+      // Submit vote to blockchain
       const hash = await this.walletClient.writeContract({
         address: proposalContract as `0x${string}`,
         abi: PROPOSAL_ABI,
@@ -325,42 +386,20 @@ class GovernanceService {
 
       logger.info({ receipt }, "Vote cast on blockchain successfully");
 
-      // Update database cache with new vote counts
-      // Get updated proposal data from blockchain
-      // Updated counts from proposal contract
-      const votesFor = await this.publicClient.readContract({
-        address: proposalContract as `0x${string}`,
-        abi: PROPOSAL_ABI,
-        functionName: "votesFor",
-        args: [],
-      });
-      const votesAgainst = await this.publicClient.readContract({
-        address: proposalContract as `0x${string}`,
-        abi: PROPOSAL_ABI,
-        functionName: "votesAgainst",
-        args: [],
-      });
-      const totalVoters = await this.publicClient.readContract({
-        address: proposalContract as `0x${string}`,
-        abi: PROPOSAL_ABI,
-        functionName: "totalVoters",
-        args: [],
-      });
-      const state = await this.publicClient.readContract({
-        address: proposalContract as `0x${string}`,
-        abi: PROPOSAL_ABI,
-        functionName: "getState",
-        args: [],
-      });
+      // Updated counts from proposal contract (using getState here, same as before)
+      const votingSnapshot = await this.getProposalVotingSnapshot(
+        proposalContract,
+        "getState"
+      );
 
       // Update proposal vote counts in database
       const { error: updateError } = await this.supabase
         .from(PROPOSALS!.name)
         .update({
-          votes_for: Number(votesFor),
-          votes_against: Number(votesAgainst),
-          total_voters: Number(totalVoters),
-          state: Number(state),
+          votes_for: votingSnapshot.votesFor,
+          votes_against: votingSnapshot.votesAgainst,
+          total_voters: votingSnapshot.totalVoters,
+          state: votingSnapshot.state,
         })
         .eq(PROPOSALS!.columns.id!, params.proposalId);
 
@@ -445,16 +484,15 @@ class GovernanceService {
 
       // Only fetch from blockchain if state might have changed (time expired but DB shows Active)
       if (now > dbProposal.end_time && dbProposal.state === ProposalState.Active) {
-        logger.info({ proposalId }, "Voting period expired, fetching current state from blockchain");
-        
+        logger.info(
+          { proposalId },
+          "Voting period expired, fetching current state from blockchain"
+        );
+
         // Fetch current state from blockchain for accuracy
-        const registry = await this.publicClient.readContract({
-          address: this.factoryAddress as `0x${string}`,
-          abi: GOVERNANCE_FACTORY_ABI,
-          functionName: "proposals",
-          args: [BigInt(proposalId)],
-        });
-        const proposalContract = (registry as any).proposalContract ?? (registry as any)[0];
+        const { proposalContract } = await this.getProposalRegistryEntry(
+          proposalId
+        );
 
         const blockchainState = await this.publicClient.readContract({
           address: proposalContract as `0x${string}`,
@@ -471,7 +509,7 @@ class GovernanceService {
             { proposalId, oldState: dbProposal.state, newState: currentState },
             "Proposal state changed, updating database"
           );
-          
+
           await this.supabase
             .from(PROPOSALS!.name)
             .update({ state: currentState })
@@ -490,7 +528,7 @@ class GovernanceService {
         votesFor: dbProposal.votes_for,
         votesAgainst: dbProposal.votes_against,
         totalVoters: dbProposal.total_voters,
-        state: currentState, // Use blockchain state
+        state: currentState, // Use blockchain state if refreshed
         timeRemaining,
       };
 
@@ -527,18 +565,14 @@ class GovernanceService {
   ): Promise<Proposal | null> {
     try {
       // Fetch registry entry
-      const registry = await this.publicClient.readContract({
-        address: this.factoryAddress as `0x${string}`,
-        abi: GOVERNANCE_FACTORY_ABI,
-        functionName: "proposals",
-        args: [BigInt(proposalId)],
-      });
-      const proposalContract = (registry as any).proposalContract ?? (registry as any)[0];
-      const title = (registry as any).title ?? (registry as any)[1];
-      const category = Number((registry as any).category ?? (registry as any)[2]) as ProposalCategory;
-      const proposer = (registry as any).proposer ?? (registry as any)[3];
-      const startTime = Number((registry as any).startTime ?? (registry as any)[4]);
-      const endTime = Number((registry as any).endTime ?? (registry as any)[5]);
+      const {
+        proposalContract,
+        title,
+        category,
+        proposer,
+        startTime,
+        endTime,
+      } = await this.getProposalRegistryEntry(proposalId);
 
       // Fetch dynamic fields from proposal contract
       const description = await this.publicClient.readContract({
@@ -547,32 +581,11 @@ class GovernanceService {
         functionName: "description",
         args: [],
       });
-      const votesFor = await this.publicClient.readContract({
-        address: proposalContract as `0x${string}`,
-        abi: PROPOSAL_ABI,
-        functionName: "votesFor",
-        args: [],
-      });
-      const votesAgainst = await this.publicClient.readContract({
-        address: proposalContract as `0x${string}`,
-        abi: PROPOSAL_ABI,
-        functionName: "votesAgainst",
-        args: [],
-      });
-      const totalVoters = await this.publicClient.readContract({
-        address: proposalContract as `0x${string}`,
-        abi: PROPOSAL_ABI,
-        functionName: "totalVoters",
-        args: [],
-      });
 
-      // Get dynamic state from blockchain
-      const blockchainState = await this.publicClient.readContract({
-        address: proposalContract as `0x${string}`,
-        abi: PROPOSAL_ABI,
-        functionName: "getState",
-        args: [],
-      });
+      const votingSnapshot = await this.getProposalVotingSnapshot(
+        proposalContract,
+        "getState"
+      );
 
       const proposal: Proposal = {
         id: proposalId,
@@ -582,11 +595,14 @@ class GovernanceService {
         proposer,
         startTime,
         endTime,
-        votesFor: Number(votesFor),
-        votesAgainst: Number(votesAgainst),
-        totalVoters: Number(totalVoters),
-        state: Number(blockchainState) as ProposalState, // Use blockchain getState()
-        timeRemaining: Math.max(0, endTime - Math.floor(Date.now() / 1000)),
+        votesFor: votingSnapshot.votesFor,
+        votesAgainst: votingSnapshot.votesAgainst,
+        totalVoters: votingSnapshot.totalVoters,
+        state: votingSnapshot.state as ProposalState, // Use blockchain getState()
+        timeRemaining: Math.max(
+          0,
+          endTime - Math.floor(Date.now() / 1000)
+        ),
       };
 
       if (userAddress) {
@@ -638,7 +654,7 @@ class GovernanceService {
       }
 
       const now = Math.floor(Date.now() / 1000);
-      
+
       // Check for expired proposals that need state sync
       const expiredActiveProposals = dbProposals.filter(
         (p: any) => now > p.end_time && p.state === ProposalState.Active
@@ -653,14 +669,9 @@ class GovernanceService {
 
         for (const dbProposal of expiredActiveProposals) {
           try {
-            // Fetch proposal contract address from registry
-            const registry = await this.publicClient.readContract({
-              address: this.factoryAddress as `0x${string}`,
-              abi: GOVERNANCE_FACTORY_ABI,
-              functionName: "proposals",
-              args: [BigInt(dbProposal.id)],
-            });
-            const proposalContract = (registry as any).proposalContract ?? (registry as any)[0];
+            const { proposalContract } = await this.getProposalRegistryEntry(
+              dbProposal.id
+            );
 
             // Get current state from blockchain
             const blockchainState = await this.publicClient.readContract({
@@ -915,7 +926,9 @@ class GovernanceService {
       const avgVotesPerProposal =
         (totalProposals || 0) > 0 ? (totalVotes || 0) / (totalProposals || 1) : 0;
       const avgParticipation =
-        totalUsers && totalUsers > 0 ? Math.min(100, (avgVotesPerProposal / totalUsers) * 100) : 0;
+        totalUsers && totalUsers > 0
+          ? Math.min(100, (avgVotesPerProposal / totalUsers) * 100)
+          : 0;
 
       // uniqueVoters = total registered users on the platform (who can vote)
       const uniqueVoters = totalUsers || 0;
