@@ -1,7 +1,6 @@
 import { Router } from "express";
 import medicalDataRoutes from "./medicalData";
 import studyRoutes from "./study";
-import studyDataRoutes from "./studyData";
 import authRoutes from "./auth";
 import userRoutes from "./user";
 import auditRoutes from "./audit";
@@ -28,7 +27,6 @@ router.get("/", (req, res) => {
 router.use("/auth", authRoutes);
 router.use("/medical-data", verifySessionToken, medicalDataRoutes);
 router.use("/studies", verifySessionToken, studyRoutes);
-router.use("/studies", verifySessionToken, studyDataRoutes);
 router.use("/user", verifySessionToken, userRoutes);
 router.use("/audit", verifySessionToken, auditRoutes);
 router.use("/ipfs", verifySessionToken, ipfsRoutes);

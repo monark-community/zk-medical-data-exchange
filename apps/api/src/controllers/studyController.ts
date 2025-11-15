@@ -8,7 +8,6 @@ import {
   type StudyCriteria,
 } from "@zk-medical/shared";
 import logger from "@/utils/logger";
-import { generateStudyKeyPair, storeStudyKeyPair } from "@/services/keyManagementService.js";
 import crypto from "crypto";
 import { TABLES } from "@/constants/db";
 import { auditService } from "@/services/auditService";
@@ -727,18 +726,6 @@ export const deployStudy = async (req: Request, res: Response) => {
       logger.error({ error: updateError, studyId }, "Failed to update study with deployment info");
     }
 
-    try {
-      logger.info({ studyId }, "Generating encryption keys for study");
-      const keyPair = await generateStudyKeyPair(studyId);
-      await storeStudyKeyPair(studyId, keyPair);
-      logger.info({ studyId, keyId: keyPair.keyId }, "Encryption keys generated and stored");
-    } catch (keyError) {
-      logger.error(
-        { error: keyError, studyId },
-        "Failed to generate encryption keys - study deployed but encryption unavailable"
-      );
-    }
-
     logger.info(
       {
         studyId,
@@ -917,11 +904,6 @@ export const updateStudy = async (req: Request, res: Response) => {
 export const participateInStudy = async (req: Request, res: Response) => {
   const { startTime, userAgent, ipAddress } = getAuditMetadata(req);
 
-  console.log("🚀 [PARTICIPATE] ============================================");
-  console.log("🚀 [PARTICIPATE] Starting study participation process");
-  console.log("🚀 [PARTICIPATE] Request body:", JSON.stringify(req.body, null, 2));
-  console.log("🚀 [PARTICIPATE] ============================================");
-
   try {
     const { id } = req.params;
     const {
@@ -933,56 +915,37 @@ export const participateInStudy = async (req: Request, res: Response) => {
       eligibilityScore,
     } = req.body;
 
-    logger.info({ 
-      studyId: id, 
-      participantWallet,
-      hasProof: !!proofJson,
-      hasDataCommitment: !!dataCommitment,
-      step: 'PARTICIPATE_START'
-    }, '🚀 [PARTICIPATE] Received participation request');
-
     if (!participantWallet) {
-      logger.error({ studyId: id, step: 'PARTICIPATE_VALIDATION' }, '❌ [PARTICIPATE] Missing participant wallet');
       return res.status(400).json({ error: "Participant wallet address is required" });
     }
 
     if (!proofJson) {
-      logger.error({ studyId: id, participantWallet, step: 'PARTICIPATE_VALIDATION' }, '❌ [PARTICIPATE] Missing ZK proof');
       return res.status(400).json({ error: "ZK proof is required" });
     }
 
     if (!dataCommitment) {
-      logger.error({ studyId: id, participantWallet, step: 'PARTICIPATE_VALIDATION' }, '❌ [PARTICIPATE] Missing data commitment');
       return res.status(400).json({ error: "Data commitment is required" });
     }
 
-    logger.info({ studyId: id, participantWallet, step: 'PARTICIPATE_STUDY_LOOKUP' }, '🔍 [PARTICIPATE] Looking up study');
     const { data: studyData, error: studyError } = await req.supabase
       .from(TABLES.STUDIES!.name)
       .select("id, status, max_participants, current_participants, contract_address")
       .eq(TABLES.STUDIES!.columns.id!, id)
       .single();
 
-    logger.info({ studyId: id, data: studyData, step: 'PARTICIPATE_STUDY_LOOKUP' }, '📊 [PARTICIPATE] Fetched study for participation');
 
     if (studyError || !studyData) {
-      logger.error({ studyId: id, error: studyError, step: 'PARTICIPATE_STUDY_LOOKUP' }, '❌ [PARTICIPATE] Study not found');
       return res.status(404).json({ error: "Study not found" });
     }
 
-    logger.info({ studyId: id, studyStatus: studyData.status, step: 'PARTICIPATE_STATUS_CHECK' }, '✅ [PARTICIPATE] Study found, checking status');
-
     if (studyData.status !== "active") {
-      logger.error({ studyId: id, status: studyData.status, step: 'PARTICIPATE_STATUS_CHECK' }, '❌ [PARTICIPATE] Study not active');
       return res.status(400).json({ error: "Study is not accepting participants" });
     }
 
     if (studyData.current_participants >= studyData.max_participants) {
-      logger.error({ studyId: id, current: studyData.current_participants, max: studyData.max_participants, step: 'PARTICIPATE_CAPACITY_CHECK' }, '❌ [PARTICIPATE] Study is full');
       return res.status(400).json({ error: "Study is full" });
     }
 
-    logger.info({ studyId: id, participantWallet, step: 'PARTICIPATE_DUPLICATE_CHECK' }, '🔍 [PARTICIPATE] Checking for duplicate enrollment');
     const { data: existing } = await req.supabase
       .from(TABLES.STUDY_PARTICIPATIONS!.name)
       .select(TABLES.STUDY_PARTICIPATIONS!.columns.id!)
@@ -991,11 +954,9 @@ export const participateInStudy = async (req: Request, res: Response) => {
       .single();
 
     if (existing) {
-      logger.warn({ studyId: id, participantWallet, existing, step: 'PARTICIPATE_DUPLICATE_CHECK' }, '⚠️ [PARTICIPATE] Already participated in this study');
       return res.status(400).json({ error: "Already participated in this study" });
     }
 
-    logger.info({ studyId: id, participantWallet, step: 'PARTICIPATE_DB_INSERT' }, '💾 [PARTICIPATE] Preparing participation data for database');
     const participationData = {
       study_id: id,
       participant_wallet: participantWallet,
@@ -1009,7 +970,6 @@ export const participateInStudy = async (req: Request, res: Response) => {
       enrolled_at: new Date().toISOString(),
     };
 
-    logger.info({ studyId: id, participantWallet, participationData, step: 'PARTICIPATE_DB_INSERT' }, '📊 [PARTICIPATE] Participation data prepared, inserting into database');
     const { data: participation, error: participationError } = await req.supabase
       .from(TABLES.STUDY_PARTICIPATIONS!.name)
       .insert(participationData)
@@ -1017,7 +977,6 @@ export const participateInStudy = async (req: Request, res: Response) => {
       .single();
 
     if (participationError) {
-      logger.error({ studyId: id, participantWallet, error: participationError, step: 'PARTICIPATE_DB_INSERT' }, '❌ [PARTICIPATE] Failed to record participation in database');
       logger.error({ error: participationError }, "Failed to record participation");
       return res.status(500).json({ error: "Failed to record participation" });
     }
