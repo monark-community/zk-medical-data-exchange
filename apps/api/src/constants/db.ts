@@ -103,6 +103,38 @@ export const TABLES: Record<string, TableDefinition> = {
     },
   },
 
+  PROPOSALS: {
+    name: "proposals",
+    columns: {
+      id: "id",
+      title: "title",
+      description: "description",
+      category: "category",
+      proposer: "proposer",
+      startTime: "start_time",
+      endTime: "end_time",
+      votesFor: "votes_for",
+      votesAgainst: "votes_against",
+      totalVoters: "total_voters",
+      state: "state",
+      deploymentTxHash: "deployment_tx_hash",
+      chainId: "chain_id",
+      createdAt: "created_at",
+      updatedAt: "updated_at",
+    },
+  },
+
+  PROPOSAL_VOTES: {
+    name: "proposal_votes",
+    columns: {
+      id: "id",
+      proposalId: "proposal_id",
+      voterAddress: "voter_address",
+      choice: "choice",
+      voteTxHash: "vote_tx_hash",
+      votedAt: "voted_at",
+    },
+  },
   DATA_COMMITMENTS: {
     name: "data_commitments",
     columns: {

@@ -118,13 +118,18 @@ const CustomNavbar = () => {
   const { login, isAuthenticating } = useWeb3AuthLogin();
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  const hasSessionTokens =
-    typeof window !== "undefined" &&
-    localStorage.getItem("session_token") &&
-    localStorage.getItem("wallet_address");
+  // Check authentication status in useEffect to avoid hydration mismatch
+  useEffect(() => {
+    const hasSessionTokens =
+      typeof window !== "undefined" &&
+      localStorage.getItem("session_token") &&
+      localStorage.getItem("wallet_address");
 
-  const isAuthenticated = !!(isConnected && hasSessionTokens);
+    setIsAuthenticated(!!(isConnected && hasSessionTokens));
+  }, [isConnected]);
+
   const navItems = isAuthenticated ? NAV_CONFIG.private : NAV_CONFIG.public;
   const logoLink = isAuthenticated ? "/dashboard" : "/";
 

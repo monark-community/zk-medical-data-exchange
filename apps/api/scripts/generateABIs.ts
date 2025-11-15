@@ -116,6 +116,16 @@ function generateABIs(): void {
       export: "AUDIT_TRAIL_ABI",
       path: "audit/AuditTrail.sol/AuditTrail.json",
     },
+    {
+      name: "GovernanceFactory",
+      export: "GOVERNANCE_FACTORY_ABI",
+      path: "governance/GovernanceFactory.sol/GovernanceFactory.json",
+    },
+    {
+      name: "Proposal",
+      export: "PROPOSAL_ABI",
+      path: "governance/Proposal.sol/Proposal.json",
+    },
   ];
 
   for (const contract of contracts) {
@@ -163,10 +173,7 @@ function generateABIs(): void {
 try {
   generateABIs();
 } catch (error) {
-  console.error(
-    "Failed to generate ABIs:",
-    error instanceof Error ? error.message : String(error)
-  );
+  console.error("Failed to generate ABIs:", error instanceof Error ? error.message : String(error));
   process.exit(1);
 }
 
