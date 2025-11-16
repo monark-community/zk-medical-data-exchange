@@ -29,6 +29,8 @@
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "noPropertyAccessFromIndexSignature": false,
-    "outDir": "dist"
-  }
+    "outDir": "dist",
+    "types": ["@types/bun"]
+  },
+  "exclude": ["**/*.test.ts", "**/*.spec.ts", "node_modules", "dist"]
 }

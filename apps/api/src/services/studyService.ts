@@ -25,12 +25,25 @@ export interface StudyDeploymentResult {
   error?: string;
 }
 
-class StudyService {
+export class StudyService {
   private walletClient: any;
   private publicClient: any;
   private account: any;
+  private initialized: boolean = false;
 
   constructor() {
+    // Defer initialization until first method call
+  }
+
+  private async initialize() {
+    if (this.initialized) return;
+
+    // In test mode, skip blockchain initialization
+    if (process.env.NODE_ENV === "test") {
+      this.initialized = true;
+      return;
+    }
+
     const privateKey = Config.SEPOLIA_PRIVATE_KEY;
     const rpcUrl = Config.SEPOLIA_RPC_URL;
 
@@ -60,6 +73,8 @@ class StudyService {
       chain: sepolia,
       transport: http(rpcUrl),
     });
+
+    this.initialized = true;
 
     logger.info(
       {
@@ -148,7 +163,7 @@ class StudyService {
     }
   }
 
-  private convertToBigIntTuple(
+  public convertToBigIntTuple(
     arr: readonly number[] | number[] | undefined
   ): [bigint, bigint, bigint, bigint] {
     const defaultArray = [0, 0, 0, 0] as const;
@@ -161,7 +176,7 @@ class StudyService {
     ];
   }
 
-  private logConsentResult(
+  public logConsentResult(
     operation: "revoke" | "grant",
     result: { success: boolean; transactionHash?: string; error?: string },
     studyAddress: string,
@@ -183,7 +198,7 @@ class StudyService {
     }
   }
 
-  private formatCriteriaForContract(criteria: StudyCriteria) {
+  public formatCriteriaForContract(criteria: StudyCriteria) {
     logger.info({ criteria }, "formatCriteriaForContract called");
 
     const getSafeRange = (
@@ -286,6 +301,12 @@ class StudyService {
   }
 
   async deployStudy(params: StudyDeploymentParams): Promise<StudyDeploymentResult> {
+    await this.initialize();
+
+    if (!this.publicClient || !this.walletClient) {
+      return { success: false, error: "Blockchain client not initialized" };
+    }
+
     try {
       logger.info(
         {
@@ -564,6 +585,12 @@ class StudyService {
   }
 
   async getStudyCount(): Promise<number> {
+    await this.initialize();
+
+    if (!this.publicClient) {
+      return 0;
+    }
+
     try {
       const count = await this.publicClient.readContract({
         address: Config.STUDY_FACTORY_ADDRESS,
@@ -578,6 +605,8 @@ class StudyService {
   }
 
   async healthCheck(): Promise<{ healthy: boolean; error?: string }> {
+    await this.initialize();
+
     try {
       await this.getStudyCount();
       return { healthy: true };
@@ -592,7 +621,7 @@ class StudyService {
   /**
    * Register commitment hash on blockchain
    * Called after backend validates signature and before issuing challenge
-   * 
+   *
    * @param contractAddress Study contract address
    * @param participantWallet User's wallet address
    * @param dataCommitment Poseidon hash of medical data
@@ -605,6 +634,12 @@ class StudyService {
     dataCommitment: string,
     challenge: string
   ): Promise<{ success: boolean; transactionHash?: string; error?: string }> {
+    await this.initialize();
+
+    if (!this.publicClient || !this.walletClient) {
+      return { success: false, error: "Blockchain client not initialized" };
+    }
+
     try {
       logger.info(
         {
@@ -616,8 +651,8 @@ class StudyService {
         "Registering commitment on blockchain"
       );
 
-      const challengeBytes32 = challenge.startsWith('0x') ? challenge : `0x${challenge}`;
-      
+      const challengeBytes32 = challenge.startsWith("0x") ? challenge : `0x${challenge}`;
+
       const commitmentBigInt = BigInt(dataCommitment);
 
       const simulationResult = await this.publicClient.simulateContract({
@@ -685,6 +720,8 @@ class StudyService {
     dataCommitment: string,
     challenge: string
   ) {
+    await this.initialize();
+
     let blockchainTxHash = null;
     if (contractAddress) {
       try {
@@ -737,6 +774,8 @@ class StudyService {
     dataCommitment: string,
     challenge: string
   ): Promise<{ success: boolean; transactionHash?: string; error?: string }> {
+    await this.initialize();
+
     logger.info(
       { studyAddress, participantWallet, dataCommitment, proof },
       "Recording study participation on blockchain"
@@ -748,7 +787,7 @@ class StudyService {
     let commitment: bigint;
 
     try {
-       try {
+      try {
         pA = [BigInt(proof.a[0]), BigInt(proof.a[1])];
         pB = [
           [BigInt(proof.b[0][0]), BigInt(proof.b[0][1])],
@@ -756,22 +795,34 @@ class StudyService {
         ];
         pC = [BigInt(proof.c[0]), BigInt(proof.c[1])];
         commitment = BigInt(dataCommitment);
-
       } catch (conversionError) {
-        logger.error({ 
-          error: conversionError, 
-          proof, 
-          dataCommitment 
-        }, "Failed to convert proof to BigInt");
-        throw new Error(`Invalid proof format: ${conversionError instanceof Error ? conversionError.message : 'Unknown error'}`);
+        logger.error(
+          {
+            error: conversionError,
+            proof,
+            dataCommitment,
+          },
+          "Failed to convert proof to BigInt"
+        );
+        throw new Error(
+          `Invalid proof format: ${
+            conversionError instanceof Error ? conversionError.message : "Unknown error"
+          }`
+        );
       }
 
       logger.info({ pA, pB, pC, commitment }, "Proof converted to BigInt format");
 
-      let challengeBytes32 = challenge 
-        ? (challenge.startsWith('0x') ? challenge : `0x${challenge}`)
-        : `0x${'0'.repeat(64)}`; 
+      // In test mode or when clients are not initialized, return failure
+      if (!this.publicClient || !this.walletClient) {
+        return { success: false, error: "Blockchain client not initialized" };
+      }
 
+      let challengeBytes32 = challenge
+        ? challenge.startsWith("0x")
+          ? challenge
+          : `0x${challenge}`
+        : `0x${"0".repeat(64)}`;
 
       const result = await this.executeContractTransaction(
         studyAddress,
@@ -815,6 +866,12 @@ class StudyService {
     studyAddress: string,
     participantWallet: string
   ): Promise<{ success: boolean; transactionHash?: string; error?: string }> {
+    await this.initialize();
+
+    if (!this.publicClient || !this.walletClient) {
+      return { success: false, error: "Blockchain client not initialized" };
+    }
+
     try {
       logger.info({ studyAddress, participantWallet }, "Revoking study consent on blockchain");
 
@@ -855,6 +912,8 @@ class StudyService {
     studyAddress: string,
     participantWallet: string
   ): Promise<{ success: boolean; transactionHash?: string; error?: string }> {
+    await this.initialize();
+
     try {
       logger.info({ studyAddress, participantWallet }, "Granting study consent on blockchain");
 
@@ -895,6 +954,12 @@ class StudyService {
     studyAddress: string,
     participantWallet: string
   ): Promise<{ hasConsent: boolean; error?: string }> {
+    await this.initialize();
+
+    if (!this.publicClient) {
+      return { hasConsent: false };
+    }
+
     try {
       const hasConsent = await this.publicClient.readContract({
         address: studyAddress as `0x${string}`,

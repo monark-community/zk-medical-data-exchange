@@ -17,6 +17,10 @@ export default [
       "**/build/**",
       "**/*.config.js",
       "**/demo/**",
+      "**/*.test.ts",
+      "**/*.test.tsx",
+      "**/*.spec.ts",
+      "**/*.spec.tsx",
     ],
   },
   {
