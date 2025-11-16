@@ -18,7 +18,6 @@ import { http } from "viem";
 import { createConfig } from "wagmi";
 import { Config } from "@/config/config";
 import { verifyTransaction } from "@/services/api/transactionService";
-import { StudyData } from "./ResearcherStudiesList";
 
 interface EndStudyDialogProps {
   open: boolean;
@@ -27,7 +26,6 @@ interface EndStudyDialogProps {
   studyTitle: string;
   studyId: number;
   onStudyEnded?: () => void;
-  setStudyData: React.Dispatch<React.SetStateAction<StudyData | null>>;
 }
 
 export default function EndStudyDialog({
@@ -36,7 +34,6 @@ export default function EndStudyDialog({
   studyTitle,
   studyId,
   onStudyEnded,
-  setStudyData,
 }: EndStudyDialogProps) {
   const [isEnding, setIsEnding] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -54,13 +51,6 @@ export default function EndStudyDialog({
 
     if (participants.length === 0) {
       await endStudy(studyId);
-      setStudyData(
-        (prev) =>
-          ({
-            ...prev,
-            participantsCount: participants.length,
-          } as StudyData)
-      );
       setShowSuccess(true);
       setIsEnding(false);
       setShowSuccess(false);
@@ -83,13 +73,6 @@ export default function EndStudyDialog({
         recipients: participants as `0x${string}`[],
         amountEachEth: 0.001,
       });
-      setStudyData(
-        (prev) =>
-          ({
-            ...prev,
-            participantsCount: participants.length,
-          } as StudyData)
-      );
       transactionHash = hash;
     } catch (error) {
       console.error("Failed to disperse ETH to participants:", error);
@@ -105,15 +88,6 @@ export default function EndStudyDialog({
         console.log("Transaction verification failed:", result.reasons);
         throw new Error("Transaction could not be verified");
       }
-
-      setStudyData(
-        (prev) =>
-          ({
-            ...prev,
-            studyId,
-            transactionHash,
-          } as StudyData)
-      );
 
       setShowSuccess(true);
       setTimeout(() => {

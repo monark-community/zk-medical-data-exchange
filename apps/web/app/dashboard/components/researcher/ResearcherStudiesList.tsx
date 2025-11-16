@@ -34,8 +34,13 @@ export default function ResearcherStudiesList({
   const [endStudyDialogOpen, setEndStudyDialogOpen] = useState(false);
   const [summaryDialogOpen, setSummaryDialogOpen] = useState(false);
   const [selectedStudy, setSelectedStudy] = useState<StudySummary | null>(null);
-  const [summaryStudy, setSummaryStudy] = useState<{ id: number; title: string } | null>(null);
-  const [studyData, setStudyData] = useState<StudyData | null>(null);
+  const [summaryStudy, setSummaryStudy] = useState<{
+    id: number;
+    title: string;
+    transactionHash: string;
+    currentParticipants: number;
+    durationDays: number | undefined;
+  } | null>(null);
 
   const handleEndStudyClick = (study: StudySummary) => {
     setSelectedStudy(study);
@@ -47,7 +52,14 @@ export default function ResearcherStudiesList({
   };
 
   const handleShowResults = (study: StudySummary) => {
-    setSummaryStudy({ id: study.id, title: study.title });
+    console.log("study:", study);
+    setSummaryStudy({
+      id: study.id,
+      title: study.title,
+      transactionHash: study.transactionHash || "",
+      currentParticipants: study.currentParticipants,
+      durationDays: study.durationDays,
+    });
     setSummaryDialogOpen(true);
   };
 
@@ -121,7 +133,6 @@ export default function ResearcherStudiesList({
           studyTitle={selectedStudy.title}
           studyId={selectedStudy.id}
           onStudyEnded={handleStudyEnded}
-          setStudyData={setStudyData}
         />
       )}
 
@@ -131,7 +142,9 @@ export default function ResearcherStudiesList({
           onOpenChange={setSummaryDialogOpen}
           studyTitle={summaryStudy.title}
           studyId={summaryStudy.id}
-          studyData={studyData}
+          transactionHash={summaryStudy.transactionHash}
+          currentParticipants={summaryStudy.currentParticipants}
+          durationDays={summaryStudy.durationDays}
         />
       )}
     </>

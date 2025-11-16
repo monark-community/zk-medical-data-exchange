@@ -441,6 +441,7 @@ const transformStudyForResponse = (study: any, isEnrolled?: boolean, hasConsente
     currentParticipants: study.current_participants,
     durationDays: study.duration_days,
     status: study.status,
+    transactionHash: study.transaction_hash,
     complexityScore: study.complexity_score,
     templateName: study.template_name,
     createdAt: study.created_at,

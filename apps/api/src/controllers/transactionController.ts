@@ -28,13 +28,13 @@ export const getEthereumPriceUSD = async (): Promise<number> => {
 };
 
 export const getTransactionsByStudyId = async (req: Request, res: Response) => {
-  const { studyId } = req.params;
+  const { id } = req.params;
 
   try {
     const transactions = await req.supabase
       .from(TABLES.TRANSACTIONS!.name)
       .select("*")
-      .eq(TABLES.TRANSACTIONS!.columns.studyId!, studyId);
+      .eq(TABLES.TRANSACTIONS!.columns.studyId!, id);
 
     if (transactions.error) {
       logger.error({ error: transactions.error }, "Failed to fetch transactions");
@@ -43,7 +43,7 @@ export const getTransactionsByStudyId = async (req: Request, res: Response) => {
 
     return res.status(200).json({ transactions: transactions.data });
   } catch (error) {
-    logger.error({ error, studyId }, "getTransactionsByStudyId error");
+    logger.error({ error, id }, "getTransactionsByStudyId error");
     return res.status(500).json({ error: "Internal server error" });
   }
 };

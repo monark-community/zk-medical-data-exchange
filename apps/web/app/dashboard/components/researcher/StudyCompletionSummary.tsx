@@ -18,7 +18,6 @@ import {
   TrendingUp,
   Clock,
 } from "lucide-react";
-import { StudyData } from "./ResearcherStudiesList";
 import { useEffect, useState } from "react";
 import { createPublicClient, http } from "viem";
 import { sepolia } from "viem/chains";
@@ -31,7 +30,9 @@ interface StudyCompletionSummaryProps {
   onOpenChange: (open: boolean) => void;
   studyTitle: string;
   studyId: number;
-  studyData: StudyData | null;
+  transactionHash: string;
+  currentParticipants: number;
+  durationDays: number | undefined;
 }
 
 const publicClient = createPublicClient({
@@ -43,7 +44,10 @@ export default function StudyCompletionSummary({
   open,
   onOpenChange,
   studyTitle,
-  studyData,
+  studyId,
+  transactionHash,
+  currentParticipants,
+  durationDays,
 }: StudyCompletionSummaryProps) {
   const [txInfo, setTxInfo] = useState<{
     hash: `0x${string}`;
@@ -56,23 +60,19 @@ export default function StudyCompletionSummary({
     createdAt?: string;
   } | null>(null);
 
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
   useEffect(() => {
     const fetchTx = async () => {
-      console.log(studyData?.transactionHash);
-      if (!studyData?.transactionHash) return;
-      setLoading(true);
-      setError(null);
       try {
-        const hash = studyData.transactionHash as `0x${string}`;
+        const hash = transactionHash as `0x${string}`;
 
         const tx = await publicClient.getTransaction({ hash });
         const receipt = await publicClient.getTransactionReceipt({ hash });
+        console.log("tx:", tx);
+        console.log("receipt:", receipt);
 
-        const transactions = await getTransactionsByStudyId(studyData.studyId);
-        const totalUsd = transactions.reduce(
+        const transactions = await getTransactionsByStudyId(studyId);
+        console.log("transactions:", transactions);
+        const totalUsd = transactions.transactions.reduce(
           (acc: number, t: any) => acc + Number(t.value_usd ?? 0),
           0
         );
@@ -84,25 +84,22 @@ export default function StudyCompletionSummary({
           valueUsd: totalUsd.toFixed(2),
           blockNumber: receipt?.blockNumber,
           gasUsed: receipt?.gasUsed,
-          participantsCount: studyData.participantsCount,
-          createdAt: transactions?.[0]?.created_at
-            ? new Date(transactions[0].created_at).toLocaleDateString()
+          participantsCount: currentParticipants,
+          createdAt: transactions?.transactions[0]?.created_at
+            ? new Date(transactions.transactions[0].created_at).toLocaleDateString()
             : undefined,
         });
       } catch (err: any) {
         console.error("Failed to fetch tx info:", err);
-        setError(err.message ?? String(err));
-      } finally {
-        setLoading(false);
       }
     };
 
     fetchTx();
-  }, [studyData?.transactionHash, studyData?.studyId, studyData?.participantsCount]);
+  }, [transactionHash, studyId, currentParticipants]);
 
   // TODO: Fetch datapoints and duration from backend
   const dataPointsCollected = 1248;
-  const studyDuration = "45 days";
+  const studyDuration = durationDays ? `${durationDays} days` : "N/A";
 
   const handleAccessData = () => {
     // TODO: Implement data access functionality
@@ -127,40 +124,7 @@ export default function StudyCompletionSummary({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      {/* Make the container relative so the overlay can be absolutely positioned */}
-      <DialogContent className="relative max-w-[95vw] lg:max-w-6xl w-full max-h-[90vh] overflow-y-auto">
-        {/* Loading overlay */}
-        {loading && (
-          <div className="absolute inset-0 bg-background/90 z-50 flex items-center justify-center rounded-lg">
-            <div className="text-center">
-              <svg
-                className="animate-spin h-12 w-12 text-orange-600 mx-auto mb-4"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                />
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                />
-              </svg>
-              <h3 className="text-lg font-semibold mb-2">Loading Summary</h3>
-              <p className="text-muted-foreground">
-                Please wait while we fetch the transaction and prepare your report…
-              </p>
-            </div>
-          </div>
-        )}
-
+      <DialogContent className="max-w-[95vw] lg:max-w-6xl w-full max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <div className="flex items-center justify-center mb-4">
             <div className="h-16 w-16 rounded-full bg-green-100 flex items-center justify-center">
@@ -171,7 +135,6 @@ export default function StudyCompletionSummary({
             Study Successfully Completed
           </DialogTitle>
           <p className="text-center text-sm text-gray-600 mt-2">{studyTitle}</p>
-          {error && <p className="text-center text-sm text-red-600 mt-2">{error}</p>}
         </DialogHeader>
 
         <div className="py-6">
@@ -188,9 +151,7 @@ export default function StudyCompletionSummary({
                       <Users className="h-8 w-8 text-indigo-600 flex-shrink-0" />
                       <div>
                         <p className="text-sm text-gray-600">Total Participants</p>
-                        <p className="text-2xl font-bold text-gray-900">
-                          {participantsCount || "-"}
-                        </p>
+                        <p className="text-2xl font-bold text-gray-900">{participantsCount}</p>
                       </div>
                     </div>
                   </div>
@@ -270,24 +231,21 @@ export default function StudyCompletionSummary({
                       <span className="text-gray-600">Transaction Hash:</span>
                       <button
                         onClick={handleViewTransaction}
-                        disabled={!txInfo?.hash}
-                        className="font-mono text-xs text-indigo-600 hover:text-indigo-700 disabled:text-gray-400 flex items-center space-x-1"
+                        className="font-mono text-xs text-indigo-600 hover:text-indigo-700 flex items-center space-x-1"
                       >
-                        <span>{txInfo?.hash ?? "-"}</span>
+                        <span>{txInfo?.hash}...</span>
                         <ExternalLink className="h-3 w-3" />
                       </button>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Gas Fees (gasUsed):</span>
+                      <span className="text-gray-600">Gas Fees:</span>
                       <span className="font-medium text-gray-900">
                         {txInfo?.gasUsed?.toString() ?? "-"}
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Participant Compensation (USD):</span>
-                      <span className="font-medium text-gray-900">
-                        {typeof perParticipantUsd === "string" ? perParticipantUsd : "-"}
-                      </span>
+                      <span className="text-gray-600">Participant Compensation:</span>
+                      <span className="font-medium text-gray-900">${perParticipantUsd}</span>
                     </div>
                   </div>
 

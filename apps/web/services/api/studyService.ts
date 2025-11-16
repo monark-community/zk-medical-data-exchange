@@ -27,6 +27,7 @@ export interface StudySummary {
   contractAddress?: string;
   isEnrolled?: boolean;
   hasConsented?: boolean;
+  transactionHash?: string;
   criteriaSummary: {
     requiresAge: boolean;
     requiresGender: boolean;
