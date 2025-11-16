@@ -4,6 +4,7 @@ import { TABLES } from "@/constants/db";
 import { createPublicClient, http, parseEther } from "viem";
 import { sepolia } from "viem/chains";
 import { Config } from "@/config/config";
+import { auditService } from "@/services/auditService";
 
 const RPC_URL = Config.SEPOLIA_RPC_URL;
 const perHeadEth = 0.001;
@@ -200,6 +201,29 @@ export const verifyTransaction = async (req: Request, res: Response) => {
         [TABLES.STUDIES!.columns.transactionHash!]: transactionHash,
       })
       .eq(TABLES.STUDIES!.columns.id!, studyId);
+
+    const participantWallets = participantsData.map((p) => p.participant_wallet);
+    auditService.logStudyCompletion(data.created_by, participantWallets, String(studyId), true, {
+      transactionHash,
+      participantCount: participantsData.length,
+      totalEth: perHeadEth * participantsData.length,
+      perParticipantEth: perHeadEth,
+    });
+
+    // Log compensation sent/received
+    auditService.logCompensationSent(
+      data.created_by,
+      participantWallets,
+      true,
+      perHeadEth * priceUSD * participantsData.length,
+      {
+        transactionHash,
+        perParticipantUSD: perHeadEth * priceUSD,
+        perParticipantEth: perHeadEth,
+        totalEth: perHeadEth * participantsData.length,
+        ethPriceUSD: priceUSD,
+      }
+    );
 
     logger.info({ transactionHash, studyId }, "Transaction verified successfully");
 
