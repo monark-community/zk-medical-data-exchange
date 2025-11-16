@@ -4,7 +4,12 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { createCriteria, validateCriteria, STUDY_TEMPLATES } from "@zk-medical/shared";
+import {
+  createCriteria,
+  validateCriteria,
+  STUDY_TEMPLATES,
+  CRITERIA_DEFAULTS,
+} from "@zk-medical/shared";
 import { useCreateStudy, deployStudy, deleteStudy } from "@/services/api/studyService";
 import { useAccount } from "wagmi";
 import { STUDY_FORM_MAPPINGS, DEFAULT_STUDY_INFO } from "@/constants/studyFormMappings";
@@ -496,7 +501,7 @@ const StudyCreationForm = ({
               onChange={(value) => setStudyInfo({ ...studyInfo, maxParticipants: value })}
               className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200"
               min={1}
-              max={10000}
+              max={CRITERIA_DEFAULTS.maxParticipants}
               step={1}
               placeholder="Enter maximum participants"
             />
@@ -511,7 +516,7 @@ const StudyCreationForm = ({
               onChange={(value) => setStudyInfo({ ...studyInfo, durationDays: value })}
               className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200"
               min={1}
-              max={365}
+              max={CRITERIA_DEFAULTS.durationDays}
               step={1}
               placeholder="Enter study duration in days"
             />
@@ -594,10 +599,10 @@ const StudyCreationForm = ({
               onMinChange={(value) => updateCriteria({ minAge: value })}
               onMaxChange={(value) => updateCriteria({ maxAge: value })}
               unit="years"
-              absoluteMin={0}
-              absoluteMax={150}
-              stepMin={1}
-              stepMax={1}
+              absoluteMin={CRITERIA_DEFAULTS.age.min}
+              absoluteMax={CRITERIA_DEFAULTS.age.max}
+              stepMin={CRITERIA_DEFAULTS.age.step}
+              stepMax={CRITERIA_DEFAULTS.age.step}
             />
           </CriteriaField>
 
@@ -637,15 +642,15 @@ const StudyCreationForm = ({
           >
             <RangeInput
               label="BMI Range"
-              minValue={criteria.minBMI === 0 ? 10.0 : criteria.minBMI / 10}
-              maxValue={criteria.maxBMI === 0 ? 80.0 : criteria.maxBMI / 10}
+              minValue={criteria.minBMI === 0 ? CRITERIA_DEFAULTS.bmi.min : criteria.minBMI / 10}
+              maxValue={criteria.maxBMI === 0 ? CRITERIA_DEFAULTS.bmi.max : criteria.maxBMI / 10}
               onMinChange={(value) => updateCriteria({ minBMI: Math.round(value * 10) })}
               onMaxChange={(value) => updateCriteria({ maxBMI: Math.round(value * 10) })}
               unit="kg/m²"
-              absoluteMin={10.0}
-              absoluteMax={80.0}
-              stepMin={0.1}
-              stepMax={0.1}
+              absoluteMin={CRITERIA_DEFAULTS.bmi.min}
+              absoluteMax={CRITERIA_DEFAULTS.bmi.max}
+              stepMin={CRITERIA_DEFAULTS.bmi.step}
+              stepMax={CRITERIA_DEFAULTS.bmi.step}
             />
           </CriteriaField>
 
@@ -663,15 +668,23 @@ const StudyCreationForm = ({
           >
             <RangeInput
               label="Cholesterol Level"
-              minValue={criteria.minCholesterol === 0 ? 0 : criteria.minCholesterol / 10}
-              maxValue={criteria.maxCholesterol === 0 ? 1000 : criteria.maxCholesterol / 10}
+              minValue={
+                criteria.minCholesterol === 0
+                  ? CRITERIA_DEFAULTS.cholesterol.min
+                  : criteria.minCholesterol / 10
+              }
+              maxValue={
+                criteria.maxCholesterol === 0
+                  ? CRITERIA_DEFAULTS.cholesterol.max
+                  : criteria.maxCholesterol / 10
+              }
               onMinChange={(value) => updateCriteria({ minCholesterol: Math.round(value * 10) })}
               onMaxChange={(value) => updateCriteria({ maxCholesterol: Math.round(value * 10) })}
               unit="mg/dL"
-              absoluteMin={0}
-              absoluteMax={1000}
-              stepMin={0.1}
-              stepMax={0.1}
+              absoluteMin={CRITERIA_DEFAULTS.cholesterol.min}
+              absoluteMax={CRITERIA_DEFAULTS.cholesterol.max}
+              stepMin={CRITERIA_DEFAULTS.cholesterol.step}
+              stepMax={CRITERIA_DEFAULTS.cholesterol.step}
             />
           </CriteriaField>
 
@@ -696,27 +709,43 @@ const StudyCreationForm = ({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <RangeInput
                 label="Systolic Pressure"
-                minValue={criteria.minSystolic === 0 ? 70 : criteria.minSystolic / 10}
-                maxValue={criteria.maxSystolic === 0 ? 250 : criteria.maxSystolic / 10}
+                minValue={
+                  criteria.minSystolic === 0
+                    ? CRITERIA_DEFAULTS.bloodPressure.systolic.min
+                    : criteria.minSystolic / 10
+                }
+                maxValue={
+                  criteria.maxSystolic === 0
+                    ? CRITERIA_DEFAULTS.bloodPressure.systolic.max
+                    : criteria.maxSystolic / 10
+                }
                 onMinChange={(value) => updateCriteria({ minSystolic: Math.round(value * 10) })}
                 onMaxChange={(value) => updateCriteria({ maxSystolic: Math.round(value * 10) })}
                 unit="mmHg"
-                absoluteMin={70}
-                absoluteMax={250}
-                stepMin={0.1}
-                stepMax={0.1}
+                absoluteMin={CRITERIA_DEFAULTS.bloodPressure.systolic.min}
+                absoluteMax={CRITERIA_DEFAULTS.bloodPressure.systolic.max}
+                stepMin={CRITERIA_DEFAULTS.bloodPressure.systolic.step}
+                stepMax={CRITERIA_DEFAULTS.bloodPressure.systolic.step}
               />
               <RangeInput
                 label="Diastolic Pressure"
-                minValue={criteria.minDiastolic === 0 ? 40 : criteria.minDiastolic / 10}
-                maxValue={criteria.maxDiastolic === 0 ? 150 : criteria.maxDiastolic / 10}
+                minValue={
+                  criteria.minDiastolic === 0
+                    ? CRITERIA_DEFAULTS.bloodPressure.diastolic.min
+                    : criteria.minDiastolic / 10
+                }
+                maxValue={
+                  criteria.maxDiastolic === 0
+                    ? CRITERIA_DEFAULTS.bloodPressure.diastolic.max
+                    : criteria.maxDiastolic / 10
+                }
                 onMinChange={(value) => updateCriteria({ minDiastolic: Math.round(value * 10) })}
                 onMaxChange={(value) => updateCriteria({ maxDiastolic: Math.round(value * 10) })}
                 unit="mmHg"
-                absoluteMin={40}
-                absoluteMax={150}
-                stepMin={0.1}
-                stepMax={0.1}
+                absoluteMin={CRITERIA_DEFAULTS.bloodPressure.diastolic.min}
+                absoluteMax={CRITERIA_DEFAULTS.bloodPressure.diastolic.max}
+                stepMin={CRITERIA_DEFAULTS.bloodPressure.diastolic.step}
+                stepMax={CRITERIA_DEFAULTS.bloodPressure.diastolic.step}
               />
             </div>
           </CriteriaField>
@@ -883,15 +912,19 @@ const StudyCreationForm = ({
           >
             <RangeInput
               label="HbA1c Level"
-              minValue={criteria.minHbA1c === 0 ? 4.0 : criteria.minHbA1c / 10}
-              maxValue={criteria.maxHbA1c === 0 ? 20.0 : criteria.maxHbA1c / 10}
+              minValue={
+                criteria.minHbA1c === 0 ? CRITERIA_DEFAULTS.hbA1c.min : criteria.minHbA1c / 10
+              }
+              maxValue={
+                criteria.maxHbA1c === 0 ? CRITERIA_DEFAULTS.hbA1c.max : criteria.maxHbA1c / 10
+              }
               onMinChange={(value) => updateCriteria({ minHbA1c: Math.round(value * 10) })}
               onMaxChange={(value) => updateCriteria({ maxHbA1c: Math.round(value * 10) })}
               unit="%"
-              absoluteMin={4.0}
-              absoluteMax={20.0}
-              stepMin={0.1}
-              stepMax={0.1}
+              absoluteMin={CRITERIA_DEFAULTS.hbA1c.min}
+              absoluteMax={CRITERIA_DEFAULTS.hbA1c.max}
+              stepMin={CRITERIA_DEFAULTS.hbA1c.step}
+              stepMax={CRITERIA_DEFAULTS.hbA1c.step}
             />
           </CriteriaField>
 
@@ -902,7 +935,11 @@ const StudyCreationForm = ({
             onEnabledChange={(enabled) =>
               updateCriteria(
                 enabled
-                  ? { enableActivity: 1, minActivityLevel: 1, maxActivityLevel: 3 }
+                  ? {
+                      enableActivity: 1,
+                      minActivityLevel: CRITERIA_DEFAULTS.activityLevel.min,
+                      maxActivityLevel: CRITERIA_DEFAULTS.activityLevel.max,
+                    }
                   : { enableActivity: 0, minActivityLevel: 0, maxActivityLevel: 0 }
               )
             }
