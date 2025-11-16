@@ -45,6 +45,7 @@ contract Study {
     }
     
     // Study metadata
+    uint256 public studyId;
     string public studyTitle;
     address public studyCreator;
     uint256 public maxParticipants;
@@ -73,18 +74,80 @@ contract Study {
     event ConsentGranted(address indexed participant, uint256 timestamp);
     
     constructor(
+        uint256 _studyId,
         string memory _title,
         uint256 _maxParticipants,
         StudyCriteria memory _criteria,
         address _zkVerifierAddress
     ) {
+        studyId = _studyId;
         studyTitle = _title;
         studyCreator = msg.sender;
         maxParticipants = _maxParticipants;
         criteria = _criteria;
         zkVerifier = Groth16Verifier(_zkVerifierAddress);
+        status = StudyStatus.ACTIVE;
     }
     
+    function _buildPublicSignals(
+        uint256 dataCommitment,
+        address participant
+    ) internal view returns (uint256[] memory pubSignals) {
+        pubSignals = new uint256;
+        uint256 i = 0;
+
+        pubSignals[i++] = dataCommitment;
+        pubSignals[i++] = uint256(uint160(participant));
+        pubSignals[i++] = studyId;
+
+        StudyCriteria memory c = criteria;
+
+        pubSignals[i++] = c.enableAge;
+        pubSignals[i++] = c.minAge;
+        pubSignals[i++] = c.maxAge;
+        pubSignals[i++] = c.enableCholesterol;
+        pubSignals[i++] = c.minCholesterol;
+        pubSignals[i++] = c.maxCholesterol;
+        pubSignals[i++] = c.enableBMI;
+        pubSignals[i++] = c.minBMI;
+        pubSignals[i++] = c.maxBMI;
+        pubSignals[i++] = c.enableBloodType;
+        pubSignals[i++] = c.allowedBloodTypes[0];
+        pubSignals[i++] = c.allowedBloodTypes[1];
+        pubSignals[i++] = c.allowedBloodTypes[2];
+        pubSignals[i++] = c.allowedBloodTypes[3];
+        pubSignals[i++] = c.enableGender;
+        pubSignals[i++] = c.allowedGender;
+        pubSignals[i++] = c.enableLocation;
+        pubSignals[i++] = c.allowedRegions[0];
+        pubSignals[i++] = c.allowedRegions[1];
+        pubSignals[i++] = c.allowedRegions[2];
+        pubSignals[i++] = c.allowedRegions[3];
+        pubSignals[i++] = c.enableBloodPressure;
+        pubSignals[i++] = c.minSystolic;
+        pubSignals[i++] = c.maxSystolic;
+        pubSignals[i++] = c.minDiastolic;
+        pubSignals[i++] = c.maxDiastolic;
+        pubSignals[i++] = c.enableHbA1c;
+        pubSignals[i++] = c.minHbA1c;
+        pubSignals[i++] = c.maxHbA1c;
+        pubSignals[i++] = c.enableSmoking;
+        pubSignals[i++] = c.allowedSmoking;
+        pubSignals[i++] = c.enableActivity;
+        pubSignals[i++] = c.minActivityLevel;
+        pubSignals[i++] = c.maxActivityLevel;
+        pubSignals[i++] = c.enableDiabetes;
+        pubSignals[i++] = c.allowedDiabetes;
+        pubSignals[i++] = c.enableHeartDisease;
+        pubSignals[i++] = c.allowedHeartDisease;
+
+        pubSignals[i++] = 1;
+
+        assert(i == 42);
+
+        return pubSignals;
+    }
+
     /**
      * @dev Register a commitment on-chain before proof generation
      * This creates an immutable record that ties wallet + dataCommitment + challenge
@@ -131,7 +194,7 @@ contract Study {
     ) external {
         require(currentParticipants < maxParticipants, "Study is full");
         require(!participants[participant], "Already participating");
-        
+
         bytes32 storedCommitmentHash = registeredCommitments[participant];
         require(storedCommitmentHash != bytes32(0), "No commitment registered");
         
@@ -142,7 +205,8 @@ contract Study {
         ));
         require(recomputedHash == storedCommitmentHash, "Commitment mismatch - data tampering detected");
         
-        uint[1] memory pubSignals = [uint256(1)]; // Expected: eligible = 1
+        uint256[] memory pubSignals = _buildPublicSignals(dataCommitment, caller);
+
         bool isEligible = zkVerifier.verifyProof(_pA, _pB, _pC, pubSignals);
         
         emit EligibilityVerified(participant, isEligible);
