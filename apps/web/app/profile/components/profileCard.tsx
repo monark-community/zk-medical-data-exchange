@@ -3,7 +3,7 @@ import React from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Settings, Activity } from "lucide-react";
+import { Settings, Activity, ArrowDownRight, ArrowUpRight, ExternalLink } from "lucide-react";
 
 import { ProfileCardProps } from "@/interfaces/profile";
 import { useProfile } from "@/contexts/ProfileContext";
@@ -17,24 +17,53 @@ import { Transaction } from "@/interfaces/transaction";
 
 const ProfileCard = () => {
   const formatWalletAddress = (address: string) => {
+    if (!address) return "";
     if (address.length < 10) return address;
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
   };
+
+  const formatUsd = (n: number | string) =>
+    `$${Number(n ?? 0).toLocaleString(undefined, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
+
   const { currentProfile, getProfileDisplayName } = useProfile();
   const { address } = useAccount();
   const { user, refetchUser } = useUser();
+
   const [profileCardInfo, setProfileCardInfo] = React.useState<ProfileCardProps | null>(null);
   const [isWaitingForExportData, setIsWaitingForExportData] = React.useState(false);
+
+  const [txs, setTxs] = React.useState<Transaction[]>([]);
+  const [txsLoading, setTxsLoading] = React.useState(false);
+  const [txsError, setTxsError] = React.useState<string | null>(null);
+
   React.useEffect(() => {
     const fetchTransactions = async () => {
-      if (user && address) {
-        const transactions = await getTransactionByWalletAddress(address as `0x${string}`);
-        let earnings = 0;
-        transactions.forEach((tx: Transaction) => {
-          if (tx.toWallet === address) {
-            earnings += tx.valueUsd;
-          }
+      if (!user || !address) return;
+
+      try {
+        setTxsLoading(true);
+        setTxsError(null);
+
+        const transactions: Transaction[] = await getTransactionByWalletAddress(
+          address as `0x${string}`
+        );
+
+        const earnings = transactions.reduce((sum, tx) => {
+          return tx.toWallet?.toLowerCase() === address.toLowerCase()
+            ? sum + Number(tx.valueUsd ?? 0)
+            : sum;
+        }, 0);
+
+        transactions.sort((a, b) => {
+          const ta = new Date(a.createdAt).getTime();
+          const tb = new Date(b.createdAt).getTime();
+          return tb - ta;
         });
+
+        setTxs(transactions);
 
         setProfileCardInfo({
           walletAddress: user.id,
@@ -44,10 +73,16 @@ const ProfileCard = () => {
           earnings,
           privacyScore: 100,
         });
+      } catch (e: any) {
+        console.error("Failed to fetch transactions:", e);
+        setTxsError(e?.message ?? "Failed to load transactions");
+      } finally {
+        setTxsLoading(false);
       }
     };
+
     fetchTransactions();
-  }, [user, currentProfile, getProfileDisplayName]);
+  }, [user, address, currentProfile, getProfileDisplayName]);
 
   const exportUserData = async () => {
     if (!address) return;
@@ -69,12 +104,15 @@ const ProfileCard = () => {
       setIsWaitingForExportData(false);
     }
   };
+
   if (!profileCardInfo) {
     return <div>Loading...</div>;
   }
 
+  const viewerWallet = address?.toLowerCase() ?? "";
+
   return (
-    <div className="w-full max-w-4xl mx-auto">
+    <div className="w-full max-w-4xl mx-auto space-y-6">
       <Card className="overflow-hidden py-0">
         {/* Header Section with Gradient */}
         <CardHeader className="bg-gradient-to-r from-blue-600 to-teal-500 p-8 text-white">
@@ -104,6 +142,7 @@ const ProfileCard = () => {
             </div>
           </div>
         </CardHeader>
+
         <CardContent className="p-8">
           {/* Two Column Layout */}
           <div className="grid md:grid-cols-2 gap-8">
@@ -158,7 +197,7 @@ const ProfileCard = () => {
                 <div className="bg-teal-50 p-4 rounded-lg">
                   <p className="text-sm font-semibold text-teal-700 mb-1">Earnings</p>
                   <p className="text-3xl font-bold text-teal-600">
-                    ${(profileCardInfo.earnings ?? 0).toFixed(2)}
+                    {formatUsd(profileCardInfo.earnings ?? 0)}
                   </p>
                   <p className="text-sm text-teal-600 mt-1">Total rewards earned</p>
                 </div>
@@ -185,6 +224,84 @@ const ProfileCard = () => {
               {isWaitingForExportData ? "Exporting..." : "Download Data"}
             </Button>
           </div>
+        </CardContent>
+      </Card>
+
+      {/*Transaction History*/}
+      <Card>
+        <CardHeader className="p-6">
+          <h3 className="text-lg font-semibold">Transaction History</h3>
+          <p className="text-sm text-muted-foreground">Payments you've sent or received on-chain</p>
+        </CardHeader>
+        <CardContent className="p-0">
+          {txsLoading ? (
+            <div className="p-6 text-sm text-muted-foreground">Loading transactions…</div>
+          ) : txsError ? (
+            <div className="p-6 text-sm text-red-600">Error: {txsError}</div>
+          ) : txs.length === 0 ? (
+            <div className="p-6 text-sm text-muted-foreground">No transactions yet.</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-sm">
+                <thead className="bg-gray-50 border-t">
+                  <tr className="text-left text-gray-600">
+                    <th className="py-3 px-4">Direction</th>
+                    <th className="py-3 px-4">Amount (USD)</th>
+                    <th className="py-3 px-4">Study</th>
+                    <th className="py-3 px-4">Tx Hash</th>
+                    <th className="py-3 px-4">Date</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {txs.map((tx) => {
+                    const incoming = tx.toWallet?.toLowerCase() === viewerWallet;
+                    const dirIcon = incoming ? (
+                      <ArrowDownRight className="h-4 w-4 text-emerald-600" />
+                    ) : (
+                      <ArrowUpRight className="h-4 w-4 text-rose-600" />
+                    );
+
+                    return (
+                      <tr key={tx.id} className="border-t">
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-2">
+                            {dirIcon}
+                            <span className={incoming ? "text-emerald-700" : "text-rose-700"}>
+                              {incoming ? "Incoming" : "Outgoing"}
+                            </span>
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {incoming
+                              ? `From ${formatWalletAddress(tx.fromWallet)}`
+                              : `To ${formatWalletAddress(tx.toWallet)}`}
+                          </div>
+                        </td>
+                        <td className="py-3 px-4 font-medium">{formatUsd(tx.valueUsd ?? 0)}</td>
+                        <td className="py-3 px-4">#{tx.studyId}</td>
+                        <td className="py-3 px-4">
+                          <button
+                            onClick={() =>
+                              window.open(
+                                `https://sepolia.etherscan.io/tx/${tx.transactionHash}`,
+                                "_blank",
+                                "noopener"
+                              )
+                            }
+                            className="font-mono text-xs text-indigo-600 hover:text-indigo-700 inline-flex items-center gap-1"
+                            title={tx.transactionHash}
+                          >
+                            {tx.transactionHash.slice(0, 10)}…
+                            <ExternalLink className="h-3 w-3" />
+                          </button>
+                        </td>
+                        <td className="py-3 px-4">{new Date(tx.createdAt).toLocaleString()}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
