@@ -70,6 +70,7 @@ export const TABLES: Record<string, TableDefinition> = {
       deployedAt: "deployed_at",
       complexityScore: "complexity_score",
       templateName: "template_name",
+      transactionHash: "transaction_hash",
     },
   },
 

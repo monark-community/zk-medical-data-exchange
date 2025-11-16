@@ -172,7 +172,10 @@ export const verifyTransaction = async (req: Request, res: Response) => {
 
     await req.supabase
       .from(TABLES.STUDIES!.name)
-      .update({ [TABLES.STUDIES!.columns.status!]: "completed" })
+      .update({
+        [TABLES.STUDIES!.columns.status!]: "completed",
+        [TABLES.STUDIES!.columns.transactionHash!]: transactionHash,
+      })
       .eq(TABLES.STUDIES!.columns.id!, studyId);
 
     logger.info({ transactionHash, studyId }, "Transaction verified successfully");

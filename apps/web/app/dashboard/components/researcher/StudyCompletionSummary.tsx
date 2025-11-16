@@ -231,9 +231,9 @@ export default function StudyCompletionSummary({
                       <span className="text-gray-600">Transaction Hash:</span>
                       <button
                         onClick={handleViewTransaction}
-                        className="font-mono text-xs text-indigo-600 hover:text-indigo-700 flex items-center space-x-1"
+                        className="font-mono text-xs text-indigo-600 hover:text-indigo-700 flex items-center space-x-1 cursor-pointer"
                       >
-                        <span>{txInfo?.hash}...</span>
+                        <span>{txInfo?.hash.slice(0, 20)}...</span>
                         <ExternalLink className="h-3 w-3" />
                       </button>
                     </div>
