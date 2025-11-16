@@ -12,6 +12,8 @@ import { useAccount } from "wagmi";
 import EditProfileDialog from "./editProfileDialog";
 import { useUser } from "@/hooks/useUser";
 import ProfileAvatar from "@/components/profileAvatar";
+import { getTransactionByWalletAddress } from "@/services/api/transactionService";
+import { Transaction } from "@/interfaces/transaction";
 
 const ProfileCard = () => {
   const formatWalletAddress = (address: string) => {
@@ -24,17 +26,27 @@ const ProfileCard = () => {
   const [profileCardInfo, setProfileCardInfo] = React.useState<ProfileCardProps | null>(null);
   const [isWaitingForExportData, setIsWaitingForExportData] = React.useState(false);
   React.useEffect(() => {
-    if (user) {
-      setProfileCardInfo({
-        walletAddress: user.id,
-        userAlias: user.username,
-        accountType: getProfileDisplayName(currentProfile),
-        createdAt: user.createdAt,
-        dataContributions: 12,
-        earnings: 247.5,
-        privacyScore: 100,
-      });
-    }
+    const fetchTransactions = async () => {
+      if (user && address) {
+        const transactions = await getTransactionByWalletAddress(address as `0x${string}`);
+        let earnings = 0;
+        transactions.forEach((tx: Transaction) => {
+          if (tx.toWallet === address) {
+            earnings += tx.valueUsd;
+          }
+        });
+
+        setProfileCardInfo({
+          walletAddress: user.id,
+          userAlias: user.username,
+          accountType: getProfileDisplayName(currentProfile),
+          createdAt: user.createdAt,
+          earnings,
+          privacyScore: 100,
+        });
+      }
+    };
+    fetchTransactions();
   }, [user, currentProfile, getProfileDisplayName]);
 
   const exportUserData = async () => {
@@ -142,15 +154,6 @@ const ProfileCard = () => {
               </div>
 
               <div className="space-y-4">
-                {/* Data Contributions */}
-                <div className="bg-blue-50 p-4 rounded-lg">
-                  <p className="text-sm font-semibold text-blue-700 mb-1">Data Contributions</p>
-                  <p className="text-3xl font-bold text-blue-600">
-                    {profileCardInfo.dataContributions}
-                  </p>
-                  <p className="text-sm text-blue-600 mt-1">Datasets shared</p>
-                </div>
-
                 {/* Earnings */}
                 <div className="bg-teal-50 p-4 rounded-lg">
                   <p className="text-sm font-semibold text-teal-700 mb-1">Earnings</p>

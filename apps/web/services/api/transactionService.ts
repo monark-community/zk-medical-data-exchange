@@ -28,3 +28,22 @@ export const getTransactionsByStudyId = async (studyId: number) => {
     throw new Error(`Failed to fetch transactions: ${message}`);
   }
 };
+
+export const getTransactionByWalletAddress = async (walletAddress: string) => {
+  try {
+    const response = await apiClient.get(`/transaction/wallet/${walletAddress}`);
+    return response.data.transactions.map((tx: any) => ({
+      id: tx.id,
+      fromWallet: tx.from_wallet,
+      toWallet: tx.to_wallet,
+      value: tx.value,
+      valueUsd: tx.value_usd,
+      studyId: tx.study_id,
+      createdAt: tx.created_at,
+      transactionHash: tx.transaction_hash,
+    }));
+  } catch (error: any) {
+    const message = error?.response?.data?.error || error.message || "Unknown error";
+    throw new Error(`Failed to fetch transactions: ${message}`);
+  }
+};

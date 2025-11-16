@@ -48,6 +48,30 @@ export const getTransactionsByStudyId = async (req: Request, res: Response) => {
   }
 };
 
+export const getTransactionByWalletAddress = async (req: Request, res: Response) => {
+  const { walletAddress } = req.params;
+
+  try {
+    const transactions = await req.supabase
+      .from(TABLES.TRANSACTIONS!.name)
+      .select("*")
+      .or(
+        `${TABLES.TRANSACTIONS!.columns.fromWallet!}.eq.${walletAddress},${TABLES.TRANSACTIONS!
+          .columns.toWallet!}.eq.${walletAddress}`
+      );
+
+    if (transactions.error) {
+      logger.error({ error: transactions.error }, "Failed to fetch transactions");
+      return res.status(500).json({ error: "Failed to fetch transactions" });
+    }
+
+    return res.status(200).json({ transactions: transactions.data });
+  } catch (error) {
+    logger.error({ error, walletAddress }, "getTransactionByWalletAddress error");
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};
+
 export const verifyTransaction = async (req: Request, res: Response) => {
   const { studyId, transactionHash } = req.body.data;
 
