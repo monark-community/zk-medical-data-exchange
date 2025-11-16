@@ -8,8 +8,6 @@ import { createCriteria, validateCriteria, STUDY_TEMPLATES } from "@zk-medical/s
 import { useCreateStudy, deployStudy, deleteStudy } from "@/services/api/studyService";
 import { useAccount } from "wagmi";
 import { STUDY_FORM_MAPPINGS, DEFAULT_STUDY_INFO } from "@/constants/studyFormMappings";
-
-// Template selector component
 const TemplateSelector = ({
   onTemplateSelect,
   selectedTemplate,
@@ -109,7 +107,6 @@ const TemplateSelector = ({
   );
 };
 
-// Individual criteria component
 const CriteriaField = ({
   label,
   enabled,
@@ -155,7 +152,6 @@ const CriteriaField = ({
   );
 };
 
-// Number input component with empty value support
 const NumberInput = ({
   value,
   onChange,
@@ -179,7 +175,6 @@ const NumberInput = ({
 }) => {
   const [displayValue, setDisplayValue] = useState(value.toString());
 
-  // Update display value when prop value changes
   useEffect(() => {
     setDisplayValue(value.toString());
   }, [value]);
@@ -188,14 +183,12 @@ const NumberInput = ({
     const newValue = e.target.value;
     setDisplayValue(newValue);
 
-    // Allow empty string to clear the field
     if (newValue === "") {
       return;
     }
 
     const numValue = Number(newValue);
     if (!Number.isNaN(numValue)) {
-      // If step is 1, enforce integer values; if step is 0.1, round to one decimal
       let adjustedValue = numValue;
       if (step === 1) adjustedValue = Math.floor(numValue);
       else if (step === 0.1) adjustedValue = Math.round(numValue * 10) / 10;
@@ -213,7 +206,6 @@ const NumberInput = ({
       let constrainedValue = numValue;
       if (min !== undefined && numValue < min) constrainedValue = min;
       if (max !== undefined && numValue > max) constrainedValue = max;
-      // If step is 1, enforce integer; if step is 0.1, round to one decimal
       if (step === 1) constrainedValue = Math.floor(constrainedValue);
       else if (step === 0.1) constrainedValue = Math.round(constrainedValue * 10) / 10;
 
@@ -239,7 +231,6 @@ const NumberInput = ({
   );
 };
 
-// Range input component
 const RangeInput = ({
   label,
   minValue,
@@ -322,35 +313,26 @@ const StudyCreationForm = ({
   isModal = false,
   onSubmitStateChange,
 }: StudyCreationFormProps) => {
-  // Basic study info
   const [studyInfo, setStudyInfo] = useState(DEFAULT_STUDY_INFO);
 
-  // Study criteria state
   const [criteria, setCriteria] = useState(() => createCriteria());
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<string | undefined>();
 
-  // Sanitize text input to prevent weird characters
   const sanitizeText = (text: string) => {
     return text.replace(/[^a-zA-Z0-9\s\-.,!?()]/g, "");
   };
 
-  // Notify parent component when submit state changes
   useEffect(() => {
     onSubmitStateChange?.(isSubmitting);
   }, [isSubmitting, onSubmitStateChange]);
 
-  // Wagmi wallet hook
   const { address: walletAddress, isConnected } = useAccount();
 
-  // Next.js router for navigation
   const router = useRouter();
 
-  // API hook
   const { createStudy: createStudyApi } = useCreateStudy();
-
-  // Reset form to initial state
   const resetForm = () => {
     setStudyInfo(DEFAULT_STUDY_INFO);
     setCriteria(createCriteria());
@@ -374,15 +356,12 @@ const StudyCreationForm = ({
     const newCriteria = { ...criteria, ...updates };
     setCriteria(newCriteria);
 
-    // Clear template selection since user is customizing
     setSelectedTemplate(undefined);
 
-    // Validate on change
     const validation = validateCriteria(newCriteria);
     setValidationErrors(validation.errors);
   };
 
-  // Update validation errors whenever form data changes
   useEffect(() => {
     const errors: string[] = [];
     if (!studyInfo.title) errors.push("Study Title is required.");
@@ -396,14 +375,12 @@ const StudyCreationForm = ({
     setIsSubmitting(true);
 
     try {
-      // Check if there are any validation errors
       if (validationErrors.length > 0) {
         return;
       }
 
       console.log("Creating study via API...");
 
-      // Check if wallet is connected
       if (!isConnected || !walletAddress) {
         alert("Please connect your wallet before creating a study.");
         return;
@@ -441,7 +418,6 @@ const StudyCreationForm = ({
             `• View on Etherscan: ${deployResult.deployment.etherscanUrl}`
         );
 
-        // Clear form and handle success
         resetForm();
         if (isModal && onSuccess) {
           onSuccess();
@@ -464,8 +440,6 @@ const StudyCreationForm = ({
             `Error: ${deployError instanceof Error ? deployError.message : "Unknown error"}\n\n` +
             `Please try creating the study again.`
         );
-
-        // Don't reset form or navigate on failure, let user try again
         return;
       }
     } catch (error) {
@@ -811,13 +785,11 @@ const StudyCreationForm = ({
                           ];
 
                           if (e.target.checked) {
-                            // Find first empty slot and add the region
                             const emptyIndex = newRegions.findIndex((r) => r === 0);
                             if (emptyIndex !== -1) {
                               newRegions[emptyIndex] = region.value;
                             }
                           } else {
-                            // Remove the region by replacing it with 0
                             const regionIndex = newRegions.findIndex((r) => r === region.value);
                             if (regionIndex !== -1) {
                               newRegions[regionIndex] = 0;
