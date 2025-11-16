@@ -32,8 +32,8 @@ jobs:
       - name: Lint
         run: bun run lint:web
 
-      - name: Test
-        run: bun run test:web
+      - name: Coverage
+        run: bun run coverage --cwd apps/web
 
       - name: Build
         run: bun run --cwd apps/web build
