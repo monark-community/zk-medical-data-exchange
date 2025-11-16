@@ -17,6 +17,7 @@ import { groth16 } from 'snarkjs';
 import { StudyBins, calculateUserBins } from '@zk-medical/shared';
 import { Contract, BrowserProvider } from 'ethers';
 import { STUDY_ABI } from '@/constants/contracts';
+import { normalizeMedicalDataForCircuit } from './commitmentGenerator';
 
 export interface MedicalDataForAggregation {
   age: number;
@@ -271,35 +272,36 @@ export class ZKAggregationService {
       console.log('   ├─ Gender:', medicalData.gender);
       console.log('   ├─ Region:', medicalData.region);
       console.log('   ├─ Cholesterol:', medicalData.cholesterol, 'mg/dL');
-      console.log('   ├─ BMI:', medicalData.bmi / 10);
+      console.log('   ├─ BMI:', medicalData.bmi);
       console.log('   ├─ Systolic BP:', medicalData.systolicBP);
       console.log('   ├─ Diastolic BP:', medicalData.diastolicBP);
       console.log('   ├─ Blood Type:', medicalData.bloodType);
-      console.log('   ├─ HbA1c:', medicalData.hba1c / 10, '%');
+      console.log('   ├─ HbA1c:', medicalData.hba1c, '%');
       console.log('   ├─ Smoking Status:', medicalData.smokingStatus);
       console.log('   ├─ Activity Level:', medicalData.activityLevel);
       console.log('   ├─ Diabetes Status:', medicalData.diabetesStatus);
       console.log('   ├─ Heart Disease:', medicalData.heartDiseaseHistory);
       console.log('   └─ Salt (first 10 chars):', medicalData.salt.substring(0, 10) + '...');
 
+      const normalizedData = normalizeMedicalDataForCircuit(medicalData);
+
       // Prepare circuit inputs with dynamic bin boundaries
       const input = {
         // PRIVATE inputs (never revealed)
-        age: medicalData.age,
-        gender: medicalData.gender,
-        region: medicalData.region,
-        cholesterol: medicalData.cholesterol,
-        bmi: medicalData.bmi,
-        systolicBP: medicalData.systolicBP,
-        diastolicBP: medicalData.diastolicBP,
-        bloodType: medicalData.bloodType,
-        hba1c: medicalData.hba1c,
-        smokingStatus: medicalData.smokingStatus,
-        activityLevel: medicalData.activityLevel,
-        diabetesStatus: medicalData.diabetesStatus,
-        heartDiseaseHistory: medicalData.heartDiseaseHistory,
+        age: normalizedData.age,
+        gender: normalizedData.gender,
+        region: normalizedData.region,
+        cholesterol: normalizedData.cholesterol,
+        bmi: normalizedData.bmi,
+        systolicBP: normalizedData.systolicBP,
+        diastolicBP: normalizedData.diastolicBP,
+        bloodType: normalizedData.bloodType,
+        hba1c: normalizedData.hba1c,
+        smokingStatus: normalizedData.smokingStatus,
+        activityLevel: normalizedData.activityLevel,
+        diabetesStatus: normalizedData.diabetesStatus,
+        heartDiseaseHistory: normalizedData.heartDiseaseHistory,
         salt: medicalData.salt,
-
         // PUBLIC inputs - Study metadata
         dataCommitment: dataCommitment,
         studyId: studyId,
