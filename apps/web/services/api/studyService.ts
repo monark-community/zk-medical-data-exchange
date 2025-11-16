@@ -170,7 +170,8 @@ export const deployStudy = async (studyId: number) => {
  * End a study by updating its status to completed
  */
 export const endStudy = async (studyId: number) => {
-  return updateStudyStatus(studyId, { status: "completed" });
+  const { data } = await updateStudyStatus(studyId, { status: "completed" });
+  return data;
 };
 
 /**

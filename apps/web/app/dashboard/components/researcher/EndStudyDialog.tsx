@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, Users, Database, CheckCircle } from "lucide-react";
-import { getParticipants } from "@/services/api/studyService";
+import { endStudy, getParticipants } from "@/services/api/studyService";
 import { disperseEthEqual } from "@/utils/disperseEth";
 import { sepolia } from "viem/chains";
 import { http } from "viem";
@@ -50,6 +50,25 @@ export default function EndStudyDialog({
   const handleProceed = async () => {
     setIsEnding(true);
     let transactionHash: `0x${string}` = "0x";
+    const { participants } = await getParticipants(studyId);
+
+    if (participants.length === 0) {
+      await endStudy(studyId);
+      setStudyData(
+        (prev) =>
+          ({
+            ...prev,
+            participantsCount: participants.length,
+          } as StudyData)
+      );
+      setShowSuccess(true);
+      setIsEnding(false);
+      setShowSuccess(false);
+      onOpenChange(false);
+      onStudyEnded?.();
+      return;
+    }
+
     try {
       const config = createConfig({
         chains: [sepolia],
@@ -57,8 +76,6 @@ export default function EndStudyDialog({
           [sepolia.id]: http(Config.SEPOLIA_RPC_URL),
         },
       });
-
-      const { participants } = await getParticipants(studyId);
 
       const { hash } = await disperseEthEqual({
         config,
@@ -80,9 +97,6 @@ export default function EndStudyDialog({
       alert("Failed to disperse ETH. Please try again.");
       return;
     }
-
-    console.log("Disperse transaction hash:", transactionHash);
-    console.log(studyId);
 
     try {
       const result = await verifyTransaction(transactionHash, studyId);
