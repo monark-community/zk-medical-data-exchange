@@ -1,7 +1,7 @@
 import { network } from "hardhat";
 
 async function main() {
-  console.log("🚀 Deploying AuditTrail to Sepolia testnet...");
+  console.log("Deploying AuditTrail to Sepolia testnet...");
   console.log("=".repeat(60));
 
   const { viem } = await network.connect({
@@ -13,7 +13,7 @@ async function main() {
   const [deployer] = await viem.getWalletClients();
 
   // Display deployment info
-  console.log(`📋 Deployment Details:`);
+  console.log(`Deployment Details:`);
   console.log(`   Network: Sepolia Testnet`);
   console.log(`   Chain ID: ${await publicClient.getChainId()}`);
   console.log(`   Deployer: ${deployer.account.address}`);
@@ -24,34 +24,34 @@ async function main() {
   console.log(`   Balance: ${balanceEth.toFixed(4)} ETH`);
 
   if (balanceEth < 0.01) {
-    console.log("⚠️  WARNING: Low balance! You may need more ETH for deployment.");
+    console.log("WARNING: Low balance! You may need more ETH for deployment.");
     console.log("   Get Sepolia ETH from: https://sepoliafaucet.com/");
   }
 
-  console.log("\n🔄 Step 1: Deploying AuditTrail...");
+  console.log("\nStep 1: Deploying AuditTrail...");
   // Deploy AuditTrail contract (constructor takes no parameters)
   const auditTrailContract = await viem.deployContract("AuditTrail");
-  console.log(`   ✅ AuditTrail deployed: ${auditTrailContract.address}`);
+  console.log(`   AuditTrail deployed: ${auditTrailContract.address}`);
 
   // Wait for deployment to be mined
-  console.log("   ⏳ Waiting for deployment confirmation...");
+  console.log("   Waiting for deployment confirmation...");
   // Note: viem.deployContract already waits for confirmation, so we get the receipt
-  console.log(`   ✅ Deployment confirmed successfully`);
+  console.log(`   Deployment confirmed successfully`);
 
-  console.log("\n📊 Gas Usage:");
+  console.log("\nGas Usage:");
   console.log(`   Contract deployed successfully`);
   console.log(`   Address: ${auditTrailContract.address}`);
 
   // Display initial configuration
-  console.log("\n🔧 Step 2: Initial Configuration...");
+  console.log("\nStep 2: Initial Configuration...");
   console.log("   AuditTrail deployed with default configuration:");
   console.log(`   - Audit Manager: ${deployer.account.address}`);
   console.log(`   - Authorized Logger: ${deployer.account.address} (initial)`);
   console.log("   - Total Records: 0");
-  console.log("   ✅ Ready for audit logging");
+  console.log("   Ready for audit logging");
 
   // Test basic contract functionality
-  console.log("\n🧪 Step 3: Testing Contract Functionality...");
+  console.log("\nStep 3: Testing Contract Functionality...");
   try {
     // Read total records (should be 1 due to contract creation log)
     const totalRecords = await publicClient.readContract({
@@ -67,7 +67,7 @@ async function main() {
       ],
       functionName: "totalRecords",
     });
-    console.log(`   ✅ Total records: ${totalRecords} (contract creation logged)`);
+  console.log(`   Total records: ${totalRecords} (contract creation logged)`);
 
     // Check audit manager
     const auditManager = await publicClient.readContract({
@@ -83,31 +83,31 @@ async function main() {
       ],
       functionName: "auditManager",
     });
-    console.log(`   ✅ Audit Manager: ${auditManager}`);
+  console.log(`   Audit Manager: ${auditManager}`);
 
-    console.log("   ✅ Contract functionality verified");
+  console.log("   Contract functionality verified");
   } catch {
-    console.log("   ⚠️  Contract test failed (this is expected if ABI is not available)");
+  console.log("   Contract test failed (this is expected if ABI is not available)");
   }
 
   // Display deployment summary
   console.log("\n" + "=".repeat(60));
-  console.log("🎉 AUDIT TRAIL DEPLOYMENT COMPLETED SUCCESSFULLY!");
+  console.log("AUDIT TRAIL DEPLOYMENT COMPLETED SUCCESSFULLY!");
   console.log("");
-  console.log("📋 Contract Address:");
+  console.log("Contract Address:");
   console.log(`   AuditTrail: ${auditTrailContract.address}`);
   console.log("");
-  console.log("🔗 Verification Links:");
+  console.log("Verification Links:");
   console.log(`   Etherscan: https://sepolia.etherscan.io/address/${auditTrailContract.address}`);
   console.log("");
-  console.log("📝 Next Steps:");
+  console.log("Next Steps:");
   console.log("   1. Add AUDIT_TRAIL_ADDRESS to your environment variables:");
   console.log(`      AUDIT_TRAIL_ADDRESS=${auditTrailContract.address}`);
   console.log("   2. Verify contract on Etherscan (optional)");
   console.log("   3. Test audit logging from your application");
   console.log("   4. Authorize additional loggers if needed using authorizeLogger()");
   console.log("");
-  console.log("🔧 Configuration:");
+  console.log("Configuration:");
   console.log("   - Audit Manager: " + deployer.account.address);
   console.log("   - Authorized Loggers: [" + deployer.account.address + "]");
   console.log("   - Profile-based filtering: ENABLED");
@@ -140,20 +140,20 @@ async function main() {
     },
   };
 
-  console.log("💾 Deployment info:");
+  console.log("Deployment info:");
   console.log("");
-  console.log("📄 Environment Variable:");
+  console.log("Environment Variable:");
   console.log(`AUDIT_TRAIL_ADDRESS=${auditTrailContract.address}`);
   console.log("");
-  console.log("📄 Deployment JSON:");
+  console.log("Deployment JSON:");
   console.log(JSON.stringify(deploymentInfo, null, 2));
   console.log("");
-  console.log("🚀 AuditTrail is ready for comprehensive action tracking!");
+  console.log("AuditTrail is ready for comprehensive action tracking!");
 }
 
 main()
   .then(() => process.exit(0))
   .catch((error) => {
-    console.error("❌ AuditTrail deployment failed:", error);
+    console.error("AuditTrail deployment failed:", error);
     process.exit(1);
   });

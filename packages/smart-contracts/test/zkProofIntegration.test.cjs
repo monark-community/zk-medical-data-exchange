@@ -51,7 +51,7 @@ const STUDY_ABI = [
 const DEPLOYED_STUDY_ADDRESS = "0x3502abEBB4F9EaC246Fc32De6aEa134E29BFCd95";
 
 async function testEligiblePatient() {
-  console.log("🧪 Test Case 1: ELIGIBLE Patient (Diabetes Research)");
+  console.log("Test Case 1: ELIGIBLE Patient (Diabetes Research)");
   console.log("====================================================\n");
 
   // Example patient data - ELIGIBLE for diabetes research
@@ -81,12 +81,12 @@ async function testEligiblePatient() {
   console.log("Patient eligibility check:");
   console.log(
     `Age: ${patientData.age} (${studyCriteria.minAge}-${studyCriteria.maxAge}) ${
-      patientData.age >= studyCriteria.minAge && patientData.age <= studyCriteria.maxAge ? "✓" : "✗"
+      patientData.age >= studyCriteria.minAge && patientData.age <= studyCriteria.maxAge ? "" : ""
     }`
   );
   console.log(
     `BMI: ${patientData.bmi / 10} (${studyCriteria.minBMI / 10}-${studyCriteria.maxBMI / 10}) ${
-      patientData.bmi >= studyCriteria.minBMI && patientData.bmi <= studyCriteria.maxBMI ? "✓" : "✗"
+      patientData.bmi >= studyCriteria.minBMI && patientData.bmi <= studyCriteria.maxBMI ? "" : ""
     }`
   );
   console.log(
@@ -94,17 +94,17 @@ async function testEligiblePatient() {
       studyCriteria.maxHbA1c / 10
     }%) ${
       patientData.hba1c >= studyCriteria.minHbA1c && patientData.hba1c <= studyCriteria.maxHbA1c
-        ? "✓"
-        : "✗"
+        ? ""
+        : ""
     }`
   );
-  console.log(`Has Diabetes: ${patientData.hasDiabetes ? "Yes" : "No"} ✓`);
+  console.log(`Has Diabetes: ${patientData.hasDiabetes ? "Yes" : "No"}`);
 
   return await runProofTest(patientData, studyCriteria, isEligible);
 }
 
 async function testIneligiblePatient() {
-  console.log("\n🧪 Test Case 2: INELIGIBLE Patient (Cardiac Research)");
+  console.log("\nTest Case 2: INELIGIBLE Patient (Cardiac Research)");
   console.log("===================================================\n");
 
   // Example patient data - INELIGIBLE for cardiac research (too young + wrong BP range)
@@ -132,40 +132,40 @@ async function testIneligiblePatient() {
   const isEligible = 0; // We expect this patient to be INELIGIBLE
 
   console.log("Patient eligibility check:");
-  console.log(
+    console.log(
     `Age: ${patientData.age} (${studyCriteria.minAge}-${studyCriteria.maxAge}) ${
-      patientData.age >= studyCriteria.minAge && patientData.age <= studyCriteria.maxAge ? "✓" : "✗"
+      patientData.age >= studyCriteria.minAge && patientData.age <= studyCriteria.maxAge ? "" : ""
     }`
   );
-  console.log(
+    console.log(
     `Systolic BP: ${patientData.systolicBP} (${studyCriteria.minSystolic}-${
       studyCriteria.maxSystolic
     }) ${
       patientData.systolicBP >= studyCriteria.minSystolic &&
       patientData.systolicBP <= studyCriteria.maxSystolic
-        ? "✓"
-        : "✗"
+        ? ""
+        : ""
     }`
   );
-  console.log(
+    console.log(
     `Diastolic BP: ${patientData.diastolicBP} (${studyCriteria.minDiastolic}-${
       studyCriteria.maxDiastolic
     }) ${
       patientData.diastolicBP >= studyCriteria.minDiastolic &&
       patientData.diastolicBP <= studyCriteria.maxDiastolic
-        ? "✓"
-        : "✗"
+        ? ""
+        : ""
     }`
   );
-  console.log(`Heart Disease History: Required for cardiac research ✗`);
+  console.log(`Heart Disease History: Required for cardiac research`);
 
   return await runProofTest(patientData, studyCriteria, isEligible);
 }
 
 async function testDeployedStudy() {
-  console.log("\n🧪 Test Case 3: DEPLOYED Study - Adult Women");
+  console.log("\nTest Case 3: DEPLOYED Study - Adult Women");
   console.log("==============================================");
-  console.log("📋 Study Info:");
+  console.log("Study Info:");
   console.log("  • Title: 'adult women'");
   console.log("  • Contract: 0x3502abEBB4F9EaC246Fc32De6aEa134E29BFCd95");
   console.log("  • Criteria: Women aged 18-55");
@@ -197,22 +197,22 @@ async function testDeployedStudy() {
   const isEligible = 1; // We expect this patient to be eligible
 
   console.log("Patient eligibility check:");
-  console.log(
+    console.log(
     `Age: ${patientData.age} (${studyCriteria.minAge}-${studyCriteria.maxAge}) ${
-      patientData.age >= studyCriteria.minAge && patientData.age <= studyCriteria.maxAge ? "✓" : "✗"
+      patientData.age >= studyCriteria.minAge && patientData.age <= studyCriteria.maxAge ? "" : ""
     }`
   );
   console.log(
     `Gender: ${patientData.gender === 2 ? "Female" : "Male"} ${
-      patientData.gender === studyCriteria.allowedGender ? "✓" : "✗"
+      patientData.gender === studyCriteria.allowedGender ? "" : ""
     }`
   );
-  console.log(`Other criteria: All disabled for this study ✓`);
+  console.log(`Other criteria: All disabled for this study`);
 
   const result = await runProofTest(patientData, studyCriteria, isEligible);
 
   if (result.success) {
-    console.log("\n🎯 DEPLOYED STUDY VERIFICATION:");
+    console.log("\nDEPLOYED STUDY VERIFICATION:");
     console.log("  • ZK proof validates against deployed contract criteria");
     console.log("  • Patient would be eligible to join this study");
     console.log(
@@ -224,9 +224,9 @@ async function testDeployedStudy() {
 }
 
 async function testDeployedStudyIneligible() {
-  console.log("\n🧪 Test Case 4: DEPLOYED Study - INELIGIBLE Patient");
+  console.log("\nTest Case 4: DEPLOYED Study - INELIGIBLE Patient");
   console.log("===================================================");
-  console.log("📋 Study Info:");
+  console.log("Study Info:");
   console.log("  • Title: 'adult women'");
   console.log("  • Contract: 0x3502abEBB4F9EaC246Fc32De6aEa134E29BFCd95");
   console.log("  • Criteria: Women aged 18-55");
@@ -260,20 +260,20 @@ async function testDeployedStudyIneligible() {
   console.log("Patient eligibility check:");
   console.log(
     `Age: ${patientData.age} (${studyCriteria.minAge}-${studyCriteria.maxAge}) ${
-      patientData.age >= studyCriteria.minAge && patientData.age <= studyCriteria.maxAge ? "✓" : "✗"
+      patientData.age >= studyCriteria.minAge && patientData.age <= studyCriteria.maxAge ? "" : ""
     }`
   );
   console.log(
     `Gender: ${patientData.gender === 2 ? "Female" : "Male"} ${
-      patientData.gender === studyCriteria.allowedGender ? "✓" : "✗"
+      patientData.gender === studyCriteria.allowedGender ? "" : ""
     }`
   );
-  console.log("Other criteria: All disabled for this study ✓");
+  console.log("Other criteria: All disabled for this study");
 
   const result = await runProofTest(patientData, studyCriteria, isEligible);
 
   if (result.success) {
-    console.log("\n🎯 DEPLOYED STUDY VERIFICATION:");
+  console.log("\nDEPLOYED STUDY VERIFICATION:");
     console.log("  • ZK proof correctly shows patient is INELIGIBLE");
     console.log("  • Patient does not meet study criteria (age + gender)");
     console.log("  • Zero-knowledge privacy preserved despite rejection");
@@ -283,9 +283,9 @@ async function testDeployedStudyIneligible() {
 }
 
 async function testDeployedStudyBlockchain() {
-  console.log("\n🧪 Test Case 5: BLOCKCHAIN Integration - Deploy to Real Contract");
+  console.log("\nTest Case 5: BLOCKCHAIN Integration - Deploy to Real Contract");
   console.log("===============================================================");
-  console.log("📋 Study Info:");
+  console.log("Study Info:");
   console.log("  • Title: 'adult women'");
   console.log("  • Contract: 0x3502abEBB4F9EaC246Fc32De6aEa134E29BFCd95");
   console.log("  • Network: Sepolia Testnet");
@@ -294,7 +294,7 @@ async function testDeployedStudyBlockchain() {
   try {
     // Check if we have environment variables for blockchain interaction
     if (!process.env.SEPOLIA_RPC_URL || !process.env.SEPOLIA_PRIVATE_KEY) {
-      console.log("⚠️  Skipping blockchain test - missing environment variables");
+    console.log("Skipping blockchain test - missing environment variables");
       console.log("   Set SEPOLIA_RPC_URL and SEPOLIA_PRIVATE_KEY to test on-chain");
       return { success: true, skipped: true, reason: "No blockchain config" };
     }
@@ -321,9 +321,9 @@ async function testDeployedStudyBlockchain() {
     // Use WOMEN_18_TO_55 template from shared library (matches deployed study)
     const studyCriteria = STUDY_TEMPLATES.WOMEN_18_TO_55;
 
-    console.log("Patient eligibility check:");
-    console.log(`Age: ${patientData.age} (${studyCriteria.minAge}-${studyCriteria.maxAge}) ✓`);
-    console.log(`Gender: Female ✓`);
+  console.log("Patient eligibility check:");
+  console.log(`Age: ${patientData.age} (${studyCriteria.minAge}-${studyCriteria.maxAge})`);
+  console.log(`Gender: Female`);
 
     // Generate ZK proof for this patient
     const proofResult = await runProofTest(patientData, studyCriteria, 1);
@@ -332,9 +332,9 @@ async function testDeployedStudyBlockchain() {
       return { success: false, error: "Proof generation failed" };
     }
 
-    console.log("\n🔗 BLOCKCHAIN INTERACTION:");
-    console.log("  • ZK proof generated successfully");
-    console.log("  • Connecting to Sepolia network...");
+  console.log("\nBLOCKCHAIN INTERACTION:");
+  console.log("  • ZK proof generated successfully");
+  console.log("  • Connecting to Sepolia network...");
 
     // Set up blockchain clients
     const publicClient = createPublicClient({
@@ -377,7 +377,7 @@ async function testDeployedStudyBlockchain() {
     });
 
     if (isAlreadyParticipant) {
-      console.log("  ⚠️  This address is already a participant in the study");
+      console.log("  This address is already a participant in the study");
       return { success: true, onChainReady: true, alreadyParticipant: true };
     }
 
@@ -406,14 +406,14 @@ async function testDeployedStudyBlockchain() {
       ],
     });
 
-    console.log(`  ✅ Transaction submitted! Hash: ${txHash}`);
+  console.log(`  Transaction submitted! Hash: ${txHash}`);
     console.log("  • Waiting for confirmation...");
 
     // Wait for transaction confirmation
     const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
 
     if (receipt.status === "success") {
-      console.log("  🎉 SUCCESS! Patient joined the study on-chain!");
+  console.log("  SUCCESS! Patient joined the study on-chain!");
       console.log(`  • Block: ${receipt.blockNumber}`);
       console.log(`  • Gas used: ${receipt.gasUsed}`);
 
@@ -437,15 +437,15 @@ async function testDeployedStudyBlockchain() {
         participantsAfter: participantsAfter.toString(),
       };
     } else {
-      console.log("  ❌ Transaction failed");
+  console.log("  Transaction failed");
       return { success: false, error: "Transaction failed" };
     }
   } catch (error) {
-    console.error("❌ Blockchain test error:", error.message);
+  console.error("Blockchain test error:", error.message);
 
     // If it's a contract-specific error, still show what we would have done
     if (proofResult.success) {
-      console.log("\n📝 Contract Call Preview (proof was valid but call failed):");
+  console.log("\nContract Call Preview (proof was valid but call failed):");
       console.log("  Function: joinStudy(proof.a, proof.b, proof.c, dataCommitment)");
       console.log("  • proof.a:", proofResult.solidityProof?.a || "Generated");
       console.log("  • proof.b:", proofResult.solidityProof?.b || "Generated");
@@ -544,7 +544,7 @@ async function runProofTest(patientData, studyCriteria, expectedResult) {
       dataCommitment: finalCommitment.toString(),
     };
 
-    console.log("\n🔄 Generating ZK proof...");
+  console.log("\nGenerating ZK proof...");
     const startTime = Date.now();
 
     // Generate the proof
@@ -554,24 +554,24 @@ async function runProofTest(patientData, studyCriteria, expectedResult) {
       "circuits/build/medical_eligibility_0001.zkey"
     );
 
-    const endTime = Date.now();
-    console.log(`✅ Proof generated in ${endTime - startTime}ms`);
+  const endTime = Date.now();
+  console.log(`Proof generated in ${endTime - startTime}ms`);
 
-    console.log("\n📊 Proof Results:");
+  console.log("\nProof Results:");
     console.log(`Public signals: [${publicSignals.join(", ")}]`);
     console.log(`Expected eligible result: ${expectedResult}`);
     console.log(`Actual result: ${publicSignals[0]}`);
-    console.log(`Match: ${publicSignals[0] == expectedResult ? "✅" : "❌"}`);
+  console.log(`Match: ${publicSignals[0] == expectedResult ? "" : ""}`);
 
     // Verify the proof
-    console.log("\n🔍 Verifying proof...");
+  console.log("\nVerifying proof...");
     const vKey = JSON.parse(fs.readFileSync("circuits/build/verification_key.json"));
 
     const res = await snarkjs.groth16.verify(vKey, publicSignals, proof);
-    console.log(`Verification result: ${res ? "✅ Valid" : "❌ Invalid"}`);
+  console.log(`Verification result: ${res ? "Valid" : "Invalid"}`);
 
     if (res) {
-      console.log("\n🎉 SUCCESS! ZK proof system is working correctly:");
+      console.log("\nSUCCESS! ZK proof system is working correctly:");
       console.log("• Patient data and study criteria kept private");
       console.log("• Only eligibility result (1 or 0) is public");
       console.log("• Zero-knowledge proof verified successfully");
@@ -588,7 +588,7 @@ async function runProofTest(patientData, studyCriteria, expectedResult) {
         publicSignals: publicSignals,
       };
 
-      console.log("\n📝 Formatted for Solidity:");
+  console.log("\nFormatted for Solidity:");
       console.log("a:", solidityProof.a);
       console.log("b:", solidityProof.b);
       console.log("c:", solidityProof.c);
@@ -612,7 +612,7 @@ async function runProofTest(patientData, studyCriteria, expectedResult) {
       dataCommitment: finalCommitment.toString(),
     };
   } catch (error) {
-    console.error("❌ Error generating proof:", error.message);
+    console.error("Error generating proof:", error.message);
     console.error(error);
     return { success: false, error: error.message };
   }
@@ -620,7 +620,7 @@ async function runProofTest(patientData, studyCriteria, expectedResult) {
 
 // Main test runner
 async function runAllTests() {
-  console.log("🧬 ZK Medical Eligibility Proof Tests");
+  console.log("ZK Medical Eligibility Proof Tests");
   console.log("=====================================\n");
 
   try {
@@ -639,14 +639,14 @@ async function runAllTests() {
     // Test Case 5: Blockchain Integration Test
     const result5 = await testDeployedStudyBlockchain();
 
-    console.log("\n🏁 Test Summary:");
+    console.log("\nTest Summary:");
     console.log("================");
-    console.log(`✅ Eligible Patient Test: ${result1.success ? "PASSED" : "FAILED"}`);
-    console.log(`❌ Ineligible Patient Test: ${result2.success ? "PASSED" : "FAILED"}`);
-    console.log(`👩 Deployed Study Test: ${result3.success ? "PASSED" : "FAILED"}`);
-    console.log(`🚫 Deployed Study Ineligible Test: ${result4.success ? "PASSED" : "FAILED"}`);
+    console.log(`Eligible Patient Test: ${result1.success ? "PASSED" : "FAILED"}`);
+    console.log(`Ineligible Patient Test: ${result2.success ? "PASSED" : "FAILED"}`);
+    console.log(`Deployed Study Test: ${result3.success ? "PASSED" : "FAILED"}`);
+    console.log(`Deployed Study Ineligible Test: ${result4.success ? "PASSED" : "FAILED"}`);
     console.log(
-      `🔗 Blockchain Integration: ${
+      `Blockchain Integration: ${
         result5.success ? (result5.skipped ? "SKIPPED" : "READY") : "FAILED"
       }`
     );
@@ -655,19 +655,19 @@ async function runAllTests() {
       result1.success && result2.success && result3.success && result4.success && result5.success;
 
     if (allPassed) {
-      console.log("\n🎉 All tests passed! ZK proof system works with:");
+      console.log("\nAll tests passed! ZK proof system works with:");
       console.log("  • Template-based studies (diabetes, cardiac research)");
       console.log("  • Real deployed studies (adult women study)");
       console.log("  • Both eligible and ineligible patient scenarios");
       console.log("  • Deployed study eligibility validation");
       if (result5.onChainReady) {
-        console.log("  • Ready for on-chain deployment to real contracts! 🚀");
+        console.log("  • Ready for on-chain deployment to real contracts!");
       } else if (result5.skipped) {
         console.log("  • Blockchain integration ready (set env vars to test on-chain)");
       }
     }
   } catch (error) {
-    console.error("❌ Test suite failed:", error);
+  console.error("Test suite failed:", error);
   }
 }
 

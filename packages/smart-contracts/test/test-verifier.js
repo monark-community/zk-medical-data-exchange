@@ -3,7 +3,7 @@
 import { network } from "hardhat";
 
 async function runTests() {
-  console.log("🧪 Testing MedicalEligibilityVerifier Contract");
+  console.log("Testing MedicalEligibilityVerifier Contract");
   console.log("=".repeat(50));
 
   try {
@@ -43,11 +43,11 @@ async function runTests() {
       publicSignals: validProofData.publicSignals,
     };
 
-    console.log("\n1. 🚀 Deploying verifier contract...");
-    const verifier = await viem.deployContract("Groth16Verifier");
-    console.log(`   ✅ Deployed at: ${verifier.address}`);
+  console.log("\n1. Deploying verifier contract...");
+  const verifier = await viem.deployContract("Groth16Verifier");
+  console.log(`   Deployed at: ${verifier.address}`);
 
-    console.log("\n2. 🔍 Testing valid proof verification...");
+  console.log("\n2. Testing valid proof verification...");
     const validResult = await verifier.read.verifyProof([
       validProofData.a,
       validProofData.b,
@@ -56,13 +56,13 @@ async function runTests() {
     ]);
     console.log(`   Result: ${validResult}`);
     if (validResult === true) {
-      console.log("   ✅ PASS: Valid proof accepted");
+      console.log("   PASS: Valid proof accepted");
     } else {
-      console.log("   ❌ FAIL: Valid proof rejected");
+      console.log("   FAIL: Valid proof rejected");
       return;
     }
 
-    console.log("\n3. 🚫 Testing invalid proof verification...");
+  console.log("\n3. Testing invalid proof verification...");
     const invalidResult = await verifier.read.verifyProof([
       invalidProofData.a,
       invalidProofData.b,
@@ -71,13 +71,13 @@ async function runTests() {
     ]);
     console.log(`   Result: ${invalidResult}`);
     if (invalidResult === false) {
-      console.log("   ✅ PASS: Invalid proof rejected");
+      console.log("   PASS: Invalid proof rejected");
     } else {
-      console.log("   ❌ FAIL: Invalid proof accepted");
+      console.log("   FAIL: Invalid proof accepted");
       return;
     }
 
-    console.log("\n4. 🔢 Testing zero proof verification...");
+  console.log("\n4. Testing zero proof verification...");
     const zeroResult = await verifier.read.verifyProof([
       [0n, 0n],
       [
@@ -89,13 +89,13 @@ async function runTests() {
     ]);
     console.log(`   Result: ${zeroResult}`);
     if (zeroResult === false) {
-      console.log("   ✅ PASS: Zero proof rejected");
+      console.log("   PASS: Zero proof rejected");
     } else {
-      console.log("   ❌ FAIL: Zero proof accepted");
+      console.log("   FAIL: Zero proof accepted");
       return;
     }
 
-    console.log("\n5. ⛽ Testing gas consumption...");
+  console.log("\n5. Testing gas consumption...");
     const publicClient = await viem.getPublicClient();
     const gasEstimate = await publicClient.estimateContractGas({
       address: verifier.address,
@@ -105,12 +105,12 @@ async function runTests() {
     });
     console.log(`   Gas estimate: ${gasEstimate}`);
     if (gasEstimate < 500000n) {
-      console.log("   ✅ PASS: Gas consumption is reasonable");
+      console.log("   PASS: Gas consumption is reasonable");
     } else {
-      console.log("   ⚠️  WARNING: High gas consumption");
+      console.log("   WARNING: High gas consumption");
     }
 
-    console.log("\n6. 🔄 Testing multiple verification calls...");
+  console.log("\n6. Testing multiple verification calls...");
     const results = await Promise.all([
       verifier.read.verifyProof([
         validProofData.a,
@@ -133,23 +133,23 @@ async function runTests() {
     ]);
 
     if (results[0] === true && results[1] === true && results[2] === false) {
-      console.log("   ✅ PASS: Multiple calls handled correctly");
+      console.log("   PASS: Multiple calls handled correctly");
     } else {
-      console.log("   ❌ FAIL: Multiple calls failed");
+      console.log("   FAIL: Multiple calls failed");
       return;
     }
 
-    console.log("\n" + "=".repeat(50));
-    console.log("🎉 ALL TESTS PASSED! The verifier contract works correctly.");
-    console.log("\n📋 Test Summary:");
-    console.log("✅ Contract deployment successful");
-    console.log("✅ Valid proofs are accepted");
-    console.log("✅ Invalid proofs are rejected");
-    console.log("✅ Zero proofs are rejected");
-    console.log("✅ Gas consumption is reasonable");
-    console.log("✅ Multiple verifications work correctly");
+  console.log("\n" + "=".repeat(50));
+  console.log("ALL TESTS PASSED! The verifier contract works correctly."); 
+  console.log("\nTest Summary:");
+  console.log("Contract deployment successful");
+  console.log("Valid proofs are accepted");
+  console.log("Invalid proofs are rejected");
+  console.log("Zero proofs are rejected");
+  console.log("Gas consumption is reasonable");
+  console.log("Multiple verifications work correctly");
   } catch (error) {
-    console.error("\n❌ Test failed with error:", error);
+    console.error("\nTest failed with error:", error);
     process.exit(1);
   }
 }

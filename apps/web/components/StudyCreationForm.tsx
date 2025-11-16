@@ -397,17 +397,17 @@ const StudyCreationForm = ({
       // Step 2: Deploy to blockchain
       console.log("Deploying study to blockchain...");
 
-      try {
+        try {
         const deployResult = await deployStudy(result.study.id);
 
         console.log("Blockchain deployment successful:", deployResult);
 
         alert(
-          `🎉 Study "${result.study.title}" created and deployed successfully!\n\n` +
-            `📊 Study Details:\n` +
+          `Study "${result.study.title}" created and deployed successfully!\n\n` +
+            `Study Details:\n` +
             `• Complexity: ${result.study.stats.complexity}\n` +
             `• Enabled criteria: ${result.study.stats.enabledCriteriaCount}/12\n\n` +
-            `⛓️ Blockchain Details:\n` +
+            `Blockchain Details:\n` +
             `• Contract: ${deployResult.deployment.contractAddress}\n` +
             `• Gas used: ${deployResult.deployment.gasUsed}\n` +
             `• View on Etherscan: ${deployResult.deployment.etherscanUrl}`
@@ -432,7 +432,7 @@ const StudyCreationForm = ({
         }
 
         alert(
-          `❌ Study creation failed during blockchain deployment.\n\n` +
+          `Study creation failed during blockchain deployment.\n\n` +
             `Error: ${deployError instanceof Error ? deployError.message : "Unknown error"}\n\n` +
             `Please try creating the study again.`
         );

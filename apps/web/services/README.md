@@ -2,7 +2,7 @@
 
 Clean, modular service layer for the ZK Medical Data Exchange frontend.
 
-## 🏗️ Structure
+## Structure
 
 ```
 services/
@@ -19,7 +19,7 @@ services/
     └── ...
 ```
 
-## 📋 Service Descriptions
+## Service Descriptions
 
 ### API Services (`api/`)
 
@@ -61,9 +61,9 @@ services/
 - **Purpose**: Map FHIR standards to ZK circuit inputs
 - **Functions**: Type-safe medical data conversions
 
-## 🔧 Recent Improvements
+## Recent Improvements
 
-### Service Consolidation ✅
+### Service Consolidation
 
 - **Before**: Separate `studyService.ts` and `studyApiService.ts` files
 - **After**: Single `StudyService.ts` with clear organization
@@ -73,14 +73,14 @@ services/
   - Better code organization
   - Improved maintainability
 
-### API Architecture ✅
+### API Architecture
 
 - **RESTful Design**: Proper HTTP verbs and resource naming
 - **Type Safety**: Full TypeScript typing throughout
 - **Error Handling**: Consistent error responses
 - **React Integration**: Clean hooks for component usage
 
-## 💡 Usage Examples
+## Usage Examples
 
 ### Study Creation
 
@@ -107,7 +107,7 @@ import { getStudies } from "@/services/api/StudyService";
 const studies = await getStudies({ status: "active", page: 1 });
 ```
 
-## 🎯 Design Principles
+## Design Principles
 
 1. **Single Responsibility** - Each service has a clear, focused purpose
 2. **Type Safety** - Full TypeScript typing prevents runtime errors
@@ -115,7 +115,7 @@ const studies = await getStudies({ status: "active", page: 1 });
 4. **Consistency** - Uniform patterns across all services
 5. **Maintainability** - Clear organization makes updates easy
 
-## 🔄 Service Evolution
+## Service Evolution
 
 The service layer has evolved to provide:
 

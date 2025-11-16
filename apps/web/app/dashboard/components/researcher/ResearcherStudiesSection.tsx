@@ -33,7 +33,7 @@ export default function ResearcherStudiesSection() {
     let confirmMessage = `Are you sure you want to delete "${study?.title}"?\n\nThis action cannot be undone and will permanently remove the study and all its data.`;
 
     if (study?.status === "active") {
-      confirmMessage = `⚠️ WARNING: You are about to delete an ACTIVE study!\n\nStudy: "${study?.title}"\nStatus: ${study.status}\nParticipants: ${study.currentParticipants}/${study.maxParticipants}\n\nThis will:\n• Permanently delete the study and all its data\n• Stop all ongoing data collection\n• Remove access for all participants\n• Cannot be undone\n\nAre you absolutely sure you want to proceed?`;
+      confirmMessage = `WARNING: You are about to delete an ACTIVE study!\n\nStudy: "${study?.title}"\nStatus: ${study.status}\nParticipants: ${study.currentParticipants}/${study.maxParticipants}\n\nThis will:\n• Permanently delete the study and all its data\n• Stop all ongoing data collection\n• Remove access for all participants\n• Cannot be undone\n\nAre you absolutely sure you want to proceed?`;
     }
 
     if (window.confirm(confirmMessage)) {
