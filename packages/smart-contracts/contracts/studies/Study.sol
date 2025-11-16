@@ -4,6 +4,11 @@ pragma solidity ^0.8.28;
 import "./MedicalEligibilityVerifier.sol";
 
 contract Study {
+    enum StudyStatus {
+        ACTIVE,
+        ENDED
+    }
+
     // Study criteria that EXACTLY match our enhanced Circom circuit public inputs
     // ALL criteria are optional with enable flags for maximum flexibility
     struct StudyCriteria {
