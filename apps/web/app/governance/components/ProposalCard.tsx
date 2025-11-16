@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useAccount } from "wagmi";
 import { useState } from "react";
 import VoteConfirmationDialog from "@/app/governance/components/VoteConfirmationDialog";
+import { useBlockchainTxStatusState } from "@/hooks/useTxStatus";
 
 interface ProposalCardProps {
   proposalInfo: Proposal;
@@ -92,6 +93,7 @@ export default function ProposalCard({
   const { address: walletAddress } = useAccount();
   const [voteDialogOpen, setVoteDialogOpen] = useState(false);
   const [selectedVote, setSelectedVote] = useState<number>(1);
+  const { isVisible: isTxProcessing } = useBlockchainTxStatusState();
 
   const handleVoteClick = (voteChoice: number) => {
     setSelectedVote(voteChoice);
@@ -213,6 +215,7 @@ export default function ProposalCard({
                   variant="default"
                   size="sm"
                   className="w-full bg-green-600 hover:bg-green-700 text-white"
+                  disabled={isTxProcessing}
                 >
                   <CircleCheck />
                   Vote For
@@ -222,6 +225,7 @@ export default function ProposalCard({
                   variant="outline"
                   size="sm"
                   className="w-full border-red-600 text-red-600 hover:bg-red-50"
+                  disabled={isTxProcessing}
                 >
                   <CircleX />
                   Vote Against
