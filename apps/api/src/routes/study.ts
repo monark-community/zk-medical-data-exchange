@@ -12,6 +12,7 @@ import {
   revokeStudyConsent,
   grantStudyConsent,
   generateDataCommitmentChallenge,
+  getStudyAggregatedResults,
 } from "@/controllers/studyController";
 import {
   submitZKProof,
@@ -523,5 +524,36 @@ router.post("/:id/aggregate-zk", aggregateStudyDataZK);
  *         description: Internal server error
  */
 router.get("/:id/zk-aggregation", getZKAggregation);
+
+/**
+ * @swagger
+ * /studies/:id/aggregated-results:
+ *   get:
+ *     summary: Get aggregated study results with visualizations data
+ *     description: Returns aggregated statistics, bin definitions, and privacy metadata for completed studies
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Study ID
+ *       - name: wallet
+ *         in: query
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Requestor wallet address (must be study creator)
+ *     responses:
+ *       200:
+ *         description: Aggregated results retrieved successfully
+ *       403:
+ *         description: Unauthorized - only study creator can access
+ *       404:
+ *         description: Study not found or no aggregated data available
+ *       500:
+ *         description: Internal server error
+ */
+router.get("/:id/aggregated-results", getStudyAggregatedResults);
 
 export default router;

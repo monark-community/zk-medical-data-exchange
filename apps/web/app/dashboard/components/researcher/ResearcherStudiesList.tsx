@@ -4,9 +4,10 @@ import { useState } from "react";
 import { StudySummary } from "@/services/api/studyService";
 import { Trash2, Loader2, StopCircle, BarChart3, Database } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useAccount } from "wagmi";
 import StudiesList from "@/app/dashboard/components/shared/StudiesList";
 import EndStudyDialog from "./EndStudyDialog";
-import StudyCompletionSummary from "./StudyCompletionSummary";
+import { StudyResultsDialog } from "@/components/StudyResultsDialog";
 import { Spinner } from "@/components/ui/spinner";
 
 interface ResearcherStudiesListProps {
@@ -24,9 +25,10 @@ export default function ResearcherStudiesList({
   onStudyEnded,
 }: ResearcherStudiesListProps) {
   const [endStudyDialogOpen, setEndStudyDialogOpen] = useState(false);
-  const [summaryDialogOpen, setSummaryDialogOpen] = useState(false);
+  const [resultsDialogOpen, setResultsDialogOpen] = useState(false);
   const [selectedStudy, setSelectedStudy] = useState<StudySummary | null>(null);
-  const [summaryStudy, setSummaryStudy] = useState<{ id: number; title: string } | null>(null);
+  const [resultsStudy, setResultsStudy] = useState<StudySummary | null>(null);
+  const { address: walletAddress } = useAccount();
 
   const handleEndStudyClick = (study: StudySummary) => {
     setSelectedStudy(study);
@@ -38,13 +40,8 @@ export default function ResearcherStudiesList({
   };
 
   const handleShowResults = (study: StudySummary) => {
-    setSummaryStudy({ id: study.id, title: study.title });
-    setSummaryDialogOpen(true);
-  };
-
-  const handleViewAggregatedData = (study: StudySummary) => {
-    setAggregatedDataStudy(study);
-    setAggregatedDataDialogOpen(true);
+    setResultsStudy(study);
+    setResultsDialogOpen(true);
   };
 
   const renderActionButtons = (study: StudySummary) => (
@@ -121,12 +118,13 @@ export default function ResearcherStudiesList({
         />
       )}
 
-      {summaryStudy && (
-        <StudyCompletionSummary
-          open={summaryDialogOpen}
-          onOpenChange={setSummaryDialogOpen}
-          studyTitle={summaryStudy.title}
-          studyId={summaryStudy.id}
+      {resultsStudy && walletAddress && (
+        <StudyResultsDialog
+          open={resultsDialogOpen}
+          onOpenChange={setResultsDialogOpen}
+          studyId={resultsStudy.id}
+          studyAddress={resultsStudy.contractAddress || ''}
+          walletAddress={walletAddress}
         />
       )}
     </>

@@ -1,7 +1,7 @@
 import { createWalletClient, createPublicClient, http, decodeEventLog } from "viem";
 import { sepolia } from "viem/chains";
 import { privateKeyToAccount } from "viem/accounts";
-import type { StudyCriteria } from "@zk-medical/shared";
+import type { StudyCriteria, StudyBins } from "@zk-medical/shared";
 import logger from "@/utils/logger";
 import { Config } from "@/config/config";
 import { STUDY_ABI, STUDY_FACTORY_ABI } from "../contracts/generated";
@@ -14,6 +14,7 @@ export interface StudyDeploymentParams {
   endDate: number;
   principalInvestigator: string;
   criteria: StudyCriteria;
+  bins: StudyBins;  // Dynamic bins for privacy-preserving aggregation
 }
 
 export interface StudyDeploymentResult {
@@ -285,6 +286,44 @@ class StudyService {
     };
   }
 
+  /**
+   * Format study bins for smart contract deployment
+   * Converts bin definitions to the contract's expected format
+   */
+  private formatBinsForContract(bins: StudyBins) {
+    logger.info({ bins }, "formatBinsForContract called");
+
+    const formatBinDefinition = (binDef: any) => {
+      if (!binDef || !binDef.enabled) {
+        // Return disabled bin definition with default values
+        return {
+          enabled: false,
+          boundaries: Array(10).fill(BigInt(0)) as [bigint, bigint, bigint, bigint, bigint, bigint, bigint, bigint, bigint, bigint],
+          binCount: BigInt(0),
+        };
+      }
+
+      // Pad boundaries to exactly 10 elements
+      const paddedBoundaries = [...binDef.boundaries];
+      while (paddedBoundaries.length < 10) {
+        paddedBoundaries.push(999999); // Padding value
+      }
+
+      return {
+        enabled: true,
+        boundaries: paddedBoundaries.map((b: number) => BigInt(b)) as [bigint, bigint, bigint, bigint, bigint, bigint, bigint, bigint, bigint, bigint],
+        binCount: BigInt(binDef.binCount),
+      };
+    };
+
+    return {
+      age: formatBinDefinition(bins.age),
+      cholesterol: formatBinDefinition(bins.cholesterol),
+      bmi: formatBinDefinition(bins.bmi),
+      hba1c: formatBinDefinition(bins.hba1c),
+    };
+  }
+
   async deployStudy(params: StudyDeploymentParams): Promise<StudyDeploymentResult> {
     try {
       logger.info(
@@ -386,6 +425,11 @@ class StudyService {
 
       logger.info("Starting contract simulation");
 
+      // Format bins for contract
+      const contractBins = this.formatBinsForContract(params.bins);
+      
+      logger.info({ contractBins }, "Formatted bins for contract");
+
       let request;
       try {
         const simulationResult = await this.publicClient.simulateContract({
@@ -402,6 +446,7 @@ class StudyService {
             params.principalInvestigator as `0x${string}`,
             Config.ZK_VERIFIER_ADDRESS as `0x${string}`,
             contractCriteria,
+            contractBins,  // Include bins in deployment
           ],
         });
 

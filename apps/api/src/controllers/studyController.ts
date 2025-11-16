@@ -690,6 +690,29 @@ export const deployStudy = async (req: Request, res: Response) => {
 
     logger.info({ studyId, parsedCriteria }, "Parsed criteria for deployment");
 
+    // Parse bins from database
+    let parsedBins = study.bins_json;
+    if (typeof study.bins_json === "string") {
+      try {
+        parsedBins = JSON.parse(study.bins_json);
+      } catch (error) {
+        logger.error(
+          { error, studyId, binsJson: study.bins_json },
+          "Failed to parse bins JSON"
+        );
+        return res.status(400).json({ error: "Invalid bins JSON format" });
+      }
+    }
+
+    if (!parsedBins) {
+      logger.error({ studyId }, "Study missing bin definitions");
+      return res.status(400).json({ 
+        error: "Study missing bin definitions. Please recreate the study with dynamic binning enabled." 
+      });
+    }
+
+    logger.info({ studyId, parsedBins }, "Parsed bins for deployment");
+
     let studyService;
     try {
       const imported = await import("@/services/studyService");
@@ -719,6 +742,7 @@ export const deployStudy = async (req: Request, res: Response) => {
       endDate: Math.floor(Date.now() / 1000) + 300 + study.duration_days * 24 * 60 * 60, // Start + duration
       principalInvestigator: study.created_by,
       criteria: parsedCriteria,
+      bins: parsedBins,  // Include bins for deployment
     });
 
     if (!deploymentResult.success) {
@@ -1552,4 +1576,146 @@ export const revokeStudyConsent = async (req: Request, res: Response) => {
 
 export const grantStudyConsent = async (req: Request, res: Response) => {
   return handleConsentOperation(req, res, "grant");
+};
+
+/**
+ * Get aggregated study results with visualizations data
+ * Returns aggregated statistics, bin definitions, and privacy metadata
+ */
+export const getStudyAggregatedResults = async (req: Request, res: Response) => {
+  const metadata = getAuditMetadata(req);
+  const { id } = req.params;
+  const requestorWallet = req.query.wallet as string;
+
+  if (!id) {
+    return res.status(400).json({ error: "Study ID is required" });
+  }
+
+  if (!requestorWallet) {
+    return res.status(400).json({ error: "Requestor wallet address is required" });
+  }
+
+  try {
+    const supabase = req.app.locals.supabase;
+
+    // 1. Fetch study to verify it exists and is ended
+    const { data: study, error: studyError } = await supabase
+      .from(TABLES.STUDIES!.name)
+      .select('*')
+      .eq(TABLES.STUDIES!.columns.id!, id)
+      .single();
+
+    if (studyError || !study) {
+      logger.error({ error: studyError, studyId: id }, "Study not found");
+      return res.status(404).json({ error: "Study not found" });
+    }
+
+    // 2. Verify requestor is the study creator
+    if (study.created_by?.toLowerCase() !== requestorWallet.toLowerCase()) {
+      logger.warn(
+        { studyId: id, requestor: requestorWallet, creator: study.created_by },
+        "Unauthorized access to study results"
+      );
+      return res.status(403).json({ 
+        error: "Only the study creator can access aggregated results" 
+      });
+    }
+
+    // 3. Verify study has ended
+    if (study.status !== 'ended' && study.status !== 'completed') {
+      return res.status(400).json({ 
+        error: "Study must be ended before viewing aggregated results",
+        currentStatus: study.status
+      });
+    }
+
+    // 4. Fetch aggregated data
+    const { data: aggregatedData, error: aggError } = await supabase
+      .from(TABLES.STUDY_AGGREGATED_DATA!.name!)
+      .select('*')
+      .eq('study_id', id)
+      .order('generated_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (aggError || !aggregatedData) {
+      // No aggregated data yet - trigger aggregation
+      logger.info(
+        { studyId: id },
+        "No aggregated data found, aggregation may be needed"
+      );
+      return res.status(404).json({ 
+        error: "No aggregated data available",
+        message: "Please trigger data aggregation first",
+        needsAggregation: true
+      });
+    }
+
+    // 5. Fetch participant count with active consent
+    const activeParticipantCount = await updateStudyParticipantCount(
+      supabase,
+      id,
+      study
+    );
+
+    // 6. Prepare response with all metadata
+    const response = {
+      studyId: study.id,
+      studyTitle: study.title,
+      studyDescription: study.description,
+      status: study.status,
+      
+      // Privacy metadata
+      privacyGuarantee: aggregatedData.privacy_guarantee,
+      aggregationMethod: aggregatedData.aggregation_method,
+      participantCount: aggregatedData.participant_count,
+      activeConsentCount: activeParticipantCount,
+      meetsKAnonymity: aggregatedData.participant_count >= 5,
+      
+      // Bin definitions for transparency
+      binDefinitions: aggregatedData.bin_definitions || study.bins_json,
+      
+      // Aggregated statistics
+      aggregatedData: aggregatedData.aggregated_data,
+      
+      // Timestamps
+      studyCreatedAt: study.created_at,
+      studyEndDate: study.end_date,
+      aggregationGeneratedAt: aggregatedData.generated_at,
+    };
+
+    // 7. Log access for audit trail
+    await auditService.logDataAccess({
+      studyId: Number(id),
+      action: 'VIEW_AGGREGATED_RESULTS',
+      actor: requestorWallet,
+      metadata: {
+        ...metadata,
+        duration: getAuditDuration(metadata.startTime),
+        participantCount: aggregatedData.participant_count,
+      },
+    });
+
+    logger.info(
+      { 
+        studyId: id, 
+        requestor: requestorWallet,
+        participantCount: aggregatedData.participant_count 
+      },
+      "Study aggregated results retrieved successfully"
+    );
+
+    return res.status(200).json(response);
+  } catch (error) {
+    logger.error(
+      {
+        error: error instanceof Error ? error.message : String(error),
+        errorStack: error instanceof Error ? error.stack : undefined,
+        studyId: id,
+        requestor: requestorWallet,
+      },
+      "Failed to fetch aggregated study results"
+    );
+    return res.status(500).json({ error: "Internal server error" });
+  }
 };
