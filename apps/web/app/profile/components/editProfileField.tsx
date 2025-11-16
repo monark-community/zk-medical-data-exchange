@@ -7,17 +7,10 @@ import { Input } from "@/components/ui/input";
 import { updateUser } from "@/services/api/userService";
 import { useAccount } from "wagmi";
 import ConfirmEditUsernameDialog from "./confirmEditUsernameDialog";
-import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Spinner } from "@/components/ui/spinner";
+
 import { notifyUserUpdated } from "@/utils/userEvents";
+
+import CustomAlert from "@/components/alert/CustomAlert";
 interface EditProfileFieldProps {
   onSuccess: () => void;
 }
@@ -113,25 +106,13 @@ const EditProfileField = ({ onSuccess }: EditProfileFieldProps) => {
           setPendingUsername("");
         }}
       />
-      <AlertDialog open={isAlertDialogOpen}>
-        {isWaitingUsernameChange ? (
-          <AlertDialogContent className="flex justify-center items-center p-16 ">
-            <Spinner className="size-12 text-blue-600" />
-          </AlertDialogContent>
-        ) : (
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle className="">{error ? "Error" : "Success"}</AlertDialogTitle>
-              <AlertDialogDescription>
-                {error ? error : "Your changes have been saved."}
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel onClick={handleAlertClose}>Ok</AlertDialogCancel>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        )}
-      </AlertDialog>
+      <CustomAlert
+        isAlertDialogOpen={isAlertDialogOpen}
+        isWaitingForAction={isWaitingUsernameChange}
+        error={error}
+        successMessage="Your changes have been saved."
+        handleAlertClose={handleAlertClose}
+      />
     </div>
   );
 };

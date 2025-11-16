@@ -1,5 +1,6 @@
-import { BookOpen, Loader2, AlertTriangle } from "lucide-react";
+import { BookOpen, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 
 interface StudiesContainerProps {
   isLoading: boolean;
@@ -40,7 +41,7 @@ export default function StudiesContainer({
           </div>
         ) : isLoading ? (
           <div className="p-12 text-center">
-            <Loader2 className="h-12 w-12 text-gray-400 mx-auto mb-4 animate-spin" />
+            <Spinner className="size-12 text-blue-600 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">Loading studies...</h3>
             <p className="text-gray-600">Fetching medical research studies</p>
           </div>

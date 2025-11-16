@@ -56,6 +56,9 @@ template MedicalEligibility() {
     signal input studyId;
     signal input walletAddress;
     signal input eligibilityExpected;
+
+    // Random server challenge (nonce) — ensures proof freshness
+    signal input challenge;
     
     signal output eligible;
     
@@ -85,7 +88,8 @@ template MedicalEligibility() {
     // Use hierarchical commitment for privacy and efficiency
     component commitment1 = Poseidon(7);
     component commitment2 = Poseidon(7); 
-    component finalCommitment = Poseidon(3);
+    component finalCommitment = Poseidon(4);
+
     
     // First hash: demographics + basic health metrics
     commitment1.inputs[0] <== age;
@@ -105,13 +109,11 @@ template MedicalEligibility() {
     commitment2.inputs[5] <== diabetesStatus;
     commitment2.inputs[6] <== heartDiseaseHistory;
     
-    // Final commitment combines both hashes with additional salt
+    // Final commitment combines both hashes with salt and the challenge
     finalCommitment.inputs[0] <== commitment1.out;
     finalCommitment.inputs[1] <== commitment2.out;
     finalCommitment.inputs[2] <== salt;
-    
-    // Verify the commitment matches the provided hash
-    dataCommitment === finalCommitment.out;
+    finalCommitment.inputs[3] <== challenge;
     
     // ========================================
     // ELIGIBILITY CRITERIA CHECKING

@@ -4,11 +4,6 @@ pragma solidity ^0.8.28;
 import "./MedicalEligibilityVerifier.sol";
 
 contract Study {
-    enum StudyStatus {
-        ACTIVE,
-        ENDED
-    }
-    
     // Study criteria that EXACTLY match our enhanced Circom circuit public inputs
     // ALL criteria are optional with enable flags for maximum flexibility
     struct StudyCriteria {
@@ -50,198 +45,120 @@ contract Study {
     }
     
     // Study metadata
-    uint256 public studyId;
     string public studyTitle;
     address public studyCreator;
     uint256 public maxParticipants;
     uint256 public currentParticipants; // Total enrolled (regardless of consent)
     uint256 public activeParticipants;  // Only those with active consent
     
-    StudyStatus public status;
-    uint256 public endedAt;
-    uint256 public constant K_ANONYMITY_THRESHOLD = 10;
-    
     StudyCriteria public criteria;
     Groth16Verifier public immutable zkVerifier;
 
-    // Participant tracking (NO private medical data stored on-chain!)
     mapping(address => bool) public participants;
     mapping(address => bool) public hasConsented; // Tracks active consent status
     mapping(address => uint256) public participantDataCommitments; // Hash of their private data
     address[] public participantList;
     
+    // Anti-Gaming: Store commitment hashes on-chain
+    // Maps: wallet => studyId => commitmentHash
+    // commitmentHash = keccak256(wallet, dataCommitment, challenge)
+    mapping(address => bytes32) public registeredCommitments;
+    mapping(address => uint256) public commitmentTimestamps;
+    
     // Events
+    event CommitmentRegistered(address indexed participant, bytes32 commitmentHash, uint256 timestamp);
     event ParticipantJoined(address indexed participant, uint256 dataCommitment);
     event EligibilityVerified(address indexed participant, bool eligible);
     event ConsentRevoked(address indexed participant, uint256 timestamp);
     event ConsentGranted(address indexed participant, uint256 timestamp);
-    event StudyEnded(uint256 timestamp, uint256 finalParticipantCount);
-    
-    modifier onlyCreator() {
-        require(msg.sender == studyCreator, "Only study creator can perform this action");
-        _;
-    }
-    
-    modifier onlyActive() {
-        require(status == StudyStatus.ACTIVE, "Study is not active");
-        _;
-    }
-    
-    modifier onlyEnded() {
-        require(status == StudyStatus.ENDED, "Study has not ended");
-        _;
-    }
     
     constructor(
-        uint256 _studyId,
         string memory _title,
         uint256 _maxParticipants,
         StudyCriteria memory _criteria,
         address _zkVerifierAddress
     ) {
-        studyId = _studyId;
         studyTitle = _title;
         studyCreator = msg.sender;
         maxParticipants = _maxParticipants;
         criteria = _criteria;
         zkVerifier = Groth16Verifier(_zkVerifierAddress);
-        status = StudyStatus.ACTIVE;
     }
     
-    function _buildPublicSignals(
+    /**
+     * @dev Register a commitment on-chain before proof generation
+     * This creates an immutable record that ties wallet + dataCommitment + challenge
+     * Called by backend after verifying the user's signature
+     * 
+     * @param dataCommitment Poseidon hash of medical data
+     * @param challenge Random challenge from backend
+     */
+    function registerCommitment(
         uint256 dataCommitment,
+        bytes32 challenge,
         address participant
-    ) internal view returns (uint256[] memory pubSignals) {
-        pubSignals = new uint256;
-        uint256 i = 0;
+    ) external {
+        require(registeredCommitments[participant] == bytes32(0), "Commitment already registered");
+        require(!participants[participant], "Already participating in study");
+        
+        bytes32 commitmentHash = keccak256(abi.encodePacked(
+            participant,
+            dataCommitment,
+            challenge
+        ));
 
-        pubSignals[i++] = dataCommitment;
-        pubSignals[i++] = uint256(uint160(participant));
-        pubSignals[i++] = studyId;
+        registeredCommitments[participant] = commitmentHash;
+        commitmentTimestamps[participant] = block.timestamp;
 
-        StudyCriteria memory c = criteria;
-
-        pubSignals[i++] = c.enableAge;
-        pubSignals[i++] = c.minAge;
-        pubSignals[i++] = c.maxAge;
-        pubSignals[i++] = c.enableCholesterol;
-        pubSignals[i++] = c.minCholesterol;
-        pubSignals[i++] = c.maxCholesterol;
-        pubSignals[i++] = c.enableBMI;
-        pubSignals[i++] = c.minBMI;
-        pubSignals[i++] = c.maxBMI;
-        pubSignals[i++] = c.enableBloodType;
-        pubSignals[i++] = c.allowedBloodTypes[0];
-        pubSignals[i++] = c.allowedBloodTypes[1];
-        pubSignals[i++] = c.allowedBloodTypes[2];
-        pubSignals[i++] = c.allowedBloodTypes[3];
-        pubSignals[i++] = c.enableGender;
-        pubSignals[i++] = c.allowedGender;
-        pubSignals[i++] = c.enableLocation;
-        pubSignals[i++] = c.allowedRegions[0];
-        pubSignals[i++] = c.allowedRegions[1];
-        pubSignals[i++] = c.allowedRegions[2];
-        pubSignals[i++] = c.allowedRegions[3];
-        pubSignals[i++] = c.enableBloodPressure;
-        pubSignals[i++] = c.minSystolic;
-        pubSignals[i++] = c.maxSystolic;
-        pubSignals[i++] = c.minDiastolic;
-        pubSignals[i++] = c.maxDiastolic;
-        pubSignals[i++] = c.enableHbA1c;
-        pubSignals[i++] = c.minHbA1c;
-        pubSignals[i++] = c.maxHbA1c;
-        pubSignals[i++] = c.enableSmoking;
-        pubSignals[i++] = c.allowedSmoking;
-        pubSignals[i++] = c.enableActivity;
-        pubSignals[i++] = c.minActivityLevel;
-        pubSignals[i++] = c.maxActivityLevel;
-        pubSignals[i++] = c.enableDiabetes;
-        pubSignals[i++] = c.allowedDiabetes;
-        pubSignals[i++] = c.enableHeartDisease;
-        pubSignals[i++] = c.allowedHeartDisease;
-
-        pubSignals[i++] = 1;
-
-        assert(i == 42);
-
-        return pubSignals;
+        emit CommitmentRegistered(participant, commitmentHash, block.timestamp);
     }
-
+    
     /**
      * @dev Main function for patients to join the study using ZK proof
      * @param _pA Groth16 proof point A (G1)
      * @param _pB Groth16 proof point B (G2) 
      * @param _pC Groth16 proof point C (G1)
      * @param dataCommitment Poseidon hash of the patient's private medical data
+     * @param challenge Challenge that was issued during commitment registration
      */
     function joinStudy(
         uint[2] calldata _pA,
         uint[2][2] calldata _pB,
         uint[2] calldata _pC,
-        uint256 dataCommitment
-    ) external onlyActive {
+        uint256 dataCommitment,
+        bytes32 challenge,
+        address participant
+    ) external {
         require(currentParticipants < maxParticipants, "Study is full");
-        require(!participants[msg.sender], "Already participating");
+        require(!participants[participant], "Already participating");
         
-        // Verify the ZK proof - only checks that patient proved they are eligible
-        // The study criteria were used during proof generation (client-side)
-        // Only the eligibility result (1 = eligible, 0 = not eligible) is public
+        bytes32 storedCommitmentHash = registeredCommitments[participant];
+        require(storedCommitmentHash != bytes32(0), "No commitment registered");
+        
+        bytes32 recomputedHash = keccak256(abi.encodePacked(
+            participant,
+            dataCommitment,
+            challenge
+        ));
+        require(recomputedHash == storedCommitmentHash, "Commitment mismatch - data tampering detected");
+        
         uint[1] memory pubSignals = [uint256(1)]; // Expected: eligible = 1
-        publicInputs = [
-            criteria.enableAge,
-            criteria.minAge,
-            criteria.maxAge,
-            criteria.enableCholesterol,
-            criteria.minCholesterol,
-            criteria.maxCholesterol,
-            criteria.enableBMI,
-            criteria.minBMI,
-            criteria.maxBMI,
-            criteria.enableBloodType,
-            criteria.allowedBloodTypes[0],
-            criteria.allowedBloodTypes[1],
-            criteria.allowedBloodTypes[2],
-            criteria.allowedBloodTypes[3],
-            criteria.enableGender,
-            criteria.allowedGender,
-            criteria.enableLocation,
-            criteria.allowedRegions[0],
-            criteria.allowedRegions[1],
-            criteria.allowedRegions[2],
-            criteria.allowedRegions[3],
-            criteria.enableBloodPressure,
-            criteria.minSystolic,
-            criteria.maxSystolic,
-            criteria.minDiastolic,
-            criteria.maxDiastolic,
-            criteria.enableHbA1c,
-            criteria.minHbA1c,
-            criteria.maxHbA1c,
-            criteria.enableSmoking,
-            criteria.allowedSmoking,
-            criteria.enableActivity,
-            criteria.minActivityLevel,
-            criteria.maxActivityLevel,
-            criteria.enableDiabetes,
-            criteria.allowedDiabetes,
-            criteria.enableHeartDisease,
-            criteria.allowedHeartDisease
-        ]
         bool isEligible = zkVerifier.verifyProof(_pA, _pB, _pC, pubSignals);
         
-        emit EligibilityVerified(msg.sender, isEligible);
+        emit EligibilityVerified(participant, isEligible);
         require(isEligible, "ZK proof verification failed - not eligible");
         
-        // Add participant to study with consent granted by default
-        participants[msg.sender] = true;
-        hasConsented[msg.sender] = true;
-        participantDataCommitments[msg.sender] = dataCommitment;
-        participantList.push(msg.sender);
+        participants[participant] = true;
+        hasConsented[participant] = true;
+        participantDataCommitments[participant] = dataCommitment;
+        participantList.push(participant);
         currentParticipants++;
         activeParticipants++;
         
-        emit ParticipantJoined(msg.sender, dataCommitment);
-        emit ConsentGranted(msg.sender, block.timestamp);
+        delete registeredCommitments[participant];
+        
+        emit ParticipantJoined(participant, dataCommitment);
+        emit ConsentGranted(participant, block.timestamp);
     }
     
     /**
@@ -302,29 +219,40 @@ contract Study {
         return participantDataCommitments[addr];
     }
     
-    function endStudy() external onlyCreator onlyActive {
-        require(activeParticipants >= K_ANONYMITY_THRESHOLD, 
-            "Cannot end study: minimum 10 participants with active consent required for minimal required anonymity");
+    /**
+     * @dev Check if a wallet has a registered commitment
+     * @param addr Wallet address to check
+     * @return commitmentHash The stored commitment hash (bytes32(0) if none)
+     * @return timestamp When the commitment was registered
+     */
+    function getRegisteredCommitment(address addr) external view returns (bytes32 commitmentHash, uint256 timestamp) {
+        return (registeredCommitments[addr], commitmentTimestamps[addr]);
+    }
+    
+    /**
+     * @dev Verify if provided data matches a registered commitment
+     * Useful for frontend validation before submitting proof
+     * @param addr Wallet address
+     * @param dataCommitment Data commitment to verify
+     * @param challenge Challenge to verify
+     * @return bool True if matches, false otherwise
+     */
+    function verifyCommitmentMatch(
+        address addr,
+        uint256 dataCommitment,
+        bytes32 challenge
+    ) external view returns (bool) {
+        bytes32 storedHash = registeredCommitments[addr];
+        if (storedHash == bytes32(0)) {
+            return false;
+        }
         
-        status = StudyStatus.ENDED;
-        endedAt = block.timestamp;
+        bytes32 recomputedHash = keccak256(abi.encodePacked(
+            addr,
+            dataCommitment,
+            challenge
+        ));
         
-        emit StudyEnded(block.timestamp, activeParticipants);
-    }
-    
-    function meetsKAnonymityThreshold() external view returns (bool) {
-        return activeParticipants >= K_ANONYMITY_THRESHOLD;
-    }
-    
-    function getStudyStatus() external view returns (StudyStatus) {
-        return status;
-    }
-    
-    function getParticipantList() external view onlyEnded returns (address[] memory) {
-        return participantList;
-    }
-    
-    function getActiveConsentCount() external view returns (uint256) {
-        return activeParticipants;
+        return recomputedHash == storedHash;
     }
 }

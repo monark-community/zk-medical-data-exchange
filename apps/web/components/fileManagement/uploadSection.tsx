@@ -6,10 +6,11 @@ import { ReportType } from "@/constants/reportType";
 import { Config, UseAccountReturnType } from "wagmi";
 import { encryptWithKey } from "@/utils/encryption";
 import RecordTypeSelect from "@/components/fileManagement/recordTypeSelect";
-import { Upload, Loader2, X, Send, CheckCircle2, XCircle } from "lucide-react";
+import { Upload, X, Send, CheckCircle2, XCircle } from "lucide-react";
 import eventBus from "@/lib/eventBus";
 import { ipfsUpload } from "@/services/api/ipfsService";
 import { uploadMedicalData } from "@/services/api";
+import { Spinner } from "@/components/ui/spinner";
 
 export default function UploadSection({
   account,
@@ -131,7 +132,7 @@ export default function UploadSection({
                   <div className="flex items-center gap-2 mt-1">
                     {checking ? (
                       <span className="text-sm text-gray-500 flex items-center gap-1.5">
-                        <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
+                        <Spinner className="size-4 text-blue-600" />
                         Checking compliance...
                       </span>
                     ) : isCompliant === true ? (
@@ -208,7 +209,7 @@ export default function UploadSection({
                 >
                   {uploading ? (
                     <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      <Spinner className="mr-2 size-4 text-blue-600" />
                       Uploading...
                     </>
                   ) : (

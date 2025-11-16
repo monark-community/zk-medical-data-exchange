@@ -11,7 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-import { EllipsisVertical, Loader2 } from "lucide-react";
+import { EllipsisVertical } from "lucide-react";
 
 import { decryptWithKey } from "@/utils/encryption";
 
@@ -21,6 +21,7 @@ import { ipfsDownload } from "@/services/api/ipfsService";
 import { deleteCID } from "@/services/api";
 import { logFileAccess } from "@/services/api/auditService";
 import eventBus from "@/lib/eventBus";
+import { Spinner } from "@/components/ui/spinner";
 const FileOperationDropDown = ({
   walletAddress,
   aesKey,
@@ -157,7 +158,7 @@ const FileOperationDropDown = ({
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="outline" disabled={isDeleting}>
-          {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <EllipsisVertical />}
+          {isDeleting ? <Spinner className="size-4 text-blue-600" /> : <EllipsisVertical />}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56" align="end">

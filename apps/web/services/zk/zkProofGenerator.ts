@@ -50,7 +50,8 @@ interface CircuitInput {
   salt: string;
 
   dataCommitment: string;
-
+  challenge: string;
+  
   enableAge: string;
   minAge: string;
   maxAge: string;
@@ -100,11 +101,11 @@ export const generateZKProof = async (
   medicalData: ExtractedMedicalData,
   studyCriteria: StudyCriteria,
   dataCommitment: bigint,
-  salt: number
+  salt: number,
+  challenge: string
 ): Promise<ZKProofResult> => {
   try {
-    console.log("Starting ZK proof generation...");
-    console.log("Data commitment:", dataCommitment?.toString() || "UNDEFINED");
+    console.log("Data commitment:", dataCommitment?.toString() || 'UNDEFINED');
     console.log("Salt:", salt);
 
     if (!dataCommitment) {
@@ -131,8 +132,8 @@ export const generateZKProof = async (
         isEligible: false,
       };
     }
-
-    const circuitInput = prepareCircuitInput(medicalData, studyCriteria, dataCommitment, salt);
+    
+    const circuitInput = prepareCircuitInput(medicalData, studyCriteria, dataCommitment, salt, challenge);
     console.log("Circuit input prepared with commitment verification");
 
     console.log("Loading circuit files...");
@@ -193,14 +194,16 @@ function prepareCircuitInput(
   medicalData: ExtractedMedicalData,
   studyCriteria: StudyCriteria,
   dataCommitment: bigint,
-  salt: number
+  salt: number,
+  challenge: string
 ): CircuitInput {
-  console.log("Preparing circuit input...");
-  console.log("├─ dataCommitment:", dataCommitment?.toString() || "UNDEFINED");
-  console.log("├─ salt:", salt);
-  console.log("├─ medicalData (raw):", medicalData);
-  console.log("└─ studyCriteria:", studyCriteria);
-
+    console.log("Preparing circuit input...");
+    console.log("├─ dataCommitment:", dataCommitment?.toString() || 'UNDEFINED');
+    console.log("├─ salt:", salt);
+    console.log("├─ medicalData (raw):", medicalData);
+    console.log("├─ challenge:", challenge);
+    console.log("└─ studyCriteria:", studyCriteria);
+  
   const normalized = normalizeMedicalDataForCircuit(medicalData);
   console.log("├─ medicalData (normalized):", normalized);
 
@@ -221,7 +224,8 @@ function prepareCircuitInput(
 
     salt: salt.toString(),
     dataCommitment: dataCommitment.toString(),
-
+    challenge: BigInt(`0x${challenge}`).toString(),
+    
     enableAge: studyCriteria.enableAge.toString(),
     minAge: studyCriteria.minAge.toString(),
     maxAge: studyCriteria.maxAge.toString(),
