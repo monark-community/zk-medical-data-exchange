@@ -15,16 +15,8 @@ import { createProposal } from "@/services/api/governanceService";
 import { CreateProposalParams } from "@/interfaces/proposal";
 import { useAccount } from "wagmi";
 import ConfirmCreateProposalDialog from "@/app/governance/components/ConfirmCreateProposalDialog";
-import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Spinner } from "@/components/ui/spinner";
+import { useTxStatusState } from "@/hooks/useTxStatus";
+import emitter from "@/lib/eventBus";
 
 interface CreateProposalFieldProps {
   onSuccess: () => void;
@@ -32,56 +24,44 @@ interface CreateProposalFieldProps {
 
 const CreateProposalField = ({ onSuccess }: CreateProposalFieldProps) => {
   const { address: walletAddress } = useAccount();
+  const { show, showError } = useTxStatusState();
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
-  const [isAlertDialogOpen, setIsAlertDialogOpen] = React.useState(false);
-  const [isWaitingProposalCreation, setIsWaitingProposalCreation] = React.useState(false);
   const [pendingProposal, setPendingProposal] = React.useState<CreateProposalParams | null>(null);
-  const [error, setError] = React.useState<string | null>(null);
   const [category, setCategory] = React.useState<string>("");
   const [duration, setDuration] = React.useState<string>("");
-
-  const openResultAlertDialog = () => {
-    setIsAlertDialogOpen(true);
-  };
 
   const handleConfirmCreate = async () => {
     try {
       if (!walletAddress) {
-        setError("Wallet address not found. Please log in again.");
-        setIsAlertDialogOpen(true);
+        showError("Wallet address not found. Please log in again.");
         return;
       }
 
       if (!pendingProposal) {
-        setError("Proposal data is missing.");
-        setIsAlertDialogOpen(true);
+        showError("Proposal data is missing.");
         return;
       }
 
-      setIsWaitingProposalCreation(true);
-      openResultAlertDialog();
+      // Show non-blocking popup
+      show("Creating proposal on blockchain...");
+
+      onSuccess();
+
+      setPendingProposal(null);
 
       const result = await createProposal(pendingProposal);
 
-      setIsWaitingProposalCreation(false);
-
       if (result.success) {
-        setError(null);
+        show("Proposal created successfully! ✓");
+        emitter.emit("proposalUpdated");
       } else {
-        setError(result.error || "Failed to create proposal");
+        showError(result.error || "Failed to create proposal");
       }
     } catch (error) {
       console.error("Error creating proposal:", error);
-      setError("An error occurred while creating the proposal.");
-      setIsWaitingProposalCreation(false);
-      setIsAlertDialogOpen(true);
-    }
-  };
-
-  const handleAlertClose = () => {
-    setIsAlertDialogOpen(false);
-    if (!error) {
-      onSuccess();
+      showError(
+        error instanceof Error ? error.message : "An error occurred while creating the proposal."
+      );
     }
   };
 
@@ -96,8 +76,7 @@ const CreateProposalField = ({ onSuccess }: CreateProposalFieldProps) => {
           ).value;
           console.log(`Creating proposal:`, { title, description, category, duration });
           if (!walletAddress) {
-            setError("Wallet address not found. Please log in again.");
-            openResultAlertDialog();
+            showError("Wallet address not found. Please log in again.");
             return;
           }
 
@@ -196,37 +175,10 @@ const CreateProposalField = ({ onSuccess }: CreateProposalFieldProps) => {
         onOpenChange={() => setIsDialogOpen(false)}
         onConfirm={handleConfirmCreate}
         onCancel={() => {
-          setError(null);
           setPendingProposal(null);
         }}
         proposalTitle={pendingProposal?.title || ""}
       />
-
-      <AlertDialog open={isAlertDialogOpen}>
-        {isWaitingProposalCreation ? (
-          <AlertDialogContent className="flex justify-center items-center p-16">
-            <AlertDialogHeader className="sr-only">
-              <AlertDialogTitle>Processing</AlertDialogTitle>
-              <AlertDialogDescription>
-                Please wait while your proposal is being created.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <Spinner className="size-12 text-blue-600" />
-          </AlertDialogContent>
-        ) : (
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>{error ? "Error" : "Success"}</AlertDialogTitle>
-              <AlertDialogDescription>
-                {error ? error : "Your proposal has been created successfully."}
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel onClick={handleAlertClose}>Ok</AlertDialogCancel>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        )}
-      </AlertDialog>
     </div>
   );
 };

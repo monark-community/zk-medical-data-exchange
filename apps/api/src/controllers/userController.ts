@@ -3,6 +3,7 @@ import logger from "@/utils/logger";
 
 import {
   checkIfUserExists,
+  getNumberOfUsersOnPlatform,
   getUserByWalletAddress,
   getUserStatsForDataSeller,
   getUserStatsForResearcher,
@@ -169,6 +170,19 @@ export async function getUserStats(req: Request, res: Response) {
     }
   } catch (err: any) {
     logger.error({ err, walletAddress, profile }, "Error in getUserStats");
+    return res.status(500).json({ error: "Internal server error" });
+  }
+}
+export async function getPlatformUserCount(req: Request, res: Response) {
+  try {
+    logger.info("getPlatformUserCount called");
+
+    const count = await getNumberOfUsersOnPlatform(req.supabase);
+
+    logger.info({ count }, "Platform user count retrieved successfully");
+    return res.status(200).json({ count });
+  } catch (err: any) {
+    logger.error({ err }, "Error in getPlatformUserCount");
     return res.status(500).json({ error: "Internal server error" });
   }
 }
