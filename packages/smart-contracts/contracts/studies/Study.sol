@@ -100,7 +100,7 @@ contract Study {
         uint256 dataCommitment,
         address participant
     ) internal view returns (uint256[] memory pubSignals) {
-        pubSignals = new uint256;
+        pubSignals = new uint256[](42);
         uint256 i = 0;
 
         pubSignals[i++] = dataCommitment;
