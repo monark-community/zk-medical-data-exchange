@@ -4,9 +4,6 @@ include "circomlib/circuits/poseidon.circom";
 include "circomlib/circuits/comparators.circom";
 
 template MedicalEligibility() {
-    // ========================================
-    // PRIVATE INPUTS (Patient's Medical Data - Never Revealed!)
-    // ========================================
     signal input age;
     signal input gender;                 // 1=male, 2=female
     signal input region;                 // Patient's region/state code  
@@ -21,12 +18,6 @@ template MedicalEligibility() {
     signal input diabetesStatus;         // 0=none, 1=type1, 2=type2, 3=pre-diabetic
     signal input heartDiseaseHistory;    // 0=no, 1=yes
     signal input salt;                   // Random salt for commitment security
-    
-    // ========================================
-    // STUDY CRITERIA (Private inputs - not revealed to blockchain)
-    // ========================================
-    // These are private inputs provided during proof generation
-    // The blockchain never sees these values - only the eligibility result
     
     signal input enableAge;
     signal input minAge;
@@ -61,16 +52,11 @@ template MedicalEligibility() {
     signal input enableHeartDisease;
     signal input allowedHeartDisease;
     
-    // ========================================
-    // PUBLIC INPUTS (Only what goes to blockchain)  
-    // ========================================
-    
-    // Data commitment - hash of patient's private medical data
     signal input dataCommitment;
+    signal input studyId;
+    signal input walletAddress;
+    signal input eligibilityExpected;
     
-    // ========================================
-    // OUTPUT
-    // ========================================
     signal output eligible;
     
     // ========================================
@@ -206,41 +192,25 @@ template MedicalEligibility() {
     heartDiseaseCheck.patientValue <== heartDiseaseHistory;
     heartDiseaseCheck.allowedValue <== allowedHeartDisease;
     
-    // ========================================
-    // FINAL ELIGIBILITY CALCULATION
-    // ========================================
-    
-    // ========================================
-    // FINAL ELIGIBILITY CALCULATION (Quadratic Constraints Only)
-    // ========================================
-    
-    // Break down all multiplications to be quadratic (max 2 multiplications per constraint)
-    
-    // Step 1: Combine basic health checks (age, cholesterol, BMI)
     signal ageAndCholesterol;
     signal basicHealthChecks;
     ageAndCholesterol <== ageCheck.valid * cholesterolCheck.valid;
     basicHealthChecks <== ageAndCholesterol * bmiCheck.valid;
     
-    // Step 2: Combine demographic checks (bloodType, gender, region)
     signal bloodTypeAndGender;
     signal demographicChecks;
     bloodTypeAndGender <== bloodTypeCheck.valid * genderCheck.valid;
     demographicChecks <== bloodTypeAndGender * regionCheck.valid;
     
-    // Step 3: Combine advanced health checks (bloodPressure, hbA1c)
     signal advancedHealthChecks;
     advancedHealthChecks <== bloodPressureCheck.valid * hba1cCheck.valid;
     
-    // Step 4: Combine lifestyle checks (smoking, activity)
     signal lifestyleChecks;
     lifestyleChecks <== smokingCheck.valid * activityCheck.valid;
     
-    // Step 5: Combine medical history checks (diabetes, heartDisease)
     signal medicalHistoryChecks;
     medicalHistoryChecks <== diabetesCheck.valid * heartDiseaseCheck.valid;
     
-    // Step 6: Combine all groups step by step (quadratic constraints only)
     signal basicAndDemographic;
     signal advancedAndLifestyle;
     signal allButMedical;
@@ -249,13 +219,9 @@ template MedicalEligibility() {
     advancedAndLifestyle <== advancedHealthChecks * lifestyleChecks;
     allButMedical <== basicAndDemographic * advancedAndLifestyle;
     
-    // Final result: ALL criteria must be satisfied
     eligible <== allButMedical * medicalHistoryChecks;
+    eligible === eligibilityExpected;
 }
-
-// ========================================
-// HELPER TEMPLATES
-// ========================================
 
 template RangeCheck(n) {
     signal input value;

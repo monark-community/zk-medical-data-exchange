@@ -50,6 +50,7 @@ contract Study {
     }
     
     // Study metadata
+    uint256 public studyId;
     string public studyTitle;
     address public studyCreator;
     uint256 public maxParticipants;
@@ -92,21 +93,80 @@ contract Study {
     }
     
     constructor(
+        uint256 _studyId,
         string memory _title,
         uint256 _maxParticipants,
         StudyCriteria memory _criteria,
         address _zkVerifierAddress
     ) {
+        studyId = _studyId;
         studyTitle = _title;
         studyCreator = msg.sender;
         maxParticipants = _maxParticipants;
         criteria = _criteria;
         zkVerifier = Groth16Verifier(_zkVerifierAddress);
         status = StudyStatus.ACTIVE;
-        
-        require(_maxParticipants >= K_ANONYMITY_THRESHOLD, "Study must allow at least 10 participants for minimal required anonymity");
     }
     
+    function _buildPublicSignals(
+        uint256 dataCommitment,
+        address participant
+    ) internal view returns (uint256[] memory pubSignals) {
+        pubSignals = new uint256;
+        uint256 i = 0;
+
+        pubSignals[i++] = dataCommitment;
+        pubSignals[i++] = uint256(uint160(participant));
+        pubSignals[i++] = studyId;
+
+        StudyCriteria memory c = criteria;
+
+        pubSignals[i++] = c.enableAge;
+        pubSignals[i++] = c.minAge;
+        pubSignals[i++] = c.maxAge;
+        pubSignals[i++] = c.enableCholesterol;
+        pubSignals[i++] = c.minCholesterol;
+        pubSignals[i++] = c.maxCholesterol;
+        pubSignals[i++] = c.enableBMI;
+        pubSignals[i++] = c.minBMI;
+        pubSignals[i++] = c.maxBMI;
+        pubSignals[i++] = c.enableBloodType;
+        pubSignals[i++] = c.allowedBloodTypes[0];
+        pubSignals[i++] = c.allowedBloodTypes[1];
+        pubSignals[i++] = c.allowedBloodTypes[2];
+        pubSignals[i++] = c.allowedBloodTypes[3];
+        pubSignals[i++] = c.enableGender;
+        pubSignals[i++] = c.allowedGender;
+        pubSignals[i++] = c.enableLocation;
+        pubSignals[i++] = c.allowedRegions[0];
+        pubSignals[i++] = c.allowedRegions[1];
+        pubSignals[i++] = c.allowedRegions[2];
+        pubSignals[i++] = c.allowedRegions[3];
+        pubSignals[i++] = c.enableBloodPressure;
+        pubSignals[i++] = c.minSystolic;
+        pubSignals[i++] = c.maxSystolic;
+        pubSignals[i++] = c.minDiastolic;
+        pubSignals[i++] = c.maxDiastolic;
+        pubSignals[i++] = c.enableHbA1c;
+        pubSignals[i++] = c.minHbA1c;
+        pubSignals[i++] = c.maxHbA1c;
+        pubSignals[i++] = c.enableSmoking;
+        pubSignals[i++] = c.allowedSmoking;
+        pubSignals[i++] = c.enableActivity;
+        pubSignals[i++] = c.minActivityLevel;
+        pubSignals[i++] = c.maxActivityLevel;
+        pubSignals[i++] = c.enableDiabetes;
+        pubSignals[i++] = c.allowedDiabetes;
+        pubSignals[i++] = c.enableHeartDisease;
+        pubSignals[i++] = c.allowedHeartDisease;
+
+        pubSignals[i++] = 1;
+
+        assert(i == 42);
+
+        return pubSignals;
+    }
+
     /**
      * @dev Main function for patients to join the study using ZK proof
      * @param _pA Groth16 proof point A (G1)
@@ -127,6 +187,46 @@ contract Study {
         // The study criteria were used during proof generation (client-side)
         // Only the eligibility result (1 = eligible, 0 = not eligible) is public
         uint[1] memory pubSignals = [uint256(1)]; // Expected: eligible = 1
+        publicInputs = [
+            criteria.enableAge,
+            criteria.minAge,
+            criteria.maxAge,
+            criteria.enableCholesterol,
+            criteria.minCholesterol,
+            criteria.maxCholesterol,
+            criteria.enableBMI,
+            criteria.minBMI,
+            criteria.maxBMI,
+            criteria.enableBloodType,
+            criteria.allowedBloodTypes[0],
+            criteria.allowedBloodTypes[1],
+            criteria.allowedBloodTypes[2],
+            criteria.allowedBloodTypes[3],
+            criteria.enableGender,
+            criteria.allowedGender,
+            criteria.enableLocation,
+            criteria.allowedRegions[0],
+            criteria.allowedRegions[1],
+            criteria.allowedRegions[2],
+            criteria.allowedRegions[3],
+            criteria.enableBloodPressure,
+            criteria.minSystolic,
+            criteria.maxSystolic,
+            criteria.minDiastolic,
+            criteria.maxDiastolic,
+            criteria.enableHbA1c,
+            criteria.minHbA1c,
+            criteria.maxHbA1c,
+            criteria.enableSmoking,
+            criteria.allowedSmoking,
+            criteria.enableActivity,
+            criteria.minActivityLevel,
+            criteria.maxActivityLevel,
+            criteria.enableDiabetes,
+            criteria.allowedDiabetes,
+            criteria.enableHeartDisease,
+            criteria.allowedHeartDisease
+        ]
         bool isEligible = zkVerifier.verifyProof(_pA, _pB, _pC, pubSignals);
         
         emit EligibilityVerified(msg.sender, isEligible);
