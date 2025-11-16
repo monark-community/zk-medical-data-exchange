@@ -2,9 +2,10 @@ import { Proposal, ProposalCategory } from "@/interfaces/proposal";
 import { CircleCheck, CircleMinus, CircleX, Hourglass } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAccount } from "wagmi";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import VoteConfirmationDialog from "@/app/governance/components/VoteConfirmationDialog";
 import { useBlockchainTxStatusState } from "@/hooks/useTxStatus";
+import { getPlatformUserCount } from "@/services/api/userService";
 
 interface ProposalCardProps {
   proposalInfo: Proposal;
@@ -94,6 +95,15 @@ export default function ProposalCard({
   const [voteDialogOpen, setVoteDialogOpen] = useState(false);
   const [selectedVote, setSelectedVote] = useState<number>(1);
   const { isVisible: isTxProcessing } = useBlockchainTxStatusState();
+  const [platformUserCount, setPlatformUserCount] = useState<number>(0);
+
+  useEffect(() => {
+    const fetchUserCount = async () => {
+      const count = await getPlatformUserCount();
+      setPlatformUserCount(count);
+    };
+    fetchUserCount();
+  }, []);
 
   const handleVoteClick = (voteChoice: number) => {
     setSelectedVote(voteChoice);
@@ -164,7 +174,7 @@ export default function ProposalCard({
                 <span className="text-gray-700">
                   Abstain:{" "}
                   {(
-                    proposalInfo.totalVoters -
+                    platformUserCount -
                     (proposalInfo.votesAgainst + proposalInfo.votesFor)
                   ).toLocaleString()}
                 </span>
