@@ -73,7 +73,8 @@ export const fetchParticipants = async (req: Request, res: Response) => {
     const { data } = await req.supabase
       .from(TABLES.STUDY_PARTICIPATIONS!.name)
       .select(TABLES.STUDY_PARTICIPATIONS!.columns.participantWallet!)
-      .eq(TABLES.STUDY_PARTICIPATIONS!.columns.studyId!, id);
+      .eq(TABLES.STUDY_PARTICIPATIONS!.columns.studyId!, id)
+      .eq(TABLES.STUDY_PARTICIPATIONS!.columns.hasConsented!, true);
 
     return res.json({
       participants: data?.map((row: any) => row.participant_wallet) || [],
