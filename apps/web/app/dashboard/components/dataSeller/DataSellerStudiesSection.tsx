@@ -16,6 +16,7 @@ import {
   getEnrolledStudies,
   revokeStudyConsent,
   grantStudyConsent,
+  StudySummary,
 } from "@/services/api/studyService";
 import { submitZKProofToStudy } from "@/services/api/zkAggregationService";
 import { zkAggregationService, MedicalDataForAggregation } from "@/services/zk/zkAggregationService";
@@ -74,22 +75,23 @@ export default function DataSellerStudiesSection() {
     }
   }, [walletAddress]);
 
-  const handleApplyToStudy = async (studyId: number) => {
+  const handleApplyToStudy = async (study: StudySummary) => {
     if (!walletAddress) {
       alert("Wallet not connected");
       return;
     }
 
-    if (applyingStudyId === studyId) {
+    if (applyingStudyId === study.id) {
       return;
     }
 
-    setApplyingStudyId(studyId);
+    setApplyingStudyId(study.id);
 
     const startTime = Date.now();
     console.log("🚀 [APPLY] ============================================");
     console.log("🚀 [APPLY] Starting study application process");
-    console.log("🚀 [APPLY] Study ID:", studyId);
+    console.log("🚀 [APPLY] Study ID:", study.id);
+    console.log("🚀 [APPLY] Study Contract:", study.contractAddress || "Not deployed");
     console.log("🚀 [APPLY] Wallet Address:", walletAddress);
     console.log("🚀 [APPLY] Timestamp:", new Date().toISOString());
     console.log("🚀 [APPLY] ============================================");
@@ -121,7 +123,7 @@ export default function DataSellerStudiesSection() {
       // 2. Apply to study (checks eligibility, enrolls participant)
       console.log("📝 [APPLY] Step 3: Submitting study application (enrollment + eligibility)...");
       const result = await StudyApplicationService.applyToStudy(
-        studyId,
+        study.id,
         zkReadyMedicalData,
         walletAddress
       );
@@ -154,13 +156,19 @@ export default function DataSellerStudiesSection() {
           salt: result.salt.substring(0, 10) + "...", // Log partial salt for debugging
         });
 
+        // Validate contract address
+        if (!study.contractAddress) {
+          throw new Error("Study contract not deployed yet. Please wait for deployment to complete.");
+        }
+
         // Generate ZK proof for aggregation
         console.log("⚙️ [APPLY] Generating ZK proof (this may take a few seconds)...");
         const proofStart = Date.now();
         const proofResult = await zkAggregationService.generateAggregationProof(
           aggregationData,
-          studyId.toString(),
-          result.dataCommitment
+          study.id.toString(),
+          result.dataCommitment,
+          study.contractAddress
         );
         const proofDuration = Date.now() - proofStart;
         console.log("✅ [APPLY] ZK proof generated successfully!", {

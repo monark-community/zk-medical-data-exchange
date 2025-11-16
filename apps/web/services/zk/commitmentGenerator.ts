@@ -16,6 +16,9 @@ export const generateDataCommitment = (medicalData: ExtractedMedicalData, salt: 
   const normalizedData = normalizeMedicalDataForCircuit(medicalData);
 
   try {
+    // IMPORTANT: This must match the medical_eligibility circuit's commitment structure
+    // See: packages/smart-contracts/circuits/medical_eligibility.circom (lines 90-116)
+    
     const commitment1Inputs = [
       normalizedData.age,
       normalizedData.gender,
@@ -46,7 +49,7 @@ export const generateDataCommitment = (medicalData: ExtractedMedicalData, salt: 
     console.log("Data commitment generated:");
     console.log("├─ Commitment 1 inputs:", commitment1Inputs);
     console.log("├─ Commitment 2 inputs:", commitment2Inputs);
-    console.log("├─ Final inputs:", [commitment1, commitment2, salt]);
+    console.log("├─ Final inputs:", [commitment1.toString(), commitment2.toString(), salt]);
     console.log("└─ Final commitment:", finalCommitmentHash);
 
     return finalCommitmentHash;

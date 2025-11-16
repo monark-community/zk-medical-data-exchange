@@ -7,7 +7,7 @@ import { Spinner } from "@/components/ui/spinner";
 interface DataSellerStudiesListProps {
   studies: StudySummary[];
   // eslint-disable-next-line no-unused-vars
-  onApplyToStudy: (id: number) => Promise<void>;
+  onApplyToStudy: (study: StudySummary) => Promise<void>;
   applyingStudyId: number | null;
   walletAddress?: string;
 }
@@ -32,7 +32,7 @@ export default function DataSellerStudiesList({
           size="sm"
           onClick={(e) => {
             e.stopPropagation();
-            onApplyToStudy(study.id);
+            onApplyToStudy(study);
           }}
           disabled={!walletAddress || isApplying}
           className="h-7 px-3 text-green-600 hover:text-green-700 hover:bg-green-50 border-green-200"
