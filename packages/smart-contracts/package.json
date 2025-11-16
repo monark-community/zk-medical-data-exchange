@@ -16,6 +16,7 @@
     "deploy:tenderly": "bunx hardhat run scripts/deploy.ts --network tenderly",
     "deploy:verifier": "bunx hardhat run scripts/deployVerifier.ts --network sepolia",
     "deploy:study-factory": "bunx hardhat run scripts/deployStudyFactory.ts --network sepolia",
+    "deploy:data-aggregation-verifier": "bunx hardhat run scripts/deployDataAggregationVerifier.ts --network sepolia",
     "deploy:audit-trail": "bunx hardhat run scripts/deployAuditTrail.ts --network sepolia",
     "deploy:governance": "bunx hardhat run scripts/deployGovernanceDAO.ts --network sepolia",
     "deploy:governance-factory": "bunx hardhat run scripts/deployGovernanceFactory.ts --network sepolia",

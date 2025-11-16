@@ -126,6 +126,11 @@ function generateABIs(): void {
       export: "PROPOSAL_ABI",
       path: "governance/Proposal.sol/Proposal.json",
     },
+    {
+      name: "DataAggregationVerifier",
+      export: "DATA_AGGREGATION_VERIFIER_ABI",
+      path: "studies/DataAggregationVerifier.sol/Groth16Verifier.json",
+    },
   ];
 
   for (const contract of contracts) {

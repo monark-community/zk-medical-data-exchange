@@ -1,5 +1,5 @@
 // Auto-generated contract ABIs
-// Generated on 2025-11-15T18:58:34.066Z
+// Generated on 2025-11-16T19:51:44.361Z
 
 // ABI type definitions
 interface ABIInput {
@@ -431,6 +431,101 @@ export const STUDY_FACTORY_ABI: ABI = [
         ],
         "internalType": "struct Study.StudyCriteria",
         "name": "customCriteria",
+        "type": "tuple"
+      },
+      {
+        "components": [
+          {
+            "components": [
+              {
+                "internalType": "bool",
+                "name": "enabled",
+                "type": "bool"
+              },
+              {
+                "internalType": "uint256[10]",
+                "name": "boundaries",
+                "type": "uint256[10]"
+              },
+              {
+                "internalType": "uint256",
+                "name": "binCount",
+                "type": "uint256"
+              }
+            ],
+            "internalType": "struct Study.BinDefinition",
+            "name": "age",
+            "type": "tuple"
+          },
+          {
+            "components": [
+              {
+                "internalType": "bool",
+                "name": "enabled",
+                "type": "bool"
+              },
+              {
+                "internalType": "uint256[10]",
+                "name": "boundaries",
+                "type": "uint256[10]"
+              },
+              {
+                "internalType": "uint256",
+                "name": "binCount",
+                "type": "uint256"
+              }
+            ],
+            "internalType": "struct Study.BinDefinition",
+            "name": "cholesterol",
+            "type": "tuple"
+          },
+          {
+            "components": [
+              {
+                "internalType": "bool",
+                "name": "enabled",
+                "type": "bool"
+              },
+              {
+                "internalType": "uint256[10]",
+                "name": "boundaries",
+                "type": "uint256[10]"
+              },
+              {
+                "internalType": "uint256",
+                "name": "binCount",
+                "type": "uint256"
+              }
+            ],
+            "internalType": "struct Study.BinDefinition",
+            "name": "bmi",
+            "type": "tuple"
+          },
+          {
+            "components": [
+              {
+                "internalType": "bool",
+                "name": "enabled",
+                "type": "bool"
+              },
+              {
+                "internalType": "uint256[10]",
+                "name": "boundaries",
+                "type": "uint256[10]"
+              },
+              {
+                "internalType": "uint256",
+                "name": "binCount",
+                "type": "uint256"
+              }
+            ],
+            "internalType": "struct Study.BinDefinition",
+            "name": "hba1c",
+            "type": "tuple"
+          }
+        ],
+        "internalType": "struct Study.StudyBins",
+        "name": "bins",
         "type": "tuple"
       }
     ],
@@ -872,6 +967,11 @@ export const STUDY_ABI: ABI = [
   {
     "inputs": [
       {
+        "internalType": "uint256",
+        "name": "_studyId",
+        "type": "uint256"
+      },
+      {
         "internalType": "string",
         "name": "_title",
         "type": "string"
@@ -1049,6 +1149,101 @@ export const STUDY_ABI: ABI = [
         "type": "tuple"
       },
       {
+        "components": [
+          {
+            "components": [
+              {
+                "internalType": "bool",
+                "name": "enabled",
+                "type": "bool"
+              },
+              {
+                "internalType": "uint256[10]",
+                "name": "boundaries",
+                "type": "uint256[10]"
+              },
+              {
+                "internalType": "uint256",
+                "name": "binCount",
+                "type": "uint256"
+              }
+            ],
+            "internalType": "struct Study.BinDefinition",
+            "name": "age",
+            "type": "tuple"
+          },
+          {
+            "components": [
+              {
+                "internalType": "bool",
+                "name": "enabled",
+                "type": "bool"
+              },
+              {
+                "internalType": "uint256[10]",
+                "name": "boundaries",
+                "type": "uint256[10]"
+              },
+              {
+                "internalType": "uint256",
+                "name": "binCount",
+                "type": "uint256"
+              }
+            ],
+            "internalType": "struct Study.BinDefinition",
+            "name": "cholesterol",
+            "type": "tuple"
+          },
+          {
+            "components": [
+              {
+                "internalType": "bool",
+                "name": "enabled",
+                "type": "bool"
+              },
+              {
+                "internalType": "uint256[10]",
+                "name": "boundaries",
+                "type": "uint256[10]"
+              },
+              {
+                "internalType": "uint256",
+                "name": "binCount",
+                "type": "uint256"
+              }
+            ],
+            "internalType": "struct Study.BinDefinition",
+            "name": "bmi",
+            "type": "tuple"
+          },
+          {
+            "components": [
+              {
+                "internalType": "bool",
+                "name": "enabled",
+                "type": "bool"
+              },
+              {
+                "internalType": "uint256[10]",
+                "name": "boundaries",
+                "type": "uint256[10]"
+              },
+              {
+                "internalType": "uint256",
+                "name": "binCount",
+                "type": "uint256"
+              }
+            ],
+            "internalType": "struct Study.BinDefinition",
+            "name": "hba1c",
+            "type": "tuple"
+          }
+        ],
+        "internalType": "struct Study.StudyBins",
+        "name": "_bins",
+        "type": "tuple"
+      },
+      {
         "internalType": "address",
         "name": "_zkVerifierAddress",
         "type": "address"
@@ -1056,6 +1251,25 @@ export const STUDY_ABI: ABI = [
     ],
     "stateMutability": "nonpayable",
     "type": "constructor"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "studyId",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "timestamp",
+        "type": "uint256"
+      }
+    ],
+    "name": "BinsUpdated",
+    "type": "event"
   },
   {
     "anonymous": false,
@@ -1166,6 +1380,102 @@ export const STUDY_ABI: ABI = [
         "internalType": "uint256",
         "name": "",
         "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "bins",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "bool",
+            "name": "enabled",
+            "type": "bool"
+          },
+          {
+            "internalType": "uint256[10]",
+            "name": "boundaries",
+            "type": "uint256[10]"
+          },
+          {
+            "internalType": "uint256",
+            "name": "binCount",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct Study.BinDefinition",
+        "name": "age",
+        "type": "tuple"
+      },
+      {
+        "components": [
+          {
+            "internalType": "bool",
+            "name": "enabled",
+            "type": "bool"
+          },
+          {
+            "internalType": "uint256[10]",
+            "name": "boundaries",
+            "type": "uint256[10]"
+          },
+          {
+            "internalType": "uint256",
+            "name": "binCount",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct Study.BinDefinition",
+        "name": "cholesterol",
+        "type": "tuple"
+      },
+      {
+        "components": [
+          {
+            "internalType": "bool",
+            "name": "enabled",
+            "type": "bool"
+          },
+          {
+            "internalType": "uint256[10]",
+            "name": "boundaries",
+            "type": "uint256[10]"
+          },
+          {
+            "internalType": "uint256",
+            "name": "binCount",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct Study.BinDefinition",
+        "name": "bmi",
+        "type": "tuple"
+      },
+      {
+        "components": [
+          {
+            "internalType": "bool",
+            "name": "enabled",
+            "type": "bool"
+          },
+          {
+            "internalType": "uint256[10]",
+            "name": "boundaries",
+            "type": "uint256[10]"
+          },
+          {
+            "internalType": "uint256",
+            "name": "binCount",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct Study.BinDefinition",
+        "name": "hba1c",
+        "type": "tuple"
       }
     ],
     "stateMutability": "view",
@@ -1363,6 +1673,98 @@ export const STUDY_ABI: ABI = [
   },
   {
     "inputs": [],
+    "name": "getAgeBins",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "enabled",
+        "type": "bool"
+      },
+      {
+        "internalType": "uint256[10]",
+        "name": "boundaries",
+        "type": "uint256[10]"
+      },
+      {
+        "internalType": "uint256",
+        "name": "binCount",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getBMIBins",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "enabled",
+        "type": "bool"
+      },
+      {
+        "internalType": "uint256[10]",
+        "name": "boundaries",
+        "type": "uint256[10]"
+      },
+      {
+        "internalType": "uint256",
+        "name": "binCount",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getCholesterolBins",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "enabled",
+        "type": "bool"
+      },
+      {
+        "internalType": "uint256[10]",
+        "name": "boundaries",
+        "type": "uint256[10]"
+      },
+      {
+        "internalType": "uint256",
+        "name": "binCount",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getHbA1cBins",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "enabled",
+        "type": "bool"
+      },
+      {
+        "internalType": "uint256[10]",
+        "name": "boundaries",
+        "type": "uint256[10]"
+      },
+      {
+        "internalType": "uint256",
+        "name": "binCount",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "getParticipantCount",
     "outputs": [
       {
@@ -1412,6 +1814,109 @@ export const STUDY_ABI: ABI = [
         "internalType": "uint256",
         "name": "timestamp",
         "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getStudyBins",
+    "outputs": [
+      {
+        "components": [
+          {
+            "components": [
+              {
+                "internalType": "bool",
+                "name": "enabled",
+                "type": "bool"
+              },
+              {
+                "internalType": "uint256[10]",
+                "name": "boundaries",
+                "type": "uint256[10]"
+              },
+              {
+                "internalType": "uint256",
+                "name": "binCount",
+                "type": "uint256"
+              }
+            ],
+            "internalType": "struct Study.BinDefinition",
+            "name": "age",
+            "type": "tuple"
+          },
+          {
+            "components": [
+              {
+                "internalType": "bool",
+                "name": "enabled",
+                "type": "bool"
+              },
+              {
+                "internalType": "uint256[10]",
+                "name": "boundaries",
+                "type": "uint256[10]"
+              },
+              {
+                "internalType": "uint256",
+                "name": "binCount",
+                "type": "uint256"
+              }
+            ],
+            "internalType": "struct Study.BinDefinition",
+            "name": "cholesterol",
+            "type": "tuple"
+          },
+          {
+            "components": [
+              {
+                "internalType": "bool",
+                "name": "enabled",
+                "type": "bool"
+              },
+              {
+                "internalType": "uint256[10]",
+                "name": "boundaries",
+                "type": "uint256[10]"
+              },
+              {
+                "internalType": "uint256",
+                "name": "binCount",
+                "type": "uint256"
+              }
+            ],
+            "internalType": "struct Study.BinDefinition",
+            "name": "bmi",
+            "type": "tuple"
+          },
+          {
+            "components": [
+              {
+                "internalType": "bool",
+                "name": "enabled",
+                "type": "bool"
+              },
+              {
+                "internalType": "uint256[10]",
+                "name": "boundaries",
+                "type": "uint256[10]"
+              },
+              {
+                "internalType": "uint256",
+                "name": "binCount",
+                "type": "uint256"
+              }
+            ],
+            "internalType": "struct Study.BinDefinition",
+            "name": "hba1c",
+            "type": "tuple"
+          }
+        ],
+        "internalType": "struct Study.StudyBins",
+        "name": "",
+        "type": "tuple"
       }
     ],
     "stateMutability": "view",
@@ -1678,6 +2183,30 @@ export const STUDY_ABI: ABI = [
   {
     "inputs": [
       {
+        "internalType": "string",
+        "name": "field",
+        "type": "string"
+      },
+      {
+        "internalType": "uint256",
+        "name": "binIndex",
+        "type": "uint256"
+      }
+    ],
+    "name": "isValidBinIndex",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
         "internalType": "uint256[2]",
         "name": "_pA",
         "type": "uint256[2]"
@@ -1840,12 +2369,38 @@ export const STUDY_ABI: ABI = [
   },
   {
     "inputs": [],
+    "name": "status",
+    "outputs": [
+      {
+        "internalType": "enum Study.StudyStatus",
+        "name": "",
+        "type": "uint8"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "studyCreator",
     "outputs": [
       {
         "internalType": "address",
         "name": "",
         "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "studyId",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
       }
     ],
     "stateMutability": "view",
@@ -1927,9 +2482,9 @@ export const MEDICAL_ELIGIBILITY_VERIFIER_ABI: ABI = [
         "type": "uint256[2]"
       },
       {
-        "internalType": "uint256[1]",
+        "internalType": "uint256[44]",
         "name": "_pubSignals",
-        "type": "uint256[1]"
+        "type": "uint256[44]"
       }
     ],
     "name": "verifyProof",
@@ -3322,15 +3877,9 @@ export const PROPOSAL_ABI: ABI = [
   },
   {
     "inputs": [],
-    "name": "getState",
-    "outputs": [
-      {
-        "internalType": "enum Proposal.ProposalState",
-        "name": "",
-        "type": "uint8"
-      }
-    ],
-    "stateMutability": "view",
+    "name": "finalize",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -3511,6 +4060,43 @@ export const PROPOSAL_ABI: ABI = [
         "internalType": "uint256",
         "name": "",
         "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+] as const;
+
+export const DATA_AGGREGATION_VERIFIER_ABI: ABI = [
+  {
+    "inputs": [
+      {
+        "internalType": "uint256[2]",
+        "name": "_pA",
+        "type": "uint256[2]"
+      },
+      {
+        "internalType": "uint256[2][2]",
+        "name": "_pB",
+        "type": "uint256[2][2]"
+      },
+      {
+        "internalType": "uint256[2]",
+        "name": "_pC",
+        "type": "uint256[2]"
+      },
+      {
+        "internalType": "uint256[42]",
+        "name": "_pubSignals",
+        "type": "uint256[42]"
+      }
+    ],
+    "name": "verifyProof",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
       }
     ],
     "stateMutability": "view",
