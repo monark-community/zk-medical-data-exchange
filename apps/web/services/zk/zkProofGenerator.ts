@@ -242,8 +242,8 @@ function prepareCircuitInput(
     minCholesterol: studyCriteria.minCholesterol.toString(),
     maxCholesterol: studyCriteria.maxCholesterol.toString(),
     enableBMI: studyCriteria.enableBMI.toString(),
-    minBMI: Math.round(studyCriteria.minBMI * 10).toString(),
-    maxBMI: Math.round(studyCriteria.maxBMI * 10).toString(),
+    minBMI: studyCriteria.minBMI.toString(),
+    maxBMI: studyCriteria.maxBMI.toString(),
     enableBloodType: studyCriteria.enableBloodType.toString(),
     allowedBloodTypes: studyCriteria.allowedBloodTypes.map((v) => v.toString()),
     enableGender: studyCriteria.enableGender.toString(),
@@ -256,8 +256,8 @@ function prepareCircuitInput(
     minDiastolic: studyCriteria.minDiastolic.toString(),
     maxDiastolic: studyCriteria.maxDiastolic.toString(),
     enableHbA1c: studyCriteria.enableHbA1c.toString(),
-    minHbA1c: Math.round(studyCriteria.minHbA1c * 10).toString(),
-    maxHbA1c: Math.round(studyCriteria.maxHbA1c * 10).toString(),
+    minHbA1c: studyCriteria.minHbA1c.toString(),
+    maxHbA1c: studyCriteria.maxHbA1c.toString(),
     enableSmoking: studyCriteria.enableSmoking.toString(),
     allowedSmoking: studyCriteria.allowedSmoking.toString(),
     enableActivity: studyCriteria.enableActivity.toString(),
@@ -415,8 +415,11 @@ export function checkEligibility(
     },
     {
       enabled: Boolean(studyCriteria.enableLocation),
-      check: () =>
-        validateArrayOverlap(medicalData.regions, studyCriteria.allowedRegions, "Location"),
+      check: () => {
+        // Circuit only checks first region, so we match that behavior
+        const firstRegion = medicalData.regions?.[0];
+        return validateInList(firstRegion, studyCriteria.allowedRegions, "Location");
+      },
     },
     {
       enabled: Boolean(studyCriteria.enableCholesterol),
