@@ -17,6 +17,7 @@ import {
   revokeStudyConsent,
   grantStudyConsent,
 } from "@/services/api/studyService";
+import { useBlockchainTxStatusState } from "@/hooks/useTxStatus";
 
 type ViewMode = "enrolled" | "available";
 
@@ -29,6 +30,7 @@ export default function DataSellerStudiesSection() {
   const [enrolledStudies, setEnrolledStudies] = useState<any[]>([]);
   const [enrolledLoading, setEnrolledLoading] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("available");
+  const { show, showError, hide, isVisible: isTxProcessing } = useBlockchainTxStatusState();
 
   useEffect(() => {
     if (walletAddress) {
@@ -44,7 +46,7 @@ export default function DataSellerStudiesSection() {
 
   const handleApplyToStudy = async (studyId: number) => {
     if (!walletAddress) {
-      alert("Wallet not connected");
+      showError("Wallet not connected");
       return;
     }
 
@@ -55,8 +57,10 @@ export default function DataSellerStudiesSection() {
     setApplyingStudyId(studyId);
 
     try {
+      show("Starting study application process...");
       console.log("Starting secure study application process...");
 
+      show("Retrieving your medical data...");
       const data = await getAggregatedMedicalData(walletAddress);
 
       console.log("Aggregated medical data retrieved for study application:", data);
@@ -65,11 +69,13 @@ export default function DataSellerStudiesSection() {
         throw new Error("No medical data available for study application.");
       }
 
+      show("Preparing data for eligibility check...");
       const zkReadyMedicalData = convertToZkReady(data);
       if (!zkReadyMedicalData) {
         throw new Error("No valid medical data available for study application.");
       }
 
+      show("Verifying eligibility and generating proof...");
       const result = await StudyApplicationService.applyToStudy(
         studyId,
         zkReadyMedicalData,
@@ -77,7 +83,11 @@ export default function DataSellerStudiesSection() {
       );
 
       if (result.success) {
-        alert(`${result.message}`);
+        show("✓ " + result.message);
+        setTimeout(() => {
+          hide();
+        }, 3000);
+
         refetch();
         if (walletAddress) {
           getEnrolledStudies(walletAddress)
@@ -89,7 +99,10 @@ export default function DataSellerStudiesSection() {
       }
     } catch (error: any) {
       console.error("Error during study application:", error);
-      alert(`Application failed: ${error.message || error}`);
+      showError(`Application failed: ${error.message || error}`);
+      setTimeout(() => {
+        hide();
+      }, 5000);
     } finally {
       setApplyingStudyId(null);
     }
@@ -268,6 +281,7 @@ export default function DataSellerStudiesSection() {
               onApplyToStudy={handleApplyToStudy}
               applyingStudyId={applyingStudyId}
               walletAddress={walletAddress}
+              isTxProcessing={isTxProcessing}
             />
           </StudiesContainer>
         </div>
@@ -307,6 +321,7 @@ export default function DataSellerStudiesSection() {
               revokingStudyId={revokingStudyId}
               grantingStudyId={grantingStudyId}
               walletAddress={walletAddress}
+              isTxProcessing={isTxProcessing}
             />
           </StudiesContainer>
         </div>

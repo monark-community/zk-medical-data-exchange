@@ -13,6 +13,7 @@ interface EnrolledStudiesListProps {
   revokingStudyId: number | null;
   grantingStudyId: number | null;
   walletAddress?: string;
+  isTxProcessing?: boolean;
 }
 
 export default function EnrolledStudiesList({
@@ -22,6 +23,7 @@ export default function EnrolledStudiesList({
   revokingStudyId,
   grantingStudyId,
   walletAddress,
+  isTxProcessing = false,
 }: EnrolledStudiesListProps) {
   const renderActionButtons = (study: StudySummary) => {
     const isRevoking = revokingStudyId === study.id;
@@ -62,10 +64,14 @@ export default function EnrolledStudiesList({
                 onRevokeConsent(study.id);
               }
             }}
-            disabled={!walletAddress || isRevoking}
+            disabled={!walletAddress || isRevoking || isTxProcessing}
             className="h-7 px-3 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
             title={
-              walletAddress ? "Revoke consent for this study" : "Connect wallet to revoke consent"
+              walletAddress
+                ? isTxProcessing
+                  ? "Transaction in progress..."
+                  : "Revoke consent for this study"
+                : "Connect wallet to revoke consent"
             }
           >
             {isRevoking ? (
@@ -103,7 +109,7 @@ export default function EnrolledStudiesList({
                 onGrantConsent(study.id);
               }
             }}
-            disabled={!walletAddress || isGranting || isStudyFull}
+            disabled={!walletAddress || isGranting || isStudyFull || isTxProcessing}
             className={`h-7 px-3 ${
               isStudyFull
                 ? "text-gray-400 bg-gray-50 border-gray-200 cursor-not-allowed"
@@ -112,6 +118,8 @@ export default function EnrolledStudiesList({
             title={
               isStudyFull
                 ? "Study is full - cannot grant consent"
+                : isTxProcessing
+                ? "Transaction in progress..."
                 : walletAddress
                 ? "Grant consent for this study"
                 : "Connect wallet to grant consent"
