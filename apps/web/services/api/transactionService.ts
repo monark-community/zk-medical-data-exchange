@@ -4,7 +4,6 @@ export const verifyTransaction = async (
   transactionHash: string,
   studyId: number
 ): Promise<{ verified: boolean; reasons: string[] }> => {
-  console.log("Verifying transaction:", { transactionHash, studyId });
   try {
     const response = await apiClient.post("/transaction/verify", {
       data: { transactionHash, studyId },

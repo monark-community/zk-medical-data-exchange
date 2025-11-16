@@ -227,7 +227,7 @@ const ProfileCard = () => {
         </CardContent>
       </Card>
 
-      {/*Transaction History*/}
+      {/* Transaction History */}
       <Card>
         <CardHeader className="p-6">
           <h3 className="text-lg font-semibold">Transaction History</h3>
@@ -241,9 +241,10 @@ const ProfileCard = () => {
           ) : txs.length === 0 ? (
             <div className="p-6 text-sm text-muted-foreground">No transactions yet.</div>
           ) : (
-            <div className="overflow-x-auto">
+            // 👇 scrollable wrapper
+            <div className="max-h-80 overflow-y-auto overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
               <table className="min-w-full text-sm">
-                <thead className="bg-gray-50 border-t">
+                <thead className="bg-gray-50 border-t sticky top-0">
                   <tr className="text-left text-gray-600">
                     <th className="py-3 px-4">Direction</th>
                     <th className="py-3 px-4">Amount (USD)</th>

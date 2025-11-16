@@ -56,8 +56,9 @@ export const getTransactionByWalletAddress = async (req: Request, res: Response)
       .from(TABLES.TRANSACTIONS!.name)
       .select("*")
       .or(
-        `${TABLES.TRANSACTIONS!.columns.fromWallet!}.eq.${walletAddress},${TABLES.TRANSACTIONS!
-          .columns.toWallet!}.eq.${walletAddress}`
+        `${TABLES.TRANSACTIONS!.columns
+          .fromWallet!}.eq.${walletAddress?.toLowerCase()},${TABLES.TRANSACTIONS!.columns
+          .toWallet!}.eq.${walletAddress}`
       );
 
     if (transactions.error) {
@@ -94,8 +95,6 @@ export const verifyTransaction = async (req: Request, res: Response) => {
       logger.error({ error: study.error }, "Study not found");
       return res.status(404).json({ error: "Study not found" });
     }
-
-    console.log("Study data:", study.data);
 
     const data = study.data as unknown as {
       id: number;

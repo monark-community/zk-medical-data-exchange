@@ -31,8 +31,8 @@ router.use("/medical-data", verifySessionToken, medicalDataRoutes);
 router.use("/studies", verifySessionToken, studyRoutes);
 router.use("/user", verifySessionToken, userRoutes);
 router.use("/audit", verifySessionToken, auditRoutes);
-router.use("/governance", governanceRoutes);
+router.use("/governance", verifySessionToken, governanceRoutes);
 router.use("/ipfs", verifySessionToken, ipfsRoutes);
-router.use("/transaction", transactionRoutes);
+router.use("/transaction", verifySessionToken, transactionRoutes);
 
 export default router;

@@ -85,7 +85,6 @@ export default function EndStudyDialog({
       const result = await verifyTransaction(transactionHash, studyId);
 
       if (!result.verified) {
-        console.log("Transaction verification failed:", result.reasons);
         throw new Error("Transaction could not be verified");
       }
 

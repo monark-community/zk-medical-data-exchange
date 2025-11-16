@@ -67,11 +67,8 @@ export default function StudyCompletionSummary({
 
         const tx = await publicClient.getTransaction({ hash });
         const receipt = await publicClient.getTransactionReceipt({ hash });
-        console.log("tx:", tx);
-        console.log("receipt:", receipt);
 
         const transactions = await getTransactionsByStudyId(studyId);
-        console.log("transactions:", transactions);
         const totalUsd = transactions.transactions.reduce(
           (acc: number, t: any) => acc + Number(t.value_usd ?? 0),
           0
