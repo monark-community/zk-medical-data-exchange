@@ -105,10 +105,15 @@ export function validateCriteria(criteria: StudyCriteria): { valid: boolean; err
   }
 
   if (criteria.enableBloodPressure) {
-    if (criteria.minSystolic >= criteria.maxSystolic) {
+    const effectiveMinSystolic = criteria.minSystolic === 0 ? 70 : criteria.minSystolic / 10;
+    const effectiveMaxSystolic = criteria.maxSystolic === 0 ? 250 : criteria.maxSystolic / 10;
+    const effectiveMinDiastolic = criteria.minDiastolic === 0 ? 40 : criteria.minDiastolic / 10;
+    const effectiveMaxDiastolic = criteria.maxDiastolic === 0 ? 150 : criteria.maxDiastolic / 10;
+
+    if (effectiveMinSystolic >= effectiveMaxSystolic) {
       errors.push("Blood Pressure: minSystolic must be less than maxSystolic");
     }
-    if (criteria.minDiastolic >= criteria.maxDiastolic) {
+    if (effectiveMinDiastolic >= effectiveMaxDiastolic) {
       errors.push("Blood Pressure: minDiastolic must be less than maxDiastolic");
     }
   }
@@ -119,6 +124,14 @@ export function validateCriteria(criteria: StudyCriteria): { valid: boolean; err
 
   if (criteria.enableActivity && criteria.minActivityLevel >= criteria.maxActivityLevel) {
     errors.push("Activity: minActivityLevel must be less than maxActivityLevel");
+  }
+
+  if (criteria.enableLocation && criteria.allowedRegions.every((r) => r === 0)) {
+    errors.push("Location criteria is enabled but no regions are selected.");
+  }
+
+  if (criteria.enableBloodType && criteria.allowedBloodTypes.every((r) => r === 0)) {
+    errors.push("Blood type criteria is enabled but no blood types are selected.");
   }
 
   return { valid: errors.length === 0, errors };
