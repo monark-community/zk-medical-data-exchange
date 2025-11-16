@@ -1,8 +1,6 @@
 import { network } from "hardhat";
 
 async function main() {
-  console.log("Deploying StudyFactory to Sepolia testnet...");
-  console.log("=".repeat(60));
 
   const { viem } = await network.connect({
     network: "sepolia",
@@ -11,12 +9,6 @@ async function main() {
 
   const publicClient = await viem.getPublicClient();
   const [deployer] = await viem.getWalletClients();
-
-  // Display deployment info
-  console.log(`Deployment Details:`);
-  console.log(`   Network: Sepolia Testnet`);
-  console.log(`   Chain ID: ${await publicClient.getChainId()}`);
-  console.log(`   Deployer: ${deployer.account.address}`);
 
   // Check balance
   const balance = await publicClient.getBalance({ address: deployer.account.address });
