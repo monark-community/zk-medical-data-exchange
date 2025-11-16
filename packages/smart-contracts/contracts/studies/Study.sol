@@ -57,6 +57,8 @@ contract Study {
     uint256 public currentParticipants; // Total enrolled (regardless of consent)
     uint256 public activeParticipants;  // Only those with active consent
     
+    StudyStatus public status;
+
     StudyCriteria public criteria;
     Groth16Verifier public immutable zkVerifier;
 
