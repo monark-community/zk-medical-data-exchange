@@ -188,7 +188,7 @@ export default function DataSellerStudiesSection() {
         // Submit ZK proof to backend
         console.log("📤 [APPLY] Submitting ZK proof to backend...");
         const submitStart = Date.now();
-        const submitResult = await submitZKProofToStudy(studyId, {
+        const submitResult = await submitZKProofToStudy(study.id, {
           participantAddress: walletAddress,
           proof: proofResult.proof,
           publicSignals: proofResult.publicSignals,
