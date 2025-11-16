@@ -29,6 +29,10 @@ const CustomAlert = ({
     <AlertDialog open={isAlertDialogOpen}>
       {isWaitingForAction ? (
         <AlertDialogContent className="flex justify-center items-center p-16 ">
+          <AlertDialogHeader className="sr-only">
+            <AlertDialogTitle>Processing</AlertDialogTitle>
+            <AlertDialogDescription>Please wait while the operation completes.</AlertDialogDescription>
+          </AlertDialogHeader>
           <Spinner className="size-12 text-blue-600" />
         </AlertDialogContent>
       ) : (
