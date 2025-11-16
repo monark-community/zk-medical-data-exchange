@@ -1,5 +1,5 @@
 import { apiClient } from "@/services/core/apiClient";
-import { StudyCriteria } from "@zk-medical/shared";
+import { StudyCriteria, StudyBins, generateStudyBins, BinGenerationConfig } from "@zk-medical/shared";
 import { ExtractedMedicalData } from "@/services/fhir/types/extractedMedicalData";
 import { checkEligibility, generateDataCommitment, generateSecureSalt, generateZKProof } from "@/services/zk/zkProofGenerator";
 import { BrowserProvider } from "ethers";
@@ -67,6 +67,7 @@ export interface CreateStudyRequest {
   durationDays?: number;
   templateName?: string;
   customCriteria?: Partial<StudyCriteria>;
+  bins?: StudyBins;  // Privacy-preserving bin definitions
   createdBy?: string;
 }
 
@@ -351,11 +352,20 @@ export const useCreateStudy = () => {
     selectedTemplate?: string,
     createdBy?: string
   ): Promise<CreateStudyResponse> => {
+    // Generate study-specific bins for privacy-preserving aggregation
+    const binConfig: BinGenerationConfig = {
+      expectedParticipants: maxParticipants,
+      minParticipantsPerBin: 5  // k-anonymity threshold
+    };
+    
+    const bins = generateStudyBins(criteria, binConfig);
+    
     const studyData: CreateStudyRequest = {
       title,
       description,
       maxParticipants,
       durationDays,
+      bins,  // Include generated bins
       ...(selectedTemplate ? { templateName: selectedTemplate } : { customCriteria: criteria }),
       ...(createdBy ? { createdBy } : {}),
     };

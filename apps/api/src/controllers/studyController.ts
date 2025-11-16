@@ -6,6 +6,9 @@ import {
   countEnabledCriteria,
   getStudyComplexity,
   type StudyCriteria,
+  type StudyBins,
+  generateStudyBins,
+  type BinGenerationConfig,
 } from "@zk-medical/shared";
 import logger from "@/utils/logger";
 import crypto from "crypto";
@@ -454,6 +457,7 @@ export const createStudy = async (req: Request, res: Response) => {
       durationDays = 365,
       templateName,
       customCriteria,
+      bins: providedBins,  // Bins can be provided from frontend
       createdBy,
       principalInvestigator,
     } = req.body;
@@ -508,6 +512,21 @@ export const createStudy = async (req: Request, res: Response) => {
       });
     }
 
+    // Generate or use provided bins for privacy-preserving aggregation
+    let studyBins: StudyBins;
+    if (providedBins) {
+      studyBins = providedBins;
+      logger.info("Using provided bin definitions");
+    } else {
+      // Generate bins if not provided
+      const binConfig: BinGenerationConfig = {
+        expectedParticipants: maxParticipants,
+        minParticipantsPerBin: 5,  // k-anonymity threshold
+      };
+      studyBins = generateStudyBins(eligibilityCriteria, binConfig);
+      logger.info({ binConfig, bins: studyBins }, "Generated study bin definitions");
+    }
+
     const enabledCount = countEnabledCriteria(eligibilityCriteria);
     const complexity = getStudyComplexity(eligibilityCriteria);
     const criteriaHash = crypto
@@ -525,6 +544,7 @@ export const createStudy = async (req: Request, res: Response) => {
       max_participants: maxParticipants,
       duration_days: durationDays,
       criteria_json: eligibilityCriteria,
+      bins_json: studyBins,  // Store bin definitions
       criteria_hash: criteriaHash,
       requires_age: requiresAge,
       min_age: requiresAge ? eligibilityCriteria.minAge : null,

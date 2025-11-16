@@ -2,25 +2,33 @@ pragma circom 2.0.0;
 
 include "circomlib/circuits/poseidon.circom";
 include "circomlib/circuits/comparators.circom";
+include "./bin_calculator.circom";
 
 /**
- * ZK Data Aggregation Circuit
+ * ZK Data Aggregation Circuit with Dynamic Bins
  * 
- * Purpose: Allow participants to contribute to aggregate statistics WITHOUT revealing their raw data.
+ * PURPOSE: Allow participants to contribute to aggregate statistics WITHOUT revealing their raw data.
+ * 
+ * PRIVACY MECHANISM: Study-specific dynamic binning
+ * - Each study defines its own bin boundaries based on criteria
+ * - Client calculates which bin their data falls into
+ * - ZK proof CONSTRAINS bin calculation to be correct
+ * - Only bin indices are revealed (not raw values)
  * 
  * How it works:
- * 1. User proves they have valid medical data matching certain criteria
- * 2. User reveals ONLY their contribution to statistics (binned/categorized values)
- * 3. Server can aggregate these public contributions without seeing raw data
- * 4. User can't fake data because it must match their data commitment from study enrollment
+ * 1. User proves they have valid medical data matching their commitment
+ * 2. User reveals ONLY their bin assignments (e.g., "ageBin=2" for 30-40 range)
+ * 3. Circuit PROVES the bin assignment is correct given the boundaries
+ * 4. Server can aggregate bin counts without seeing raw data
  * 
  * Privacy guarantees:
  * - Raw medical data stays private (age, cholesterol, bmi, etc.)
- * - Only binned/categorized contributions are public (e.g., "age bucket 40-50")
+ * - Only binned/categorized contributions are public
  * - Data commitment prevents users from lying about their data
- * - k-anonymity is preserved through binning
+ * - Bin boundaries are study-specific and public
+ * - k-anonymity is preserved through proper bin design
  */
-template DataAggregation() {
+template DataAggregationDynamic() {
     // ========================================
     // PRIVATE INPUTS (Patient's Medical Data - NEVER REVEALED)
     // ========================================
@@ -40,29 +48,52 @@ template DataAggregation() {
     signal input salt;                   // Random salt for commitment security
     
     // ========================================
-    // PUBLIC INPUTS/OUTPUTS
+    // PUBLIC INPUTS - Study-Specific Bin Boundaries
+    // ========================================
+    // These are set by the study creator and stored on-chain
+    // They define how to split continuous variables into privacy-preserving bins
+    
+    signal input ageBoundaries[6];           // Max 5 bins (6 boundaries)
+    signal input ageBinCount;                // Actual number of age bins (3-5)
+    signal input cholesterolBoundaries[6];   // Max 5 bins
+    signal input cholesterolBinCount;
+    signal input bmiBoundaries[6];           // Max 5 bins
+    signal input bmiBinCount;
+    signal input hba1cBoundaries[6];         // Max 5 bins
+    signal input hba1cBinCount;
+    
+    // ========================================
+    // PUBLIC INPUTS/OUTPUTS - Proof Metadata
     // ========================================
     
     // The data commitment from when user joined the study (public on blockchain)
     // This prevents users from making up fake data for aggregation
     signal input dataCommitment;
     
-    // Binned/categorized contributions (PUBLIC - but preserve privacy through binning)
-    signal output ageBucket;             // 0=<20, 1=20-30, 2=30-40, 3=40-50, 4=50-60, 5=60+
+    // Study identifier to prevent proof reuse across studies
+    signal input studyId;
+    
+    // Study identifier to prevent proof reuse across studies
+    signal input studyId;
+    
+    // ========================================
+    // PUBLIC OUTPUTS - Binned Values (Privacy-Preserving)
+    // ========================================
+    // These are the ONLY values revealed publicly
+    // Actual bin meanings depend on study-specific boundaries
+    
+    signal output ageBin;                // Index into ageBoundaries (e.g., 0, 1, 2, 3, 4)
     signal output genderCategory;        // 1=male, 2=female (already categorical)
-    signal output cholesterolBucket;     // 0=<200, 1=200-240, 2=>240
-    signal output bmiBucket;             // 0=<185 (underweight), 1=185-250 (normal), 2=250-300 (overweight), 3=>300 (obese)
+    signal output cholesterolBin;        // Index into cholesterolBoundaries
+    signal output bmiBin;                // Index into bmiBoundaries
     signal output bpCategory;            // 0=normal, 1=elevated, 2=high
-    signal output hba1cBucket;           // 0=<57 (normal), 1=57-65 (prediabetic), 2=>65 (diabetic)
+    signal output hba1cBin;              // Index into hba1cBoundaries
     signal output smokingCategory;       // 0=non-smoker, 1=smoker, 2=former
     signal output activityCategory;      // 1-4 (already categorical)
     signal output diabetesCategory;      // 0=none, 1=type1, 2=type2, 3=pre-diabetic
     signal output heartDiseaseCategory;  // 0=no, 1=yes
     signal output bloodTypeCategory;     // 1-8 (already categorical)
     signal output regionCategory;        // Region code (already categorical)
-    
-    // Study identifier to prevent proof reuse across studies
-    signal input studyId;
     
     // ========================================
     // STEP 1: VERIFY DATA COMMITMENT
@@ -97,82 +128,64 @@ template DataAggregation() {
     dataCommitment === finalCommitment.out;
     
     // ========================================
-    // STEP 2: BIN THE DATA (Convert raw values to categories)
+    // STEP 2: CALCULATE BINS USING DYNAMIC BOUNDARIES
     // ========================================
-    // This is what makes aggregation privacy-preserving!
-    // Instead of revealing "age=45", we reveal "ageBucket=3 (40-50 range)"
+    // This is the CORE of privacy preservation!
+    // We prove the bin assignment is correct WITHOUT revealing the raw value
     
-    // --- AGE BINNING ---
-    // Buckets: 0=<20, 1=20-30, 2=30-40, 3=40-50, 4=50-60, 5=60+
-    component ageLt20 = LessThan(8);
-    ageLt20.in[0] <== age;
-    ageLt20.in[1] <== 20;
+    // --- AGE BINNING (Dynamic) ---
+    component ageBinCalc = CalculateDynamicBin();
+    ageBinCalc.value <== age;
+    for (var i = 0; i < 6; i++) {
+        ageBinCalc.boundaries[i] <== ageBoundaries[i];
+    }
+    ageBinCalc.actualBinCount <== ageBinCount;
+    ageBin <== ageBinCalc.bin;
     
-    component ageLt30 = LessThan(8);
-    ageLt30.in[0] <== age;
-    ageLt30.in[1] <== 30;
+    // --- CHOLESTEROL BINNING (Dynamic) ---
+    component cholesterolBinCalc = CalculateDynamicBin();
+    cholesterolBinCalc.value <== cholesterol;
+    for (var i = 0; i < 6; i++) {
+        cholesterolBinCalc.boundaries[i] <== cholesterolBoundaries[i];
+    }
+    cholesterolBinCalc.actualBinCount <== cholesterolBinCount;
+    cholesterolBin <== cholesterolBinCalc.bin;
     
-    component ageLt40 = LessThan(8);
-    ageLt40.in[0] <== age;
-    ageLt40.in[1] <== 40;
+    // --- BMI BINNING (Dynamic) ---
+    component bmiBinCalc = CalculateDynamicBin();
+    bmiBinCalc.value <== bmi;
+    for (var i = 0; i < 6; i++) {
+        bmiBinCalc.boundaries[i] <== bmiBoundaries[i];
+    }
+    bmiBinCalc.actualBinCount <== bmiBinCount;
+    bmiBin <== bmiBinCalc.bin;
     
-    component ageLt50 = LessThan(8);
-    ageLt50.in[0] <== age;
-    ageLt50.in[1] <== 50;
+    // --- HbA1c BINNING (Dynamic) ---
+    component hba1cBinCalc = CalculateDynamicBin();
+    hba1cBinCalc.value <== hba1c;
+    for (var i = 0; i < 6; i++) {
+        hba1cBinCalc.boundaries[i] <== hba1cBoundaries[i];
+    }
+    hba1cBinCalc.actualBinCount <== hba1cBinCount;
+    hba1cBin <== hba1cBinCalc.bin;
     
-    component ageLt60 = LessThan(8);
-    ageLt60.in[0] <== age;
-    ageLt60.in[1] <== 60;
+    hba1cBinCalc.actualBinCount <== hba1cBinCount;
+    hba1cBin <== hba1cBinCalc.bin;
     
-    // Calculate age bucket using cascading logic
-    signal ageBucket0 <== ageLt20.out * 0;
-    signal ageBucket1 <== (1 - ageLt20.out) * ageLt30.out * 1;
-    signal ageBucket2 <== (1 - ageLt30.out) * ageLt40.out * 2;
-    signal ageBucket3 <== (1 - ageLt40.out) * ageLt50.out * 3;
-    signal ageBucket4 <== (1 - ageLt50.out) * ageLt60.out * 4;
-    signal ageBucket5 <== (1 - ageLt60.out) * 5;
+    // ========================================
+    // STEP 3: CATEGORICAL VALUES (No binning needed)
+    // ========================================
+    // These are already categorical, so we output them directly
     
-    ageBucket <== ageBucket0 + ageBucket1 + ageBucket2 + ageBucket3 + ageBucket4 + ageBucket5;
+    genderCategory <== gender;
+    smokingCategory <== smokingStatus;
+    activityCategory <== activityLevel;
+    diabetesCategory <== diabetesStatus;
+    heartDiseaseCategory <== heartDiseaseHistory;
+    bloodTypeCategory <== bloodType;
+    regionCategory <== region;
     
-    // --- CHOLESTEROL BINNING ---
-    // Buckets: 0=<200 (desirable), 1=200-240 (borderline), 2=>240 (high)
-    component cholLt200 = LessThan(16);
-    cholLt200.in[0] <== cholesterol;
-    cholLt200.in[1] <== 200;
-    
-    component cholLt240 = LessThan(16);
-    cholLt240.in[0] <== cholesterol;
-    cholLt240.in[1] <== 240;
-    
-    signal cholBucket0 <== cholLt200.out * 0;
-    signal cholBucket1 <== (1 - cholLt200.out) * cholLt240.out * 1;
-    signal cholBucket2 <== (1 - cholLt240.out) * 2;
-    
-    cholesterolBucket <== cholBucket0 + cholBucket1 + cholBucket2;
-    
-    // --- BMI BINNING ---
-    // Buckets: 0=<18.5 (underweight), 1=18.5-25.0 (normal), 2=25.0-30.0 (overweight), 3=>30.0 (obese)
-    // BMI is stored * 10, so 18.5 = 185, 25.0 = 250, 30.0 = 300
-    component bmiLt185 = LessThan(16);
-    bmiLt185.in[0] <== bmi;
-    bmiLt185.in[1] <== 185;
-    
-    component bmiLt250 = LessThan(16);
-    bmiLt250.in[0] <== bmi;
-    bmiLt250.in[1] <== 250;
-    
-    component bmiLt300 = LessThan(16);
-    bmiLt300.in[0] <== bmi;
-    bmiLt300.in[1] <== 300;
-    
-    signal bmiBucket0 <== bmiLt185.out * 0;
-    signal bmiBucket1 <== (1 - bmiLt185.out) * bmiLt250.out * 1;
-    signal bmiBucket2 <== (1 - bmiLt250.out) * bmiLt300.out * 2;
-    signal bmiBucket3 <== (1 - bmiLt300.out) * 3;
-    
-    bmiBucket <== bmiBucket0 + bmiBucket1 + bmiBucket2 + bmiBucket3;
-    
-    // --- BLOOD PRESSURE CATEGORY ---
+    // --- BLOOD PRESSURE CATEGORY (Fixed clinical categories) ---
     // Categories: 0=normal (<120/<80), 1=elevated (120-129/<80), 2=high (>=130/>=80)
     component systolicLt120 = LessThan(16);
     systolicLt120.in[0] <== systolicBP;
@@ -196,35 +209,18 @@ template DataAggregation() {
     signal highBP <== 1 - normalBP - elevatedBP;
     
     bpCategory <== normalBP * 0 + elevatedBP * 1 + highBP * 2;
-    
-    // --- HbA1c BINNING ---
-    // Buckets: 0=<5.7% (normal), 1=5.7-6.5% (prediabetic), 2=>6.5% (diabetic)
-    // HbA1c is stored * 10, so 5.7% = 57, 6.5% = 65
-    component hba1cLt57 = LessThan(16);
-    hba1cLt57.in[0] <== hba1c;
-    hba1cLt57.in[1] <== 57;
-    
-    component hba1cLt65 = LessThan(16);
-    hba1cLt65.in[0] <== hba1c;
-    hba1cLt65.in[1] <== 65;
-    
-    signal hba1cBucket0 <== hba1cLt57.out * 0;
-    signal hba1cBucket1 <== (1 - hba1cLt57.out) * hba1cLt65.out * 1;
-    signal hba1cBucket2 <== (1 - hba1cLt65.out) * 2;
-    
-    hba1cBucket <== hba1cBucket0 + hba1cBucket1 + hba1cBucket2;
-    
-    // ========================================
-    // STEP 3: OUTPUT CATEGORICAL VALUES (Already categorical, no binning needed)
-    // ========================================
-    
-    genderCategory <== gender;
-    smokingCategory <== smokingStatus;
-    activityCategory <== activityLevel;
-    diabetesCategory <== diabetesStatus;
-    heartDiseaseCategory <== heartDiseaseHistory;
-    bloodTypeCategory <== bloodType;
-    regionCategory <== region;
 }
 
-component main {public [dataCommitment, studyId]} = DataAggregation();
+// Public inputs: dataCommitment, studyId, bin boundaries
+component main {public [
+    dataCommitment, 
+    studyId,
+    ageBoundaries,
+    ageBinCount,
+    cholesterolBoundaries,
+    cholesterolBinCount,
+    bmiBoundaries,
+    bmiBinCount,
+    hba1cBoundaries,
+    hba1cBinCount
+]} = DataAggregationDynamic();

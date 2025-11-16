@@ -86,6 +86,7 @@ contract StudyFactory {
      * @param principalInvestigator Address of the principal investigator
      * @param zkVerifierAddress Address of the deployed ZK verifier contract
      * @param customCriteria Custom eligibility criteria for the study
+     * @param bins Bin definitions for privacy-preserving data aggregation
      * @return studyId The ID of the newly created study
      * @return studyAddress The address of the deployed Study contract
      */
@@ -97,7 +98,8 @@ contract StudyFactory {
         uint256 endDate,
         address principalInvestigator,
         address zkVerifierAddress,
-        Study.StudyCriteria memory customCriteria
+        Study.StudyCriteria memory customCriteria,
+        Study.StudyBins memory bins
     ) external onlyAuthorizedCreator returns (uint256 studyId, address studyAddress) {
         require(bytes(title).length > 0, "Title cannot be empty");
         require(principalInvestigator != address(0), "Invalid PI address");
@@ -140,6 +142,7 @@ contract StudyFactory {
             title,
             maxParticipants,
             customCriteria,
+            bins,
             zkVerifierAddress
         );
         

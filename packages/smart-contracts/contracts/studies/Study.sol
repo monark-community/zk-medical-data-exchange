@@ -49,6 +49,25 @@ contract Study {
         uint256 allowedHeartDisease;  // 0=no history, 1=has history, 2=any
     }
     
+    // Bin definitions for privacy-preserving data aggregation
+    // Boundaries define the edges of bins for continuous variables
+    // Example: age boundaries [20, 30, 40, 50, 60] creates bins:
+    //   [20-30), [30-40), [40-50), [50-60)
+    struct BinDefinition {
+        bool enabled;
+        uint256[10] boundaries;  // Max 10 boundaries = max 9 bins
+        uint256 binCount;        // Number of bins (boundaries.length - 1)
+    }
+    
+    struct StudyBins {
+        BinDefinition age;
+        BinDefinition cholesterol;
+        BinDefinition bmi;
+        BinDefinition hba1c;
+        // Blood pressure uses categorical bins (0=normal, 1=elevated, 2=high)
+        // Gender, smoking, etc. are already categorical - no binning needed
+    }
+    
     // Study metadata
     uint256 public studyId;
     string public studyTitle;
@@ -60,6 +79,7 @@ contract Study {
     StudyStatus public status;
 
     StudyCriteria public criteria;
+    StudyBins public bins;  // Bin definitions for data aggregation
     Groth16Verifier public immutable zkVerifier;
 
     mapping(address => bool) public participants;
@@ -79,12 +99,14 @@ contract Study {
     event EligibilityVerified(address indexed participant, bool eligible);
     event ConsentRevoked(address indexed participant, uint256 timestamp);
     event ConsentGranted(address indexed participant, uint256 timestamp);
+    event BinsUpdated(uint256 indexed studyId, uint256 timestamp);
     
     constructor(
         uint256 _studyId,
         string memory _title,
         uint256 _maxParticipants,
         StudyCriteria memory _criteria,
+        StudyBins memory _bins,
         address _zkVerifierAddress
     ) {
         studyId = _studyId;
@@ -92,6 +114,7 @@ contract Study {
         studyCreator = msg.sender;
         maxParticipants = _maxParticipants;
         criteria = _criteria;
+        bins = _bins;
         zkVerifier = Groth16Verifier(_zkVerifierAddress);
         status = StudyStatus.ACTIVE;
     }
@@ -325,5 +348,62 @@ contract Study {
         ));
         
         return recomputedHash == storedHash;
+    }
+    
+    // ========================================
+    // BIN DEFINITION GETTERS
+    // ========================================
+    
+    /**
+     * @dev Get all bin definitions for this study
+     * Used by clients to calculate bin indices before generating ZK proofs
+     */
+    function getStudyBins() external view returns (StudyBins memory) {
+        return bins;
+    }
+    
+    /**
+     * @dev Get age bin definition
+     */
+    function getAgeBins() external view returns (bool enabled, uint256[10] memory boundaries, uint256 binCount) {
+        return (bins.age.enabled, bins.age.boundaries, bins.age.binCount);
+    }
+    
+    /**
+     * @dev Get cholesterol bin definition
+     */
+    function getCholesterolBins() external view returns (bool enabled, uint256[10] memory boundaries, uint256 binCount) {
+        return (bins.cholesterol.enabled, bins.cholesterol.boundaries, bins.cholesterol.binCount);
+    }
+    
+    /**
+     * @dev Get BMI bin definition
+     */
+    function getBMIBins() external view returns (bool enabled, uint256[10] memory boundaries, uint256 binCount) {
+        return (bins.bmi.enabled, bins.bmi.boundaries, bins.bmi.binCount);
+    }
+    
+    /**
+     * @dev Get HbA1c bin definition
+     */
+    function getHbA1cBins() external view returns (bool enabled, uint256[10] memory boundaries, uint256 binCount) {
+        return (bins.hba1c.enabled, bins.hba1c.boundaries, bins.hba1c.binCount);
+    }
+    
+    /**
+     * @dev Validate if a bin index is valid for a given field
+     * Used to prevent invalid bin indices in aggregation proofs
+     */
+    function isValidBinIndex(string memory field, uint256 binIndex) external view returns (bool) {
+        if (keccak256(bytes(field)) == keccak256(bytes("age"))) {
+            return bins.age.enabled && binIndex < bins.age.binCount;
+        } else if (keccak256(bytes(field)) == keccak256(bytes("cholesterol"))) {
+            return bins.cholesterol.enabled && binIndex < bins.cholesterol.binCount;
+        } else if (keccak256(bytes(field)) == keccak256(bytes("bmi"))) {
+            return bins.bmi.enabled && binIndex < bins.bmi.binCount;
+        } else if (keccak256(bytes(field)) == keccak256(bytes("hba1c"))) {
+            return bins.hba1c.enabled && binIndex < bins.hba1c.binCount;
+        }
+        return false;
     }
 }

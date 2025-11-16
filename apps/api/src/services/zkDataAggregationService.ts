@@ -121,10 +121,87 @@ export class ZKDataAggregationService {
   }
 
   /**
-   * Main aggregation function using ZK proofs
+   * Fetch study bins from smart contract or database
+   */
+  private async fetchStudyBins(studyId: number, studyAddress?: string): Promise<any> {
+    logger.info({ studyId }, '📥 [ZK-SERVICE] Fetching study bins...');
+    
+    try {
+      // Try database first (faster)
+      const { data: studyData, error } = await db
+        .from(TABLES.STUDIES!.name)
+        .select('bins_json')
+        .eq('id', studyId)
+        .single();
+
+      if (!error && studyData?.bins_json) {
+        logger.info({ studyId }, '✅ [ZK-SERVICE] Fetched bins from database');
+        return studyData.bins_json;
+      }
+
+      // Fallback to smart contract if no database bins
+      if (studyAddress) {
+        logger.info({ studyId, studyAddress }, '📥 [ZK-SERVICE] Fetching bins from smart contract...');
+        const bins = await this.publicClient.readContract({
+          address: studyAddress as `0x${string}`,
+          abi: STUDY_ABI,
+          functionName: 'getStudyBins',
+        }) as any;
+        
+        logger.info({ studyId }, '✅ [ZK-SERVICE] Fetched bins from smart contract');
+        return bins;
+      }
+
+      throw new Error('Study bins not found in database or smart contract');
+    } catch (error) {
+      logger.error({ studyId, error }, '❌ [ZK-SERVICE] Failed to fetch study bins');
+      throw error;
+    }
+  }
+
+  /**
+   * Validate bin indices against study bin definitions
+   */
+  private validateBinIndex(
+    field: string,
+    binIndex: number,
+    studyBins: any
+  ): boolean {
+    const binDef = studyBins[field];
+    if (!binDef || !binDef.enabled) {
+      return true; // Field not enabled, skip validation
+    }
+
+    return binIndex >= 0 && binIndex < binDef.binCount;
+  }
+
+  /**
+   * Get bin label for display
+   */
+  private getBinLabel(
+    field: string,
+    binIndex: number,
+    studyBins: any
+  ): string {
+    const binDef = studyBins[field];
+    if (!binDef || !binDef.enabled) {
+      return String(binIndex);
+    }
+
+    const boundaries = binDef.boundaries;
+    if (binIndex < boundaries.length - 1) {
+      return `${boundaries[binIndex]}-${boundaries[binIndex + 1]}`;
+    }
+
+    return `${boundaries[binIndex]}+`;
+  }
+
+  /**
+   * Main aggregation function using ZK proofs with dynamic bins
    * 
    * Unlike the old method, this NEVER decrypts any data.
    * It only aggregates the public binned values from ZK proofs.
+   * Now supports study-specific dynamic bins!
    */
   async aggregateStudyData(
     studyId: number,
@@ -137,10 +214,23 @@ export class ZKDataAggregationService {
     );
     logger.info(
       { studyId, studyAddress },
-      '🔐 [ZK-SERVICE] Starting ZK-based data aggregation'
+      '🔐 [ZK-SERVICE] Starting ZK-based data aggregation with DYNAMIC BINS'
     );
 
     try {
+      // 0. Fetch study bins for validation and labeling
+      logger.info(
+        { studyId, step: 'FETCH_BINS' },
+        '🔍 [ZK-SERVICE] Fetching study bin definitions...'
+      );
+      const binsStart = Date.now();
+      const studyBins = await this.fetchStudyBins(studyId, studyAddress);
+      const binsDuration = Date.now() - binsStart;
+      logger.info(
+        { studyId, bins: studyBins, binsDuration },
+        `✅ [ZK-SERVICE] Fetched study bins in ${binsDuration}ms`
+      );
+
       // 1. Verify study has ended
       logger.info(
         { studyId, step: 'VERIFY_ENDED' },
@@ -224,10 +314,10 @@ export class ZKDataAggregationService {
       // 5. Verify all proofs are valid
       logger.info(
         { studyId, step: 'VERIFY_PROOFS', proofCount: zkProofs.length },
-        '🔍 [ZK-SERVICE] Verifying all ZK proofs...'
+        '🔍 [ZK-SERVICE] Verifying all ZK proofs with bin validation...'
       );
       const verifyProofsStart = Date.now();
-      await this.verifyAllProofs(zkProofs, studyId);
+      await this.verifyAllProofs(zkProofs, studyId, studyBins);
       const verifyProofsDuration = Date.now() - verifyProofsStart;
       logger.info(
         { studyId, proofCount: zkProofs.length, verifyProofsDuration },
@@ -237,10 +327,10 @@ export class ZKDataAggregationService {
       // 6. Aggregate public signals (binned data)
       logger.info(
         { studyId, step: 'AGGREGATE_DATA' },
-        '🔢 [ZK-SERVICE] Aggregating public signals...'
+        '🔢 [ZK-SERVICE] Aggregating public signals with dynamic bins...'
       );
       const aggregateStart = Date.now();
-      const aggregatedStats = await this.aggregatePublicSignals(zkProofs);
+      const aggregatedStats = await this.aggregatePublicSignals(zkProofs, studyBins);
       const aggregateDuration = Date.now() - aggregateStart;
       logger.info(
         { studyId, aggregateDuration },
@@ -250,10 +340,10 @@ export class ZKDataAggregationService {
       // 7. Store aggregated results
       logger.info(
         { studyId, step: 'STORE_RESULTS' },
-        '💾 [ZK-SERVICE] Storing aggregated data...'
+        '💾 [ZK-SERVICE] Storing aggregated data with bin metadata...'
       );
       const storeStart = Date.now();
-      await this.storeAggregatedData(studyId, studyAddress, aggregatedStats);
+      await this.storeAggregatedData(studyId, studyAddress, aggregatedStats, studyBins);
       const storeDuration = Date.now() - storeStart;
       logger.info(
         { studyId, storeDuration },
@@ -350,10 +440,12 @@ export class ZKDataAggregationService {
   /**
    * Verify all ZK proofs are valid
    * This ensures participants didn't fake their data
+   * Now also validates bin indices against study-specific bins!
    */
   private async verifyAllProofs(
     proofs: ZKAggregationProof[],
-    studyId: number
+    studyId: number,
+    studyBins: any
   ): Promise<void> {
     logger.info({ proofCount: proofs.length }, '🔍 Verifying all ZK proofs...');
 
@@ -363,6 +455,40 @@ export class ZKDataAggregationService {
 
     for (let i = 0; i < proofs.length; i++) {
       const { proof, publicSignals } = proofs[i];
+
+      // Verify studyId matches
+      if (publicSignals.studyId !== studyId.toString()) {
+        throw new Error(`Proof ${i} is for wrong study. Expected ${studyId}, got ${publicSignals.studyId}`);
+      }
+
+      // Validate bin indices against study bins
+      if (studyBins.age?.enabled) {
+        const ageBinIndex = parseInt(publicSignals.ageBucket);
+        if (!this.validateBinIndex('age', ageBinIndex, studyBins)) {
+          throw new Error(`Proof ${i} has invalid age bin index ${ageBinIndex}. Valid range: 0-${studyBins.age.binCount - 1}`);
+        }
+      }
+
+      if (studyBins.cholesterol?.enabled) {
+        const cholBinIndex = parseInt(publicSignals.cholesterolBucket);
+        if (!this.validateBinIndex('cholesterol', cholBinIndex, studyBins)) {
+          throw new Error(`Proof ${i} has invalid cholesterol bin index ${cholBinIndex}. Valid range: 0-${studyBins.cholesterol.binCount - 1}`);
+        }
+      }
+
+      if (studyBins.bmi?.enabled) {
+        const bmiBinIndex = parseInt(publicSignals.bmiBucket);
+        if (!this.validateBinIndex('bmi', bmiBinIndex, studyBins)) {
+          throw new Error(`Proof ${i} has invalid BMI bin index ${bmiBinIndex}. Valid range: 0-${studyBins.bmi.binCount - 1}`);
+        }
+      }
+
+      if (studyBins.hba1c?.enabled) {
+        const hba1cBinIndex = parseInt(publicSignals.hba1cBucket);
+        if (!this.validateBinIndex('hba1c', hba1cBinIndex, studyBins)) {
+          throw new Error(`Proof ${i} has invalid HbA1c bin index ${hba1cBinIndex}. Valid range: 0-${studyBins.hba1c.binCount - 1}`);
+        }
+      }
 
       // Convert public signals to array format for verification
       const publicSignalsArray = [
@@ -388,11 +514,6 @@ export class ZKDataAggregationService {
       if (!isValid) {
         throw new Error(`Invalid ZK proof at index ${i}. Aggregation aborted.`);
       }
-
-      // Verify studyId matches
-      if (publicSignals.studyId !== studyId.toString()) {
-        throw new Error(`Proof ${i} is for wrong study. Expected ${studyId}, got ${publicSignals.studyId}`);
-      }
     }
 
     logger.info({ proofCount: proofs.length }, '✅ All proofs verified successfully');
@@ -402,9 +523,11 @@ export class ZKDataAggregationService {
    * Aggregate public signals (binned data) into statistics
    * 
    * This is the magic: We're computing real statistics without ever seeing raw data!
+   * Now supports study-specific dynamic bins for accurate labeling!
    */
   private async aggregatePublicSignals(
-    proofs: ZKAggregationProof[]
+    proofs: ZKAggregationProof[],
+    studyBins: any
   ): Promise<ZKAggregatedStatistics> {
     const stats: ZKAggregatedStatistics = {
       demographics: {
@@ -432,60 +555,86 @@ export class ZKDataAggregationService {
 
     // Count occurrences in each bucket/category
     for (const { publicSignals } of proofs) {
-      // Age distribution
-      const ageBucket = this.ageBucketToLabel(publicSignals.ageBucket);
+      // Age distribution (dynamic bins)
+      const ageBinIndex = parseInt(publicSignals.ageBucket);
+      if (!this.validateBinIndex('age', ageBinIndex, studyBins)) {
+        logger.warn({ ageBinIndex, studyBins: studyBins.age }, 'Invalid age bin index, skipping');
+        continue;
+      }
+      const ageBucket = this.getBinLabel('age', ageBinIndex, studyBins);
       stats.demographics.ageDistribution[ageBucket] =
         (stats.demographics.ageDistribution[ageBucket] || 0) + 1;
 
-      // Gender distribution
+      // Gender distribution (unchanged - binary)
       const gender = publicSignals.genderCategory === '1' ? 'male' : 'female';
       stats.demographics.genderDistribution[gender] =
         (stats.demographics.genderDistribution[gender] || 0) + 1;
 
-      // Region distribution
+      // Region distribution (unchanged - categorical)
       stats.demographics.regionDistribution[publicSignals.regionCategory] =
         (stats.demographics.regionDistribution[publicSignals.regionCategory] || 0) + 1;
 
-      // Cholesterol distribution
-      const cholBucket = this.cholesterolBucketToLabel(publicSignals.cholesterolBucket);
-      stats.healthMetrics.cholesterolDistribution[cholBucket] =
-        (stats.healthMetrics.cholesterolDistribution[cholBucket] || 0) + 1;
+      // Cholesterol distribution (dynamic bins)
+      const cholBinIndex = parseInt(publicSignals.cholesterolBucket);
+      if (studyBins.cholesterol?.enabled) {
+        if (!this.validateBinIndex('cholesterol', cholBinIndex, studyBins)) {
+          logger.warn({ cholBinIndex, studyBins: studyBins.cholesterol }, 'Invalid cholesterol bin index');
+          continue;
+        }
+        const cholBucket = this.getBinLabel('cholesterol', cholBinIndex, studyBins);
+        stats.healthMetrics.cholesterolDistribution[cholBucket] =
+          (stats.healthMetrics.cholesterolDistribution[cholBucket] || 0) + 1;
+      }
 
-      // BMI distribution
-      const bmiBucket = this.bmiBucketToLabel(publicSignals.bmiBucket);
-      stats.healthMetrics.bmiDistribution[bmiBucket] =
-        (stats.healthMetrics.bmiDistribution[bmiBucket] || 0) + 1;
+      // BMI distribution (dynamic bins)
+      const bmiBinIndex = parseInt(publicSignals.bmiBucket);
+      if (studyBins.bmi?.enabled) {
+        if (!this.validateBinIndex('bmi', bmiBinIndex, studyBins)) {
+          logger.warn({ bmiBinIndex, studyBins: studyBins.bmi }, 'Invalid BMI bin index');
+          continue;
+        }
+        const bmiBucket = this.getBinLabel('bmi', bmiBinIndex, studyBins);
+        stats.healthMetrics.bmiDistribution[bmiBucket] =
+          (stats.healthMetrics.bmiDistribution[bmiBucket] || 0) + 1;
+      }
 
-      // Blood pressure distribution
+      // Blood pressure distribution (unchanged - categorical)
       const bpCategory = this.bpCategoryToLabel(publicSignals.bpCategory);
       stats.healthMetrics.bloodPressureDistribution[bpCategory] =
         (stats.healthMetrics.bloodPressureDistribution[bpCategory] || 0) + 1;
 
-      // HbA1c distribution
-      const hba1cBucket = this.hba1cBucketToLabel(publicSignals.hba1cBucket);
-      stats.healthMetrics.hba1cDistribution[hba1cBucket] =
-        (stats.healthMetrics.hba1cDistribution[hba1cBucket] || 0) + 1;
+      // HbA1c distribution (dynamic bins)
+      const hba1cBinIndex = parseInt(publicSignals.hba1cBucket);
+      if (studyBins.hba1c?.enabled) {
+        if (!this.validateBinIndex('hba1c', hba1cBinIndex, studyBins)) {
+          logger.warn({ hba1cBinIndex, studyBins: studyBins.hba1c }, 'Invalid HbA1c bin index');
+          continue;
+        }
+        const hba1cBucket = this.getBinLabel('hba1c', hba1cBinIndex, studyBins);
+        stats.healthMetrics.hba1cDistribution[hba1cBucket] =
+          (stats.healthMetrics.hba1cDistribution[hba1cBucket] || 0) + 1;
+      }
 
-      // Smoking distribution
+      // Smoking distribution (unchanged - categorical)
       const smokingStatus = this.smokingCategoryToLabel(publicSignals.smokingCategory);
       stats.lifestyle.smokingDistribution[smokingStatus] =
         (stats.lifestyle.smokingDistribution[smokingStatus] || 0) + 1;
 
-      // Activity distribution
+      // Activity distribution (unchanged - categorical)
       stats.lifestyle.activityDistribution[publicSignals.activityCategory] =
         (stats.lifestyle.activityDistribution[publicSignals.activityCategory] || 0) + 1;
 
-      // Diabetes distribution
+      // Diabetes distribution (unchanged - categorical)
       const diabetesStatus = this.diabetesCategoryToLabel(publicSignals.diabetesCategory);
       stats.conditions.diabetesDistribution[diabetesStatus] =
         (stats.conditions.diabetesDistribution[diabetesStatus] || 0) + 1;
 
-      // Heart disease distribution
+      // Heart disease distribution (unchanged - binary)
       const heartDisease = publicSignals.heartDiseaseCategory === '1' ? 'yes' : 'no';
       stats.conditions.heartDiseaseDistribution[heartDisease] =
         (stats.conditions.heartDiseaseDistribution[heartDisease] || 0) + 1;
 
-      // Blood type distribution
+      // Blood type distribution (unchanged - categorical)
       stats.bloodTypeDistribution[publicSignals.bloodTypeCategory] =
         (stats.bloodTypeDistribution[publicSignals.bloodTypeCategory] || 0) + 1;
     }
@@ -611,7 +760,8 @@ export class ZKDataAggregationService {
   private async storeAggregatedData(
     studyId: number,
     studyAddress: string,
-    stats: ZKAggregatedStatistics
+    stats: ZKAggregatedStatistics,
+    studyBins: any
   ): Promise<void> {
     const { error } = await db.from(TABLES.STUDY_AGGREGATED_DATA!.name!).insert({
       study_id: studyId,
@@ -620,6 +770,7 @@ export class ZKDataAggregationService {
       participant_count: stats.demographics.totalParticipants,
       aggregation_method: 'zero-knowledge',
       privacy_guarantee: 'Server never accessed raw medical data',
+      bin_definitions: studyBins, // Store bin metadata for transparency
       generated_at: new Date().toISOString(),
     });
 

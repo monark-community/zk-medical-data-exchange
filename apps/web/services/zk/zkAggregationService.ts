@@ -1,10 +1,11 @@
 /**
- * ZK Proof Generation Service for Privacy-Preserving Data Aggregation
+ * ZK Proof Generation Service for Privacy-Preserving Data Aggregation with Dynamic Bins
  * 
  * This service allows users to contribute to study statistics WITHOUT revealing their raw medical data.
  * 
  * Key Features:
  * - Generates ZK proofs that prove data validity without revealing raw values
+ * - Uses study-specific dynamic bins (not hardcoded)
  * - Only binned/categorized data is public (e.g., "age bucket 40-50" instead of "age 45")
  * - Server can aggregate statistics without ever seeing raw medical data
  * - Data commitment prevents users from lying about their data
@@ -13,6 +14,9 @@
  */
 
 import { groth16 } from 'snarkjs';
+import { StudyBins, calculateUserBins } from '@zk-medical/shared';
+import { Contract, BrowserProvider } from 'ethers';
+import { STUDY_ABI } from '@/constants/contracts';
 
 export interface MedicalDataForAggregation {
   age: number;
@@ -68,38 +72,155 @@ export class ZKAggregationService {
   }
 
   /**
-   * Generate a ZK proof for contributing to study aggregation
+   * Fetch study bins from smart contract
+   */
+  async fetchStudyBins(studyContractAddress: string): Promise<StudyBins> {
+    console.log('📥 [ZK-AGG] Fetching study bins from contract:', studyContractAddress);
+    
+    try {
+      if (!window.ethereum) {
+        throw new Error('MetaMask not found');
+      }
+
+      const provider = new BrowserProvider(window.ethereum);
+      const contract = new Contract(studyContractAddress, STUDY_ABI, provider);
+
+      // Fetch all bin definitions
+      const studyBins = await contract.getStudyBins();
+      
+      console.log('✅ [ZK-AGG] Successfully fetched study bins');
+      console.log('   └─ Bins:', JSON.stringify(studyBins, null, 2));
+
+      // Convert from contract format to TypeScript format
+      const bins: StudyBins = {};
+      
+      if (studyBins.age.enabled) {
+        bins.age = {
+          enabled: true,
+          boundaries: studyBins.age.boundaries.slice(0, Number(studyBins.age.binCount) + 1).map(Number),
+          binCount: Number(studyBins.age.binCount),
+          labels: [], // Labels will be generated when needed
+          type: 'equal-width'
+        };
+      }
+      
+      if (studyBins.cholesterol.enabled) {
+        bins.cholesterol = {
+          enabled: true,
+          boundaries: studyBins.cholesterol.boundaries.slice(0, Number(studyBins.cholesterol.binCount) + 1).map(Number),
+          binCount: Number(studyBins.cholesterol.binCount),
+          labels: [],
+          type: 'clinical'
+        };
+      }
+      
+      if (studyBins.bmi.enabled) {
+        bins.bmi = {
+          enabled: true,
+          boundaries: studyBins.bmi.boundaries.slice(0, Number(studyBins.bmi.binCount) + 1).map(Number),
+          binCount: Number(studyBins.bmi.binCount),
+          labels: [],
+          type: 'clinical'
+        };
+      }
+      
+      if (studyBins.hba1c.enabled) {
+        bins.hba1c = {
+          enabled: true,
+          boundaries: studyBins.hba1c.boundaries.slice(0, Number(studyBins.hba1c.binCount) + 1).map(Number),
+          binCount: Number(studyBins.hba1c.binCount),
+          labels: [],
+          type: 'clinical'
+        };
+      }
+
+      return bins;
+    } catch (error) {
+      console.error('❌ [ZK-AGG] Failed to fetch study bins:', error);
+      throw new Error(`Failed to fetch study bins: ${error}`);
+    }
+  }
+
+  /**
+   * Prepare bin boundaries for circuit input
+   * Pads arrays to fixed size (6 boundaries = 5 bins max)
+   */
+  private prepareBinBoundaries(boundaries: number[] = []): number[] {
+    const MAX_BOUNDARIES = 6;
+    const padded = [...boundaries];
+    
+    // Pad with large numbers (won't affect bin calculation)
+    while (padded.length < MAX_BOUNDARIES) {
+      padded.push(999999);
+    }
+    
+    return padded.slice(0, MAX_BOUNDARIES);
+  }
+
+  /**
+   * Generate a ZK proof for contributing to study aggregation with dynamic bins
    * 
    * How it works:
-   * 1. Takes your raw medical data (PRIVATE)
-   * 2. Generates a proof that:
+   * 1. Fetches study-specific bin definitions from smart contract
+   * 2. Calculates which bin each value falls into locally
+   * 3. Generates a proof that:
    *    - Your data matches the commitment from when you joined the study
+   *    - Bin assignments are correct (circuit validates this!)
    *    - Outputs only binned/categorized values (e.g., age bucket, not exact age)
-   * 3. Server can aggregate these public buckets without seeing your raw data!
+   * 4. Server can aggregate these public buckets without seeing your raw data!
    * 
    * @param medicalData - Your raw medical data (stays private in your browser)
    * @param studyId - The study you're contributing to
    * @param dataCommitment - Your data commitment from when you joined the study
+   * @param studyContractAddress - Address of the study smart contract
    * @returns Proof + public binned values (safe to share with server)
    */
   async generateAggregationProof(
     medicalData: MedicalDataForAggregation,
     studyId: string,
-    dataCommitment: string
+    dataCommitment: string,
+    studyContractAddress: string
   ): Promise<AggregationProofResult> {
     const startTime = Date.now();
     
     try {
       console.log('🔐 [ZK-AGG] ============================================');
-      console.log('🔐 [ZK-AGG] Starting ZK aggregation proof generation');
+      console.log('🔐 [ZK-AGG] Starting ZK aggregation proof generation (DYNAMIC BINS)');
       console.log('🔐 [ZK-AGG] Timestamp:', new Date().toISOString());
       console.log('🔐 [ZK-AGG] Study ID:', studyId);
+      console.log('🔐 [ZK-AGG] Study Contract:', studyContractAddress);
       console.log('🔐 [ZK-AGG] Data Commitment:', dataCommitment.substring(0, 20) + '...');
       console.log('🔐 [ZK-AGG] Privacy guarantee: Your raw data NEVER leaves your browser!');
       console.log('🔐 [ZK-AGG] ============================================');
 
+      // STEP 1: Fetch study-specific bins from smart contract
+      console.log('📥 [ZK-AGG] STEP 1: Fetching study-specific bins...');
+      const studyBins = await this.fetchStudyBins(studyContractAddress);
+      console.log('✅ [ZK-AGG] Study bins fetched successfully');
+
+      // STEP 2: Calculate bin indices locally
+      console.log('🧮 [ZK-AGG] STEP 2: Calculating bin indices locally...');
+      const userBins = calculateUserBins(
+        {
+          age: medicalData.age,
+          cholesterol: medicalData.cholesterol,
+          bmi: medicalData.bmi,
+          hba1c: medicalData.hba1c,
+          systolicBP: medicalData.systolicBP,
+          diastolicBP: medicalData.diastolicBP,
+        },
+        studyBins
+      );
+      console.log('✅ [ZK-AGG] Bin indices calculated:');
+      console.log('   ├─ Age bin:', userBins.ageBin, studyBins.age ? `(${studyBins.age.boundaries[userBins.ageBin!]}-${studyBins.age.boundaries[userBins.ageBin! + 1]})` : '');
+      console.log('   ├─ Cholesterol bin:', userBins.cholesterolBin);
+      console.log('   ├─ BMI bin:', userBins.bmiBin);
+      console.log('   ├─ HbA1c bin:', userBins.hba1cBin);
+      console.log('   └─ BP category:', userBins.bpBin);
+
       // Log input data (safe - stays in browser)
-      console.log('📊 [ZK-AGG] Input medical data:');
+      console.log('📊 [ZK-AGG] STEP 3: Preparing circuit inputs...');
+      console.log('📊 [ZK-AGG] Private inputs (never revealed):');
       console.log('   ├─ Age:', medicalData.age);
       console.log('   ├─ Gender:', medicalData.gender);
       console.log('   ├─ Region:', medicalData.region);
@@ -115,8 +236,7 @@ export class ZKAggregationService {
       console.log('   ├─ Heart Disease:', medicalData.heartDiseaseHistory);
       console.log('   └─ Salt (first 10 chars):', medicalData.salt.substring(0, 10) + '...');
 
-      // Prepare circuit inputs
-      console.log('📝 [ZK-AGG] Preparing circuit inputs...');
+      // Prepare circuit inputs with dynamic bin boundaries
       const input = {
         // PRIVATE inputs (never revealed)
         age: medicalData.age,
@@ -134,19 +254,35 @@ export class ZKAggregationService {
         heartDiseaseHistory: medicalData.heartDiseaseHistory,
         salt: medicalData.salt,
 
-        // PUBLIC inputs
+        // PUBLIC inputs - Study metadata
         dataCommitment: dataCommitment,
         studyId: studyId,
+
+        // PUBLIC inputs - Dynamic bin boundaries (study-specific)
+        ageBoundaries: this.prepareBinBoundaries(studyBins.age?.boundaries),
+        ageBinCount: studyBins.age?.binCount || 0,
+        cholesterolBoundaries: this.prepareBinBoundaries(studyBins.cholesterol?.boundaries),
+        cholesterolBinCount: studyBins.cholesterol?.binCount || 0,
+        bmiBoundaries: this.prepareBinBoundaries(studyBins.bmi?.boundaries),
+        bmiBinCount: studyBins.bmi?.binCount || 0,
+        hba1cBoundaries: this.prepareBinBoundaries(studyBins.hba1c?.boundaries),
+        hba1cBinCount: studyBins.hba1c?.binCount || 0,
       };
-      console.log('✅ [ZK-AGG] Circuit inputs prepared');
+      
+      console.log('✅ [ZK-AGG] Circuit inputs prepared with dynamic bins');
+      console.log('📊 [ZK-AGG] Public bin boundaries (transparent):');
+      console.log('   ├─ Age boundaries:', studyBins.age?.boundaries);
+      console.log('   ├─ Cholesterol boundaries:', studyBins.cholesterol?.boundaries);
+      console.log('   ├─ BMI boundaries:', studyBins.bmi?.boundaries);
+      console.log('   └─ HbA1c boundaries:', studyBins.hba1c?.boundaries);
 
       // Log circuit file paths
-      console.log('📁 [ZK-AGG] Loading circuit files:');
+      console.log('📁 [ZK-AGG] STEP 4: Loading circuit files...');
       console.log('   ├─ WASM:', this.wasmPath);
       console.log('   └─ ZKEY:', this.zkeyPath);
 
       // Generate the proof
-      console.log('⚙️ [ZK-AGG] Generating proof with SnarkJS...');
+      console.log('⚙️ [ZK-AGG] STEP 5: Generating ZK proof...');
       const proofGenStart = Date.now();
       
       let proof, publicSignals;
