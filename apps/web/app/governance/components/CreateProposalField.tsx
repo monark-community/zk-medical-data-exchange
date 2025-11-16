@@ -106,7 +106,7 @@ const CreateProposalField = ({ onSuccess }: CreateProposalFieldProps) => {
                   id="proposal-title"
                   placeholder="Enter proposal title"
                   required
-                  minLength={10}
+                  minLength={5}
                   maxLength={60}
                 />
               </Field>
@@ -117,8 +117,8 @@ const CreateProposalField = ({ onSuccess }: CreateProposalFieldProps) => {
                   id="proposal-description"
                   placeholder="Describe your proposal in detail"
                   required
-                  minLength={20}
-                  maxLength={500}
+                  minLength={10}
+                  maxLength={250}
                   rows={5}
                 />
               </Field>
@@ -159,7 +159,7 @@ const CreateProposalField = ({ onSuccess }: CreateProposalFieldProps) => {
 
               <Field>
                 <FieldDescription>
-                  Title must be 10-60 characters. Description must be 20-500 characters.
+                  Title must be 5-60 characters. Description must be 10-250 characters.
                 </FieldDescription>
               </Field>
             </FieldGroup>

@@ -5,7 +5,6 @@ import {
   VoteChoice,
   type CreateProposalParams,
   type VoteParams,
-  type AddCommentParams,
 } from "@/services/governanceService";
 import logger from "@/utils/logger";
 
@@ -60,8 +59,6 @@ export async function getProposal(req: Request, res: Response) {
 
     const proposalId = parseInt(req.params.id);
     const userAddress = req.query.userAddress as string | undefined;
-    const includeComments =
-      req.query.includeComments === "true" || req.query.includeComments === "1";
 
     if (isNaN(proposalId)) {
       return res.status(400).json({
@@ -72,7 +69,7 @@ export async function getProposal(req: Request, res: Response) {
 
     logger.info({ proposalId, userAddress }, "GET /governance/proposals/:id");
 
-    const proposal = await governanceService.getProposal(proposalId, userAddress, includeComments);
+    const proposal = await governanceService.getProposal(proposalId, userAddress);
 
     if (!proposal) {
       return res.status(404).json({
@@ -283,136 +280,5 @@ export async function getUserVotes(req: Request, res: Response) {
       success: false,
       error: "Failed to fetch user votes",
     });
-  }
-}
-
-export async function finalizeProposal(req: Request, res: Response) {
-  try {
-    if (!req.params.id) {
-      return res.status(400).json({
-        success: false,
-        error: "Proposal ID is required",
-      });
-    }
-
-    const proposalId = parseInt(req.params.id);
-
-    logger.info({ proposalId }, "POST /governance/proposals/:id/finalize");
-
-    if (isNaN(proposalId)) {
-      return res.status(400).json({
-        success: false,
-        error: "Invalid proposal ID",
-      });
-    }
-
-    const result = await governanceService.finalizeProposal(proposalId);
-
-    if (!result.success) {
-      return res.status(400).json({
-        success: false,
-        error: result.error || "Failed to finalize proposal",
-      });
-    }
-
-    return res.status(200).json({
-      success: true,
-      data: result.data,
-      transactionHash: result.transactionHash,
-    });
-  } catch (error: any) {
-    logger.error({ error }, "Failed to finalize proposal");
-    return res.status(500).json({
-      success: false,
-      error: "Failed to finalize proposal",
-    });
-  }
-}
-
-export async function addComment(req: Request, res: Response) {
-  try {
-    if (!req.params.id) {
-      return res.status(400).json({
-        success: false,
-        error: "Proposal ID is required",
-      });
-    }
-
-    const proposalId = parseInt(req.params.id);
-    const { commenterAddress, content } = req.body;
-
-    logger.info({ proposalId, commenterAddress }, "POST /governance/proposals/:id/comment");
-
-    if (isNaN(proposalId)) {
-      return res.status(400).json({
-        success: false,
-        error: "Invalid proposal ID",
-      });
-    }
-
-    if (!commenterAddress) {
-      return res.status(400).json({
-        success: false,
-        error: "Commenter wallet address is required",
-      });
-    }
-
-    if (!content || content.trim().length === 0) {
-      return res.status(400).json({
-        success: false,
-        error: "Comment content is required",
-      });
-    }
-
-    const params: AddCommentParams = {
-      proposalId,
-      commenterAddress,
-      content: content.trim(),
-    };
-
-    const result = await governanceService.addComment(params);
-
-    if (!result.success) {
-      return res.status(400).json({
-        success: false,
-        error: result.error || "Failed to add comment",
-      });
-    }
-
-    return res.status(201).json({
-      success: true,
-      data: result.data,
-    });
-  } catch (error: any) {
-    logger.error({ error }, "Failed to add comment");
-    return res.status(500).json({
-      success: false,
-      error: "Failed to add comment",
-    });
-  }
-}
-
-export async function getComments(req: Request, res: Response) {
-  try {
-    if (!req.params.id) {
-      return res.status(400).json({ success: false, error: "Proposal ID is required" });
-    }
-
-    const proposalId = parseInt(req.params.id);
-    if (isNaN(proposalId)) {
-      return res.status(400).json({ success: false, error: "Invalid proposal ID" });
-    }
-
-    const page = req.query.page ? parseInt(req.query.page as string) : 1;
-    const limit = req.query.limit ? parseInt(req.query.limit as string) : 20;
-
-    logger.info({ proposalId, page, limit }, "GET /governance/proposals/:id/comments");
-
-    const result = await governanceService.getComments(proposalId, page, limit);
-
-    return res.status(200).json({ success: true, data: result });
-  } catch (error: any) {
-    logger.error({ error }, "Failed to get comments");
-    return res.status(500).json({ success: false, error: "Failed to fetch comments" });
   }
 }
