@@ -97,6 +97,7 @@ template DataAggregationDynamic() {
     // ========================================
     // Prove that the private data matches the commitment from study enrollment
     // This prevents users from lying about their data during aggregation
+    // IMPORTANT: This must match commitmentGenerator.ts exactly!
     
     component commitment1 = Poseidon(7);
     commitment1.inputs[0] <== age;
@@ -104,12 +105,12 @@ template DataAggregationDynamic() {
     commitment1.inputs[2] <== region;
     commitment1.inputs[3] <== cholesterol;
     commitment1.inputs[4] <== bmi;
-    commitment1.inputs[5] <== systolicBP;
-    commitment1.inputs[6] <== diastolicBP;
+    commitment1.inputs[5] <== bloodType;
+    commitment1.inputs[6] <== salt;
     
     component commitment2 = Poseidon(7);
-    commitment2.inputs[0] <== commitment1.out;
-    commitment2.inputs[1] <== bloodType;
+    commitment2.inputs[0] <== systolicBP;
+    commitment2.inputs[1] <== diastolicBP;
     commitment2.inputs[2] <== hba1c;
     commitment2.inputs[3] <== smokingStatus;
     commitment2.inputs[4] <== activityLevel;
@@ -117,9 +118,9 @@ template DataAggregationDynamic() {
     commitment2.inputs[6] <== heartDiseaseHistory;
     
     component finalCommitment = Poseidon(3);
-    finalCommitment.inputs[0] <== commitment2.out;
-    finalCommitment.inputs[1] <== salt;
-    finalCommitment.inputs[2] <== studyId;
+    finalCommitment.inputs[0] <== commitment1.out;
+    finalCommitment.inputs[1] <== commitment2.out;
+    finalCommitment.inputs[2] <== salt;
     
     // Verify commitment matches
     dataCommitment === finalCommitment.out;
