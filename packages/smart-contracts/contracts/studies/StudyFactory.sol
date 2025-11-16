@@ -136,6 +136,7 @@ contract StudyFactory {
 
         // Deploy new Study contract with custom criteria
         Study newStudy = new Study(
+            studyCount,
             title,
             maxParticipants,
             customCriteria,
