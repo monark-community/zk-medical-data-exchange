@@ -165,7 +165,8 @@ export const verifyTransaction = async (req: Request, res: Response) => {
           TABLES.STUDY_PARTICIPATIONS!.columns.participantWallet
         }`
       )
-      .eq(TABLES.STUDY_PARTICIPATIONS!.columns.studyId!, studyId);
+      .eq(TABLES.STUDY_PARTICIPATIONS!.columns.studyId!, studyId)
+      .eq(TABLES.STUDY_PARTICIPATIONS!.columns.hasConsented!, true);
 
     if (participants.error || !participants.data) {
       logger.error({ error: participants.error }, "Failed to fetch study participants");
@@ -210,10 +211,10 @@ export const verifyTransaction = async (req: Request, res: Response) => {
       perParticipantEth: perHeadEth,
     });
 
-    // Log compensation sent/received
     auditService.logCompensationSent(
       data.created_by,
       participantWallets,
+      String(studyId),
       true,
       perHeadEth * priceUSD * participantsData.length,
       {

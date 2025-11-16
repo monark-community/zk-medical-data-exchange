@@ -3,7 +3,7 @@ import logger from "@/utils/logger";
 import { TABLES } from "@/constants/db";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-const { USERS, STUDY_PARTICIPATIONS, DATA_VAULT, STUDIES } = TABLES;
+const { USERS, STUDY_PARTICIPATIONS, DATA_VAULT, STUDIES, TRANSACTIONS } = TABLES;
 
 export type UserRow = {
   id: string;
@@ -169,8 +169,22 @@ export async function getUserStatsForDataSeller(
   if (medicalError) {
     logger.error({ error: medicalError, walletAddress }, "Failed to get medical files count");
   }
-  // TODO [LT]: Implement when we have this data
-  const totalEarnings = 0;
+  const { data: earningsData, error: earningsError } = await supabase
+    .from(TRANSACTIONS!.name!)
+    .select(TRANSACTIONS!.columns.valueUSD!)
+    .eq(TRANSACTIONS!.columns.toWallet!, walletAddress);
+
+  if (earningsError) {
+    logger.error({ error: earningsError, walletAddress }, "Failed to get earnings data");
+  }
+
+  const totalEarnings = earningsData
+    ? earningsData.reduce(
+        (sum, record: Record<string, any>) =>
+          sum + Number(record[TRANSACTIONS!.columns.valueUSD!] || 0),
+        0
+      )
+    : 0;
 
   return {
     nActiveStudies: nActiveStudies ?? 0,
@@ -225,8 +239,22 @@ export async function getUserStatsForResearcher(
     logger.error({ error: participantsError, walletAddress }, "Failed to get participants count");
   }
 
-  // TODO: [LT] Implement when we have payment/budget tracking
-  const totalSpent = 0;
+  const { data: spendingData, error: spendingError } = await supabase
+    .from(TRANSACTIONS!.name!)
+    .select(TRANSACTIONS!.columns.valueUSD!)
+    .eq(TRANSACTIONS!.columns.fromWallet!, walletAddress.toLowerCase());
+
+  if (spendingError) {
+    logger.error({ error: spendingError, walletAddress }, "Failed to get spending data");
+  }
+
+  const totalSpent = spendingData
+    ? spendingData.reduce(
+        (sum, record: Record<string, any>) =>
+          sum + Number(record[TRANSACTIONS!.columns.valueUSD!] || 0),
+        0
+      )
+    : 0;
 
   return {
     nActiveStudies: nActiveStudies ?? 0,

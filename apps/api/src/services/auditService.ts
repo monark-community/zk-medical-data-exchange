@@ -635,6 +635,7 @@ class AuditService {
   async logCompensationSent(
     creatorAddress: string,
     participantsAddresses: string[],
+    studyId: string,
     success: boolean,
     totalMoney: number,
     metadata?: Record<string, any>
@@ -643,11 +644,12 @@ class AuditService {
       user: creatorAddress,
       userProfile: UserProfile.RESEARCHER,
       actionType: ActionType.SENT_COMPENSATION,
-      resource: "compensation",
+      resource: `compensation_study_${studyId}`,
       action: "send_compensation",
       success,
       metadata: {
         ...metadata,
+        studyId,
         totalMoney,
         role: "creator",
       },
@@ -656,11 +658,13 @@ class AuditService {
     const participantsResult = await this.logActionForParticipants(participantsAddresses, {
       userProfile: UserProfile.DATA_SELLER,
       actionType: ActionType.RECEIVED_COMPENSATION,
-      resource: "compensation",
+      resource: `compensation_study_${studyId}`,
       action: "receive_compensation",
       success,
       metadata: {
         ...metadata,
+        studyId,
+        studyCreator: creatorAddress,
         totalMoney: totalMoney / participantsAddresses.length,
         role: "participant",
       },
