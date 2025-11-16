@@ -362,33 +362,6 @@ function validateInList<T>(
 }
 
 /**
- * Check if arrays have overlapping elements
- */
-function validateArrayOverlap<T>(
-  values: readonly T[] | undefined,
-  allowedValues: readonly T[],
-  fieldName: string
-): ValidationResult {
-  if (!values || values.length === 0) {
-    return {
-      isValid: false,
-      fieldName,
-      reason: `${fieldName} data missing but required by study`,
-    };
-  }
-
-  const hasMatch = values.some((value) => allowedValues.includes(value));
-  if (!hasMatch) {
-    return {
-      isValid: false,
-      fieldName,
-      reason: `${fieldName} does not match any allowed values`,
-    };
-  }
-  return { isValid: true };
-}
-
-/**
  * Check eligibility locally before generating expensive proof
  *
  * @param medicalData - Patient's medical data
