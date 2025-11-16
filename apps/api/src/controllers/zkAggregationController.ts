@@ -263,26 +263,6 @@ export async function submitZKProof(req: Request, res: Response): Promise<void> 
       '💾 [ZK-PROOF-SUBMIT] Proof stored successfully (no raw data stored!)'
     );
 
-    // 8. Audit log
-    logger.info({ studyId: id, step: 'AUDIT' }, '📝 [ZK-PROOF-SUBMIT] Creating audit log entry...');
-    await auditService.logAction({
-      studyId: parseInt(id),
-      participantAddress,
-      action: ActionType.SUBMIT_ZK_PROOF,
-      metadata: {
-        hasProof: true,
-        hasPublicSignals: true,
-        privacyGuarantee: 'Raw medical data never stored on server',
-        publicSignalsPreview: {
-          ageBucket: publicSignals.ageBucket,
-          genderCategory: publicSignals.genderCategory,
-        },
-      },
-      ipAddress: req.ip || '',
-      userAgent: req.get('User-Agent') || '',
-    });
-    logger.info({ studyId: id }, '✅ [ZK-PROOF-SUBMIT] Audit log created');
-
     const duration = Date.now() - startTime;
     logger.info(
       { studyId: id, participantAddress, duration },
