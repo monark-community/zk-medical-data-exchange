@@ -252,7 +252,9 @@ export class StudyApplicationService {
         studyCriteria,
         dataCommitment,
         salt,
-        data.challenge
+        data.challenge,
+        studyId,
+        walletAddress
       );
 
       const applicationRequest: StudyApplicationRequest = {

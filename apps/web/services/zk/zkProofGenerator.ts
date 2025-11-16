@@ -84,6 +84,10 @@ interface CircuitInput {
   allowedDiabetes: string;
   enableHeartDisease: string;
   allowedHeartDisease: string;
+  
+  studyId: string;
+  walletAddress: string;
+  eligibilityExpected: string;
 }
 
 /**
@@ -102,7 +106,9 @@ export const generateZKProof = async (
   studyCriteria: StudyCriteria,
   dataCommitment: bigint,
   salt: number,
-  challenge: string
+  challenge: string,
+  studyId: number,
+  walletAddress: string
 ): Promise<ZKProofResult> => {
   try {
     console.log("Data commitment:", dataCommitment?.toString() || 'UNDEFINED');
@@ -133,7 +139,7 @@ export const generateZKProof = async (
       };
     }
     
-    const circuitInput = prepareCircuitInput(medicalData, studyCriteria, dataCommitment, salt, challenge);
+    const circuitInput = prepareCircuitInput(medicalData, studyCriteria, dataCommitment, salt, challenge, studyId, walletAddress, isEligible);
     console.log("Circuit input prepared with commitment verification");
 
     console.log("Loading circuit files...");
@@ -195,7 +201,10 @@ function prepareCircuitInput(
   studyCriteria: StudyCriteria,
   dataCommitment: bigint,
   salt: number,
-  challenge: string
+  challenge: string,
+  studyId: number,
+  walletAddress: string,
+  eligibilityExpected: boolean
 ): CircuitInput {
     console.log("Preparing circuit input...");
     console.log("├─ dataCommitment:", dataCommitment?.toString() || 'UNDEFINED');
@@ -258,6 +267,10 @@ function prepareCircuitInput(
     allowedDiabetes: studyCriteria.allowedDiabetes.toString(),
     enableHeartDisease: studyCriteria.enableHeartDisease.toString(),
     allowedHeartDisease: studyCriteria.allowedHeartDisease.toString(),
+    
+    studyId: studyId.toString(),
+    walletAddress: BigInt(walletAddress).toString(),
+    eligibilityExpected: eligibilityExpected ? "1" : "0",
   };
 }
 
