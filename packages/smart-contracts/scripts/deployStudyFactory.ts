@@ -29,7 +29,7 @@ async function main() {
   }
 
   console.log("\n🔄 Step 1: Deploying MedicalEligibilityVerifier...");
-  const verifierContract = await viem.deployContract("Groth16Verifier");
+  const verifierContract = await viem.deployContract("contracts/studies/MedicalEligibilityVerifier.sol:Groth16Verifier");
   console.log(`   ✅ Verifier deployed: ${verifierContract.address}`);
 
   console.log("\n🔄 Step 2: Deploying StudyFactory...");

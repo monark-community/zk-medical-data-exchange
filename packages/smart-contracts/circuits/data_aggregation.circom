@@ -73,9 +73,6 @@ template DataAggregationDynamic() {
     // Study identifier to prevent proof reuse across studies
     signal input studyId;
     
-    // Study identifier to prevent proof reuse across studies
-    signal input studyId;
-    
     // ========================================
     // PUBLIC OUTPUTS - Binned Values (Privacy-Preserving)
     // ========================================
@@ -169,9 +166,6 @@ template DataAggregationDynamic() {
     hba1cBinCalc.actualBinCount <== hba1cBinCount;
     hba1cBin <== hba1cBinCalc.bin;
     
-    hba1cBinCalc.actualBinCount <== hba1cBinCount;
-    hba1cBin <== hba1cBinCalc.bin;
-    
     // ========================================
     // STEP 3: CATEGORICAL VALUES (No binning needed)
     // ========================================
@@ -203,7 +197,9 @@ template DataAggregationDynamic() {
     signal normalBP <== systolicLt120.out * diastolicLt80.out;
     
     // Elevated: systolic 120-129 AND diastolic < 80
-    signal elevatedBP <== (1 - systolicLt120.out) * systolicLt130.out * diastolicLt80.out;
+    // Break down the triple multiplication into quadratic steps
+    signal systolicInElevatedRange <== (1 - systolicLt120.out) * systolicLt130.out;
+    signal elevatedBP <== systolicInElevatedRange * diastolicLt80.out;
     
     // High: systolic >= 130 OR diastolic >= 80
     signal highBP <== 1 - normalBP - elevatedBP;
