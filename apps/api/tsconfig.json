@@ -30,6 +30,7 @@
     "noUnusedParameters": false,
     "noPropertyAccessFromIndexSignature": false,
     "outDir": "dist",
-    "types": ["jest"]
-  }
+    "types": ["@types/bun"]
+  },
+  "exclude": ["**/*.test.ts", "**/*.spec.ts", "node_modules", "dist"]
 }

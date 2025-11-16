@@ -44,9 +44,9 @@ export interface AuditLogEntry {
 }
 
 class AuditService {
-  private publicClient: PublicClient;
-  private walletClient: WalletClient;
-  private account: PrivateKeyAccount;
+  private publicClient!: PublicClient;
+  private walletClient!: WalletClient;
+  private account!: PrivateKeyAccount;
   private transactionQueue: Promise<any> = Promise.resolve();
 
   constructor() {
