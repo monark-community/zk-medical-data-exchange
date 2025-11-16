@@ -98,14 +98,10 @@ contract Study {
     
     function _buildPublicSignals(
         uint256 dataCommitment,
-        address participant
-    ) internal view returns (uint256[] memory pubSignals) {
-        pubSignals = new uint256[](42);
+        address participant,
+        bytes32 challenge
+    ) internal view returns (uint256[44] memory pubSignals) {
         uint256 i = 0;
-
-        pubSignals[i++] = dataCommitment;
-        pubSignals[i++] = uint256(uint160(participant));
-        pubSignals[i++] = studyId;
 
         StudyCriteria memory c = criteria;
 
@@ -148,9 +144,13 @@ contract Study {
         pubSignals[i++] = c.enableHeartDisease;
         pubSignals[i++] = c.allowedHeartDisease;
 
-        pubSignals[i++] = 1;
+        pubSignals[i++] = dataCommitment;
+        pubSignals[i++] = studyId;
+        pubSignals[i++] = uint256(uint160(participant));
+        pubSignals[i++] = 1; 
+        pubSignals[i++] = uint256(challenge);
 
-        assert(i == 42);
+        assert(i == 44);
 
         return pubSignals;
     }
@@ -212,7 +212,7 @@ contract Study {
         ));
         require(recomputedHash == storedCommitmentHash, "Commitment mismatch - data tampering detected");
         
-        uint256[] memory pubSignals = _buildPublicSignals(dataCommitment, participant);
+        uint256[44] memory pubSignals = _buildPublicSignals(dataCommitment, participant, challenge);
 
         bool isEligible = zkVerifier.verifyProof(_pA, _pB, _pC, pubSignals);
         

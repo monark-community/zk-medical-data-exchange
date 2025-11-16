@@ -371,4 +371,18 @@ template ConditionalDualRangeCheck(n) {
     valid <== isDisabled.out + (enabled * bothValid);
 }
 
-component main = MedicalEligibility();
+component main {public [
+    enableAge, minAge, maxAge,
+    enableCholesterol, minCholesterol, maxCholesterol,
+    enableBMI, minBMI, maxBMI,
+    enableBloodType, allowedBloodTypes,
+    enableGender, allowedGender,
+    enableLocation, allowedRegions,
+    enableBloodPressure, minSystolic, maxSystolic, minDiastolic, maxDiastolic,
+    enableHbA1c, minHbA1c, maxHbA1c,
+    enableSmoking, allowedSmoking,
+    enableActivity, minActivityLevel, maxActivityLevel,
+    enableDiabetes, allowedDiabetes,
+    enableHeartDisease, allowedHeartDisease,
+    dataCommitment, studyId, walletAddress, eligibilityExpected, challenge
+]} = MedicalEligibility();
