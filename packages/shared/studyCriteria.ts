@@ -82,6 +82,57 @@ export const DEFAULT_CRITERIA: StudyCriteria = {
 };
 
 // ========================================
+// DEFAULT VALUES FOR FORM INPUTS
+// ========================================
+
+export const CRITERIA_DEFAULTS = {
+  maxParticipants: 10000,
+  durationDays: 365,
+
+  age: {
+    min: 0,
+    max: 150,
+    step: 1,
+  },
+
+  bmi: {
+    min: 10.0,
+    max: 80.0,
+    step: 0.1,
+  },
+
+  cholesterol: {
+    min: 0,
+    max: 1000,
+    step: 0.1,
+  },
+
+  bloodPressure: {
+    systolic: {
+      min: 70,
+      max: 250,
+      step: 0.1,
+    },
+    diastolic: {
+      min: 40,
+      max: 150,
+      step: 0.1,
+    },
+  },
+
+  hbA1c: {
+    min: 4.0,
+    max: 20.0,
+    step: 0.1,
+  },
+
+  activityLevel: {
+    min: 1, // Sedentary
+    max: 3, // Moderately Active
+  },
+} as const;
+
+// ========================================
 // HELPER FUNCTIONS
 // ========================================
 
@@ -105,10 +156,27 @@ export function validateCriteria(criteria: StudyCriteria): { valid: boolean; err
   }
 
   if (criteria.enableBloodPressure) {
-    if (criteria.minSystolic >= criteria.maxSystolic) {
+    const effectiveMinSystolic =
+      criteria.minSystolic === 0
+        ? CRITERIA_DEFAULTS.bloodPressure.systolic.min
+        : criteria.minSystolic / 10;
+    const effectiveMaxSystolic =
+      criteria.maxSystolic === 0
+        ? CRITERIA_DEFAULTS.bloodPressure.systolic.max
+        : criteria.maxSystolic / 10;
+    const effectiveMinDiastolic =
+      criteria.minDiastolic === 0
+        ? CRITERIA_DEFAULTS.bloodPressure.diastolic.min
+        : criteria.minDiastolic / 10;
+    const effectiveMaxDiastolic =
+      criteria.maxDiastolic === 0
+        ? CRITERIA_DEFAULTS.bloodPressure.diastolic.max
+        : criteria.maxDiastolic / 10;
+
+    if (effectiveMinSystolic >= effectiveMaxSystolic) {
       errors.push("Blood Pressure: minSystolic must be less than maxSystolic");
     }
-    if (criteria.minDiastolic >= criteria.maxDiastolic) {
+    if (effectiveMinDiastolic >= effectiveMaxDiastolic) {
       errors.push("Blood Pressure: minDiastolic must be less than maxDiastolic");
     }
   }
@@ -119,6 +187,14 @@ export function validateCriteria(criteria: StudyCriteria): { valid: boolean; err
 
   if (criteria.enableActivity && criteria.minActivityLevel >= criteria.maxActivityLevel) {
     errors.push("Activity: minActivityLevel must be less than maxActivityLevel");
+  }
+
+  if (criteria.enableLocation && criteria.allowedRegions.every((r) => r === 0)) {
+    errors.push("Location criteria is enabled but no regions are selected.");
+  }
+
+  if (criteria.enableBloodType && criteria.allowedBloodTypes.every((r) => r === 0)) {
+    errors.push("Blood type criteria is enabled but no blood types are selected.");
   }
 
   return { valid: errors.length === 0, errors };
