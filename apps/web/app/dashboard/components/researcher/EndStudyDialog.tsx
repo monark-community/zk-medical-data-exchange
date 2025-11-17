@@ -38,12 +38,18 @@ export default function EndStudyDialog({
 }: EndStudyDialogProps) {
   const [isEnding, setIsEnding] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [enrolledUsers, setEnrolledUsers] = useState(0);
 
   const handleCancel = () => {
     if (!isEnding) {
       onOpenChange(false);
     }
   };
+
+  (async function fetchParticipants() {
+    const { participants } = await getParticipants(studyId);
+    setEnrolledUsers(participants.length);
+  })();
 
   const handleProceed = async () => {
     setIsEnding(true);
@@ -108,7 +114,6 @@ export default function EndStudyDialog({
     }
   };
   // Placeholder values - will be replaced with actual data later
-  const enrolledUsers = 42;
   const dataAccessCount = 156;
 
   return (
