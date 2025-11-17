@@ -1379,6 +1379,19 @@ export const STUDY_ABI: ABI = [
     name: "getParticipantCount",
     outputs: [
       {
+        internalType: "address[]",
+        name: "",
+        type: "address[]",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "getParticipantCount",
+    outputs: [
+      {
         internalType: "uint256",
         name: "",
         type: "uint256",

@@ -12,7 +12,7 @@ import {
   revokeStudyConsent,
   grantStudyConsent,
   generateDataCommitmentChallenge,
-  fetchParticipants,
+  fetchParticipantsBlockchain,
 } from "@/controllers/studyController";
 
 const router = Router();
@@ -142,7 +142,7 @@ router.get("/:id", getStudyById);
  * @swagger
  * /studies/participants/{id}:
  *   get:
- *     summary: Get study by ID
+ *     summary: Get study participants from the blockchain by study ID
  *     parameters:
  *       - name: id
  *         in: path
@@ -151,11 +151,11 @@ router.get("/:id", getStudyById);
  *           type: integer
  *     responses:
  *       200:
- *         description: Study details
+ *         description: Study participants from blockchain
  *       404:
  *         description: Study not found
  */
-router.get("/:id/participants", fetchParticipants);
+router.get("/:id/participants", fetchParticipantsBlockchain);
 
 /**
  * @swagger

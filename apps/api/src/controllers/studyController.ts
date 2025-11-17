@@ -14,6 +14,10 @@ import { auditService } from "@/services/auditService";
 import { studyService } from "@/services/studyService";
 import { SEPOLIA_TESTNET_CHAIN_ID } from "@/constants/blockchain";
 import { verifyMessage } from "ethers";
+import { createPublicClient, http } from "viem";
+import { sepolia } from "viem/chains";
+import { Config } from "@/config/config";
+import { STUDY_ABI } from "@/contracts/generated";
 
 const getAuditMetadata = (req: Request) => ({
   startTime: Date.now(),
@@ -67,20 +71,50 @@ const fetchParticipation = async (supabase: any, id: string, participantWallet: 
   return { data, error };
 };
 
-export const fetchParticipants = async (req: Request, res: Response) => {
+export const fetchParticipantsBlockchain = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { data } = await req.supabase
-      .from(TABLES.STUDY_PARTICIPATIONS!.name)
-      .select(TABLES.STUDY_PARTICIPATIONS!.columns.participantWallet!)
-      .eq(TABLES.STUDY_PARTICIPATIONS!.columns.studyId!, id)
-      .eq(TABLES.STUDY_PARTICIPATIONS!.columns.hasConsented!, true);
+
+    // Get study contract address from database
+    const { data: study, error: studyError } = await req.supabase
+      .from(TABLES.STUDIES!.name)
+      .select(TABLES.STUDIES!.columns.contractAddress!)
+      .eq(TABLES.STUDIES!.columns.id!, id)
+      .single();
+
+    if (studyError || !study) {
+      logger.error({ error: studyError, studyId: id }, "Study not found");
+      return res.status(404).json({ error: "Study not found" });
+    }
+
+    const studyData = study as unknown as { contract_address: string | null };
+
+    if (!studyData.contract_address) {
+      logger.warn({ studyId: id }, "Study not deployed to blockchain");
+      return res.json({ participants: [] });
+    }
+
+    const publicClient = createPublicClient({
+      chain: sepolia,
+      transport: http(Config.SEPOLIA_RPC_URL),
+    });
+
+    const participants = (await publicClient.readContract({
+      address: studyData.contract_address as `0x${string}`,
+      abi: STUDY_ABI,
+      functionName: "getConsentedParticipants",
+    })) as string[];
+
+    logger.info(
+      { studyId: id, participantCount: participants.length },
+      "Fetched consented participants from blockchain"
+    );
 
     return res.json({
-      participants: data?.map((row: any) => row.participant_wallet) || [],
+      participants,
     });
   } catch (error) {
-    logger.error({ error, studyId: req.params.id }, "Failed to fetch participants");
+    logger.error({ error, studyId: req.params.id }, "Failed to fetch participants from blockchain");
     res.status(500).json({ error: "Internal server error" });
   }
 };
