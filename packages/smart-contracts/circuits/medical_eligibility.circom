@@ -115,7 +115,10 @@ template MedicalEligibility() {
     finalCommitment.inputs[2] <== salt;
     finalCommitment.inputs[3] <== challenge;
 
-    assert(dataCommitment === finalCommitment.out);
+    log("commitment1.out =", commitment1.out);
+    log("commitment2.out =", commitment2.out);
+    log("finalCommitment.out =", finalCommitment.out);
+    log("dataCommitment input =", dataCommitment);
     
     // ========================================
     // ELIGIBILITY CRITERIA CHECKING
@@ -238,9 +241,14 @@ template MedicalEligibility() {
     basicAndDemographic <== basicHealthChecks * demographicChecks;
     advancedAndLifestyle <== advancedHealthChecks * lifestyleChecks;
     allButMedical <== basicAndDemographic * advancedAndLifestyle;
-    
+
     // Final result: ALL criteria must be satisfied
     eligible <== allButMedical * medicalHistoryChecks;
+    dataCommitment === finalCommitment.out;
+
+    log("Eligibility result =", eligible);
+    log("Final commitment output =", finalCommitment.out);
+    log("Data commitment input =", dataCommitment);
 }
 
 // ========================================
