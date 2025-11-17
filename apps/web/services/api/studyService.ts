@@ -1,7 +1,12 @@
 import { apiClient } from "@/services/core/apiClient";
 import { StudyCriteria } from "@zk-medical/shared";
 import { ExtractedMedicalData } from "@/services/fhir/types/extractedMedicalData";
-import { checkEligibility, generateDataCommitment, generateSecureSalt, generateZKProof } from "@/services/zk/zkProofGenerator";
+import {
+  checkEligibility,
+  generateDataCommitment,
+  generateSecureSalt,
+  generateZKProof,
+} from "@/services/zk/zkProofGenerator";
 import { BrowserProvider } from "ethers";
 
 // ========================================
@@ -22,6 +27,7 @@ export interface StudySummary {
   contractAddress?: string;
   isEnrolled?: boolean;
   hasConsented?: boolean;
+  transactionHash?: string;
   criteriaSummary: {
     requiresAge: boolean;
     requiresGender: boolean;
@@ -127,6 +133,11 @@ export const getStudyDetails = async (studyId: number): Promise<StudyDetails> =>
   return data.study;
 };
 
+export const getParticipants = async (studyId: number): Promise<{ participants: string[] }> => {
+  const { data } = await apiClient.get(`/studies/${studyId}/participants`);
+  return data;
+};
+
 export const createStudy = async (studyData: CreateStudyRequest): Promise<CreateStudyResponse> => {
   try {
     const response = await apiClient.post<CreateStudyResponse>("/studies", studyData);
@@ -194,26 +205,26 @@ export class StudyApplicationService {
     try {
       const salt = generateSecureSalt();
       const dataCommitment = generateDataCommitment(medicalData, salt);
-      
+
       if (!window.ethereum) {
         throw new Error("MetaMask not found. Please install MetaMask to continue.");
       }
-      
+
       const provider = new BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
       const signature = await signer.signMessage(dataCommitment.toString());
 
-      const { data } = await apiClient.post('/studies/data-commitment', {
+      const { data } = await apiClient.post("/studies/data-commitment", {
         studyId,
         participantWallet: walletAddress,
         dataCommitment: dataCommitment.toString(),
-        signature
+        signature,
       });
-      
+
       if (!data.challenge) {
         throw new Error("Data commitment generation failed.");
       }
-      
+
       console.log("Fetching study criteria");
       const studyCriteria = await this.getStudyCriteria(studyId);
 
@@ -266,6 +277,9 @@ export class StudyApplicationService {
       await this.submitApplication(applicationRequest);
 
       console.log("Study application completed successfully!");
+
+      const eventBus = (await import("@/lib/eventBus")).default;
+      eventBus.emit("studyJoinedSuccess");
 
       return {
         success: true,

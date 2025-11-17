@@ -10,6 +10,7 @@ import { deleteStudy } from "@/services/api/studyService";
 import ResearcherStudiesList from "@/app/dashboard/components/researcher/ResearcherStudiesList";
 import DashboardSectionHeader from "@/app/dashboard/components/shared/DashboardSectionHeader";
 import StudiesContainer from "@/app/dashboard/components/shared/StudiesContainer";
+import eventBus from "@/lib/eventBus";
 
 export default function ResearcherStudiesSection() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -44,6 +45,7 @@ export default function ResearcherStudiesSection() {
         await deleteStudy(studyId, walletAddress);
         console.log("Study deleted successfully from API!");
         refetch();
+        eventBus.emit("studyDeleted");
       } catch (error: any) {
         console.error("Error deleting study:", error);
 

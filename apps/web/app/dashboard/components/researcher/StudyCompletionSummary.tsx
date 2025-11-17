@@ -18,6 +18,12 @@ import {
   TrendingUp,
   Clock,
 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { createPublicClient, http } from "viem";
+import { sepolia } from "viem/chains";
+import { Config } from "@/config/config";
+import { getTransactionsByStudyId } from "@/services/api/transactionService";
+import { apiClient } from "@/services/core";
 
 interface StudyCompletionSummaryProps {
   open: boolean;
@@ -25,39 +31,120 @@ interface StudyCompletionSummaryProps {
   onOpenChange: (open: boolean) => void;
   studyTitle: string;
   studyId: number;
+  transactionHash: string;
+  currentParticipants: number;
+  durationDays: number | undefined;
 }
+
+const publicClient = createPublicClient({
+  chain: sepolia,
+  transport: http(Config.SEPOLIA_RPC_URL),
+});
 
 export default function StudyCompletionSummary({
   open,
   onOpenChange,
   studyTitle,
+  studyId,
+  transactionHash,
+  currentParticipants,
+  durationDays,
 }: StudyCompletionSummaryProps) {
-  // Placeholder values - will be replaced with actual data later
-  const totalParticipants = 42;
-  const dataPointsCollected = 1248;
-  const totalCost = 156.75;
-  const transactionHash = "0x742d35cc6634c0532925a3b844bc9e7fe3c";
-  const studyDuration = "45 days";
-  const completionDate = new Date().toLocaleDateString("en-US", {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  });
+  const [txInfo, setTxInfo] = useState<{
+    hash: `0x${string}`;
+    from: `0x${string}`;
+    to: `0x${string}` | null;
+    valueUsd: string;
+    blockNumber?: bigint;
+    gasUsed?: bigint;
+    participantsCount?: number;
+    createdAt?: string;
+  } | null>(null);
 
-  const handleAccessData = () => {
-    // TODO: Implement data access functionality
-    console.log("Accessing study data...");
+  useEffect(() => {
+    const fetchTx = async () => {
+      try {
+        const hash = transactionHash as `0x${string}`;
+
+        const tx = await publicClient.getTransaction({ hash });
+        const receipt = await publicClient.getTransactionReceipt({ hash });
+
+        const transactions = await getTransactionsByStudyId(studyId);
+        const totalUsd = transactions.transactions.reduce(
+          (acc: number, t: any) => acc + Number(t.value_usd ?? 0),
+          0
+        );
+
+        setTxInfo({
+          hash,
+          from: tx.from,
+          to: tx.to ?? null,
+          valueUsd: totalUsd.toFixed(2),
+          blockNumber: receipt?.blockNumber,
+          gasUsed: receipt?.gasUsed,
+          participantsCount: currentParticipants,
+          createdAt: transactions?.transactions[0]?.created_at
+            ? new Date(transactions.transactions[0].created_at).toLocaleDateString()
+            : undefined,
+        });
+      } catch (err: any) {
+        console.error("Failed to fetch tx info:", err);
+      }
+    };
+
+    fetchTx();
+  }, [transactionHash, studyId, currentParticipants]);
+
+  // TODO: Fetch datapoints and duration from backend
+  const dataPointsCollected = 1248;
+  const studyDuration = durationDays ? `${durationDays} days` : "N/A";
+
+  const handleAccessData = async () => {
+    try {
+      console.log("Accessing study data...");
+
+      // Log data access for audit trail
+      await apiClient.post(`/studies/${studyId}/data-access`, {
+        creatorWallet: txInfo?.from,
+      });
+
+      console.log("Data access logged successfully");
+
+      // TODO: Navigate to data analysis page or open data viewer
+      // You could add navigation logic here, e.g.:
+      // router.push(`/dashboard/studies/${studyId}/data`);
+    } catch (error) {
+      console.error("Failed to access study data:", error);
+      // TODO: Show error toast/notification to user
+    }
   };
 
   const handleViewTransaction = () => {
-    // TODO: Open blockchain explorer
-    console.log("Opening blockchain explorer...");
+    if (txInfo?.hash) {
+      window.open(`https://sepolia.etherscan.io/tx/${txInfo.hash}`, "_blank", "noopener");
+    }
   };
 
-  const handleExportSummary = () => {
-    // TODO: Export summary as PDF/CSV
-    console.log("Exporting summary...");
+  const handleExportSummary = async () => {
+    try {
+      console.log("Exporting study summary...");
+
+      await apiClient.post(`/study/${studyId}/data-access`, {
+        creatorWallet: txInfo?.from,
+      });
+
+      // TODO: Implement actual PDF/CSV export functionality
+      console.log("Data access logged successfully");
+    } catch (error) {
+      console.error("Failed to export study summary:", error);
+      // TODO: Show error toast/notification to user
+    }
   };
+
+  const participantsCount = txInfo?.participantsCount ?? 0;
+  const totalUsdNum = Number(txInfo?.valueUsd ?? 0);
+  const perParticipantUsd =
+    participantsCount > 0 ? (totalUsdNum / participantsCount).toFixed(2) : "-";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -88,7 +175,7 @@ export default function StudyCompletionSummary({
                       <Users className="h-8 w-8 text-indigo-600 flex-shrink-0" />
                       <div>
                         <p className="text-sm text-gray-600">Total Participants</p>
-                        <p className="text-2xl font-bold text-gray-900">{totalParticipants}</p>
+                        <p className="text-2xl font-bold text-gray-900">{participantsCount}</p>
                       </div>
                     </div>
                   </div>
@@ -118,7 +205,9 @@ export default function StudyCompletionSummary({
                       <DollarSign className="h-8 w-8 text-amber-600 flex-shrink-0" />
                       <div>
                         <p className="text-sm text-gray-600">Total Cost</p>
-                        <p className="text-2xl font-bold text-gray-900">${totalCost}</p>
+                        <p className="text-2xl font-bold text-gray-900">
+                          ${txInfo?.valueUsd ?? "-"}
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -159,26 +248,28 @@ export default function StudyCompletionSummary({
                     <div className="flex justify-between items-start">
                       <span className="text-gray-600">Completion Date:</span>
                       <span className="font-medium text-gray-900 text-right">
-                        {completionDate}
+                        {txInfo?.createdAt ?? "-"}
                       </span>
                     </div>
                     <div className="flex justify-between items-start">
                       <span className="text-gray-600">Transaction Hash:</span>
                       <button
                         onClick={handleViewTransaction}
-                        className="font-mono text-xs text-indigo-600 hover:text-indigo-700 flex items-center space-x-1"
+                        className="font-mono text-xs text-indigo-600 hover:text-indigo-700 flex items-center space-x-1 cursor-pointer"
                       >
-                        <span>{transactionHash}...</span>
+                        <span>{txInfo?.hash.slice(0, 20)}...</span>
                         <ExternalLink className="h-3 w-3" />
                       </button>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">Gas Fees:</span>
-                      <span className="font-medium text-gray-900">$12.50</span>
+                      <span className="font-medium text-gray-900">
+                        {txInfo?.gasUsed?.toString() ?? "-"}
+                      </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">Participant Compensation:</span>
-                      <span className="font-medium text-gray-900">$144.25</span>
+                      <span className="font-medium text-gray-900">${perParticipantUsd}</span>
                     </div>
                   </div>
 
@@ -193,11 +284,9 @@ export default function StudyCompletionSummary({
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600">Block Number:</span>
-                        <span className="font-medium text-gray-900">#12,345,678</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Confirmations:</span>
-                        <span className="font-medium text-gray-900">42</span>
+                        <span className="font-medium text-gray-900">
+                          {txInfo?.blockNumber?.toString() ?? "-"}
+                        </span>
                       </div>
                     </div>
                   </div>

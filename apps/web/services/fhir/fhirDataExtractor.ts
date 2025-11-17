@@ -25,7 +25,7 @@ export interface StudyEligibilityResult {
 /**
  * Helper function to determine code system from FHIR system URL
  */
-const determineCodeSystem = (
+export const determineCodeSystem = (
   system?: string
 ): "LOINC" | "SNOMED" | "ICD10" | "ICD9" | "UCUM" | "Other" => {
   if (!system) return "Other";
@@ -35,7 +35,7 @@ const determineCodeSystem = (
   if (lowerSystem.includes("loinc")) return "LOINC";
   if (lowerSystem.includes("icd-10") || lowerSystem.includes("icd10")) return "ICD10";
   if (lowerSystem.includes("icd-9") || lowerSystem.includes("icd9")) return "ICD9";
-  if (lowerSystem.includes("ucum")) return "UCUM";
+  if (lowerSystem.includes("ucum") || lowerSystem.includes("unitsofmeasure")) return "UCUM";
 
   return "Other";
 };
@@ -223,9 +223,7 @@ export const processCondition = (
   aggregated: AggregatedMedicalData
 ): void => {
   const coding = condition.code?.coding?.find(
-    (c) =>
-      c.system?.toLowerCase().includes("snomed") ||
-      c.system?.toLowerCase().includes("icd")
+    (c) => c.system?.toLowerCase().includes("snomed") || c.system?.toLowerCase().includes("icd")
   );
 
   const code = coding?.code;
@@ -234,9 +232,7 @@ export const processCondition = (
   const codeSystem = determineCodeSystem(system);
 
   const effectiveDate =
-    condition.onsetDateTime ||
-    condition.onsetPeriod?.start ||
-    condition.recordedDate;
+    condition.onsetDateTime || condition.onsetPeriod?.start || condition.recordedDate;
 
   if (!code) return;
 
@@ -305,39 +301,38 @@ export const processCondition = (
       };
       break;
 
-      // Any cardiovascular condition (umbrella term)
-      case "414545008": // SNOMED: Ischemic heart disease
-      case "49601007": // SNOMED: Disorder of cardiovascular system
-      case "429457004": // SNOMED: Cardiovascular disease
-      case "53741008": // SNOMED: Coronary arteriosclerosis
-        aggregated.heartDiseaseStatus = {
-          value: HEART_DISEASE_VALUES.CARDIOVASCULAR_CONDITION,
-          code,
-          codeSystem,
-          source: "issuer",
-          effectiveDate,
-        };
-        break;
+    // Any cardiovascular condition (umbrella term)
+    case "414545008": // SNOMED: Ischemic heart disease
+    case "49601007": // SNOMED: Disorder of cardiovascular system
+    case "429457004": // SNOMED: Cardiovascular disease
+    case "53741008": // SNOMED: Coronary arteriosclerosis
+      aggregated.heartDiseaseStatus = {
+        value: HEART_DISEASE_VALUES.CARDIOVASCULAR_CONDITION,
+        code,
+        codeSystem,
+        source: "issuer",
+        effectiveDate,
+      };
+      break;
 
-      // Family history only
-      case "275104002": // SNOMED: Family history of cardiovascular disease
-      case "297242006": // SNOMED: Family history of ischemic heart disease
-      case "275120007": // SNOMED: Family history of cardiac disease
-      case "Z82.49": // ICD-10: Family history of ischemic heart disease
-        aggregated.heartDiseaseStatus = {
-          value: HEART_DISEASE_VALUES.FAMILY_HISTORY,
-          code,
-          codeSystem,
-          source: "patient",
-          effectiveDate,
-        };
-        break;
+    // Family history only
+    case "275104002": // SNOMED: Family history of cardiovascular disease
+    case "297242006": // SNOMED: Family history of ischemic heart disease
+    case "275120007": // SNOMED: Family history of cardiac disease
+    case "Z82.49": // ICD-10: Family history of ischemic heart disease
+      aggregated.heartDiseaseStatus = {
+        value: HEART_DISEASE_VALUES.FAMILY_HISTORY,
+        code,
+        codeSystem,
+        source: "patient",
+        effectiveDate,
+      };
+      break;
 
     default:
       console.log(`Unhandled condition code: ${code} (${display})`);
   }
 };
-
 
 /**
  * Resource type processor dispatcher

@@ -189,8 +189,8 @@ export default function UploadSection({
                       );
 
                       if (result) {
-                        alert("Medical data uploaded successfully.");
                         eventBus.emit("medicalDataUploaded");
+                        alert("Medical data uploaded successfully.");
                       }
 
                       setUploadedFileName(null);

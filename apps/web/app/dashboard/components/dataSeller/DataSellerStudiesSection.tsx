@@ -17,6 +17,7 @@ import {
   revokeStudyConsent,
   grantStudyConsent,
 } from "@/services/api/studyService";
+import eventBus from "@/lib/eventBus";
 
 type ViewMode = "enrolled" | "available";
 
@@ -117,7 +118,7 @@ export default function DataSellerStudiesSection() {
         if (result.blockchainTxHash) {
           console.log("Blockchain transaction:", result.blockchainTxHash);
         }
-
+        eventBus.emit("consentChanged");
         setEnrolledLoading(true);
         const updatedStudies = await getEnrolledStudies(walletAddress);
         setEnrolledStudies(updatedStudies);
@@ -157,7 +158,7 @@ export default function DataSellerStudiesSection() {
         if (result.blockchainTxHash) {
           console.log("Blockchain transaction:", result.blockchainTxHash);
         }
-
+        eventBus.emit("consentChanged");
         setEnrolledLoading(true);
         const updatedStudies = await getEnrolledStudies(walletAddress);
         setEnrolledStudies(updatedStudies);

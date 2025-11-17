@@ -14,6 +14,10 @@ import { auditService } from "@/services/auditService";
 import { studyService } from "@/services/studyService";
 import { SEPOLIA_TESTNET_CHAIN_ID } from "@/constants/blockchain";
 import { verifyMessage } from "ethers";
+import { createPublicClient, http } from "viem";
+import { sepolia } from "viem/chains";
+import { Config } from "@/config/config";
+import { STUDY_ABI } from "@/contracts/generated";
 
 const getAuditMetadata = (req: Request) => ({
   startTime: Date.now(),
@@ -65,6 +69,54 @@ const fetchParticipation = async (supabase: any, id: string, participantWallet: 
     .single();
 
   return { data, error };
+};
+
+export const fetchParticipantsBlockchain = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    // Get study contract address from database
+    const { data: study, error: studyError } = await req.supabase
+      .from(TABLES.STUDIES!.name)
+      .select(TABLES.STUDIES!.columns.contractAddress!)
+      .eq(TABLES.STUDIES!.columns.id!, id)
+      .single();
+
+    if (studyError || !study) {
+      logger.error({ error: studyError, studyId: id }, "Study not found");
+      return res.status(404).json({ error: "Study not found" });
+    }
+
+    const studyData = study as unknown as { contract_address: string | null };
+
+    if (!studyData.contract_address) {
+      logger.warn({ studyId: id }, "Study not deployed to blockchain");
+      return res.json({ participants: [] });
+    }
+
+    const publicClient = createPublicClient({
+      chain: sepolia,
+      transport: http(Config.SEPOLIA_RPC_URL),
+    });
+
+    const participants = (await publicClient.readContract({
+      address: studyData.contract_address as `0x${string}`,
+      abi: STUDY_ABI,
+      functionName: "getConsentedParticipants",
+    })) as string[];
+
+    logger.info(
+      { studyId: id, participantCount: participants.length },
+      "Fetched consented participants from blockchain"
+    );
+
+    return res.json({
+      participants,
+    });
+  } catch (error) {
+    logger.error({ error, studyId: req.params.id }, "Failed to fetch participants from blockchain");
+    res.status(500).json({ error: "Internal server error" });
+  }
 };
 
 const canPerformConsentOperation = (currentStatus: boolean, isRevoke: boolean): boolean => {
@@ -424,6 +476,7 @@ const transformStudyForResponse = (study: any, isEnrolled?: boolean, hasConsente
     currentParticipants: study.current_participants,
     durationDays: study.duration_days,
     status: study.status,
+    transactionHash: study.transaction_hash,
     complexityScore: study.complexity_score,
     templateName: study.template_name,
     createdAt: study.created_at,
@@ -955,24 +1008,24 @@ export const generateDataCommitmentChallenge = async (req: Request, res: Respons
 
     if (existingCommitment) {
       if (existingCommitment.proof_submitted) {
-        return res.status(400).json({ 
-          error: "You have already submitted a proof for this study" 
+        return res.status(400).json({
+          error: "You have already submitted a proof for this study",
         });
       }
 
       const expiresAt = new Date(existingCommitment.expires_at);
       const now = new Date();
-      
+
       if (now < expiresAt) {
         logger.info(
-          { 
-            studyId, 
+          {
+            studyId,
             participantWallet,
             expiresAt,
           },
           "Returning existing valid challenge"
         );
-        
+
         return res.status(200).json({
           success: true,
           challenge: existingCommitment.challenge,
@@ -985,14 +1038,11 @@ export const generateDataCommitmentChallenge = async (req: Request, res: Respons
         .from(TABLES.DATA_COMMITMENTS!.name)
         .delete()
         .eq(TABLES.DATA_COMMITMENTS!.columns.id!, existingCommitment.id);
-      
-      logger.info(
-        { studyId, participantWallet },
-        "Deleted expired commitment"
-      );
+
+      logger.info({ studyId, participantWallet }, "Deleted expired commitment");
     }
 
-    const challenge = crypto.randomBytes(32).toString('hex');
+    const challenge = crypto.randomBytes(32).toString("hex");
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours from now
 
     const { error: commitmentError } = await req.supabase
@@ -1018,7 +1068,7 @@ export const generateDataCommitmentChallenge = async (req: Request, res: Respons
       {
         studyId,
         participantWallet,
-        dataCommitment: dataCommitment.substring(0, 20) + "...", 
+        dataCommitment: dataCommitment.substring(0, 20) + "...",
         challenge: challenge.substring(0, 20) + "...",
         expiresAt,
       },
@@ -1036,17 +1086,17 @@ export const generateDataCommitmentChallenge = async (req: Request, res: Respons
 
         if (blockchainResult.success) {
           logger.info(
-            { 
+            {
               txHash: blockchainResult.transactionHash,
-              participantWallet 
+              participantWallet,
             },
             "Commitment registered on blockchain"
           );
         } else {
           logger.warn(
-            { 
+            {
               error: blockchainResult.error,
-              participantWallet 
+              participantWallet,
             },
             "Failed to register commitment on blockchain - continuing with off-chain only"
           );
@@ -1063,7 +1113,7 @@ export const generateDataCommitmentChallenge = async (req: Request, res: Respons
       success: true,
       challenge,
       expiresAt: expiresAt.toISOString(),
-      message: "Challenge generated successfully"
+      message: "Challenge generated successfully",
     });
   } catch (error) {
     logger.error({ error }, "Generate data commitment challenge error");
@@ -1076,8 +1126,6 @@ export const generateDataCommitmentChallenge = async (req: Request, res: Respons
  * POST /api/studies/:id/participants
  */
 export const participateInStudy = async (req: Request, res: Response) => {
-  const { startTime, userAgent, ipAddress } = getAuditMetadata(req);
-
   try {
     const { id } = req.params;
     const {
@@ -1113,25 +1161,25 @@ export const participateInStudy = async (req: Request, res: Response) => {
         { studyId: id, participantWallet },
         "No commitment found - user must request challenge first"
       );
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: "No commitment found. Please request a challenge first.",
-        code: "COMMITMENT_NOT_FOUND"
+        code: "COMMITMENT_NOT_FOUND",
       });
     }
 
     if (storedCommitment.data_commitment !== dataCommitment) {
       logger.error(
-        { 
-          studyId: id, 
+        {
+          studyId: id,
           participantWallet,
           submitted: dataCommitment.substring(0, 20) + "...",
           stored: storedCommitment.data_commitment.substring(0, 20) + "...",
         },
         "Data commitment mismatch - possible tampering detected"
       );
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: "Data commitment does not match stored value",
-        code: "COMMITMENT_MISMATCH"
+        code: "COMMITMENT_MISMATCH",
       });
     }
 
@@ -1140,40 +1188,39 @@ export const participateInStudy = async (req: Request, res: Response) => {
         { studyId: id, participantWallet },
         "Proof already submitted for this commitment"
       );
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: "Proof already submitted for this study",
-        code: "PROOF_ALREADY_SUBMITTED"
+        code: "PROOF_ALREADY_SUBMITTED",
       });
     }
 
     const expiresAt = new Date(storedCommitment.expires_at);
     const now = new Date();
-    
+
     if (now > expiresAt) {
       logger.warn(
         { studyId: id, participantWallet, expiresAt },
         "Challenge expired - user must request new challenge"
       );
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: "Challenge has expired. Please request a new challenge.",
-        code: "CHALLENGE_EXPIRED"
+        code: "CHALLENGE_EXPIRED",
       });
     }
 
     if (publicInputsJson) {
       try {
-        const publicInputs = typeof publicInputsJson === 'string' 
-          ? JSON.parse(publicInputsJson) 
-          : publicInputsJson;
-        
+        const publicInputs =
+          typeof publicInputsJson === "string" ? JSON.parse(publicInputsJson) : publicInputsJson;
+
         if (publicInputs.challenge && publicInputs.challenge !== storedCommitment.challenge) {
           logger.error(
             { studyId: id, participantWallet },
             "Challenge in proof does not match stored challenge"
           );
-          return res.status(400).json({ 
+          return res.status(400).json({
             error: "Invalid proof: challenge mismatch",
-            code: "CHALLENGE_MISMATCH"
+            code: "CHALLENGE_MISMATCH",
           });
         }
       } catch (parseError) {
@@ -1182,8 +1229,8 @@ export const participateInStudy = async (req: Request, res: Response) => {
     }
 
     logger.info(
-      { 
-        studyId: id, 
+      {
+        studyId: id,
         participantWallet,
         commitmentId: storedCommitment.id,
       },
@@ -1247,7 +1294,7 @@ export const participateInStudy = async (req: Request, res: Response) => {
 
     const { error: commitmentUpdateError } = await req.supabase
       .from(TABLES.DATA_COMMITMENTS!.name)
-      .update({ 
+      .update({
         proof_submitted: true,
         proof_submitted_at: new Date().toISOString(),
       })
@@ -1277,7 +1324,7 @@ export const participateInStudy = async (req: Request, res: Response) => {
       proofJson,
       participantWallet,
       dataCommitment,
-      storedCommitment.challenge 
+      storedCommitment.challenge
     );
 
     await req.supabase
@@ -1286,13 +1333,7 @@ export const participateInStudy = async (req: Request, res: Response) => {
       .eq(TABLES.STUDY_PARTICIPATIONS!.columns.id!, participation.id);
 
     await auditService.logStudyParticipation(participantWallet, String(id), true, {
-      eligibilityScore,
-      matchedCriteria,
       blockchainTxHash,
-      dataCommitment: dataCommitment.substring(0, 20) + "...",
-      userAgent,
-      ipAddress,
-      duration: getAuditDuration(startTime),
     });
 
     res.status(201).json({
@@ -1317,9 +1358,6 @@ export const participateInStudy = async (req: Request, res: Response) => {
       await auditService
         .logStudyParticipation(participantWallet, String(id), false, {
           error: error instanceof Error ? error.message : "Unknown error",
-          userAgent,
-          ipAddress,
-          duration: getAuditDuration(startTime),
         })
         .catch((auditError) => {
           logger.error({ auditError }, "Failed to log failed participation attempt");
@@ -1533,4 +1571,136 @@ export const revokeStudyConsent = async (req: Request, res: Response) => {
 
 export const grantStudyConsent = async (req: Request, res: Response) => {
   return handleConsentOperation(req, res, "grant");
+};
+
+export const logStudyDataAccess = async (req: Request, res: Response) => {
+  const { startTime, userAgent, ipAddress } = getAuditMetadata(req);
+
+  try {
+    const { id } = req.params;
+    const { creatorWallet } = req.body;
+
+    if (!id) {
+      return res.status(400).json({ error: "Study ID is required" });
+    }
+
+    if (!creatorWallet) {
+      return res.status(400).json({ error: "Creator wallet address is required" });
+    }
+
+    logger.info({ studyId: id, creatorWallet }, "POST /api/studies/:id/data-access");
+
+    // Get study details and participants
+    const { data: study, error: studyError } = await req.supabase
+      .from(TABLES.STUDIES!.name)
+      .select("id, title, created_by")
+      .eq(TABLES.STUDIES!.columns.id!, id)
+      .single();
+
+    if (studyError || !study) {
+      logger.warn({ studyId: id, error: studyError }, "Study not found for data access logging");
+      return res.status(404).json({ error: "Study not found" });
+    }
+
+    if (study.created_by?.toLowerCase() !== creatorWallet.toLowerCase()) {
+      logger.warn(
+        { studyId: id, creatorWallet, actualCreator: study.created_by },
+        "Unauthorized data access logging attempt"
+      );
+      return res.status(403).json({ error: "Only the study creator can log data access" });
+    }
+
+    const { data: participants, error: participantsError } = await req.supabase
+      .from(TABLES.STUDY_PARTICIPATIONS!.name)
+      .select(TABLES.STUDY_PARTICIPATIONS!.columns.participantWallet!)
+      .eq(TABLES.STUDY_PARTICIPATIONS!.columns.studyId!, id)
+      .eq(TABLES.STUDY_PARTICIPATIONS!.columns.hasConsented!, true);
+
+    if (participantsError) {
+      logger.error({ error: participantsError, studyId: id }, "Failed to fetch participants");
+      return res.status(500).json({ error: "Failed to fetch participants" });
+    }
+
+    const participantAddresses = (participants || []).map((p: any) => p.participant_wallet);
+
+    if (participantAddresses.length === 0) {
+      logger.warn({ studyId: id }, "No consented participants found for data access logging");
+      return res.status(400).json({ error: "No consented participants found" });
+    }
+
+    const auditResult = await auditService.logStudyDataAccess(
+      creatorWallet,
+      participantAddresses,
+      id,
+      true,
+      {
+        studyTitle: study.title,
+        participantCount: participantAddresses.length,
+        userAgent,
+        ipAddress,
+        duration: getAuditDuration(startTime),
+      }
+    );
+
+    if (!auditResult.creatorLog.success) {
+      logger.error(
+        { error: auditResult.creatorLog.error, studyId: id, creatorWallet },
+        "Failed to log study data access for creator"
+      );
+      return res.status(500).json({
+        error: "Failed to log data access",
+        details: auditResult.creatorLog.error,
+      });
+    }
+
+    logger.info(
+      {
+        studyId: id,
+        creatorWallet,
+        participantCount: participantAddresses.length,
+        txHash: auditResult.creatorLog.txHash,
+      },
+      "Study data access logged successfully"
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Data access logged successfully",
+      studyId: Number(id),
+      participantCount: participantAddresses.length,
+      creatorTxHash: auditResult.creatorLog.txHash,
+      participantsTxHash: auditResult.participantsLog.txHash,
+    });
+  } catch (error) {
+    logger.error(
+      {
+        error:
+          error instanceof Error
+            ? {
+                message: error.message,
+                stack: error.stack,
+                name: error.name,
+              }
+            : error,
+        studyId: req.params.id,
+      },
+      "Log study data access error"
+    );
+
+    const { creatorWallet } = req.body;
+    if (creatorWallet && req.params.id) {
+      await auditService
+        .logStudyDataAccess(creatorWallet, [], req.params.id, false, {
+          error: error instanceof Error ? error.message : "Unknown error",
+          userAgent,
+          ipAddress,
+          duration: getAuditDuration(startTime),
+        })
+        .catch((auditError) => {
+          logger.error({ auditError }, "Failed to log failed data access attempt");
+        });
+    }
+
+    res.status(500).json({ error: "Internal server error" });
+  }
 };

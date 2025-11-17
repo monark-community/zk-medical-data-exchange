@@ -3,6 +3,7 @@ import { UserMinus, CheckCircle2, XCircle, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import StudiesList from "@/app/dashboard/components/shared/StudiesList";
 import { Spinner } from "@/components/ui/spinner";
+import { modifyStudiesForCompletion } from "@/utils/studyUtils";
 
 interface EnrolledStudiesListProps {
   studies: StudySummary[];
@@ -23,12 +24,18 @@ export default function EnrolledStudiesList({
   grantingStudyId,
   walletAddress,
 }: EnrolledStudiesListProps) {
+  const modifiedStudies = modifyStudiesForCompletion(studies);
+
   const renderActionButtons = (study: StudySummary) => {
     const isRevoking = revokingStudyId === study.id;
     const isGranting = grantingStudyId === study.id;
     const hasConsent = study.hasConsented ?? true;
     const isStudyFull = study.currentParticipants >= study.maxParticipants;
-    const isCompleted = study.status === "completed";
+    const endDate =
+      study.createdAt && study.durationDays
+        ? new Date(new Date(study.createdAt).getTime() + study.durationDays * 24 * 60 * 60 * 1000)
+        : null;
+    const isCompleted = (endDate ? new Date() > endDate : false) || study.status === "completed";
 
     return (
       <div className="flex items-center gap-2">
@@ -141,7 +148,7 @@ export default function EnrolledStudiesList({
 
   return (
     <StudiesList
-      studies={studies}
+      studies={modifiedStudies}
       renderActionButtons={renderActionButtons}
       descriptionMaxLength={100}
       showCriteriaLabel={true}

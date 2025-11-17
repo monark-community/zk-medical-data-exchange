@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint .",
     "test": "bun test || true",
+    "coverage": "bun test --coverage || true",
     "test:study-flow": "ts-node scripts/testStudyFlow.ts"
   },
   "dependencies": {

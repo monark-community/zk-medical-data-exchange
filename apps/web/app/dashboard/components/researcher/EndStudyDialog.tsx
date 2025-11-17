@@ -11,7 +11,14 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, Users, Database, CheckCircle } from "lucide-react";
-import { endStudy } from "@/services/api/studyService";
+import { endStudy, getParticipants } from "@/services/api/studyService";
+import { disperseEthEqual } from "@/utils/disperseEth";
+import { sepolia } from "viem/chains";
+import { http } from "viem";
+import { createConfig } from "wagmi";
+import { Config } from "@/config/config";
+import { verifyTransaction } from "@/services/api/transactionService";
+import eventBus from "@/lib/eventBus";
 
 interface EndStudyDialogProps {
   open: boolean;
@@ -33,26 +40,60 @@ export default function EndStudyDialog({
   const [showSuccess, setShowSuccess] = useState(false);
 
   const handleCancel = () => {
-  if (!isEnding) {
-    onOpenChange(false);
-  }
-};
+    if (!isEnding) {
+      onOpenChange(false);
+    }
+  };
 
   const handleProceed = async () => {
     setIsEnding(true);
-    
-    try {
-      // Update study status to "completed" in database
+    let transactionHash: `0x${string}` = "0x";
+    const { participants } = await getParticipants(studyId);
+
+    if (participants.length === 0) {
       await endStudy(studyId);
-      
-      // TODO: Additional backend implementation needed:
-      // 1. Finalize blockchain transaction
-      // 2. Calculate final costs and participant compensation
-      // 3. Notify all enrolled participants
-      // 4. Archive study data and make it accessible
-      
+      // Emit event to refresh stats
+      eventBus.emit("studyCompleted");
       setShowSuccess(true);
-      
+      setIsEnding(false);
+      setShowSuccess(false);
+      onOpenChange(false);
+      onStudyEnded?.();
+      return;
+    }
+
+    try {
+      const config = createConfig({
+        chains: [sepolia],
+        transports: {
+          [sepolia.id]: http(Config.SEPOLIA_RPC_URL),
+        },
+      });
+
+      const { hash } = await disperseEthEqual({
+        config,
+        contractAddress: Config.DISPERSE_ADDRESS as `0x${string}`,
+        recipients: participants as `0x${string}`[],
+        amountEachEth: 0.001,
+      });
+      transactionHash = hash;
+    } catch (error) {
+      console.error("Failed to disperse ETH to participants:", error);
+      setIsEnding(false);
+      alert("Failed to disperse ETH. Please try again.");
+      return;
+    }
+
+    try {
+      const result = await verifyTransaction(transactionHash, studyId);
+
+      if (!result.verified) {
+        throw new Error("Transaction could not be verified");
+      }
+
+      eventBus.emit("studyCompleted");
+
+      setShowSuccess(true);
       setTimeout(() => {
         setIsEnding(false);
         setShowSuccess(false);
@@ -60,12 +101,12 @@ export default function EndStudyDialog({
         onStudyEnded?.();
       }, 2000);
     } catch (error) {
-      console.error("Failed to end study:", error);
+      console.error("Transaction verification failed:", error);
       setIsEnding(false);
-      alert("Failed to end study. Please try again.");
+      alert("Failed to verify transaction. Please try again.");
+      return;
     }
   };
-
   // Placeholder values - will be replaced with actual data later
   const enrolledUsers = 42;
   const dataAccessCount = 156;
@@ -166,9 +207,9 @@ export default function EndStudyDialog({
         </div>
 
         <DialogFooter className="!flex-row !justify-end space-x-2">
-          <Button 
-            variant="outline" 
-            onClick={handleCancel} 
+          <Button
+            variant="outline"
+            onClick={handleCancel}
             className="min-w-[100px]"
             disabled={isEnding}
           >

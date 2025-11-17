@@ -4,12 +4,16 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { createCriteria, validateCriteria, STUDY_TEMPLATES } from "@zk-medical/shared";
+import {
+  createCriteria,
+  validateCriteria,
+  STUDY_TEMPLATES,
+  CRITERIA_DEFAULTS,
+} from "@zk-medical/shared";
 import { useCreateStudy, deployStudy, deleteStudy } from "@/services/api/studyService";
 import { useAccount } from "wagmi";
 import { STUDY_FORM_MAPPINGS, DEFAULT_STUDY_INFO } from "@/constants/studyFormMappings";
-
-// Template selector component
+import eventBus from "@/lib/eventBus";
 const TemplateSelector = ({
   onTemplateSelect,
   selectedTemplate,
@@ -109,7 +113,6 @@ const TemplateSelector = ({
   );
 };
 
-// Individual criteria component
 const CriteriaField = ({
   label,
   enabled,
@@ -155,7 +158,6 @@ const CriteriaField = ({
   );
 };
 
-// Number input component with empty value support
 const NumberInput = ({
   value,
   onChange,
@@ -165,6 +167,7 @@ const NumberInput = ({
   min,
   max,
   id,
+  step,
 }: {
   value: number;
   onChange: (value: number) => void;
@@ -174,10 +177,10 @@ const NumberInput = ({
   min?: number;
   max?: number;
   id?: string;
+  step?: number;
 }) => {
   const [displayValue, setDisplayValue] = useState(value.toString());
 
-  // Update display value when prop value changes
   useEffect(() => {
     setDisplayValue(value.toString());
   }, [value]);
@@ -186,28 +189,31 @@ const NumberInput = ({
     const newValue = e.target.value;
     setDisplayValue(newValue);
 
-    // Allow empty string to clear the field
     if (newValue === "") {
       return;
     }
 
     const numValue = Number(newValue);
     if (!Number.isNaN(numValue)) {
-      onChange(numValue);
+      let adjustedValue = numValue;
+      if (step === 1) adjustedValue = Math.floor(numValue);
+      else if (step === 0.1) adjustedValue = Math.round(numValue * 10) / 10;
+      onChange(adjustedValue);
     }
   };
 
   const handleBlur = () => {
-    // If field is empty on blur, restore the original value
     if (displayValue === "" || Number.isNaN(Number(displayValue))) {
       setDisplayValue(value.toString());
       onBlur?.(value);
     } else {
       const numValue = Number(displayValue);
-      // Apply min/max constraints
+
       let constrainedValue = numValue;
       if (min !== undefined && numValue < min) constrainedValue = min;
       if (max !== undefined && numValue > max) constrainedValue = max;
+      if (step === 1) constrainedValue = Math.floor(constrainedValue);
+      else if (step === 0.1) constrainedValue = Math.round(constrainedValue * 10) / 10;
 
       setDisplayValue(constrainedValue.toString());
       onChange(constrainedValue);
@@ -226,11 +232,11 @@ const NumberInput = ({
       min={min}
       max={max}
       id={id}
+      step={step}
     />
   );
 };
 
-// Range input component
 const RangeInput = ({
   label,
   minValue,
@@ -240,6 +246,8 @@ const RangeInput = ({
   unit = "",
   absoluteMin,
   absoluteMax,
+  stepMin,
+  stepMax,
 }: {
   label: string;
   minValue: number;
@@ -249,6 +257,8 @@ const RangeInput = ({
   unit?: string;
   absoluteMin?: number;
   absoluteMax?: number;
+  stepMin?: number;
+  stepMax?: number;
 }) => {
   return (
     <div className="space-y-3">
@@ -263,6 +273,7 @@ const RangeInput = ({
               placeholder="Min"
               min={absoluteMin}
               max={absoluteMax}
+              step={stepMin}
             />
             {unit && (
               <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded">
@@ -283,6 +294,7 @@ const RangeInput = ({
               placeholder="Max"
               min={absoluteMin}
               max={absoluteMax}
+              step={stepMax}
             />
             {unit && (
               <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded">
@@ -307,30 +319,26 @@ const StudyCreationForm = ({
   isModal = false,
   onSubmitStateChange,
 }: StudyCreationFormProps) => {
-  // Basic study info
   const [studyInfo, setStudyInfo] = useState(DEFAULT_STUDY_INFO);
 
-  // Study criteria state
   const [criteria, setCriteria] = useState(() => createCriteria());
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<string | undefined>();
 
-  // Notify parent component when submit state changes
+  const sanitizeText = (text: string) => {
+    return text.replace(/[^a-zA-Z0-9\s\-.,!?()]/g, "");
+  };
+
   useEffect(() => {
     onSubmitStateChange?.(isSubmitting);
   }, [isSubmitting, onSubmitStateChange]);
 
-  // Wagmi wallet hook
   const { address: walletAddress, isConnected } = useAccount();
 
-  // Next.js router for navigation
   const router = useRouter();
 
-  // API hook
   const { createStudy: createStudyApi } = useCreateStudy();
-
-  // Reset form to initial state
   const resetForm = () => {
     setStudyInfo(DEFAULT_STUDY_INFO);
     setCriteria(createCriteria());
@@ -354,28 +362,31 @@ const StudyCreationForm = ({
     const newCriteria = { ...criteria, ...updates };
     setCriteria(newCriteria);
 
-    // Clear template selection since user is customizing
     setSelectedTemplate(undefined);
 
-    // Validate on change
     const validation = validateCriteria(newCriteria);
     setValidationErrors(validation.errors);
   };
+
+  useEffect(() => {
+    const errors: string[] = [];
+    if (!studyInfo.title) errors.push("Study Title is required.");
+    if (!studyInfo.description) errors.push("Description is required.");
+    const validation = validateCriteria(criteria);
+    errors.push(...validation.errors);
+    setValidationErrors(errors);
+  }, [studyInfo.title, studyInfo.description, criteria]);
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
 
     try {
-      // Validate criteria
-      const validation = validateCriteria(criteria);
-      if (!validation.valid) {
-        setValidationErrors(validation.errors);
+      if (validationErrors.length > 0) {
         return;
       }
 
       console.log("Creating study via API...");
 
-      // Check if wallet is connected
       if (!isConnected || !walletAddress) {
         alert("Please connect your wallet before creating a study.");
         return;
@@ -401,6 +412,7 @@ const StudyCreationForm = ({
         const deployResult = await deployStudy(result.study.id);
 
         console.log("Blockchain deployment successful:", deployResult);
+        eventBus.emit("studyCreated");
 
         alert(
           `Study "${result.study.title}" created and deployed successfully!\n\n` +
@@ -413,7 +425,6 @@ const StudyCreationForm = ({
             `• View on Etherscan: ${deployResult.deployment.etherscanUrl}`
         );
 
-        // Clear form and handle success
         resetForm();
         if (isModal && onSuccess) {
           onSuccess();
@@ -436,8 +447,6 @@ const StudyCreationForm = ({
             `Error: ${deployError instanceof Error ? deployError.message : "Unknown error"}\n\n` +
             `Please try creating the study again.`
         );
-
-        // Don't reset form or navigate on failure, let user try again
         return;
       }
     } catch (error) {
@@ -473,11 +482,16 @@ const StudyCreationForm = ({
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="space-y-2">
-            <label className="block text-sm font-semibold text-gray-700">Study Title</label>
+            <label className="block text-sm font-semibold text-gray-700">
+              Study Title{" "}
+              <span className="text-red-500" title="This field is required">
+                *
+              </span>
+            </label>
             <input
               type="text"
               value={studyInfo.title}
-              onChange={(e) => setStudyInfo({ ...studyInfo, title: e.target.value })}
+              onChange={(e) => setStudyInfo({ ...studyInfo, title: sanitizeText(e.target.value) })}
               className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200"
               placeholder="e.g., Hypertension Management Study"
             />
@@ -489,6 +503,8 @@ const StudyCreationForm = ({
               onChange={(value) => setStudyInfo({ ...studyInfo, maxParticipants: value })}
               className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200"
               min={1}
+              max={CRITERIA_DEFAULTS.maxParticipants}
+              step={1}
               placeholder="Enter maximum participants"
             />
           </div>
@@ -502,15 +518,23 @@ const StudyCreationForm = ({
               onChange={(value) => setStudyInfo({ ...studyInfo, durationDays: value })}
               className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200"
               min={1}
-              max={365}
+              max={CRITERIA_DEFAULTS.durationDays}
+              step={1}
               placeholder="Enter study duration in days"
             />
           </div>
           <div className="lg:col-span-2 space-y-2">
-            <label className="block text-sm font-semibold text-gray-700">Description</label>
+            <label className="block text-sm font-semibold text-gray-700">
+              Description{" "}
+              <span className="text-red-500" title="This field is required">
+                *
+              </span>
+            </label>
             <textarea
               value={studyInfo.description}
-              onChange={(e) => setStudyInfo({ ...studyInfo, description: e.target.value })}
+              onChange={(e) =>
+                setStudyInfo({ ...studyInfo, description: sanitizeText(e.target.value) })
+              }
               className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl h-24 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 resize-none"
               placeholder="Describe your study objectives and methodology..."
             />
@@ -566,7 +590,9 @@ const StudyCreationForm = ({
           <CriteriaField
             label="Age Requirements"
             enabled={criteria.enableAge === 1}
-            onEnabledChange={(enabled) => updateCriteria({ enableAge: enabled ? 1 : 0 })}
+            onEnabledChange={(enabled) =>
+              updateCriteria(enabled ? { enableAge: 1 } : { enableAge: 0, minAge: 0, maxAge: 0 })
+            }
           >
             <RangeInput
               label="Age Range"
@@ -575,8 +601,10 @@ const StudyCreationForm = ({
               onMinChange={(value) => updateCriteria({ minAge: value })}
               onMaxChange={(value) => updateCriteria({ maxAge: value })}
               unit="years"
-              absoluteMin={0}
-              absoluteMax={150}
+              absoluteMin={CRITERIA_DEFAULTS.age.min}
+              absoluteMax={CRITERIA_DEFAULTS.age.max}
+              stepMin={CRITERIA_DEFAULTS.age.step}
+              stepMax={CRITERIA_DEFAULTS.age.step}
             />
           </CriteriaField>
 
@@ -584,7 +612,9 @@ const StudyCreationForm = ({
           <CriteriaField
             label="Gender Requirements"
             enabled={criteria.enableGender === 1}
-            onEnabledChange={(enabled) => updateCriteria({ enableGender: enabled ? 1 : 0 })}
+            onEnabledChange={(enabled) =>
+              updateCriteria(enabled ? { enableGender: 1 } : { enableGender: 0, allowedGender: 0 })
+            }
           >
             <div className="space-y-3">
               <label className="block text-sm font-semibold text-gray-700">Allowed Gender</label>
@@ -608,17 +638,21 @@ const StudyCreationForm = ({
           <CriteriaField
             label="BMI Requirements"
             enabled={criteria.enableBMI === 1}
-            onEnabledChange={(enabled) => updateCriteria({ enableBMI: enabled ? 1 : 0 })}
+            onEnabledChange={(enabled) =>
+              updateCriteria(enabled ? { enableBMI: 1 } : { enableBMI: 0, minBMI: 0, maxBMI: 0 })
+            }
           >
             <RangeInput
               label="BMI Range"
-              minValue={criteria.minBMI / 10}
-              maxValue={criteria.maxBMI / 10}
+              minValue={criteria.minBMI === 0 ? CRITERIA_DEFAULTS.bmi.min : criteria.minBMI / 10}
+              maxValue={criteria.maxBMI === 0 ? CRITERIA_DEFAULTS.bmi.max : criteria.maxBMI / 10}
               onMinChange={(value) => updateCriteria({ minBMI: Math.round(value * 10) })}
               onMaxChange={(value) => updateCriteria({ maxBMI: Math.round(value * 10) })}
               unit="kg/m²"
-              absoluteMin={10.0}
-              absoluteMax={80.0}
+              absoluteMin={CRITERIA_DEFAULTS.bmi.min}
+              absoluteMax={CRITERIA_DEFAULTS.bmi.max}
+              stepMin={CRITERIA_DEFAULTS.bmi.step}
+              stepMax={CRITERIA_DEFAULTS.bmi.step}
             />
           </CriteriaField>
 
@@ -626,17 +660,33 @@ const StudyCreationForm = ({
           <CriteriaField
             label="Cholesterol Requirements"
             enabled={criteria.enableCholesterol === 1}
-            onEnabledChange={(enabled) => updateCriteria({ enableCholesterol: enabled ? 1 : 0 })}
+            onEnabledChange={(enabled) =>
+              updateCriteria(
+                enabled
+                  ? { enableCholesterol: 1 }
+                  : { enableCholesterol: 0, minCholesterol: 0, maxCholesterol: 0 }
+              )
+            }
           >
             <RangeInput
               label="Cholesterol Level"
-              minValue={criteria.minCholesterol}
-              maxValue={criteria.maxCholesterol}
-              onMinChange={(value) => updateCriteria({ minCholesterol: value })}
-              onMaxChange={(value) => updateCriteria({ maxCholesterol: value })}
+              minValue={
+                criteria.minCholesterol === 0
+                  ? CRITERIA_DEFAULTS.cholesterol.min
+                  : criteria.minCholesterol / 10
+              }
+              maxValue={
+                criteria.maxCholesterol === 0
+                  ? CRITERIA_DEFAULTS.cholesterol.max
+                  : criteria.maxCholesterol / 10
+              }
+              onMinChange={(value) => updateCriteria({ minCholesterol: Math.round(value * 10) })}
+              onMaxChange={(value) => updateCriteria({ maxCholesterol: Math.round(value * 10) })}
               unit="mg/dL"
-              absoluteMin={0}
-              absoluteMax={1000}
+              absoluteMin={CRITERIA_DEFAULTS.cholesterol.min}
+              absoluteMax={CRITERIA_DEFAULTS.cholesterol.max}
+              stepMin={CRITERIA_DEFAULTS.cholesterol.step}
+              stepMax={CRITERIA_DEFAULTS.cholesterol.step}
             />
           </CriteriaField>
 
@@ -644,28 +694,60 @@ const StudyCreationForm = ({
           <CriteriaField
             label="Blood Pressure Requirements"
             enabled={criteria.enableBloodPressure === 1}
-            onEnabledChange={(enabled) => updateCriteria({ enableBloodPressure: enabled ? 1 : 0 })}
+            onEnabledChange={(enabled) =>
+              updateCriteria(
+                enabled
+                  ? { enableBloodPressure: 1 }
+                  : {
+                      enableBloodPressure: 0,
+                      minSystolic: 0,
+                      maxSystolic: 0,
+                      minDiastolic: 0,
+                      maxDiastolic: 0,
+                    }
+              )
+            }
           >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <RangeInput
                 label="Systolic Pressure"
-                minValue={criteria.minSystolic}
-                maxValue={criteria.maxSystolic}
-                onMinChange={(value) => updateCriteria({ minSystolic: value })}
-                onMaxChange={(value) => updateCriteria({ maxSystolic: value })}
+                minValue={
+                  criteria.minSystolic === 0
+                    ? CRITERIA_DEFAULTS.bloodPressure.systolic.min
+                    : criteria.minSystolic / 10
+                }
+                maxValue={
+                  criteria.maxSystolic === 0
+                    ? CRITERIA_DEFAULTS.bloodPressure.systolic.max
+                    : criteria.maxSystolic / 10
+                }
+                onMinChange={(value) => updateCriteria({ minSystolic: Math.round(value * 10) })}
+                onMaxChange={(value) => updateCriteria({ maxSystolic: Math.round(value * 10) })}
                 unit="mmHg"
-                absoluteMin={70}
-                absoluteMax={250}
+                absoluteMin={CRITERIA_DEFAULTS.bloodPressure.systolic.min}
+                absoluteMax={CRITERIA_DEFAULTS.bloodPressure.systolic.max}
+                stepMin={CRITERIA_DEFAULTS.bloodPressure.systolic.step}
+                stepMax={CRITERIA_DEFAULTS.bloodPressure.systolic.step}
               />
               <RangeInput
                 label="Diastolic Pressure"
-                minValue={criteria.minDiastolic}
-                maxValue={criteria.maxDiastolic}
-                onMinChange={(value) => updateCriteria({ minDiastolic: value })}
-                onMaxChange={(value) => updateCriteria({ maxDiastolic: value })}
+                minValue={
+                  criteria.minDiastolic === 0
+                    ? CRITERIA_DEFAULTS.bloodPressure.diastolic.min
+                    : criteria.minDiastolic / 10
+                }
+                maxValue={
+                  criteria.maxDiastolic === 0
+                    ? CRITERIA_DEFAULTS.bloodPressure.diastolic.max
+                    : criteria.maxDiastolic / 10
+                }
+                onMinChange={(value) => updateCriteria({ minDiastolic: Math.round(value * 10) })}
+                onMaxChange={(value) => updateCriteria({ maxDiastolic: Math.round(value * 10) })}
                 unit="mmHg"
-                absoluteMin={40}
-                absoluteMax={150}
+                absoluteMin={CRITERIA_DEFAULTS.bloodPressure.diastolic.min}
+                absoluteMax={CRITERIA_DEFAULTS.bloodPressure.diastolic.max}
+                stepMin={CRITERIA_DEFAULTS.bloodPressure.diastolic.step}
+                stepMax={CRITERIA_DEFAULTS.bloodPressure.diastolic.step}
               />
             </div>
           </CriteriaField>
@@ -674,7 +756,11 @@ const StudyCreationForm = ({
           <CriteriaField
             label="Smoking Status"
             enabled={criteria.enableSmoking === 1}
-            onEnabledChange={(enabled) => updateCriteria({ enableSmoking: enabled ? 1 : 0 })}
+            onEnabledChange={(enabled) =>
+              updateCriteria(
+                enabled ? { enableSmoking: 1 } : { enableSmoking: 0, allowedSmoking: 0 }
+              )
+            }
           >
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -698,7 +784,13 @@ const StudyCreationForm = ({
           <CriteriaField
             label="Location/Region Requirements"
             enabled={criteria.enableLocation === 1}
-            onEnabledChange={(enabled) => updateCriteria({ enableLocation: enabled ? 1 : 0 })}
+            onEnabledChange={(enabled) =>
+              updateCriteria(
+                enabled
+                  ? { enableLocation: 1 }
+                  : { enableLocation: 0, allowedRegions: [0, 0, 0, 0] as const }
+              )
+            }
           >
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -724,13 +816,11 @@ const StudyCreationForm = ({
                           ];
 
                           if (e.target.checked) {
-                            // Find first empty slot and add the region
                             const emptyIndex = newRegions.findIndex((r) => r === 0);
                             if (emptyIndex !== -1) {
                               newRegions[emptyIndex] = region.value;
                             }
                           } else {
-                            // Remove the region by replacing it with 0
                             const regionIndex = newRegions.findIndex((r) => r === region.value);
                             if (regionIndex !== -1) {
                               newRegions[regionIndex] = 0;
@@ -754,7 +844,13 @@ const StudyCreationForm = ({
           <CriteriaField
             label="Blood Type Requirements"
             enabled={criteria.enableBloodType === 1}
-            onEnabledChange={(enabled) => updateCriteria({ enableBloodType: enabled ? 1 : 0 })}
+            onEnabledChange={(enabled) =>
+              updateCriteria(
+                enabled
+                  ? { enableBloodType: 1 }
+                  : { enableBloodType: 0, allowedBloodTypes: [0, 0, 0, 0] as const }
+              )
+            }
           >
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -780,13 +876,11 @@ const StudyCreationForm = ({
                           ];
 
                           if (e.target.checked) {
-                            // Find first empty slot and add the blood type
                             const emptyIndex = newBloodTypes.findIndex((bt) => bt === 0);
                             if (emptyIndex !== -1) {
                               newBloodTypes[emptyIndex] = bloodType.value;
                             }
                           } else {
-                            // Remove the blood type by replacing it with 0
                             const bloodTypeIndex = newBloodTypes.findIndex(
                               (bt) => bt === bloodType.value
                             );
@@ -812,17 +906,27 @@ const StudyCreationForm = ({
           <CriteriaField
             label="HbA1c Requirements (Diabetes Marker)"
             enabled={criteria.enableHbA1c === 1}
-            onEnabledChange={(enabled) => updateCriteria({ enableHbA1c: enabled ? 1 : 0 })}
+            onEnabledChange={(enabled) =>
+              updateCriteria(
+                enabled ? { enableHbA1c: 1 } : { enableHbA1c: 0, minHbA1c: 0, maxHbA1c: 0 }
+              )
+            }
           >
             <RangeInput
               label="HbA1c Level"
-              minValue={criteria.minHbA1c / 10}
-              maxValue={criteria.maxHbA1c / 10}
+              minValue={
+                criteria.minHbA1c === 0 ? CRITERIA_DEFAULTS.hbA1c.min : criteria.minHbA1c / 10
+              }
+              maxValue={
+                criteria.maxHbA1c === 0 ? CRITERIA_DEFAULTS.hbA1c.max : criteria.maxHbA1c / 10
+              }
               onMinChange={(value) => updateCriteria({ minHbA1c: Math.round(value * 10) })}
               onMaxChange={(value) => updateCriteria({ maxHbA1c: Math.round(value * 10) })}
               unit="%"
-              absoluteMin={4.0}
-              absoluteMax={20.0}
+              absoluteMin={CRITERIA_DEFAULTS.hbA1c.min}
+              absoluteMax={CRITERIA_DEFAULTS.hbA1c.max}
+              stepMin={CRITERIA_DEFAULTS.hbA1c.step}
+              stepMax={CRITERIA_DEFAULTS.hbA1c.step}
             />
           </CriteriaField>
 
@@ -830,7 +934,17 @@ const StudyCreationForm = ({
           <CriteriaField
             label="Physical Activity Level"
             enabled={criteria.enableActivity === 1}
-            onEnabledChange={(enabled) => updateCriteria({ enableActivity: enabled ? 1 : 0 })}
+            onEnabledChange={(enabled) =>
+              updateCriteria(
+                enabled
+                  ? {
+                      enableActivity: 1,
+                      minActivityLevel: CRITERIA_DEFAULTS.activityLevel.min,
+                      maxActivityLevel: CRITERIA_DEFAULTS.activityLevel.max,
+                    }
+                  : { enableActivity: 0, minActivityLevel: 0, maxActivityLevel: 0 }
+              )
+            }
           >
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -872,7 +986,11 @@ const StudyCreationForm = ({
           <CriteriaField
             label="Diabetes History"
             enabled={criteria.enableDiabetes === 1}
-            onEnabledChange={(enabled) => updateCriteria({ enableDiabetes: enabled ? 1 : 0 })}
+            onEnabledChange={(enabled) =>
+              updateCriteria(
+                enabled ? { enableDiabetes: 1 } : { enableDiabetes: 0, allowedDiabetes: 0 }
+              )
+            }
           >
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -896,7 +1014,13 @@ const StudyCreationForm = ({
           <CriteriaField
             label="Heart Disease History"
             enabled={criteria.enableHeartDisease === 1}
-            onEnabledChange={(enabled) => updateCriteria({ enableHeartDisease: enabled ? 1 : 0 })}
+            onEnabledChange={(enabled) =>
+              updateCriteria(
+                enabled
+                  ? { enableHeartDisease: 1 }
+                  : { enableHeartDisease: 0, allowedHeartDisease: 0 }
+              )
+            }
           >
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -984,9 +1108,7 @@ const StudyCreationForm = ({
           </div>
           <Button
             onClick={handleSubmit}
-            disabled={
-              isSubmitting || !studyInfo.title || validationErrors.length > 0 || !isConnected
-            }
+            disabled={isSubmitting || validationErrors.length > 0 || !isConnected}
             className="bg-white text-blue-700 hover:bg-gray-50 font-bold px-8 py-4 text-lg rounded-xl shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:scale-105"
           >
             {isSubmitting ? (

@@ -16,7 +16,9 @@ import { ipfsDownload } from "../api/ipfsService";
  * @returns A Promise that resolves to the aggregated medical data in ZK-compatible format.
  * @throws Will throw an error if wallet address is missing or if the aggregation process fails.
  */
-export const getAggregatedMedicalData = async (walletAddress?: string): Promise<AggregatedMedicalData> => {
+export const getAggregatedMedicalData = async (
+  walletAddress?: string
+): Promise<AggregatedMedicalData> => {
   if (!walletAddress) {
     throw new Error("Wallet address is required to aggregate medical data");
   }
@@ -26,8 +28,8 @@ export const getAggregatedMedicalData = async (walletAddress?: string): Promise<
     const medicalDataCIDs = await fetchCIDs(walletAddress);
 
     if (medicalDataCIDs.length === 0) {
-        console.warn("No medical data found for wallet:", walletAddress);
-        return {};
+      console.warn("No medical data found for wallet:", walletAddress);
+      return {};
     }
 
     let aesKey = getAESKey(walletAddress);
@@ -58,32 +60,38 @@ export const getAggregatedMedicalData = async (walletAddress?: string): Promise<
 
         mergeAggregatedData(consolidatedData, aggregatedData);
         successCount++;
-
       } catch (error) {
         const errorObj = error instanceof Error ? error : new Error(String(error));
         errors.push({ cid: medicalData.encryptedCid, error: errorObj });
-        console.error(`Failed to decrypt/retrieve data for CID ${medicalData.encryptedCid}:`, errorObj);
+        console.error(
+          `Failed to decrypt/retrieve data for CID ${medicalData.encryptedCid}:`,
+          errorObj
+        );
       }
     }
 
-    console.log(`Processed ${medicalDataCIDs.length} CIDs: ${successCount} succeeded, ${errors.length} failed`);
+    console.log(
+      `Processed ${medicalDataCIDs.length} CIDs: ${successCount} succeeded, ${errors.length} failed`
+    );
 
     if (errors.length > 0) {
-      console.warn("Failed CIDs:", errors.map(e => ({ cid: e.cid, message: e.error.message })));
+      console.warn(
+        "Failed CIDs:",
+        errors.map((e) => ({ cid: e.cid, message: e.error.message }))
+      );
     }
 
     if (Object.keys(consolidatedData).length === 0) {
       if (errors.length === medicalDataCIDs.length) {
         throw new Error(
           `Failed to decrypt all medical data records (${errors.length} total). ` +
-          `First error: ${errors[0].error.message}`
+            `First error: ${errors[0].error.message}`
         );
       }
       console.warn("No valid medical data extracted after processing all FHIR resources");
     }
 
     return consolidatedData;
-
   } catch (error) {
     console.error("Error aggregating medical data:", error);
     throw error;
@@ -96,8 +104,8 @@ export const getAggregatedMedicalData = async (walletAddress?: string): Promise<
  */
 function mergeAggregatedData(target: AggregatedMedicalData, source: AggregatedMedicalData): void {
   const mergeCodedValue = (
-    targetVal: typeof target[keyof AggregatedMedicalData],
-    sourceVal: typeof source[keyof AggregatedMedicalData]
+    targetVal: (typeof target)[keyof AggregatedMedicalData],
+    sourceVal: (typeof source)[keyof AggregatedMedicalData]
   ) => {
     if (!targetVal) return sourceVal;
     if (!sourceVal) return targetVal;
@@ -115,11 +123,13 @@ function mergeAggregatedData(target: AggregatedMedicalData, source: AggregatedMe
     return sourceVal;
   };
 
-  (Object.keys(source) as Array<keyof AggregatedMedicalData>).forEach(key => {
+  (Object.keys(source) as Array<keyof AggregatedMedicalData>).forEach((key) => {
     if (source[key] !== undefined) {
       if (Array.isArray(source[key])) {
-        target[key] = Array.from(new Set([...(target[key] as any[] || []), ...source[key] as any[]])) as any;
-      } else if (typeof source[key] === 'object' && source[key] !== null) {
+        target[key] = Array.from(
+          new Set([...((target[key] as any[]) || []), ...(source[key] as any[])])
+        ) as any;
+      } else if (typeof source[key] === "object" && source[key] !== null) {
         (target as any)[key] = mergeCodedValue(target[key], source[key]);
       } else {
         (target as any)[key] = source[key];

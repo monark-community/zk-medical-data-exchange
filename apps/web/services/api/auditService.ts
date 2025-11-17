@@ -33,6 +33,9 @@ export enum ActionType {
   // ADMIN
   ADMIN_ACTION = 15,
   SYSTEM_CONFIG = 16,
+  // REWARDS
+  SENT_COMPENSATION = 17,
+  RECEIVED_COMPENSATION = 18,
 }
 
 export interface AuditRecord {

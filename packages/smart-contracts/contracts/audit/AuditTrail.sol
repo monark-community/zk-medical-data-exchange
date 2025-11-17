@@ -38,7 +38,10 @@ contract AuditTrail {
         DATA_DELETED,            // Data deleted from vault
         // ADMIN
         ADMIN_ACTION,            // Administrative actions
-        SYSTEM_CONFIG            // System configuration changes
+        SYSTEM_CONFIG,           // System configuration changes
+        // REWARDS
+        SENT_COMPENSATION,         // Compensation sent to data sellers
+        RECEIVED_COMPENSATION      // Compensation received by data sellers
     }
     
     // Comprehensive audit record
@@ -135,6 +138,36 @@ contract AuditTrail {
         string memory metadata
     ) external onlyAuthorized {
         _logAction(user, userProfile, actionType, resource, action, dataHash, success, metadata);
+    }
+
+    /**
+     * @dev Log the same audit action for multiple participants
+     * @param participants Array of participant addresses
+     * @param userProfile User profile for all participants (RESEARCHER/DATA_SELLER/ADMIN)
+     * @param actionType Type of action
+     * @param resource Resource identifier
+     * @param action Description of action
+     * @param dataHash Hash of sensitive parameters
+     * @param success Whether action succeeded
+     * @param metadata Additional context as JSON string
+     */
+    function logActionForParticipants(
+        address[] memory participants,
+        UserProfile userProfile,
+        ActionType actionType,
+        string memory resource,
+        string memory action,
+        bytes32 dataHash,
+        bool success,
+        string memory metadata
+    ) external onlyAuthorized {
+        require(participants.length > 0, "Participants array cannot be empty");
+        require(participants.length <= 10000, "Too many participants, maximum 10000 allowed");
+
+        for (uint256 i = 0; i < participants.length; i++) {
+            require(participants[i] != address(0), "Invalid participant address");
+            _logAction(participants[i], userProfile, actionType, resource, action, dataHash, success, metadata);
+        }
     }
     
     /**
