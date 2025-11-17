@@ -67,7 +67,6 @@ export class ZKAggregationService {
   private zkeyPath: string;
 
   constructor() {
-    // These files need to be compiled from the data_aggregation.circom circuit
     this.wasmPath = '/circuits/data_aggregation.wasm';
     this.zkeyPath = '/circuits/data_aggregation_final.zkey';
   }
@@ -86,23 +85,15 @@ export class ZKAggregationService {
       const provider = new BrowserProvider(window.ethereum);
       const contract = new Contract(studyContractAddress, STUDY_ABI, provider);
 
-      // Try to fetch bin definitions from contract
       let studyBins;
       try {
         studyBins = await contract.getStudyBins();
         console.log('✅ [ZK-AGG] Successfully fetched study bins from contract');
         console.log('   └─ Bins:', JSON.stringify(studyBins, null, 2));
       } catch (binError: any) {
-        // Contract doesn't have getStudyBins() - likely deployed before bins feature
-        console.warn('⚠️ [ZK-AGG] Contract does not support bins (legacy deployment)');
-        console.warn('   └─ Using default bins for backward compatibility');
-        console.warn('   └─ Error:', binError.message);
-        
-        // Return default bins for all metrics
-        return this.getDefaultBins();
+        throw new Error(`Failed to fetch study bins from contract: ${binError.message}`);
       }
 
-      // Convert from contract format to TypeScript format
       const bins: StudyBins = {};
       
       if (studyBins.age.enabled) {
@@ -110,7 +101,7 @@ export class ZKAggregationService {
           enabled: true,
           boundaries: studyBins.age.boundaries.slice(0, Number(studyBins.age.binCount) + 1).map(Number),
           binCount: Number(studyBins.age.binCount),
-          labels: [], // Labels will be generated when needed
+          labels: [], 
           type: 'equal-width'
         };
       }
@@ -150,42 +141,6 @@ export class ZKAggregationService {
       console.error('❌ [ZK-AGG] Failed to fetch study bins:', error);
       throw new Error(`Failed to fetch study bins: ${error}`);
     }
-  }
-
-  /**
-   * Get default bins for legacy contracts that don't have bins support
-   */
-  private getDefaultBins(): StudyBins {
-    return {
-      age: {
-        enabled: true,
-        boundaries: [18, 30, 40, 50, 60, 120],
-        binCount: 5,
-        labels: ['18-29', '30-39', '40-49', '50-59', '60+'],
-        type: 'equal-width'
-      },
-      cholesterol: {
-        enabled: true,
-        boundaries: [0, 200, 240, 500],
-        binCount: 3,
-        labels: ['<200 (Desirable)', '200-239 (Borderline)', '≥240 (High)'],
-        type: 'clinical'
-      },
-      bmi: {
-        enabled: true,
-        boundaries: [0, 185, 250, 300, 600],
-        binCount: 4,
-        labels: ['<18.5 (Underweight)', '18.5-24.9 (Normal)', '25-29.9 (Overweight)', '≥30 (Obese)'],
-        type: 'clinical'
-      },
-      hba1c: {
-        enabled: true,
-        boundaries: [0, 57, 65, 200],
-        binCount: 3,
-        labels: ['<5.7% (Normal)', '5.7-6.4% (Prediabetes)', '≥6.5% (Diabetes)'],
-        type: 'clinical'
-      }
-    };
   }
 
   /**

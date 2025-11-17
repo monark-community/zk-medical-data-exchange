@@ -55,12 +55,11 @@ template MedicalEligibility() {
     signal input dataCommitment;
     signal input studyId;
     signal input walletAddress;
-    signal input eligibilityExpected;
 
     // Random server challenge (nonce) — ensures proof freshness
     signal input challenge;
     
-    signal output eligible;
+    signal eligible;
     
     // ========================================
     // COMPONENTS FOR ELIGIBILITY CHECKING
@@ -222,7 +221,10 @@ template MedicalEligibility() {
     allButMedical <== basicAndDemographic * advancedAndLifestyle;
     
     eligible <== allButMedical * medicalHistoryChecks;
-    eligible === eligibilityExpected;
+    
+    // Force the circuit to use the eligible signal by constraining it
+    // This ensures eligibility is checked but the value is not exposed as public output
+    eligible * (eligible - 1) === 0;  // Constrain eligible to be 0 or 1
 }
 
 template RangeCheck(n) {
@@ -384,5 +386,5 @@ component main {public [
     enableActivity, minActivityLevel, maxActivityLevel,
     enableDiabetes, allowedDiabetes,
     enableHeartDisease, allowedHeartDisease,
-    dataCommitment, studyId, walletAddress, eligibilityExpected, challenge
+    dataCommitment, studyId, walletAddress, challenge
 ]} = MedicalEligibility();

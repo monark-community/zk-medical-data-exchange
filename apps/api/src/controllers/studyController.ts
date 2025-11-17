@@ -13,7 +13,7 @@ import {
 import logger from "@/utils/logger";
 import crypto from "crypto";
 import { TABLES } from "@/constants/db";
-import { auditService } from "@/services/auditService";
+import { auditService, ActionType } from "@/services/auditService";
 import { studyService } from "@/services/studyService";
 import { SEPOLIA_TESTNET_CHAIN_ID } from "@/constants/blockchain";
 import { verifyMessage } from "ethers";
@@ -1315,12 +1315,25 @@ export const participateInStudy = async (req: Request, res: Response) => {
 
     logger.info({ studyId: id, participantWallet }, "Participant successfully enrolled in study");
 
+    // Debug log for publicInputsJson structure
+    logger.debug({
+      publicInputsType: typeof publicInputsJson,
+      isArray: Array.isArray(publicInputsJson),
+      isString: typeof publicInputsJson === 'string',
+      length: Array.isArray(publicInputsJson) ? publicInputsJson.length : 'N/A',
+      sample: Array.isArray(publicInputsJson) ? publicInputsJson.slice(0, 3) : publicInputsJson
+    }, "Received publicInputsJson in controller");
+
+    logger.info("last value:", publicInputsJson);
+
     const blockchainTxHash = await studyService.joinBlockchainStudy(
       studyData.contract_address,
       proofJson,
       participantWallet,
       dataCommitment,
-      storedCommitment.challenge 
+      storedCommitment.challenge,
+      publicInputsJson,
+      Number(id)
     );
 
     await req.supabase
@@ -1477,9 +1490,13 @@ export const getStudyCriteria = async (req: Request, res: Response) => {
       return res.status(500).json({ error: "Failed to fetch study criteria" });
     }
 
+    // Normalize to match on-chain verifier expectations
+    const { formatCriteriaForCircuit } = await import("@/utils/criteriaFormatter");
+    const formatted = formatCriteriaForCircuit(criteria.criteria_json);
+
     logger.info({ studyId: id }, "Study criteria fetched successfully");
 
-    res.json({ studyCriteria: criteria.criteria_json });
+    res.json({ studyCriteria: formatted });
   } catch (error) {
     logger.error(
       {
@@ -1684,11 +1701,14 @@ export const getStudyAggregatedResults = async (req: Request, res: Response) => 
       aggregationGeneratedAt: aggregatedData.generated_at,
     };
 
-    // 7. Log access for audit trail
-    await auditService.logDataAccess({
-      studyId: Number(id),
-      action: 'VIEW_AGGREGATED_RESULTS',
-      actor: requestorWallet,
+    // 7. Log access for audit trail (use generic logAction with STUDY_AGGREGATED_DATA_ACCESS)
+    await auditService.logAction({
+      user: requestorWallet,
+      userProfile: 3, // UserProfile.COMMON (enum value)
+      actionType: ActionType.STUDY_AGGREGATED_DATA_ACCESS,
+      resource: `study:${id}`,
+      action: 'View aggregated results',
+      success: true,
       metadata: {
         ...metadata,
         duration: getAuditDuration(metadata.startTime),

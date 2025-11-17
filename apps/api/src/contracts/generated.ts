@@ -1,5 +1,5 @@
 // Auto-generated contract ABIs
-// Generated on 2025-11-16T21:15:43.104Z
+// Generated on 2025-11-17T06:21:02.724Z
 
 // ABI type definitions
 interface ABIInput {
@@ -2482,9 +2482,9 @@ export const MEDICAL_ELIGIBILITY_VERIFIER_ABI: ABI = [
         "type": "uint256[2]"
       },
       {
-        "internalType": "uint256[44]",
+        "internalType": "uint256[42]",
         "name": "_pubSignals",
-        "type": "uint256[44]"
+        "type": "uint256[42]"
       }
     ],
     "name": "verifyProof",

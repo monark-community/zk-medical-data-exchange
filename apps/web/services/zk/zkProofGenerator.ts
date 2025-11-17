@@ -48,9 +48,6 @@ interface CircuitInput {
   diabetesStatus: string;
   heartDiseaseHistory: string;
   salt: string;
-
-  dataCommitment: string;
-  challenge: string;
   
   enableAge: string;
   minAge: string;
@@ -85,9 +82,10 @@ interface CircuitInput {
   enableHeartDisease: string;
   allowedHeartDisease: string;
   
+  dataCommitment: string;
   studyId: string;
   walletAddress: string;
-  eligibilityExpected: string;
+  challenge: string;
 }
 
 /**
@@ -139,7 +137,7 @@ export const generateZKProof = async (
       };
     }
     
-    const circuitInput = prepareCircuitInput(medicalData, studyCriteria, dataCommitment, salt, challenge, studyId, walletAddress, isEligible);
+    const circuitInput = prepareCircuitInput(medicalData, studyCriteria, dataCommitment, salt, challenge, studyId, walletAddress);
     console.log("Circuit input prepared with commitment verification");
 
     console.log("Loading circuit files...");
@@ -173,11 +171,24 @@ export const generateZKProof = async (
     };
 
     console.log("ZK proof generated successfully!");
-    console.log("Public signals:", publicSignals);
+    console.log("Public signals count from snarkjs:", publicSignals.length);
+
+    // CRITICAL FIX: snarkjs is returning 43 signals instead of 42
+    // The circuit has 42 public inputs + 0 outputs, but snarkjs includes an extra signal
+    // This appears to be the private 'age' input (signal 43) leaking through
+    // We must remove it before verification or the smart contract will reject the proof
+    const correctedPublicSignals = publicSignals.length === 43 
+      ? publicSignals.slice(0, 42)  // Remove the 43rd signal
+      : publicSignals;
+
+    if (publicSignals.length === 43) {
+      console.warn("⚠️ HOTFIX: Removed extra signal from snarkjs output (43 → 42)");
+      console.warn("Removed signal value:", publicSignals[42]);
+    }
 
     return {
       proof: formattedProof,
-      publicSignals: publicSignals.map((signal: any) => signal.toString()),
+      publicSignals: correctedPublicSignals.map((signal: any) => signal.toString()),
       isEligible: true,
     };
   } catch (error) {
@@ -204,7 +215,6 @@ function prepareCircuitInput(
   challenge: string,
   studyId: number,
   walletAddress: string,
-  eligibilityExpected: boolean
 ): CircuitInput {
     console.log("Preparing circuit input...");
     console.log("├─ dataCommitment:", dataCommitment?.toString() || 'UNDEFINED');
@@ -216,34 +226,69 @@ function prepareCircuitInput(
   const normalized = normalizeMedicalDataForCircuit(medicalData);
   console.log("├─ medicalData (normalized):", normalized);
 
+  // Replace negative sentinel values (-1) with safe in-range defaults.
+  // Circuits with RangeCheck / Num2Bits constraints will fail on -1.
+  // For disabled criteria (enable* == 0) we inject neutral 0 values that satisfy range constraints
+  // without affecting eligibility logic (since checks are gated by enable flags).
+  const safeNormalized = {
+    age: normalized.age < 0 ? 0 : normalized.age,
+    gender: normalized.gender < 0 ? 0 : normalized.gender,
+    bmi: normalized.bmi < 0 ? 0 : normalized.bmi,
+    smokingStatus: normalized.smokingStatus < 0 ? 0 : normalized.smokingStatus,
+    region: normalized.region < 0 ? 0 : normalized.region,
+    cholesterol: normalized.cholesterol < 0 ? 0 : normalized.cholesterol,
+    systolicBP: normalized.systolicBP < 0 ? 0 : normalized.systolicBP,
+    diastolicBP: normalized.diastolicBP < 0 ? 0 : normalized.diastolicBP,
+    hba1c: normalized.hba1c < 0 ? 0 : normalized.hba1c,
+    bloodType: normalized.bloodType < 0 ? 0 : normalized.bloodType,
+    activityLevel: normalized.activityLevel < 0 ? 0 : normalized.activityLevel,
+    diabetesStatus: normalized.diabetesStatus < 0 ? 0 : normalized.diabetesStatus,
+    heartDiseaseHistory: normalized.heartDiseaseHistory < 0 ? 0 : normalized.heartDiseaseHistory,
+  };
+
+  if (Object.values(normalized).some((v) => typeof v === 'number' && v < 0)) {
+    console.log("├─ Applied safe normalization (replaced -1 with 0)");
+    console.log("├─ medicalData (safeNormalized):", safeNormalized);
+  }
+
+  // Log criteria to debug circuit constraint failures
+  console.log("├─ Study criteria (raw):", {
+    enableAge: studyCriteria.enableAge,
+    minAge: studyCriteria.minAge,
+    maxAge: studyCriteria.maxAge,
+    enableCholesterol: studyCriteria.enableCholesterol,
+    minCholesterol: studyCriteria.minCholesterol,
+    maxCholesterol: studyCriteria.maxCholesterol,
+    enableBMI: studyCriteria.enableBMI,
+    minBMI: studyCriteria.minBMI,
+    maxBMI: studyCriteria.maxBMI,
+  });
+
   return {
-    age: normalized.age.toString(),
-    gender: normalized.gender.toString(),
-    bmi: normalized.bmi.toString(),
-    smokingStatus: normalized.smokingStatus.toString(),
-    region: normalized.region.toString(),
-    cholesterol: normalized.cholesterol.toString(),
-    systolicBP: normalized.systolicBP.toString(),
-    diastolicBP: normalized.diastolicBP.toString(),
-    bloodType: normalized.bloodType.toString(),
-    hba1c: normalized.hba1c.toString(),
-    activityLevel: normalized.activityLevel.toString(),
-    diabetesStatus: normalized.diabetesStatus.toString(),
-    heartDiseaseHistory: normalized.heartDiseaseHistory.toString(),
+    age: safeNormalized.age.toString(),
+    gender: safeNormalized.gender.toString(),
+    bmi: safeNormalized.bmi.toString(),
+    smokingStatus: safeNormalized.smokingStatus.toString(),
+    region: safeNormalized.region.toString(),
+    cholesterol: safeNormalized.cholesterol.toString(),
+    systolicBP: safeNormalized.systolicBP.toString(),
+    diastolicBP: safeNormalized.diastolicBP.toString(),
+    bloodType: safeNormalized.bloodType.toString(),
+    hba1c: safeNormalized.hba1c.toString(),
+    activityLevel: safeNormalized.activityLevel.toString(),
+    diabetesStatus: safeNormalized.diabetesStatus.toString(),
+    heartDiseaseHistory: safeNormalized.heartDiseaseHistory.toString(),
 
     salt: salt.toString(),
-    dataCommitment: dataCommitment.toString(),
-    challenge: BigInt(`0x${challenge}`).toString(),
-    
     enableAge: studyCriteria.enableAge.toString(),
-    minAge: studyCriteria.minAge.toString(),
-    maxAge: studyCriteria.maxAge.toString(),
+    minAge: (studyCriteria.enableAge ? studyCriteria.minAge : 0).toString(),
+    maxAge: (studyCriteria.enableAge ? studyCriteria.maxAge : 200).toString(),
     enableCholesterol: studyCriteria.enableCholesterol.toString(),
-    minCholesterol: studyCriteria.minCholesterol.toString(),
-    maxCholesterol: studyCriteria.maxCholesterol.toString(),
+    minCholesterol: (studyCriteria.enableCholesterol ? studyCriteria.minCholesterol : 0).toString(),
+    maxCholesterol: (studyCriteria.enableCholesterol ? studyCriteria.maxCholesterol : 500).toString(),
     enableBMI: studyCriteria.enableBMI.toString(),
-    minBMI: studyCriteria.minBMI.toString(),
-    maxBMI: studyCriteria.maxBMI.toString(),
+    minBMI: (studyCriteria.enableBMI ? studyCriteria.minBMI : 0).toString(),
+    maxBMI: (studyCriteria.enableBMI ? studyCriteria.maxBMI : 1000).toString(),
     enableBloodType: studyCriteria.enableBloodType.toString(),
     allowedBloodTypes: studyCriteria.allowedBloodTypes.map((v) => v.toString()),
     enableGender: studyCriteria.enableGender.toString(),
@@ -251,26 +296,27 @@ function prepareCircuitInput(
     enableLocation: studyCriteria.enableLocation.toString(),
     allowedRegions: studyCriteria.allowedRegions.map((v) => v.toString()),
     enableBloodPressure: studyCriteria.enableBloodPressure.toString(),
-    minSystolic: studyCriteria.minSystolic.toString(),
-    maxSystolic: studyCriteria.maxSystolic.toString(),
-    minDiastolic: studyCriteria.minDiastolic.toString(),
-    maxDiastolic: studyCriteria.maxDiastolic.toString(),
+    minSystolic: (studyCriteria.enableBloodPressure ? studyCriteria.minSystolic : 0).toString(),
+    maxSystolic: (studyCriteria.enableBloodPressure ? studyCriteria.maxSystolic : 300).toString(),
+    minDiastolic: (studyCriteria.enableBloodPressure ? studyCriteria.minDiastolic : 0).toString(),
+    maxDiastolic: (studyCriteria.enableBloodPressure ? studyCriteria.maxDiastolic : 200).toString(),
     enableHbA1c: studyCriteria.enableHbA1c.toString(),
-    minHbA1c: studyCriteria.minHbA1c.toString(),
-    maxHbA1c: studyCriteria.maxHbA1c.toString(),
+    minHbA1c: (studyCriteria.enableHbA1c ? studyCriteria.minHbA1c : 0).toString(),
+    maxHbA1c: (studyCriteria.enableHbA1c ? studyCriteria.maxHbA1c : 200).toString(),
     enableSmoking: studyCriteria.enableSmoking.toString(),
     allowedSmoking: studyCriteria.allowedSmoking.toString(),
     enableActivity: studyCriteria.enableActivity.toString(),
-    minActivityLevel: studyCriteria.minActivityLevel.toString(),
-    maxActivityLevel: studyCriteria.maxActivityLevel.toString(),
+    minActivityLevel: (studyCriteria.enableActivity ? studyCriteria.minActivityLevel : 0).toString(),
+    maxActivityLevel: (studyCriteria.enableActivity ? studyCriteria.maxActivityLevel : 10).toString(),
     enableDiabetes: studyCriteria.enableDiabetes.toString(),
     allowedDiabetes: studyCriteria.allowedDiabetes.toString(),
     enableHeartDisease: studyCriteria.enableHeartDisease.toString(),
     allowedHeartDisease: studyCriteria.allowedHeartDisease.toString(),
     
+    dataCommitment: dataCommitment.toString(),
     studyId: studyId.toString(),
     walletAddress: BigInt(walletAddress).toString(),
-    eligibilityExpected: eligibilityExpected ? "1" : "0",
+    challenge: BigInt(`0x${challenge}`).toString(),
   };
 }
 

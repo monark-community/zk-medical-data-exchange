@@ -5,6 +5,41 @@ import type { StudyCriteria, StudyBins } from "@zk-medical/shared";
 import logger from "@/utils/logger";
 import { Config } from "@/config/config";
 import { STUDY_ABI, STUDY_FACTORY_ABI } from "../contracts/generated";
+import { validatePublicSignals, logValidationResults } from "@/utils/signalValidator";
+
+// Helper function to sanitize errors for logging by removing large proof arrays
+function sanitizeErrorForLogging(error: any): any {
+  if (!error) return error;
+  
+  const sanitized = { ...error };
+  
+  // Remove or truncate large proof arrays from args
+  if (sanitized.args && Array.isArray(sanitized.args)) {
+    sanitized.args = '[PROOF_ARGS_REDACTED]';
+  }
+  
+  // Remove large arrays from metaMessages
+  if (sanitized.metaMessages) {
+    delete sanitized.metaMessages;
+  }
+  
+  // Recursively sanitize nested cause
+  if (sanitized.cause) {
+    sanitized.cause = sanitizeErrorForLogging(sanitized.cause);
+  }
+  
+  // Keep only essential error information
+  return {
+    name: sanitized.name,
+    message: sanitized.message || error.toString(),
+    reason: sanitized.reason,
+    shortMessage: sanitized.shortMessage,
+    contractAddress: sanitized.contractAddress,
+    functionName: sanitized.functionName,
+    sender: sanitized.sender,
+    version: sanitized.version
+  };
+}
 
 export interface StudyDeploymentParams {
   title: string;
@@ -670,7 +705,6 @@ class StudyService {
         address: contractAddress as `0x${string}`,
         abi: STUDY_ABI,
         functionName: "registerCommitment",
-        // Include participant wallet as third arg per updated contract signature
         args: [commitmentBigInt, challengeBytes32, participantWallet as `0x${string}`],
       });
 
@@ -728,7 +762,9 @@ class StudyService {
     },
     participantWallet: string,
     dataCommitment: string,
-    challenge: string
+    challenge: string,
+    publicSignals?: string[],
+    studyId?: number
   ) {
     let blockchainTxHash = null;
     if (contractAddress) {
@@ -737,8 +773,10 @@ class StudyService {
           contractAddress,
           participantWallet,
           proofjson,
+          publicSignals || [],
           dataCommitment,
-          challenge
+          challenge,
+          studyId
         );
 
         if (blockchainResult.success) {
@@ -751,10 +789,12 @@ class StudyService {
             "Participation recorded on blockchain successfully"
           );
         } else {
+          const sanitizedError = sanitizeErrorForLogging(blockchainResult.error);
           logger.error(
             {
-              error: blockchainResult.error,
+              error: sanitizedError,
               participantWallet,
+              errorReason: sanitizedError?.reason || sanitizedError?.shortMessage
             },
             "Failed to record participation on blockchain - continuing anyway"
           );
@@ -779,11 +819,13 @@ class StudyService {
     studyAddress: string,
     participantWallet: string,
     proof: { a: [string, string]; b: [[string, string], [string, string]]; c: [string, string] },
+    publicSignals: string[],
     dataCommitment: string,
-    challenge: string
+    challenge: string,
+    studyId?: number
   ): Promise<{ success: boolean; transactionHash?: string; error?: string }> {
     logger.info(
-      { studyAddress, participantWallet, dataCommitment, proof },
+      { studyAddress, participantWallet, dataCommitment, proof, publicSignalsCount: publicSignals.length },
       "Recording study participation on blockchain"
     );
 
@@ -811,12 +853,60 @@ class StudyService {
         throw new Error(`Invalid proof format: ${conversionError instanceof Error ? conversionError.message : 'Unknown error'}`);
       }
 
-      logger.info({ pA, pB, pC, commitment }, "Proof converted to BigInt format");
+      // logger.info({ pA, pB, pC, commitment }, "Proof converted to BigInt format");
 
       let challengeBytes32 = challenge 
         ? (challenge.startsWith('0x') ? challenge : `0x${challenge}`)
         : `0x${'0'.repeat(64)}`; 
 
+      // Validate public signals
+      if (publicSignals.length > 0) {
+        const validation = validatePublicSignals(publicSignals);
+        logValidationResults(validation);
+        
+        if (!validation.isValid) {
+          logger.error({ 
+            errors: validation.errors,
+            warnings: validation.warnings 
+          }, "Public signals validation failed - proof will likely fail on-chain");
+        }
+      }
+
+      // Log public signals for debugging
+      // Per Study.sol _buildPublicSignals() and circuit public signals (42 total):
+      // 0-37: criteria (38 signals), 38: dataCommitment, 39: studyId, 40: wallet(uint160), 41: challenge
+      logger.info({ 
+        publicSignalsType: typeof publicSignals,
+        isArray: Array.isArray(publicSignals),
+        firstFive: publicSignals.slice(0, 5),
+        totalSignals: publicSignals.length,
+        lastFour: publicSignals.slice(-4),
+        signal38_dataCommitment: publicSignals[38],
+        signal39_studyId: publicSignals[39],
+        signal40_wallet: publicSignals[40],
+        signal41_challenge: publicSignals[41]
+      }, "Public signals being sent with proof");
+
+      // // Sanity check: verify metadata alignment in public signals (non-blocking)
+      // try {
+      //   const ps = publicSignals;
+      //   const mismatches: string[] = [];
+      //   if (ps.length >= 44) {
+      //     if (ps[39] !== commitment.toString()) mismatches.push(`dataCommitment at [39] mismatch (got ${ps[39]?.toString()?.slice(0,10)}...)`);
+      //     if (studyId !== undefined && ps[40] !== String(studyId)) mismatches.push(`studyId at [40] mismatch (got ${ps[40]})`);
+      //     // wallet is uint160 decimal
+      //     const walletDec = BigInt(participantWallet).toString();
+      //     if (ps[41] !== walletDec) mismatches.push(`wallet at [41] mismatch (got ${ps[41]?.slice(0,10)}...)`);
+      //     if (ps[42] !== '1') mismatches.push(`eligibilityExpected at [42] should be '1' (got ${ps[42]})`);
+      //     const challengeDec = BigInt(challengeBytes32).toString();
+      //     if (ps[43] !== challengeDec) mismatches.push(`challenge at [43] mismatch (got ${ps[43]?.slice(0,10)}...) expected ${challengeDec?.slice(0,10)}...`);
+      //   }
+      //   if (mismatches.length > 0) {
+      //     logger.error({ mismatches }, "Public signals metadata mismatch detected");
+      //   }
+      // } catch (e) {
+      //   logger.warn({ e: e instanceof Error ? e.message : String(e) }, "Failed to run public signals sanity check");
+      // }
 
       const result = await this.executeContractTransaction(
         studyAddress,
@@ -831,10 +921,21 @@ class StudyService {
           "Participation recorded on blockchain successfully"
         );
       } else {
+        const sanitizedError = sanitizeErrorForLogging(result.error);
         logger.error(
-          { error: result.error, studyAddress, participantWallet },
+          { error: sanitizedError, studyAddress, participantWallet },
           "Failed to record participation on blockchain"
         );
+        
+        // Enhanced debugging for proof verification failures
+        if (result.error?.includes("ZK proof verification failed") && studyId) {
+          logger.error({
+            studyId,
+            publicSignalsLength: publicSignals.length,
+            expectedLength: 43,
+            errorReason: sanitizedError?.reason || sanitizedError?.shortMessage
+          }, "Proof verification failed - see public signals above for debugging");
+        }
       }
 
       return {

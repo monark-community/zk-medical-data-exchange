@@ -139,7 +139,6 @@ export class ZKDataAggregationService {
         return studyData.bins_json;
       }
 
-      // Fallback to smart contract if no database bins
       if (studyAddress) {
         logger.info({ studyId, studyAddress }, '📥 [ZK-SERVICE] Fetching bins from smart contract...');
         const bins = await this.publicClient.readContract({

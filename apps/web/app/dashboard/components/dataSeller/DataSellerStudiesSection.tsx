@@ -99,7 +99,6 @@ export default function DataSellerStudiesSection() {
     try {
       console.log("📊 [APPLY] Step 1: Fetching aggregated medical data from vault");
 
-      // 1. Get aggregated medical data from vault
       const data = await getAggregatedMedicalData(walletAddress);
 
       console.log("✅ [APPLY] Medical data retrieved:", {
