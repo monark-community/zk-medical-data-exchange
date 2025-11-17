@@ -482,6 +482,7 @@ const transformStudyForResponse = (study: any, isEnrolled?: boolean, hasConsente
     createdAt: study.created_at,
     contractAddress: study.contract_address,
     criteriaSummary: studyCriteriaSummary,
+    binConfiguration: study.bin_configuration,
   };
 
   if (isEnrolled !== undefined) {
@@ -509,6 +510,7 @@ export const createStudy = async (req: Request, res: Response) => {
       customCriteria,
       createdBy,
       principalInvestigator,
+      binConfiguration,
     } = req.body;
 
     creatorAddress = createdBy || principalInvestigator;
@@ -592,6 +594,7 @@ export const createStudy = async (req: Request, res: Response) => {
       complexity_score: enabledCount,
       template_name: actualTemplateName,
       chain_id: SEPOLIA_TESTNET_CHAIN_ID,
+      bin_configuration: binConfiguration || null,
     };
 
     const { data: studyData, error: insertError } = await req.supabase
@@ -766,6 +769,58 @@ export const deployStudy = async (req: Request, res: Response) => {
       });
     }
 
+    if (study.bin_configuration && deploymentResult.studyAddress) {
+      try {
+        const { convertBinsForSolidity, validateSolidityBins, formatBinsForLogging } = await import("@/utils/binConversion");
+        
+        const solidityBins = convertBinsForSolidity(study.bin_configuration);
+        const validation = validateSolidityBins(solidityBins);
+        
+        if (!validation.isValid) {
+          logger.error(
+            { errors: validation.errors, studyId },
+            "Bin validation failed, skipping configureBins"
+          );
+        } else {
+          logger.info(
+            { 
+              studyId, 
+              contractAddress: deploymentResult.studyAddress,
+              binCount: solidityBins.length,
+              bins: formatBinsForLogging(solidityBins)
+            },
+            "Configuring bins on deployed contract"
+          );
+
+          const binConfigResult = await studyService.configureBins(
+            deploymentResult.studyAddress,
+            solidityBins
+          );
+          
+          if (binConfigResult.success) {
+            logger.info(
+              { 
+                studyId,
+                transactionHash: binConfigResult.transactionHash,
+                binCount: solidityBins.length
+              },
+              "Bins configured successfully on blockchain"
+            );
+          } else {
+            logger.error(
+              { error: binConfigResult.error, studyId },
+              "Failed to configure bins on blockchain (study deployed but bins not configured)"
+            );
+          }
+        }
+      } catch (binError) {
+        logger.error(
+          { error: binError, studyId },
+          "Error during bin configuration (study deployed but bins not configured)"
+        );
+      }
+    }
+
     const { error: updateError } = await req.supabase
       .from(TABLES.STUDIES!.name)
       .update({
@@ -904,6 +959,7 @@ export const getStudyById = async (req: Request, res: Response) => {
         createdBy: study.created_by,
         createdAt: study.created_at,
         deployedAt: study.deployed_at,
+        binConfiguration: study.bin_configuration,
         stats: {
           complexityScore: study.complexity_score,
           criteriaHash: study.criteria_hash,

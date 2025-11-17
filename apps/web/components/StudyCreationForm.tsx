@@ -1,5 +1,4 @@
 "use client";
-/* eslint-disable no-unused-vars */
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -9,17 +8,21 @@ import {
   validateCriteria,
   STUDY_TEMPLATES,
   CRITERIA_DEFAULTS,
+  generateBinsFromCriteria,
+  type BinConfiguration,
 } from "@zk-medical/shared";
 import { useCreateStudy, deployStudy, deleteStudy } from "@/services/api/studyService";
 import { useAccount } from "wagmi";
 import { STUDY_FORM_MAPPINGS, DEFAULT_STUDY_INFO } from "@/constants/studyFormMappings";
 import eventBus from "@/lib/eventBus";
 import { useTxStatusState } from "@/hooks/useTxStatus";
+import { BinPreview } from "@/components/BinPreview";
 const TemplateSelector = ({
   onTemplateSelect,
   selectedTemplate,
   onClearTemplate,
 }: {
+  /* eslint-disable-next-line no-unused-vars */
   onTemplateSelect: (_template: any, _templateId: string) => void;
   selectedTemplate?: string;
   onClearTemplate: () => void;
@@ -122,6 +125,7 @@ const CriteriaField = ({
 }: {
   label: string;
   enabled: boolean;
+  /* eslint-disable-next-line no-unused-vars */
   onEnabledChange: (_enabled: boolean) => void;
   children: React.ReactNode;
 }) => {
@@ -171,7 +175,9 @@ const NumberInput = ({
   step,
 }: {
   value: number;
+  /* eslint-disable-next-line no-unused-vars */
   onChange: (value: number) => void;
+  /* eslint-disable-next-line no-unused-vars */
   onBlur?: (value: number) => void;
   className?: string;
   placeholder?: string;
@@ -253,7 +259,9 @@ const RangeInput = ({
   label: string;
   minValue: number;
   maxValue: number;
+  /* eslint-disable-next-line no-unused-vars */
   onMinChange: (_value: number) => void;
+  /* eslint-disable-next-line no-unused-vars */
   onMaxChange: (_value: number) => void;
   unit?: string;
   absoluteMin?: number;
@@ -322,6 +330,7 @@ const StudyCreationForm = ({ onSuccess, isModal = false }: StudyCreationFormProp
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<string | undefined>();
   const { show, showError, hide } = useTxStatusState();
+  const [binConfig, setBinConfig] = useState<BinConfiguration | null>(null);
 
   const sanitizeText = (text: string) => {
     return text.replace(/[^a-zA-Z0-9\s\-.,!?()]/g, "");
@@ -362,6 +371,16 @@ const StudyCreationForm = ({ onSuccess, isModal = false }: StudyCreationFormProp
   };
 
   useEffect(() => {
+    try {
+      const generatedBins = generateBinsFromCriteria(criteria, 0);
+      setBinConfig(generatedBins);
+    } catch (error) {
+      console.error("Error generating bins:", error);
+      setBinConfig(null);
+    }
+  }, [criteria]);
+
+  useEffect(() => {
     const errors: string[] = [];
     if (!studyInfo.title) errors.push("Study Title is required.");
     if (!studyInfo.description) errors.push("Description is required.");
@@ -400,7 +419,8 @@ const StudyCreationForm = ({ onSuccess, isModal = false }: StudyCreationFormProp
         studyInfo.durationDays,
         criteria,
         selectedTemplate,
-        walletAddress
+        walletAddress,
+        binConfig
       );
 
       console.log("Study created in database:", result);
@@ -1047,6 +1067,19 @@ const StudyCreationForm = ({ onSuccess, isModal = false }: StudyCreationFormProp
             </div>
           </CriteriaField>
         </div>
+      </div>
+
+      <div className="bg-gradient-to-br from-white to-gray-50 p-8 rounded-2xl shadow-lg border border-gray-100">
+        <div className="mb-6">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            Data Aggregation Preview
+          </h2>
+          <p className="text-gray-600">
+            Privacy-preserving data collection bins automatically generated from your eligibility
+            criteria
+          </p>
+        </div>
+        <BinPreview binConfig={binConfig} isGenerating={false} />
       </div>
 
       {/* Validation Errors */}
