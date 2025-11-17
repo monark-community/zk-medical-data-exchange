@@ -1,3 +1,5 @@
+/* eslint-disable no-unused-vars */
+
 export enum BinType {
   RANGE = "RANGE",
   CATEGORICAL = "CATEGORICAL",
@@ -16,10 +18,7 @@ export interface DataBin {
 }
 
 export interface BinConfiguration {
-  studyId: number;
   bins: DataBin[];
-  createdAt: number;
-  version: string;
 }
 
 export interface BinMembership {
