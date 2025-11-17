@@ -308,13 +308,21 @@ export function validateBins(
  * Used by client before generating ZK proof
  */
 export function calculateBinIndex(value: number, boundaries: number[]): number {
+  console.log(`🔢 [BIN-CALC] Calculating bin index for value ${value}`);
+  console.log(`   ├─ Boundaries: [${boundaries.join(', ')}]`);
+  
   for (let i = 0; i < boundaries.length - 1; i++) {
     if (value >= boundaries[i] && value < boundaries[i + 1]) {
+      console.log(`   ├─ Value ${value} falls in bin ${i} [${boundaries[i]}, ${boundaries[i + 1]})`);
+      console.log(`   └─ Result: bin index ${i}`);
       return i;
     }
   }
   // If value >= last boundary, it goes in the last bin
-  return boundaries.length - 2;
+  const lastBinIndex = boundaries.length - 2;
+  console.log(`   ├─ Value ${value} >= last boundary ${boundaries[boundaries.length - 1]}`);
+  console.log(`   └─ Result: last bin index ${lastBinIndex}`);
+  return lastBinIndex;
 }
 
 /**
@@ -337,31 +345,64 @@ export function calculateUserBins(
   hba1cBin?: number;
   bpBin?: number;
 } {
+  console.log('🧮 [BIN-CALC] ============================================');
+  console.log('🧮 [BIN-CALC] Calculating user bin indices');
+  console.log('🧮 [BIN-CALC] User data:', userData);
+  console.log('🧮 [BIN-CALC] Study bins config:', studyBins);
+  console.log('🧮 [BIN-CALC] ============================================');
+  
   const result: any = {};
   
   if (studyBins.age && userData.age !== undefined) {
+    console.log('📊 [BIN-CALC] Processing AGE...');
     result.ageBin = calculateBinIndex(userData.age, studyBins.age.boundaries);
+    console.log(`✅ [BIN-CALC] Age bin calculated: ${result.ageBin}`);
+  } else {
+    console.log('⏭️ [BIN-CALC] Skipping AGE (not enabled or no data)');
   }
   
   if (studyBins.cholesterol && userData.cholesterol !== undefined) {
+    console.log('📊 [BIN-CALC] Processing CHOLESTEROL...');
     result.cholesterolBin = calculateBinIndex(
       userData.cholesterol,
       studyBins.cholesterol.boundaries
     );
+    console.log(`✅ [BIN-CALC] Cholesterol bin calculated: ${result.cholesterolBin}`);
+  } else {
+    console.log('⏭️ [BIN-CALC] Skipping CHOLESTEROL (not enabled or no data)');
   }
   
   if (studyBins.bmi && userData.bmi !== undefined) {
+    console.log('📊 [BIN-CALC] Processing BMI...');
     result.bmiBin = calculateBinIndex(userData.bmi, studyBins.bmi.boundaries);
+    console.log(`✅ [BIN-CALC] BMI bin calculated: ${result.bmiBin}`);
+  } else {
+    console.log('⏭️ [BIN-CALC] Skipping BMI (not enabled or no data)');
   }
   
   if (studyBins.hba1c && userData.hba1c !== undefined) {
+    console.log('📊 [BIN-CALC] Processing HbA1c...');
     result.hba1cBin = calculateBinIndex(userData.hba1c, studyBins.hba1c.boundaries);
+    console.log(`✅ [BIN-CALC] HbA1c bin calculated: ${result.hba1cBin}`);
+  } else {
+    console.log('⏭️ [BIN-CALC] Skipping HbA1c (not enabled or no data)');
   }
   
   // BP is categorical, calculated from systolic/diastolic
   if (studyBins.bloodPressure && userData.systolicBP && userData.diastolicBP) {
+    console.log('📊 [BIN-CALC] Processing BLOOD PRESSURE...');
+    console.log(`   ├─ Systolic: ${userData.systolicBP}`);
+    console.log(`   └─ Diastolic: ${userData.diastolicBP}`);
     result.bpBin = calculateBPCategory(userData.systolicBP, userData.diastolicBP);
+    console.log(`✅ [BIN-CALC] BP category calculated: ${result.bpBin}`);
+  } else {
+    console.log('⏭️ [BIN-CALC] Skipping BLOOD PRESSURE (not enabled or no data)');
   }
+  
+  console.log('🎉 [BIN-CALC] ============================================');
+  console.log('🎉 [BIN-CALC] Bin calculation complete!');
+  console.log('🎉 [BIN-CALC] Result:', result);
+  console.log('🎉 [BIN-CALC] ============================================');
   
   return result;
 }
@@ -370,13 +411,22 @@ export function calculateUserBins(
  * Calculate BP category (matches circuit logic)
  */
 function calculateBPCategory(systolic: number, diastolic: number): number {
+  console.log(`🩺 [BP-CALC] Calculating BP category for Systolic=${systolic}, Diastolic=${diastolic}`);
+  
   // Normal: systolic < 120 AND diastolic < 80
-  if (systolic < 120 && diastolic < 80) return 0;
+  if (systolic < 120 && diastolic < 80) {
+    console.log('   ├─ Category: 0 (Normal - systolic < 120 AND diastolic < 80)');
+    return 0;
+  }
   
   // Elevated: systolic 120-129 AND diastolic < 80
-  if (systolic >= 120 && systolic < 130 && diastolic < 80) return 1;
+  if (systolic >= 120 && systolic < 130 && diastolic < 80) {
+    console.log('   ├─ Category: 1 (Elevated - systolic 120-129 AND diastolic < 80)');
+    return 1;
+  }
   
   // High: systolic >= 130 OR diastolic >= 80
+  console.log('   ├─ Category: 2 (High - systolic >= 130 OR diastolic >= 80)');
   return 2;
 }
 

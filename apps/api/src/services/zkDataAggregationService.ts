@@ -447,26 +447,48 @@ export class ZKDataAggregationService {
     studyId: number,
     studyBins: any
   ): Promise<void> {
-    logger.info({ proofCount: proofs.length }, '🔍 Verifying all ZK proofs...');
+    logger.info({ proofCount: proofs.length, studyBins }, '🔍 [ZK-SERVICE] Verifying all ZK proofs...');
+    logger.info({ studyBins }, '📊 [ZK-SERVICE] Study bin configuration:');
+    logger.info({ ageBins: studyBins.age }, '   ├─ Age bins:');
+    logger.info({ cholesterolBins: studyBins.cholesterol }, '   ├─ Cholesterol bins:');
+    logger.info({ bmiBins: studyBins.bmi }, '   ├─ BMI bins:');
+    logger.info({ hba1cBins: studyBins.hba1c }, '   └─ HbA1c bins:');
 
     // Load verification key
+    logger.info({ path: this.verificationKeyPath }, '📂 [ZK-SERVICE] Loading verification key...');
     const vKeyContent = await fs.readFile(this.verificationKeyPath, 'utf-8');
     const vKey = JSON.parse(vKeyContent);
+    logger.info('✅ [ZK-SERVICE] Verification key loaded successfully');
 
     for (let i = 0; i < proofs.length; i++) {
       const { proof, publicSignals } = proofs[i];
+      logger.info({ proofIndex: i, totalProofs: proofs.length }, `🔍 [ZK-SERVICE] Verifying proof ${i + 1}/${proofs.length}...`);
+      logger.info({ publicSignals }, '📊 [ZK-SERVICE] Public signals:');
+      logger.info({ dataCommitment: publicSignals.dataCommitment }, '   ├─ Data commitment:');
+      logger.info({ studyId: publicSignals.studyId }, '   ├─ Study ID:');
+      logger.info({ ageBucket: publicSignals.ageBucket }, '   ├─ Age bucket:');
+      logger.info({ cholesterolBucket: publicSignals.cholesterolBucket }, '   ├─ Cholesterol bucket:');
+      logger.info({ bmiBucket: publicSignals.bmiBucket }, '   ├─ BMI bucket:');
+      logger.info({ hba1cBucket: publicSignals.hba1cBucket }, '   └─ HbA1c bucket:');
 
       // Verify studyId matches
+      logger.info({ expected: studyId.toString(), actual: publicSignals.studyId }, '🔍 [ZK-SERVICE] Verifying study ID...');
       if (publicSignals.studyId !== studyId.toString()) {
+        logger.error({ expected: studyId, actual: publicSignals.studyId, proofIndex: i }, '❌ [ZK-SERVICE] Study ID mismatch!');
         throw new Error(`Proof ${i} is for wrong study. Expected ${studyId}, got ${publicSignals.studyId}`);
       }
+      logger.info('✅ [ZK-SERVICE] Study ID verified');
 
       // Validate bin indices against study bins
+      logger.info('🔍 [ZK-SERVICE] Validating bin indices...');
       if (studyBins.age?.enabled) {
         const ageBinIndex = parseInt(publicSignals.ageBucket);
+        logger.info({ ageBinIndex, binCount: studyBins.age.binCount, boundaries: studyBins.age.boundaries }, '   ├─ Age bin validation:');
         if (!this.validateBinIndex('age', ageBinIndex, studyBins)) {
+          logger.error({ ageBinIndex, validRange: `0-${studyBins.age.binCount - 1}` }, '❌ [ZK-SERVICE] Invalid age bin index!');
           throw new Error(`Proof ${i} has invalid age bin index ${ageBinIndex}. Valid range: 0-${studyBins.age.binCount - 1}`);
         }
+        logger.info('      ✓ Age bin index valid');
       }
 
       if (studyBins.cholesterol?.enabled) {
@@ -509,14 +531,25 @@ export class ZKDataAggregationService {
       ];
 
       // Verify the proof
+      logger.info({ proofIndex: i }, '🔐 [ZK-SERVICE] Running cryptographic verification...');
+      logger.info({ publicSignalsArray }, '   ├─ Public signals array:');
+      const verifyStart = Date.now();
       const isValid = await groth16.verify(vKey, publicSignalsArray, proof);
+      const verifyDuration = Date.now() - verifyStart;
+      logger.info({ isValid, duration: verifyDuration }, `   └─ Verification result: ${isValid ? '✅ VALID' : '❌ INVALID'} (${verifyDuration}ms)`);
 
       if (!isValid) {
+        logger.error({ proofIndex: i, publicSignals, proof }, '❌ [ZK-SERVICE] INVALID PROOF DETECTED!');
         throw new Error(`Invalid ZK proof at index ${i}. Aggregation aborted.`);
       }
+      logger.info({ proofIndex: i }, `✅ [ZK-SERVICE] Proof ${i + 1}/${proofs.length} verified successfully`);
     }
 
-    logger.info({ proofCount: proofs.length }, '✅ All proofs verified successfully');
+    logger.info({ proofCount: proofs.length }, '✅ [ZK-SERVICE] All proofs verified successfully');
+    logger.info('📊 [ZK-SERVICE] ============================================');
+    logger.info('📊 [ZK-SERVICE] VERIFICATION COMPLETE');
+    logger.info({ verifiedCount: proofs.length }, `📊 [ZK-SERVICE] Successfully verified ${proofs.length} proofs`);
+    logger.info('📊 [ZK-SERVICE] ============================================');
   }
 
   /**
@@ -529,6 +562,9 @@ export class ZKDataAggregationService {
     proofs: ZKAggregationProof[],
     studyBins: any
   ): Promise<ZKAggregatedStatistics> {
+    logger.info({ proofCount: proofs.length }, '🔢 [ZK-SERVICE] Starting aggregation of public signals...');
+    logger.info({ studyBins }, '📊 [ZK-SERVICE] Using study bins for labeling:');
+    
     const stats: ZKAggregatedStatistics = {
       demographics: {
         totalParticipants: proofs.length,
@@ -554,14 +590,20 @@ export class ZKDataAggregationService {
     };
 
     // Count occurrences in each bucket/category
-    for (const { publicSignals } of proofs) {
+    logger.info('📊 [ZK-SERVICE] Processing proofs for aggregation...');
+    for (let idx = 0; idx < proofs.length; idx++) {
+      const { publicSignals } = proofs[idx];
+      logger.info({ proofIndex: idx, participantData: publicSignals }, `📝 [ZK-SERVICE] Aggregating proof ${idx + 1}/${proofs.length}`);
+      
       // Age distribution (dynamic bins)
       const ageBinIndex = parseInt(publicSignals.ageBucket);
+      logger.info({ ageBinIndex, binDef: studyBins.age }, '   ├─ Processing age bucket:');
       if (!this.validateBinIndex('age', ageBinIndex, studyBins)) {
-        logger.warn({ ageBinIndex, studyBins: studyBins.age }, 'Invalid age bin index, skipping');
+        logger.warn({ ageBinIndex, studyBins: studyBins.age }, '⚠️ [ZK-SERVICE] Invalid age bin index, skipping participant');
         continue;
       }
       const ageBucket = this.getBinLabel('age', ageBinIndex, studyBins);
+      logger.info({ ageBucket }, '      ├─ Age bucket label:');
       stats.demographics.ageDistribution[ageBucket] =
         (stats.demographics.ageDistribution[ageBucket] || 0) + 1;
 
