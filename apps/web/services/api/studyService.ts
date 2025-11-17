@@ -74,6 +74,7 @@ export interface CreateStudyRequest {
   templateName?: string;
   customCriteria?: Partial<StudyCriteria>;
   createdBy?: string;
+  binConfiguration?: any;
 }
 
 export interface CreateStudyResponse {
@@ -359,7 +360,8 @@ export const useCreateStudy = () => {
     durationDays: number,
     criteria: StudyCriteria,
     selectedTemplate?: string,
-    createdBy?: string
+    createdBy?: string,
+    binConfiguration?: any
   ): Promise<CreateStudyResponse> => {
     const studyData: CreateStudyRequest = {
       title,
@@ -368,6 +370,7 @@ export const useCreateStudy = () => {
       durationDays,
       ...(selectedTemplate ? { templateName: selectedTemplate } : { customCriteria: criteria }),
       ...(createdBy ? { createdBy } : {}),
+      ...(binConfiguration ? { binConfiguration } : {}),
     };
 
     return createStudy(studyData);

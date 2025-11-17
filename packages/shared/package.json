@@ -8,7 +8,9 @@
   "exports": {
     ".": "./index.ts",
     "./studyCriteria": "./studyCriteria.ts",
-    "./userProfile": "./userProfile.ts"
+    "./userProfile": "./userProfile.ts",
+    "./dataBins": "./dataBins.ts",
+    "./binningAlgorithm": "./binningAlgorithm.ts"
   },
   "scripts": {
     "build": "tsc"

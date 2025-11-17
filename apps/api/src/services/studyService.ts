@@ -1020,6 +1020,111 @@ export class StudyService {
       };
     }
   }
+
+  async configureBins(
+    studyAddress: string,
+    bins: Array<{
+      binId: string;
+      criteriaField: string;
+      binType: number;
+      label: string;
+      minValue: bigint | number;
+      maxValue: bigint | number;
+      includeMin: boolean;
+      includeMax: boolean;
+      categoriesBitmap: bigint | number;
+    }>
+  ): Promise<{ success: boolean; transactionHash?: string; error?: string }> {
+    await this.initialize();
+
+    if (!this.publicClient || !this.walletClient) {
+      return { success: false, error: "Blockchain client not initialized" };
+    }
+
+    try {
+      logger.info(
+        {
+          studyAddress,
+          binCount: bins.length,
+        },
+        "Configuring bins on study contract"
+      );
+
+      const binsWithBigInt = bins.map(bin => ({
+        binId: bin.binId,
+        criteriaField: bin.criteriaField,
+        binType: bin.binType,
+        label: bin.label,
+        minValue: BigInt(bin.minValue),
+        maxValue: BigInt(bin.maxValue),
+        includeMin: bin.includeMin,
+        includeMax: bin.includeMax,
+        categoriesBitmap: BigInt(bin.categoriesBitmap),
+      }));
+
+      logger.info({ bins: binsWithBigInt }, "Bins prepared for configuration");
+      logger.info(
+        { walletAddress: this.walletClient.account.address },
+        "Wallet client account address"
+      );
+      logger.info(
+        { walletAddress: this.account.address },
+        "Deployer account address"
+      );
+      logger.info(
+        { factoryAddress: Config.STUDY_FACTORY_ADDRESS },
+        "Factory address (studyCreator)"
+      );
+
+      const result = await this.executeContractTransaction(
+        studyAddress,
+        "configureBins",
+        [binsWithBigInt, Config.STUDY_FACTORY_ADDRESS as `0x${string}`],
+        "Bin configuration"
+      );
+
+      if (result.success) {
+        logger.info(
+          {
+            transactionHash: result.transactionHash,
+            studyAddress,
+            binCount: bins.length,
+          },
+          "Bins configured successfully"
+        );
+      } else {
+        logger.error(
+          {
+            error: result.error,
+            studyAddress,
+          },
+          "Failed to configure bins"
+        );
+      }
+
+      return {
+        success: result.success,
+        transactionHash: result.transactionHash,
+        error: result.error,
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.error(
+        {
+          error,
+          errorMessage,
+          errorStack: error instanceof Error ? error.stack : undefined,
+          studyAddress,
+          binCount: bins.length,
+        },
+        "Exception in configureBins"
+      );
+      return {
+        success: false,
+        error: errorMessage,
+      };
+    }
+  }
 }
 
 export const studyService = new StudyService();
