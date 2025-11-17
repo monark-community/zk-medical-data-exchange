@@ -142,7 +142,10 @@ contract Study {
         ));
         require(recomputedHash == storedCommitmentHash, "Commitment mismatch - data tampering detected");
         
-        uint[1] memory pubSignals = [uint256(1)]; // Expected: eligible = 1
+        //uint[1] memory pubSignals = [uint256(1)]; // Expected: eligible = 1
+        uint[1] memory pubSignals = [
+            dataCommitment
+        ];
         bool isEligible = zkVerifier.verifyProof(_pA, _pB, _pC, pubSignals);
         
         emit EligibilityVerified(participant, isEligible);

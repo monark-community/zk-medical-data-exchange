@@ -4,9 +4,6 @@ include "circomlib/circuits/poseidon.circom";
 include "circomlib/circuits/comparators.circom";
 
 template MedicalEligibility() {
-    // ========================================
-    // PRIVATE INPUTS (Patient's Medical Data - Never Revealed!)
-    // ========================================
     signal input age;
     signal input gender;                 // 1=male, 2=female
     signal input region;                 // Patient's region/state code  
@@ -21,13 +18,7 @@ template MedicalEligibility() {
     signal input diabetesStatus;         // 0=none, 1=type1, 2=type2, 3=pre-diabetic
     signal input heartDiseaseHistory;    // 0=no, 1=yes
     signal input salt;                   // Random salt for commitment security
-    
-    // ========================================
-    // STUDY CRITERIA (Private inputs - not revealed to blockchain)
-    // ========================================
-    // These are private inputs provided during proof generation
-    // The blockchain never sees these values - only the eligibility result
-    
+
     signal input enableAge;
     signal input minAge;
     signal input maxAge;
@@ -61,14 +52,9 @@ template MedicalEligibility() {
     signal input enableHeartDisease;
     signal input allowedHeartDisease;
     
-    // ========================================
-    // PUBLIC INPUTS (Only what goes to blockchain)  
-    // ========================================
-    
-    // Data commitment - hash of patient's private medical data
+    // this one is public becuase of the public: [dataCommitment] declaration
     signal input dataCommitment;
 
-    // Random server challenge (nonce) — ensures proof freshness
     signal input challenge;
     
     // ========================================
@@ -128,6 +114,8 @@ template MedicalEligibility() {
     finalCommitment.inputs[1] <== commitment2.out;
     finalCommitment.inputs[2] <== salt;
     finalCommitment.inputs[3] <== challenge;
+
+    assert(dataCommitment === finalCommitment.out);
     
     // ========================================
     // ELIGIBILITY CRITERIA CHECKING
@@ -405,4 +393,4 @@ template ConditionalDualRangeCheck(n) {
     valid <== isDisabled.out + (enabled * bothValid);
 }
 
-component main = MedicalEligibility();
+component main {public [dataCommitment]} = MedicalEligibility();

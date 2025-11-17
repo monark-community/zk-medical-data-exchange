@@ -115,23 +115,23 @@ export const generateZKProof = async (
       throw new Error("salt is required but was undefined");
     }
 
-    const isEligible = checkEligibility(medicalData, studyCriteria);
-    console.log("Eligibility check:", isEligible ? "ELIGIBLE" : "NOT ELIGIBLE");
+    // const isEligible = checkEligibility(medicalData, studyCriteria);
+    // console.log("Eligibility check:", isEligible ? "ELIGIBLE" : "NOT ELIGIBLE");
 
-    if (!isEligible) {
-      return {
-        proof: {
-          a: ["0", "0"],
-          b: [
-            ["0", "0"],
-            ["0", "0"],
-          ],
-          c: ["0", "0"],
-        },
-        publicSignals: ["0"],
-        isEligible: false,
-      };
-    }
+    // if (!isEligible) {
+    //   return {
+    //     proof: {
+    //       a: ["0", "0"],
+    //       b: [
+    //         ["0", "0"],
+    //         ["0", "0"],
+    //       ],
+    //       c: ["0", "0"],
+    //     },
+    //     publicSignals: ["0"],
+    //     isEligible: false,
+    //   };
+    // }
     
     const circuitInput = prepareCircuitInput(medicalData, studyCriteria, dataCommitment, salt, challenge);
     console.log("Circuit input prepared with commitment verification");
@@ -148,6 +148,10 @@ export const generateZKProof = async (
 
     console.log("Generating ZK proof");
     console.log("Calling snarkjs.groth16.fullProve with inputs");
+    console.log("├─ circuitInput:", circuitInput);
+    console.log("├─ circuitWasm type:", typeof circuitWasm);
+    console.log("└─ provingKey type:", typeof provingKey);
+
     const { proof, publicSignals } = await snarkjs.groth16.fullProve(
       circuitInput,
       circuitWasm,
@@ -156,6 +160,7 @@ export const generateZKProof = async (
 
     console.log("Raw proof from snarkjs:", proof);
     console.log("Proof types - a[0]:", typeof proof.pi_a[0], "a[1]:", typeof proof.pi_a[1]);
+    console.log("When running full prove, publicSignals are:", publicSignals);
 
     const formattedProof: ZKProof = {
       a: [proof.pi_a[0], proof.pi_a[1]],

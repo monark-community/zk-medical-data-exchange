@@ -1,5 +1,5 @@
 // Auto-generated contract ABIs
-// Generated on 2025-11-15T18:58:34.066Z
+// Generated on 2025-11-17T22:45:00.030Z
 
 // ABI type definitions
 interface ABIInput {
@@ -3322,15 +3322,9 @@ export const PROPOSAL_ABI: ABI = [
   },
   {
     "inputs": [],
-    "name": "getState",
-    "outputs": [
-      {
-        "internalType": "enum Proposal.ProposalState",
-        "name": "",
-        "type": "uint8"
-      }
-    ],
-    "stateMutability": "view",
+    "name": "finalize",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
