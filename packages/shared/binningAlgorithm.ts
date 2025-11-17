@@ -16,7 +16,6 @@ import type { StudyCriteria } from "./studyCriteria";
 
 export function generateBinsFromCriteria(
   criteria: StudyCriteria,
-  studyId: number,
   config: Partial<BinGenerationConfig> = {}
 ): BinConfiguration {
   const fullConfig: BinGenerationConfig = { ...DEFAULT_BIN_CONFIG, ...config };
@@ -38,10 +37,7 @@ export function generateBinsFromCriteria(
   });
 
   return {
-    studyId,
     bins,
-    createdAt: Date.now(),
-    version: "1.0.0",
   };
 }
 
@@ -340,10 +336,6 @@ export function validateBinConfiguration(config: BinConfiguration): {
   errors: string[];
 } {
   const errors: string[] = [];
-
-  if (!config.studyId || config.studyId <= 0) {
-    errors.push("Invalid study ID");
-  }
 
   if (!config.bins || config.bins.length === 0) {
     errors.push("No bins defined");
