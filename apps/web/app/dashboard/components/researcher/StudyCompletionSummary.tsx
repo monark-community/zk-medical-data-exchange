@@ -23,6 +23,7 @@ import { createPublicClient, http } from "viem";
 import { sepolia } from "viem/chains";
 import { Config } from "@/config/config";
 import { getTransactionsByStudyId } from "@/services/api/transactionService";
+import { apiClient } from "@/services/core";
 
 interface StudyCompletionSummaryProps {
   open: boolean;
@@ -98,9 +99,24 @@ export default function StudyCompletionSummary({
   const dataPointsCollected = 1248;
   const studyDuration = durationDays ? `${durationDays} days` : "N/A";
 
-  const handleAccessData = () => {
-    // TODO: Implement data access functionality
-    console.log("Accessing study data...");
+  const handleAccessData = async () => {
+    try {
+      console.log("Accessing study data...");
+
+      // Log data access for audit trail
+      await apiClient.post(`/studies/${studyId}/data-access`, {
+        creatorWallet: txInfo?.from,
+      });
+
+      console.log("Data access logged successfully");
+
+      // TODO: Navigate to data analysis page or open data viewer
+      // You could add navigation logic here, e.g.:
+      // router.push(`/dashboard/studies/${studyId}/data`);
+    } catch (error) {
+      console.error("Failed to access study data:", error);
+      // TODO: Show error toast/notification to user
+    }
   };
 
   const handleViewTransaction = () => {
@@ -109,9 +125,21 @@ export default function StudyCompletionSummary({
     }
   };
 
-  const handleExportSummary = () => {
-    // TODO: Export summary as PDF/CSV
-    console.log("Exporting summary...");
+  const handleExportSummary = async () => {
+    try {
+      console.log("Exporting study summary...");
+
+      // Log data access for audit trail
+      await apiClient.post(`/study/${studyId}/data-access`, {
+        creatorWallet: txInfo?.from,
+      });
+
+      // TODO: Implement actual PDF/CSV export functionality
+      console.log("Data access logged successfully");
+    } catch (error) {
+      console.error("Failed to export study summary:", error);
+      // TODO: Show error toast/notification to user
+    }
   };
 
   const participantsCount = txInfo?.participantsCount ?? 0;

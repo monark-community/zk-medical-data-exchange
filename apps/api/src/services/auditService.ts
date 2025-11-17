@@ -676,6 +676,47 @@ class AuditService {
     };
   }
 
+  async logStudyDataAccess(
+    creatorAddress: string,
+    participantsAddresses: string[],
+    studyId: string,
+    success: boolean,
+    metadata?: Record<string, any>
+  ) {
+    const creatorResult = await this.logAction({
+      user: creatorAddress,
+      userProfile: UserProfile.RESEARCHER,
+      actionType: ActionType.STUDY_AGGREGATED_DATA_ACCESS,
+      resource: `study_${studyId}_aggregated_data`,
+      action: "access_aggregated_data",
+      success,
+      metadata: {
+        ...metadata,
+        role: "creator",
+      },
+    });
+
+    const participantsResult = await this.logActionForParticipants(participantsAddresses, {
+      userProfile: UserProfile.DATA_SELLER,
+      actionType: ActionType.STUDY_AGGREGATED_DATA_ACCESS,
+      resource: `study_${studyId}_aggregated_data`,
+      action: "access_aggregated_data",
+      success,
+      metadata: {
+        ...metadata,
+        creator: creatorAddress,
+        role: "participant",
+        message: "Your data was included in aggregated results accessed by the study creator.",
+        studyId: studyId,
+      },
+    });
+
+    return {
+      creatorLog: creatorResult,
+      participantsLog: participantsResult,
+    };
+  }
+
   async logAdminAction(
     userAddress: string,
     resource: string,

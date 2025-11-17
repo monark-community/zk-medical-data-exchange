@@ -1572,3 +1572,135 @@ export const revokeStudyConsent = async (req: Request, res: Response) => {
 export const grantStudyConsent = async (req: Request, res: Response) => {
   return handleConsentOperation(req, res, "grant");
 };
+
+export const logStudyDataAccess = async (req: Request, res: Response) => {
+  const { startTime, userAgent, ipAddress } = getAuditMetadata(req);
+
+  try {
+    const { id } = req.params;
+    const { creatorWallet } = req.body;
+
+    if (!id) {
+      return res.status(400).json({ error: "Study ID is required" });
+    }
+
+    if (!creatorWallet) {
+      return res.status(400).json({ error: "Creator wallet address is required" });
+    }
+
+    logger.info({ studyId: id, creatorWallet }, "POST /api/studies/:id/data-access");
+
+    // Get study details and participants
+    const { data: study, error: studyError } = await req.supabase
+      .from(TABLES.STUDIES!.name)
+      .select("id, title, created_by")
+      .eq(TABLES.STUDIES!.columns.id!, id)
+      .single();
+
+    if (studyError || !study) {
+      logger.warn({ studyId: id, error: studyError }, "Study not found for data access logging");
+      return res.status(404).json({ error: "Study not found" });
+    }
+
+    if (study.created_by?.toLowerCase() !== creatorWallet.toLowerCase()) {
+      logger.warn(
+        { studyId: id, creatorWallet, actualCreator: study.created_by },
+        "Unauthorized data access logging attempt"
+      );
+      return res.status(403).json({ error: "Only the study creator can log data access" });
+    }
+
+    const { data: participants, error: participantsError } = await req.supabase
+      .from(TABLES.STUDY_PARTICIPATIONS!.name)
+      .select(TABLES.STUDY_PARTICIPATIONS!.columns.participantWallet!)
+      .eq(TABLES.STUDY_PARTICIPATIONS!.columns.studyId!, id)
+      .eq(TABLES.STUDY_PARTICIPATIONS!.columns.hasConsented!, true);
+
+    if (participantsError) {
+      logger.error({ error: participantsError, studyId: id }, "Failed to fetch participants");
+      return res.status(500).json({ error: "Failed to fetch participants" });
+    }
+
+    const participantAddresses = (participants || []).map((p: any) => p.participant_wallet);
+
+    if (participantAddresses.length === 0) {
+      logger.warn({ studyId: id }, "No consented participants found for data access logging");
+      return res.status(400).json({ error: "No consented participants found" });
+    }
+
+    const auditResult = await auditService.logStudyDataAccess(
+      creatorWallet,
+      participantAddresses,
+      id,
+      true,
+      {
+        studyTitle: study.title,
+        participantCount: participantAddresses.length,
+        userAgent,
+        ipAddress,
+        duration: getAuditDuration(startTime),
+      }
+    );
+
+    if (!auditResult.creatorLog.success) {
+      logger.error(
+        { error: auditResult.creatorLog.error, studyId: id, creatorWallet },
+        "Failed to log study data access for creator"
+      );
+      return res.status(500).json({
+        error: "Failed to log data access",
+        details: auditResult.creatorLog.error,
+      });
+    }
+
+    logger.info(
+      {
+        studyId: id,
+        creatorWallet,
+        participantCount: participantAddresses.length,
+        txHash: auditResult.creatorLog.txHash,
+      },
+      "Study data access logged successfully"
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Data access logged successfully",
+      studyId: Number(id),
+      participantCount: participantAddresses.length,
+      creatorTxHash: auditResult.creatorLog.txHash,
+      participantsTxHash: auditResult.participantsLog.txHash,
+    });
+  } catch (error) {
+    logger.error(
+      {
+        error:
+          error instanceof Error
+            ? {
+                message: error.message,
+                stack: error.stack,
+                name: error.name,
+              }
+            : error,
+        studyId: req.params.id,
+      },
+      "Log study data access error"
+    );
+
+    const { creatorWallet } = req.body;
+    if (creatorWallet && req.params.id) {
+      await auditService
+        .logStudyDataAccess(creatorWallet, [], req.params.id, false, {
+          error: error instanceof Error ? error.message : "Unknown error",
+          userAgent,
+          ipAddress,
+          duration: getAuditDuration(startTime),
+        })
+        .catch((auditError) => {
+          logger.error({ auditError }, "Failed to log failed data access attempt");
+        });
+    }
+
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
