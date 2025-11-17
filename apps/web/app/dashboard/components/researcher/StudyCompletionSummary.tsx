@@ -129,7 +129,6 @@ export default function StudyCompletionSummary({
     try {
       console.log("Exporting study summary...");
 
-      // Log data access for audit trail
       await apiClient.post(`/study/${studyId}/data-access`, {
         creatorWallet: txInfo?.from,
       });
