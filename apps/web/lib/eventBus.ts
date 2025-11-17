@@ -6,6 +6,11 @@ export type AppEvents = {
   medicalDataDeleted: undefined;
   userUpdated: undefined;
   proposalUpdated: undefined;
+  studyCreated: undefined;
+  studyCompleted: undefined;
+  studyJoinedSuccess: undefined;
+  studyDeleted: undefined;
+  consentChanged: undefined;
 };
 
 const emitter = mitt<AppEvents>();

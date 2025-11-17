@@ -6,4 +6,5 @@ export {
   STUDY_ABI,
   MEDICAL_ELIGIBILITY_VERIFIER_ABI,
   AUDIT_TRAIL_ABI,
+  DISPERSE_ABI,
 } from "./generated";

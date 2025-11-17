@@ -986,6 +986,40 @@ export class StudyService {
       };
     }
   }
+
+  async isParticipant(
+    studyAddress: string,
+    participantWallet: string
+  ): Promise<{ isParticipant: boolean; error?: string }> {
+    try {
+      const isParticipant = await this.publicClient.readContract({
+        address: studyAddress as `0x${string}`,
+        abi: STUDY_ABI,
+        functionName: "isParticipant",
+        args: [participantWallet as `0x${string}`],
+      });
+
+      logger.info(
+        {
+          studyAddress,
+          participantWallet,
+          isParticipant,
+        },
+        "Checked participant status"
+      );
+
+      return { isParticipant: Boolean(isParticipant) };
+    } catch (error) {
+      logger.error(
+        { error, studyAddress, participantWallet },
+        "Failed to check participant status"
+      );
+      return {
+        isParticipant: false,
+        error: error instanceof Error ? error.message : "Unknown error checking participant status",
+      };
+    }
+  }
 }
 
 export const studyService = new StudyService();

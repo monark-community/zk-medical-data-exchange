@@ -20,6 +20,7 @@ const AccountOverview: React.FC<AccountOverviewProps> = ({ walletAddress }) => {
 
   useEffect(() => {
     const fetchStats = async () => {
+      console.log("Fetching user stats for wallet:", walletAddress, "and profile:", currentProfile);
       try {
         setLoading(true);
         const data = await getUserStats(walletAddress, currentProfile);
@@ -33,6 +34,11 @@ const AccountOverview: React.FC<AccountOverviewProps> = ({ walletAddress }) => {
 
     eventBus.on("medicalDataUploaded", fetchStats);
     eventBus.on("medicalDataDeleted", fetchStats);
+    eventBus.on("studyCreated", fetchStats);
+    eventBus.on("studyCompleted", fetchStats);
+    eventBus.on("studyJoinedSuccess", fetchStats);
+    eventBus.on("studyDeleted", fetchStats);
+    eventBus.on("consentChanged", fetchStats);
 
     if (walletAddress) {
       fetchStats();
@@ -41,6 +47,11 @@ const AccountOverview: React.FC<AccountOverviewProps> = ({ walletAddress }) => {
     return () => {
       eventBus.off("medicalDataUploaded", fetchStats);
       eventBus.off("medicalDataDeleted", fetchStats);
+      eventBus.off("studyCreated", fetchStats);
+      eventBus.off("studyCompleted", fetchStats);
+      eventBus.off("studyJoinedSuccess", fetchStats);
+      eventBus.off("studyDeleted", fetchStats);
+      eventBus.off("consentChanged", fetchStats);
     };
   }, [walletAddress, currentProfile]);
   if (loading) {
@@ -51,7 +62,6 @@ const AccountOverview: React.FC<AccountOverviewProps> = ({ walletAddress }) => {
     );
   }
 
-  // Prepare account info based on user profile
   const getAccountInfo = () => {
     if (!stats) return null;
 

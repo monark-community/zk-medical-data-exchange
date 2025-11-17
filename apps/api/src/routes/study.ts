@@ -12,6 +12,8 @@ import {
   revokeStudyConsent,
   grantStudyConsent,
   generateDataCommitmentChallenge,
+  fetchParticipantsBlockchain,
+  logStudyDataAccess,
 } from "@/controllers/studyController";
 
 const router = Router();
@@ -136,6 +138,25 @@ router.post("/", createStudy);
  *         description: Study not found
  */
 router.get("/:id", getStudyById);
+
+/**
+ * @swagger
+ * /studies/participants/{id}:
+ *   get:
+ *     summary: Get study participants from the blockchain by study ID
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Study participants from blockchain
+ *       404:
+ *         description: Study not found
+ */
+router.get("/:id/participants", fetchParticipantsBlockchain);
 
 /**
  * @swagger
@@ -454,5 +475,62 @@ router.post("/:id/consent/revoke", revokeStudyConsent);
  *         description: Internal server error
  */
 router.post("/:id/consent/grant", grantStudyConsent);
+
+/**
+ * @swagger
+ * /studies/{id}/data-access:
+ *   post:
+ *     summary: Log study data access by creator
+ *     description: Logs when a study creator accesses aggregated participant data, creating audit trail entries for both creator and participants
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Study ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - creatorWallet
+ *             properties:
+ *               creatorWallet:
+ *                 type: string
+ *                 pattern: "^0x[a-fA-F0-9]{40}$"
+ *                 description: Study creator's wallet address
+ *     responses:
+ *       200:
+ *         description: Data access logged successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 studyId:
+ *                   type: integer
+ *                 participantCount:
+ *                   type: integer
+ *                 creatorTxHash:
+ *                   type: string
+ *                 participantsTxHash:
+ *                   type: string
+ *       400:
+ *         description: Invalid request or no consented participants
+ *       403:
+ *         description: Unauthorized - only study creator can log data access
+ *       404:
+ *         description: Study not found
+ *       500:
+ *         description: Internal server error
+ */
+router.post("/:id/data-access", logStudyDataAccess);
 
 export default router;

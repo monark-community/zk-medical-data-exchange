@@ -6,6 +6,7 @@ import {
   type CreateProposalParams,
   type VoteParams,
 } from "@/services/governanceService";
+import { auditService } from "@/services/auditService";
 import logger from "@/utils/logger";
 
 export async function getStats(req: Request, res: Response) {
@@ -149,6 +150,24 @@ export async function createProposal(req: Request, res: Response) {
       });
     }
 
+    // Log proposal creation to audit trail (fire and forget)
+    auditService
+      .logProposalCreation(
+        walletAddress,
+        result.data?.proposalId?.toString() || "unknown",
+        ProposalCategory[category]!,
+        true,
+        {
+          title: title.trim(),
+          description: description.trim(),
+          duration: Number(duration),
+          transactionHash: result.transactionHash,
+        }
+      )
+      .catch((auditError) => {
+        logger.error({ auditError }, "Failed to log proposal creation to audit trail");
+      });
+
     return res.status(201).json({
       success: true,
       data: result.data,
@@ -212,6 +231,22 @@ export async function vote(req: Request, res: Response) {
         error: result.error || "Failed to cast vote",
       });
     }
+
+    // Log vote to audit trail (fire and forget)
+    const voteChoice = choice === 1 ? "yes" : choice === 2 ? "no" : "abstain";
+    auditService
+      .logVoteCast(
+        walletAddress,
+        proposalId.toString(),
+        voteChoice as "yes" | "no" | "abstain",
+        true,
+        {
+          transactionHash: result.transactionHash,
+        }
+      )
+      .catch((auditError) => {
+        logger.error({ auditError }, "Failed to log vote to audit trail");
+      });
 
     return res.status(200).json({
       success: true,
