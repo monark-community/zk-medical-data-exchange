@@ -18,6 +18,7 @@ import { http } from "viem";
 import { createConfig } from "wagmi";
 import { Config } from "@/config/config";
 import { verifyTransaction } from "@/services/api/transactionService";
+import eventBus from "@/lib/eventBus";
 
 interface EndStudyDialogProps {
   open: boolean;
@@ -51,6 +52,8 @@ export default function EndStudyDialog({
 
     if (participants.length === 0) {
       await endStudy(studyId);
+      // Emit event to refresh stats
+      eventBus.emit("studyCompleted");
       setShowSuccess(true);
       setIsEnding(false);
       setShowSuccess(false);
@@ -87,6 +90,8 @@ export default function EndStudyDialog({
       if (!result.verified) {
         throw new Error("Transaction could not be verified");
       }
+
+      eventBus.emit("studyCompleted");
 
       setShowSuccess(true);
       setTimeout(() => {

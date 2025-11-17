@@ -278,6 +278,9 @@ export class StudyApplicationService {
 
       console.log("Study application completed successfully!");
 
+      const eventBus = (await import("@/lib/eventBus")).default;
+      eventBus.emit("studyJoinedSuccess");
+
       return {
         success: true,
         message: "Successfully applied to study! Your medical data remained private.",

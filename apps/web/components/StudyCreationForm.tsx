@@ -13,6 +13,7 @@ import {
 import { useCreateStudy, deployStudy, deleteStudy } from "@/services/api/studyService";
 import { useAccount } from "wagmi";
 import { STUDY_FORM_MAPPINGS, DEFAULT_STUDY_INFO } from "@/constants/studyFormMappings";
+import eventBus from "@/lib/eventBus";
 const TemplateSelector = ({
   onTemplateSelect,
   selectedTemplate,
@@ -411,6 +412,7 @@ const StudyCreationForm = ({
         const deployResult = await deployStudy(result.study.id);
 
         console.log("Blockchain deployment successful:", deployResult);
+        eventBus.emit("studyCreated");
 
         alert(
           `🎉 Study "${result.study.title}" created and deployed successfully!\n\n` +

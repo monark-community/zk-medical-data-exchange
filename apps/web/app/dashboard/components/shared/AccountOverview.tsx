@@ -20,6 +20,7 @@ const AccountOverview: React.FC<AccountOverviewProps> = ({ walletAddress }) => {
 
   useEffect(() => {
     const fetchStats = async () => {
+      console.log("Fetching user stats for wallet:", walletAddress, "and profile:", currentProfile);
       try {
         setLoading(true);
         const data = await getUserStats(walletAddress, currentProfile);
@@ -31,14 +32,24 @@ const AccountOverview: React.FC<AccountOverviewProps> = ({ walletAddress }) => {
       }
     };
 
-    eventBus.on("userStatsChanged", fetchStats);
+    eventBus.on("medicalDataUploaded", fetchStats);
+    eventBus.on("medicalDataDeleted", fetchStats);
+    eventBus.on("studyCreated", fetchStats);
+    eventBus.on("studyCompleted", fetchStats);
+    eventBus.on("studyJoinedSuccess", fetchStats);
+    eventBus.on("studyDeleted", fetchStats);
 
     if (walletAddress) {
       fetchStats();
     }
 
     return () => {
-      eventBus.off("userStatsChanged", fetchStats);
+      eventBus.off("medicalDataUploaded", fetchStats);
+      eventBus.off("medicalDataDeleted", fetchStats);
+      eventBus.off("studyCreated", fetchStats);
+      eventBus.off("studyCompleted", fetchStats);
+      eventBus.off("studyJoinedSuccess", fetchStats);
+      eventBus.off("studyDeleted", fetchStats);
     };
   }, [walletAddress, currentProfile]);
   if (loading) {
