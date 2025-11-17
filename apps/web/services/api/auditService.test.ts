@@ -53,11 +53,13 @@ describe("AuditService - ActionType Enum", () => {
     expect(ActionType.DATA_DELETED).toBe(14);
     expect(ActionType.ADMIN_ACTION).toBe(15);
     expect(ActionType.SYSTEM_CONFIG).toBe(16);
+    expect(ActionType.SENT_COMPENSATION).toBe(17);
+    expect(ActionType.RECEIVED_COMPENSATION).toBe(18);
   });
 
   it("should have sequential numeric values", () => {
     const values = Object.values(ActionType).filter((v) => typeof v === "number");
-    const expected = Array.from({ length: 17 }, (_, i) => i);
+    const expected = Array.from({ length: 19 }, (_, i) => i);
     expect(values.sort((a, b) => a - b)).toEqual(expected);
   });
 
@@ -103,6 +105,10 @@ describe("AuditService - ActionType Enum", () => {
     // ADMIN actions (15-16)
     expect(ActionType.ADMIN_ACTION).toBe(15);
     expect(ActionType.SYSTEM_CONFIG).toBe(16);
+
+    // REWARDS actions (17-18)
+    expect(ActionType.SENT_COMPENSATION).toBe(17);
+    expect(ActionType.RECEIVED_COMPENSATION).toBe(18);
   });
 });
 
