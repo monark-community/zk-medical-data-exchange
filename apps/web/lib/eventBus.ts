@@ -10,6 +10,7 @@ export type AppEvents = {
   studyCompleted: undefined;
   studyJoinedSuccess: undefined;
   studyDeleted: undefined;
+  consentChanged: undefined;
 };
 
 const emitter = mitt<AppEvents>();

@@ -38,6 +38,7 @@ const AccountOverview: React.FC<AccountOverviewProps> = ({ walletAddress }) => {
     eventBus.on("studyCompleted", fetchStats);
     eventBus.on("studyJoinedSuccess", fetchStats);
     eventBus.on("studyDeleted", fetchStats);
+    eventBus.on("consentChanged", fetchStats);
 
     if (walletAddress) {
       fetchStats();
@@ -50,6 +51,7 @@ const AccountOverview: React.FC<AccountOverviewProps> = ({ walletAddress }) => {
       eventBus.off("studyCompleted", fetchStats);
       eventBus.off("studyJoinedSuccess", fetchStats);
       eventBus.off("studyDeleted", fetchStats);
+      eventBus.off("consentChanged", fetchStats);
     };
   }, [walletAddress, currentProfile]);
   if (loading) {
