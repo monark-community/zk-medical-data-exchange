@@ -4,16 +4,16 @@ A privacy-preserving Web3 platform that enables secure medical research through 
 
 ---
 
-## 🏥 Overview
+## Overview
 
 This platform combines blockchain technology with Zero-Knowledge cryptography to solve the privacy dilemma in medical research:
 
-- **🔐 Patient Privacy** - Medical data never leaves the patient's control
-- **📊 Research Enablement** - Researchers can verify eligibility without accessing raw data
-- **🛡️ Zero-Knowledge Proofs** - Cryptographic proofs of eligibility without data disclosure
-- **⚡ Blockchain Verification** - Decentralized, transparent, and tamper-proof enrollment
+- **Patient Privacy** - Medical data never leaves the patient's control
+- **Research Enablement** - Researchers can verify eligibility without accessing raw data
+- **Zero-Knowledge Proofs** - Cryptographic proofs of eligibility without data disclosure
+- **Blockchain Verification** - Decentralized, transparent, and tamper-proof enrollment
 
-## 🏗️ Architecture
+## Architecture
 
 ```
 ┌─────────────────┬─────────────────┬─────────────────┐
@@ -32,7 +32,7 @@ This platform combines blockchain technology with Zero-Knowledge cryptography to
                   └─────────────────┘
 ```
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
@@ -61,7 +61,7 @@ bun run dev:web
 # 3. Open http://localhost:3000
 ```
 
-## 📋 Available Scripts
+## Available Scripts
 
 ### Development & Testing
 
@@ -102,7 +102,7 @@ cd packages/smart-contracts
 bun run test:zk-proof               # Same test, run locally
 ```
 
-## 🏗️ Project Structure
+## Project Structure
 
 ```
 zk-medical-data-exchange/
@@ -126,15 +126,15 @@ zk-medical-data-exchange/
     └── docker-compose.yaml       # Local development infrastructure
 ```
 
-## 🔐 Zero-Knowledge Workflow
+## Zero-Knowledge Workflow
 
-1. **📋 Study Creation** - Researchers define eligibility criteria
-2. **🏥 Patient Data** - Patients input medical data locally
-3. **🔒 Proof Generation** - ZK circuit creates eligibility proof
-4. **⛓️ On-Chain Verification** - Smart contract verifies proof
-5. **✅ Study Enrollment** - Eligible patients join without data disclosure
+1. **Study Creation** - Researchers define eligibility criteria
+2. **Patient Data** - Patients input medical data locally
+3. **Proof Generation** - ZK circuit creates eligibility proof
+4. **On-Chain Verification** - Smart contract verifies proof
+5. **Study Enrollment** - Eligible patients join without data disclosure
 
-## 🎯 Key Features
+## Key Features
 
 ### For Researchers
 
@@ -155,7 +155,7 @@ zk-medical-data-exchange/
 - **Smart Contract Automation** - Decentralized study management
 - **Scalable Architecture** - Modular monorepo design
 
-## 🌐 Deployment
+## Deployment
 
 ### Local Testing
 

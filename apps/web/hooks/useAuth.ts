@@ -83,7 +83,7 @@ export function useWeb3AuthLogin() {
 
       router.push("/dashboard");
     } catch (err) {
-      console.error("[Auth] ✗ Authentication error:", err);
+      console.error("[Auth] Authentication error:", err);
       setError(err instanceof Error ? err.message : "Authentication failed");
     } finally {
       setIsAuthenticating(false);
@@ -96,7 +96,7 @@ export function useWeb3AuthLogin() {
         await web3Auth.logout();
       }
     } catch (err) {
-      console.error("[Auth] ✗ Logout error:", err);
+      console.error("[Auth] Logout error:", err);
     } finally {
       deleteCredentials();
       router.push("/");
@@ -121,14 +121,14 @@ export function useAuthToken() {
       const idToken = await getIdentityToken();
 
       if (!idToken) {
-        console.error("[Auth] ✗ No token available");
+        console.error("[Auth] No token available");
         throw new Error("No authentication token available");
       }
 
       setToken(idToken);
       return idToken;
     } catch (err) {
-      console.error("[Auth] ✗ Failed to get token:", err);
+      console.error("[Auth] Failed to get token:", err);
       return null;
     }
   }, [getIdentityToken]);

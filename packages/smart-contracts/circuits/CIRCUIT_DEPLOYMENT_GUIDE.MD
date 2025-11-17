@@ -2,14 +2,14 @@
 
 This guide explains the **complete workflow** for deploying ZK circuit changes to the blockchain and frontend.
 
-## 📋 When Do You Need This?
+## When Do You Need This?
 
 Follow these steps whenever you:
 - Modify the `medical_eligibility.circom` circuit
 - Recompile the circuit for any reason
 - Need to deploy a new verifier contract
 
-## ⚠️ Important Notes
+## Important Notes
 
 - **Old studies cannot work with new verifiers** - blockchain contracts are immutable
 - **You must create a NEW study** after deploying a new verifier
@@ -17,7 +17,7 @@ Follow these steps whenever you:
 
 ---
 
-## 🔧 Step-by-Step Deployment Process
+## Step-by-Step Deployment Process
 
 ### Step 1: Compile the Circuit
 
@@ -75,14 +75,14 @@ bun run deploy:verifier
 
 **Example output:**
 ```
-🎉 VERIFIER DEPLOYMENT COMPLETED SUCCESSFULLY!
-📋 Contract Address:
-   MedicalEligibilityVerifier: 0x939b51d7641e718f1c7321a12c05d407f7283a99
-🔗 Verification Link:
-   https://sepolia.etherscan.io/address/0x939b51d7641e718f1c7321a12c05d407f7283a99
+VERIFIER DEPLOYMENT COMPLETED SUCCESSFULLY!
+Contract Address:
+  MedicalEligibilityVerifier: 0x939b51d7641e718f1c7321a12c05d407f7283a99
+Verification Link:
+  https://sepolia.etherscan.io/address/0x939b51d7641e718f1c7321a12c05d407f7283a99
 ```
 
-**⚠️ Copy this address!** You'll need it in the next step.
+** Copy this address!** You'll need it in the next step.
 
 ---
 
@@ -98,7 +98,7 @@ Replace with the **actual address from Step 3**.
 
 ---
 
-### Step 5: Copy Circuit Files to Frontend ⚠️ **CRITICAL STEP**
+### Step 5: Copy Circuit Files to Frontend **CRITICAL STEP**
 
 **From workspace root**, run:
 
@@ -155,7 +155,7 @@ In your browser:
 4. **Deploy to blockchain**
 5. Wait for deployment confirmation
 
-**⚠️ Critical:** 
+**Critical:** 
 - The new study will automatically use the new verifier address
 - Old studies are **permanently tied to old verifiers** and cannot be updated
 - You must create a fresh study after each verifier deployment
@@ -169,10 +169,10 @@ In your browser:
 3. Submit the application
 
 **Expected result:**
-- ✅ Proof generation succeeds
-- ✅ Database participation recorded
-- ✅ Blockchain transaction succeeds
-- ✅ Transaction hash returned
+- Proof generation succeeds
+- Database participation recorded
+- Blockchain transaction succeeds
+- Transaction hash returned
 
 **If it fails:**
 - Check that you completed ALL steps above
@@ -182,15 +182,15 @@ In your browser:
 
 ---
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
 ### Error: "ZK proof verification failed - not eligible"
 
 **Causes:**
-1. ❌ Applying to an OLD study (created before latest verifier deployment)
-2. ❌ Frontend using old `.wasm` or `.zkey` files (forgot Step 5)
-3. ❌ API using old verifier address (forgot Step 4 or Step 6)
-4. ❌ Browser cache not cleared (forgot Step 7)
+1. Applying to an OLD study (created before latest verifier deployment)
+2. Frontend using old `.wasm` or `.zkey` files (forgot Step 5)
+3. API using old verifier address (forgot Step 4 or Step 6)
+4. Browser cache not cleared (forgot Step 7)
 
 **Solution:**
 - Double-check you completed Steps 4-8 in order
@@ -202,8 +202,8 @@ In your browser:
 ### Error: "Failed to load circuit files"
 
 **Causes:**
-1. ❌ Circuit files not copied to frontend (Step 5)
-2. ❌ Files in wrong location
+1. Circuit files not copied to frontend (Step 5)
+2. Files in wrong location
 
 **Solution:**
 ```powershell
@@ -221,8 +221,8 @@ If missing, repeat Step 5.
 ### Error: "Verifier contract not found"
 
 **Causes:**
-1. ❌ Wrong verifier address in `.env`
-2. ❌ API not restarted after updating `.env`
+1. Wrong verifier address in `.env`
+2. API not restarted after updating `.env`
 
 **Solution:**
 1. Verify `ZK_VERIFIER_ADDRESS` in `apps/api/.env`
@@ -231,7 +231,7 @@ If missing, repeat Step 5.
 
 ---
 
-## 📝 Quick Reference Checklist
+## Quick Reference Checklist
 
 When deploying a new verifier, check off each step:
 
@@ -249,7 +249,7 @@ When deploying a new verifier, check off each step:
 
 ---
 
-## 🔗 Related Files
+## Related Files
 
 - **Circuit source:** `packages/smart-contracts/circuits/medical_eligibility.circom`
 - **Verifier contract:** `packages/smart-contracts/contracts/studies/MedicalEligibilityVerifier.sol`
@@ -259,7 +259,7 @@ When deploying a new verifier, check off each step:
 
 ---
 
-## ⚡ Future Improvement: Automation Script
+## Future Improvement: Automation Script
 
 Consider creating a script to automate Steps 5-7:
 
@@ -280,7 +280,7 @@ This script would:
 
 ---
 
-## 📚 Additional Resources
+## Additional Resources
 
 - [Circom Documentation](https://docs.circom.io/)
 - [snarkjs Documentation](https://github.com/iden3/snarkjs)

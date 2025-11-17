@@ -8,7 +8,7 @@
 import { network } from "hardhat";
 
 async function runSimpleIntegrationTest() {
-  console.log("🔗 ZK Medical Eligibility - Simple Integration Test");
+  console.log("ZK Medical Eligibility - Simple Integration Test");
   console.log("=".repeat(60));
 
   try {
@@ -35,19 +35,19 @@ async function runSimpleIntegrationTest() {
       publicSignals: [1n], // Patient is eligible
     };
 
-    console.log("\n📋 Test Scenario:");
+  console.log("\nTest Scenario:");
     console.log("   Patient eligibility proof verification");
     console.log("   Expected result: ELIGIBLE (1)");
     console.log("   Privacy: Patient data remains hidden");
 
     // Step 1: Deploy the verifier contract
-    console.log("\n🚀 Step 1: Deploying verifier contract...");
+  console.log("\nStep 1: Deploying verifier contract...");
     const { viem } = await network.connect();
     const verifier = await viem.deployContract("Groth16Verifier");
-    console.log(`   ✅ Deployed at: ${verifier.address}`);
+  console.log(`   Deployed at: ${verifier.address}`);
 
     // Step 2: Verify the proof
-    console.log("\n🔍 Step 2: Verifying ZK proof...");
+  console.log("\nStep 2: Verifying ZK proof...");
     console.log("   Submitting proof components to verifier...");
 
     const startTime = Date.now();
@@ -59,7 +59,7 @@ async function runSimpleIntegrationTest() {
     ]);
     const verificationTime = Date.now() - startTime;
 
-    console.log(`   Verification result: ${result ? "✅ VALID" : "❌ INVALID"}`);
+  console.log(`   Verification result: ${result ? "VALID" : "INVALID"}`);
     console.log(`   Verification time: ${verificationTime}ms`);
     console.log(
       `   Public output: ${validProofData.publicSignals[0]} (${
@@ -72,7 +72,7 @@ async function runSimpleIntegrationTest() {
     }
 
     // Step 3: Test gas consumption
-    console.log("\n⛽ Step 3: Analyzing gas consumption...");
+  console.log("\nStep 3: Analyzing gas consumption...");
     const publicClient = await viem.getPublicClient();
     const gasEstimate = await publicClient.estimateContractGas({
       address: verifier.address,
@@ -86,7 +86,7 @@ async function runSimpleIntegrationTest() {
     console.log(`   Estimated cost: ~$${(gasInEth * 3000).toFixed(4)} (at $3000 ETH, 20 gwei)`); // Rough estimate
 
     // Step 4: Test edge cases
-    console.log("\n🧪 Step 4: Testing edge cases...");
+  console.log("\nStep 4: Testing edge cases...");
 
     // Test invalid proof (tampered)
     const tamperedProof = {
@@ -102,7 +102,7 @@ async function runSimpleIntegrationTest() {
     ]);
 
     console.log(
-      `   Tampered proof result: ${invalidResult ? "❌ ACCEPTED (BAD)" : "✅ REJECTED (GOOD)"}`
+      `   Tampered proof result: ${invalidResult ? "ACCEPTED (BAD)" : "REJECTED (GOOD)"}`
     );
 
     if (invalidResult) {
@@ -110,7 +110,7 @@ async function runSimpleIntegrationTest() {
     }
 
     // Step 5: Performance test
-    console.log("\n🚀 Step 5: Performance test...");
+  console.log("\nStep 5: Performance test...");
     const iterations = 5;
     const times = [];
 
@@ -131,24 +131,24 @@ async function runSimpleIntegrationTest() {
       `   Performance: ${avgTime < 50 ? "Excellent" : avgTime < 100 ? "Good" : "Acceptable"}`
     );
 
-    console.log("\n" + "=".repeat(60));
-    console.log("🎉 INTEGRATION TEST PASSED!");
-    console.log("\n📊 Summary:");
-    console.log("✅ Contract deployment successful");
-    console.log("✅ ZK proof verification working");
-    console.log("✅ Privacy preservation confirmed (only eligibility revealed)");
-    console.log("✅ Invalid proofs properly rejected");
-    console.log("✅ Gas consumption reasonable");
-    console.log("✅ Performance acceptable");
-    console.log("\n🔒 Security Features Verified:");
+  console.log("\n" + "=".repeat(60));
+  console.log("INTEGRATION TEST PASSED!");
+  console.log("\nSummary:");
+  console.log("Contract deployment successful");
+  console.log("ZK proof verification working");
+  console.log("Privacy preservation confirmed (only eligibility revealed)");
+  console.log("Invalid proofs properly rejected");
+  console.log("Gas consumption reasonable");
+  console.log("Performance acceptable");
+  console.log("\nSecurity Features Verified:");
     console.log("• Zero-knowledge: Patient data remains private");
     console.log("• Integrity: Only valid proofs are accepted");
     console.log("• Efficiency: Fast verification (~" + avgTime.toFixed(0) + "ms)");
     console.log("• Cost-effective: ~" + gasEstimate + " gas per verification");
 
-    console.log("\n🚀 Ready for production deployment!");
+  console.log("\nReady for production deployment!");
   } catch (error) {
-    console.error("\n❌ Integration test failed:", error.message);
+    console.error("\nIntegration test failed:", error.message);
     console.error(error);
     process.exit(1);
   }
