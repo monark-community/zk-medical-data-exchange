@@ -56,7 +56,6 @@ export default function ResearcherStudiesList({
   };
 
   const handleShowResults = (study: StudySummary) => {
-    console.log("study:", study);
     setSummaryStudy({
       id: study.id,
       title: study.title,
