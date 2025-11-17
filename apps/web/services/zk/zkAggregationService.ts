@@ -75,21 +75,30 @@ export class ZKAggregationService {
    * Fetch study bins from smart contract, with fallback to default bins for legacy contracts
    */
   async fetchStudyBins(studyContractAddress: string): Promise<StudyBins> {
-    console.log('📥 [ZK-AGG] Fetching study bins from contract:', studyContractAddress);
+    console.log('📥 [ZK-AGG] ============================================');
+    console.log('📥 [ZK-AGG] Fetching study bins from contract');
+    console.log('📥 [ZK-AGG] Contract address:', studyContractAddress);
+    console.log('📥 [ZK-AGG] ============================================');
     
     try {
       if (!window.ethereum) {
+        console.error('❌ [ZK-AGG] MetaMask not found');
         throw new Error('MetaMask not found');
       }
 
+      console.log('🔌 [ZK-AGG] Creating contract instance...');
       const provider = new BrowserProvider(window.ethereum);
       const contract = new Contract(studyContractAddress, STUDY_ABI, provider);
+      console.log('✅ [ZK-AGG] Contract instance created');
 
       let studyBins;
       try {
+        console.log('📞 [ZK-AGG] Calling contract.getStudyBins()...');
+        const fetchStart = Date.now();
         studyBins = await contract.getStudyBins();
-        console.log('✅ [ZK-AGG] Successfully fetched study bins from contract');
-        console.log('   └─ Bins:', JSON.stringify(studyBins, null, 2));
+        const fetchDuration = Date.now() - fetchStart;
+        console.log(`✅ [ZK-AGG] Successfully fetched study bins in ${fetchDuration}ms`);
+        console.log('📊 [ZK-AGG] Raw contract bins:', JSON.stringify(studyBins, null, 2));
       } catch (binError: any) {
         throw new Error(`Failed to fetch study bins from contract: ${binError.message}`);
       }
@@ -97,6 +106,7 @@ export class ZKAggregationService {
       const bins: StudyBins = {};
       
       if (studyBins.age.enabled) {
+        console.log('   ├─ Processing age bins...');
         bins.age = {
           enabled: true,
           boundaries: studyBins.age.boundaries.slice(0, Number(studyBins.age.binCount) + 1).map(Number),
@@ -104,9 +114,12 @@ export class ZKAggregationService {
           labels: [], 
           type: 'equal-width'
         };
+        console.log('      ├─ Age boundaries:', bins.age.boundaries);
+        console.log('      └─ Age bin count:', bins.age.binCount);
       }
       
       if (studyBins.cholesterol.enabled) {
+        console.log('   ├─ Processing cholesterol bins...');
         bins.cholesterol = {
           enabled: true,
           boundaries: studyBins.cholesterol.boundaries.slice(0, Number(studyBins.cholesterol.binCount) + 1).map(Number),
@@ -114,9 +127,12 @@ export class ZKAggregationService {
           labels: [],
           type: 'clinical'
         };
+        console.log('      ├─ Cholesterol boundaries:', bins.cholesterol.boundaries);
+        console.log('      └─ Cholesterol bin count:', bins.cholesterol.binCount);
       }
       
       if (studyBins.bmi.enabled) {
+        console.log('   ├─ Processing BMI bins...');
         bins.bmi = {
           enabled: true,
           boundaries: studyBins.bmi.boundaries.slice(0, Number(studyBins.bmi.binCount) + 1).map(Number),
@@ -124,9 +140,12 @@ export class ZKAggregationService {
           labels: [],
           type: 'clinical'
         };
+        console.log('      ├─ BMI boundaries:', bins.bmi.boundaries);
+        console.log('      └─ BMI bin count:', bins.bmi.binCount);
       }
       
       if (studyBins.hba1c.enabled) {
+        console.log('   └─ Processing HbA1c bins...');
         bins.hba1c = {
           enabled: true,
           boundaries: studyBins.hba1c.boundaries.slice(0, Number(studyBins.hba1c.binCount) + 1).map(Number),
@@ -134,11 +153,18 @@ export class ZKAggregationService {
           labels: [],
           type: 'clinical'
         };
+        console.log('      ├─ HbA1c boundaries:', bins.hba1c.boundaries);
+        console.log('      └─ HbA1c bin count:', bins.hba1c.binCount);
       }
 
+      console.log('✅ [ZK-AGG] Bins converted successfully');
+      console.log('📊 [ZK-AGG] Final bins object:', bins);
       return bins;
     } catch (error) {
-      console.error('❌ [ZK-AGG] Failed to fetch study bins:', error);
+      console.error('❌ [ZK-AGG] ============================================');
+      console.error('❌ [ZK-AGG] Failed to fetch study bins');
+      console.error('❌ [ZK-AGG] Error:', error);
+      console.error('❌ [ZK-AGG] ============================================');
       throw new Error(`Failed to fetch study bins: ${error}`);
     }
   }
@@ -239,8 +265,24 @@ export class ZKAggregationService {
       console.log('   └─ Salt (first 10 chars):', medicalData.salt.substring(0, 10) + '...');
 
       const normalizedData = normalizeMedicalDataForCircuit(medicalData);
+      console.log('🔄 [ZK-AGG] Normalized data:', normalizedData);
+
+      // CRITICAL: Convert salt from string to number
+      // The salt was originally generated as a number, converted to string for API transport,
+      // and must be converted back to number for circuit computation
+      console.log('🔑 [ZK-AGG] Processing salt...');
+      console.log('   ├─ Salt (string):', medicalData.salt);
+      console.log('   ├─ Salt type:', typeof medicalData.salt);
+      const saltAsNumber = parseInt(medicalData.salt, 10);
+      console.log('   ├─ Salt (number):', saltAsNumber);
+      console.log('   └─ Salt type:', typeof saltAsNumber);
+      
+      if (isNaN(saltAsNumber)) {
+        throw new Error(`Invalid salt value: "${medicalData.salt}" - cannot convert to number`);
+      }
 
       // Prepare circuit inputs with dynamic bin boundaries
+      console.log('🔧 [ZK-AGG] Preparing circuit input object...');
       const input = {
         // PRIVATE inputs (never revealed)
         age: normalizedData.age,
@@ -256,7 +298,7 @@ export class ZKAggregationService {
         activityLevel: normalizedData.activityLevel,
         diabetesStatus: normalizedData.diabetesStatus,
         heartDiseaseHistory: normalizedData.heartDiseaseHistory,
-        salt: medicalData.salt,
+        salt: saltAsNumber,  // MUST be number, not string!
         // PUBLIC inputs - Study metadata
         dataCommitment: dataCommitment,
         studyId: studyId,
@@ -273,7 +315,34 @@ export class ZKAggregationService {
       };
       
       console.log('✅ [ZK-AGG] Circuit inputs prepared with dynamic bins');
-      console.log('📊 [ZK-AGG] Public bin boundaries (transparent):');
+      console.log('📋 [ZK-AGG] Complete circuit input object:');
+      console.log('   ├─ Private inputs:');
+      console.log('   │  ├─ age:', input.age);
+      console.log('   │  ├─ gender:', input.gender);
+      console.log('   │  ├─ region:', input.region);
+      console.log('   │  ├─ cholesterol:', input.cholesterol);
+      console.log('   │  ├─ bmi:', input.bmi);
+      console.log('   │  ├─ systolicBP:', input.systolicBP);
+      console.log('   │  ├─ diastolicBP:', input.diastolicBP);
+      console.log('   │  ├─ bloodType:', input.bloodType);
+      console.log('   │  ├─ hba1c:', input.hba1c);
+      console.log('   │  ├─ smokingStatus:', input.smokingStatus);
+      console.log('   │  ├─ activityLevel:', input.activityLevel);
+      console.log('   │  ├─ diabetesStatus:', input.diabetesStatus);
+      console.log('   │  ├─ heartDiseaseHistory:', input.heartDiseaseHistory);
+      console.log('   │  └─ salt:', input.salt, '(number)');
+      console.log('   ├─ Public inputs:');
+      console.log('   │  ├─ dataCommitment:', input.dataCommitment);
+      console.log('   │  ├─ studyId:', input.studyId);
+      console.log('   │  ├─ ageBoundaries:', input.ageBoundaries);
+      console.log('   │  ├─ ageBinCount:', input.ageBinCount);
+      console.log('   │  ├─ cholesterolBoundaries:', input.cholesterolBoundaries);
+      console.log('   │  ├─ cholesterolBinCount:', input.cholesterolBinCount);
+      console.log('   │  ├─ bmiBoundaries:', input.bmiBoundaries);
+      console.log('   │  ├─ bmiBinCount:', input.bmiBinCount);
+      console.log('   │  ├─ hba1cBoundaries:', input.hba1cBoundaries);
+      console.log('   │  └─ hba1cBinCount:', input.hba1cBinCount);
+      console.log('📊 [ZK-AGG] Public bin boundaries (transparent):')
       console.log('   ├─ Age boundaries:', studyBins.age?.boundaries);
       console.log('   ├─ Cholesterol boundaries:', studyBins.cholesterol?.boundaries);
       console.log('   ├─ BMI boundaries:', studyBins.bmi?.boundaries);
@@ -303,8 +372,25 @@ export class ZKAggregationService {
         console.log('⏱️ [ZK-AGG] Proof generation took:', proofGenDuration, 'ms');
       } catch (proofError) {
         // More detailed error handling for circuit file loading
-        console.error('❌ [ZK-AGG] Failed to load circuit files or generate proof');
+        console.error('❌ [ZK-AGG] ============================================');
+        console.error('❌ [ZK-AGG] PROOF GENERATION FAILED!');
+        console.error('❌ [ZK-AGG] ============================================');
         console.error('❌ [ZK-AGG] Error:', proofError);
+        console.error('❌ [ZK-AGG] Error type:', proofError instanceof Error ? proofError.constructor.name : typeof proofError);
+        console.error('❌ [ZK-AGG] Error message:', proofError instanceof Error ? proofError.message : String(proofError));
+        console.error('❌ [ZK-AGG] Error stack:', proofError instanceof Error ? proofError.stack : 'No stack trace');
+        console.error('❌ [ZK-AGG] Circuit input summary:');
+        console.error('   ├─ Data commitment:', input.dataCommitment?.substring(0, 20) + '...');
+        console.error('   ├─ Study ID:', input.studyId);
+        console.error('   ├─ Age:', input.age);
+        console.error('   ├─ Cholesterol:', input.cholesterol);
+        console.error('   ├─ BMI:', input.bmi);
+        console.error('   ├─ HbA1c:', input.hba1c);
+        console.error('   ├─ Age boundaries:', input.ageBoundaries);
+        console.error('   ├─ Age bin count:', input.ageBinCount);
+        console.error('   ├─ Cholesterol boundaries:', input.cholesterolBoundaries);
+        console.error('   └─ BMI boundaries:', input.bmiBoundaries);
+        console.error('❌ [ZK-AGG] ============================================');
         
         if (proofError instanceof Error && proofError.message.includes('404')) {
           console.error('❌ [ZK-AGG] ============================================');
