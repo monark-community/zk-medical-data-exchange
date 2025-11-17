@@ -562,7 +562,7 @@ class AuditService {
     userAddress: string,
     studyId: string,
     success: boolean,
-    proofData?: Record<string, any>
+    metadata?: Record<string, any>
   ) {
     return this.logAction({
       user: userAddress,
@@ -571,7 +571,7 @@ class AuditService {
       resource: `study_${studyId}`,
       action: "join_study",
       success,
-      sensitiveData: proofData,
+      metadata,
     });
   }
 

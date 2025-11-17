@@ -8,6 +8,7 @@ import StudiesList from "@/app/dashboard/components/shared/StudiesList";
 import EndStudyDialog from "./EndStudyDialog";
 import StudyCompletionSummary from "./StudyCompletionSummary";
 import { Spinner } from "@/components/ui/spinner";
+import { modifyStudiesForCompletion } from "@/utils/studyUtils";
 
 interface ResearcherStudiesListProps {
   studies: StudySummary[];
@@ -31,6 +32,9 @@ export default function ResearcherStudiesList({
   deletingStudyId,
   onStudyEnded,
 }: ResearcherStudiesListProps) {
+  const originalStudies = studies;
+  const modifiedStudies = modifyStudiesForCompletion(studies);
+
   const [endStudyDialogOpen, setEndStudyDialogOpen] = useState(false);
   const [summaryDialogOpen, setSummaryDialogOpen] = useState(false);
   const [selectedStudy, setSelectedStudy] = useState<StudySummary | null>(null);
@@ -63,64 +67,91 @@ export default function ResearcherStudiesList({
     setSummaryDialogOpen(true);
   };
 
-  const renderActionButtons = (study: StudySummary) => (
-    <div className="flex items-center space-x-2">
-      {study.status === "completed" && (
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={(e) => {
-            e.stopPropagation();
-            handleShowResults(study);
-          }}
-          className="h-7 px-3 text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50 border-emerald-300 bg-emerald-50/50 text-xs font-semibold shadow-sm"
-          title="View study results"
-        >
-          <BarChart3 className="h-3.5 w-3.5 mr-1" />
-          Show Results
-        </Button>
-      )}
+  const renderActionButtons = (study: StudySummary) => {
+    const originalStudy = originalStudies.find((s) => s.id === study.id);
+    if (!originalStudy) return null;
 
-      {study.status !== "completed" && (
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={(e) => {
-            e.stopPropagation();
-            handleEndStudyClick(study);
-          }}
-          className="h-7 px-3 text-orange-600 hover:text-orange-700 hover:bg-orange-50 border-orange-200 text-xs font-medium"
-          title="End study"
-        >
-          <StopCircle className="h-3 w-3 mr-1" />
-          End Study
-        </Button>
-      )}
+    const endDate =
+      study.createdAt && study.durationDays
+        ? new Date(new Date(study.createdAt).getTime() + study.durationDays * 24 * 60 * 60 * 1000)
+        : null;
+    const isExpired = endDate ? new Date() > endDate : false;
 
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={(e) => {
-          e.stopPropagation();
-          onDeleteStudy(study.id);
-        }}
-        disabled={deletingStudyId === study.id}
-        className="h-7 w-7 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
-        title="Delete study"
-      >
-        {deletingStudyId === study.id ? (
-          <Spinner className="size-3 text-blue-600" />
-        ) : (
-          <Trash2 className="h-3 w-3" />
+    return (
+      <div className="flex items-center space-x-2">
+        {originalStudy.status === "completed" && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleShowResults(study);
+            }}
+            className="h-7 px-3 text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50 border-emerald-300 bg-emerald-50/50 text-xs font-semibold shadow-sm"
+            title="View study results"
+          >
+            <BarChart3 className="h-3.5 w-3.5 mr-1" />
+            Show Results
+          </Button>
         )}
-      </Button>
-    </div>
-  );
+
+        {isExpired && originalStudy.status !== "completed" && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleEndStudyClick(study);
+            }}
+            className="h-7 px-3 text-blue-600 hover:text-blue-700 hover:bg-blue-50 border-blue-200 text-xs font-medium"
+            title="Complete expired study to get results"
+          >
+            <BarChart3 className="h-3 w-3 mr-1" />
+            Get Data
+          </Button>
+        )}
+
+        {!isExpired && originalStudy.status !== "completed" && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleEndStudyClick(study);
+            }}
+            className="h-7 px-3 text-orange-600 hover:text-orange-700 hover:bg-orange-50 border-orange-200 text-xs font-medium"
+            title="End study"
+          >
+            <StopCircle className="h-3 w-3 mr-1" />
+            End Study
+          </Button>
+        )}
+
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDeleteStudy(study.id);
+          }}
+          disabled={deletingStudyId === study.id}
+          className="h-7 w-7 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+          title="Delete study"
+        >
+          {deletingStudyId === study.id ? (
+            <Spinner className="size-3 text-blue-600" />
+          ) : (
+            <Trash2 className="h-3 w-3" />
+          )}
+        </Button>
+      </div>
+    );
+  };
 
   return (
     <>
       <StudiesList
-        studies={studies}
+        studies={modifiedStudies}
         renderActionButtons={renderActionButtons}
         descriptionMaxLength={80}
         showCriteriaLabel={false}

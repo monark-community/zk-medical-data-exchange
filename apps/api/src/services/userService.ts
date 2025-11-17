@@ -131,7 +131,7 @@ export async function getUserStatsForDataSeller(
 }> {
   const { data: participations, error: participationsError } = await supabase
     .from(STUDY_PARTICIPATIONS!.name!)
-    .select("*, studies!inner(created_at, duration_days)")
+    .select("*, studies(created_at, duration_days, status)")
     .eq(STUDY_PARTICIPATIONS!.columns.participantWallet!, walletAddress)
     .eq(STUDY_PARTICIPATIONS!.columns.hasConsented!, true);
 
@@ -142,20 +142,24 @@ export async function getUserStatsForDataSeller(
     );
   }
 
-  const now = new Date();
   let nActiveStudies = 0;
   let nCompletedStudies = 0;
 
   if (participations) {
     for (const participation of participations) {
-      const study = participation.studies as { created_at: string; duration_days: number };
+      const study = participation.studies as {
+        created_at: string;
+        duration_days: number;
+        status: string;
+      };
+
       const createdAt = new Date(study.created_at);
       const endDate = new Date(createdAt);
       endDate.setDate(endDate.getDate() + study.duration_days);
-
-      if (now <= endDate) {
+      const now = new Date();
+      if (study.status === "active" && now <= endDate) {
         nActiveStudies++;
-      } else {
+      } else if (study.status === "completed") {
         nCompletedStudies++;
       }
     }

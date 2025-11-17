@@ -1126,8 +1126,6 @@ export const generateDataCommitmentChallenge = async (req: Request, res: Respons
  * POST /api/studies/:id/participants
  */
 export const participateInStudy = async (req: Request, res: Response) => {
-  const { startTime, userAgent, ipAddress } = getAuditMetadata(req);
-
   try {
     const { id } = req.params;
     const {
@@ -1335,13 +1333,7 @@ export const participateInStudy = async (req: Request, res: Response) => {
       .eq(TABLES.STUDY_PARTICIPATIONS!.columns.id!, participation.id);
 
     await auditService.logStudyParticipation(participantWallet, String(id), true, {
-      eligibilityScore,
-      matchedCriteria,
       blockchainTxHash,
-      dataCommitment: dataCommitment.substring(0, 20) + "...",
-      userAgent,
-      ipAddress,
-      duration: getAuditDuration(startTime),
     });
 
     res.status(201).json({
@@ -1366,9 +1358,6 @@ export const participateInStudy = async (req: Request, res: Response) => {
       await auditService
         .logStudyParticipation(participantWallet, String(id), false, {
           error: error instanceof Error ? error.message : "Unknown error",
-          userAgent,
-          ipAddress,
-          duration: getAuditDuration(startTime),
         })
         .catch((auditError) => {
           logger.error({ auditError }, "Failed to log failed participation attempt");
