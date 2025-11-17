@@ -23,6 +23,7 @@ const TemplateSelector = ({
   selectedTemplate,
   onClearTemplate,
 }: {
+  /* eslint-disable-next-line no-unused-vars */
   onTemplateSelect: (_template: any, _templateId: string) => void;
   selectedTemplate?: string;
   onClearTemplate: () => void;
@@ -125,6 +126,7 @@ const CriteriaField = ({
 }: {
   label: string;
   enabled: boolean;
+  /* eslint-disable-next-line no-unused-vars */
   onEnabledChange: (_enabled: boolean) => void;
   children: React.ReactNode;
 }) => {
@@ -174,7 +176,9 @@ const NumberInput = ({
   step,
 }: {
   value: number;
+  /* eslint-disable-next-line no-unused-vars */
   onChange: (value: number) => void;
+  /* eslint-disable-next-line no-unused-vars */
   onBlur?: (value: number) => void;
   className?: string;
   placeholder?: string;
@@ -256,7 +260,9 @@ const RangeInput = ({
   label: string;
   minValue: number;
   maxValue: number;
+  /* eslint-disable-next-line no-unused-vars */
   onMinChange: (_value: number) => void;
+  /* eslint-disable-next-line no-unused-vars */
   onMaxChange: (_value: number) => void;
   unit?: string;
   absoluteMin?: number;

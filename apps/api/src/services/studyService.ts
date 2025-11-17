@@ -1244,20 +1244,8 @@ export class StudyService {
             studyAddress,
             binCount: bins.length,
           },
-          "Bins configured successfully on blockchain"
+          "Bins configured successfully"
         );
-        
-        bins.forEach((bin, index) => {
-          logger.info(
-            {
-              index,
-              binId: bin.binId,
-              field: bin.criteriaField,
-              label: bin.label,
-            },
-            `Bin ${index} now active on blockchain`
-          );
-        });
       } else {
         logger.error(
           {

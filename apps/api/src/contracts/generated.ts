@@ -1062,6 +1062,38 @@ export const STUDY_ABI: ABI = [
     "inputs": [
       {
         "indexed": true,
+        "internalType": "string",
+        "name": "binId",
+        "type": "string"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "newCount",
+        "type": "uint256"
+      }
+    ],
+    "name": "BinCountUpdated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "binCount",
+        "type": "uint256"
+      }
+    ],
+    "name": "BinsConfigured",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
         "internalType": "address",
         "name": "caller",
         "type": "address"
@@ -2082,6 +2114,30 @@ export const STUDY_ABI: ABI = [
       }
     ],
     "name": "isParticipant",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "participant",
+        "type": "address"
+      },
+      {
+        "internalType": "string",
+        "name": "binId",
+        "type": "string"
+      }
+    ],
+    "name": "isParticipantInBin",
     "outputs": [
       {
         "internalType": "bool",
