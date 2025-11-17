@@ -60,7 +60,7 @@ template MedicalEligibility() {
     // ========================================
     // OUTPUT
     // ========================================
-    signal output eligible;
+    signal eligible;
     
     // ========================================
     // COMPONENTS FOR ELIGIBILITY CHECKING
