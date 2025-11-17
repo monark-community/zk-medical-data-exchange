@@ -70,6 +70,7 @@ export const TABLES: Record<string, TableDefinition> = {
       deployedAt: "deployed_at",
       complexityScore: "complexity_score",
       templateName: "template_name",
+      transactionHash: "transaction_hash",
     },
   },
 
@@ -148,6 +149,19 @@ export const TABLES: Record<string, TableDefinition> = {
       proofSubmittedAt: "proof_submitted_at",
       createdAt: "created_at",
       expiresAt: "expires_at",
+    },
+  },
+  TRANSACTIONS: {
+    name: "transactions",
+    columns: {
+      id: "id",
+      transactionHash: "transaction_hash",
+      fromWallet: "from_wallet",
+      toWallet: "to_wallet",
+      value: "value",
+      valueUSD: "value_usd",
+      studyId: "study_id",
+      createdAt: "created_at",
     },
   },
 };

@@ -27,6 +27,8 @@ export enum ActionType {
   DATA_DELETED,
   ADMIN_ACTION,
   SYSTEM_CONFIG,
+  SENT_COMPENSATION,
+  RECEIVED_COMPENSATION,
 }
 export interface AuditLogEntry {
   user: string;
@@ -96,6 +98,88 @@ class AuditService {
       });
 
     return this.transactionQueue;
+  }
+
+  async logActionForParticipants(
+    participants: string[],
+    entry: Omit<AuditLogEntry, "user">
+  ): Promise<{ success: boolean; txHash?: string; error?: string }> {
+    this.transactionQueue = this.transactionQueue
+      .then(async () => {
+        return this.processLogActionForParticipants(participants, entry);
+      })
+      .catch(async (error) => {
+        logger.error(
+          { error },
+          "Error in transaction queue for participants, continuing with next transaction"
+        );
+        return this.processLogActionForParticipants(participants, entry);
+      });
+
+    return this.transactionQueue;
+  }
+
+  private async processLogActionForParticipants(
+    participants: string[],
+    entry: Omit<AuditLogEntry, "user">
+  ): Promise<{ success: boolean; txHash?: string; error?: string }> {
+    try {
+      if (participants.length === 0) {
+        return { success: false, error: "No participants provided" };
+      }
+
+      if (participants.length > 100) {
+        return { success: false, error: "Too many participants, maximum 100 allowed" };
+      }
+
+      const dataHash = this.createDataHash(entry.sensitiveData || {});
+
+      const metadata = {
+        timestamp: entry.timestamp || new Date(),
+        sessionId: entry.sessionId,
+        ipAddress: entry.ipAddress,
+        userAgent: entry.userAgent,
+        ...entry.metadata,
+      };
+
+      const txHash = await this.logToBlockchainForParticipants(
+        participants,
+        entry.userProfile,
+        entry.actionType,
+        entry.resource,
+        entry.action,
+        dataHash,
+        entry.success,
+        JSON.stringify(metadata)
+      );
+
+      logger.info(
+        {
+          participants,
+          action: entry.action,
+          resource: entry.resource,
+          txHash,
+        },
+        "Action logged successfully for participants"
+      );
+
+      return { success: true, txHash };
+    } catch (error) {
+      logger.error(
+        {
+          error,
+          participants,
+          entry,
+          errorMessage: error instanceof Error ? error.message : String(error),
+        },
+        "Failed to log audit action for participants"
+      );
+
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown audit logging error",
+      };
+    }
   }
 
   private async processLogAction(
@@ -253,6 +337,103 @@ class AuditService {
     );
   }
 
+  private async logToBlockchainForParticipants(
+    participants: string[],
+    userProfile: UserProfile,
+    actionType: ActionType,
+    resource: string,
+    action: string,
+    dataHash: string,
+    success: boolean,
+    metadata: string
+  ): Promise<string> {
+    const auditTrailAddress = Config.AUDIT_TRAIL_ADDRESS;
+    const maxRetries = 3;
+    let lastError: any;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        logger.debug(
+          {
+            participants,
+            action,
+            attempt,
+            maxRetries,
+          },
+          "Attempting blockchain transaction for participants"
+        );
+
+        const txHash = await this.walletClient.writeContract({
+          address: auditTrailAddress as `0x${string}`,
+          abi: AUDIT_TRAIL_ABI,
+          functionName: "logActionForParticipants",
+          args: [
+            participants as `0x${string}`[],
+            userProfile,
+            actionType,
+            resource,
+            action,
+            dataHash as `0x${string}`,
+            success,
+            metadata,
+          ],
+          account: this.account,
+          chain: sepolia,
+        });
+
+        const receipt = await Promise.race([
+          this.publicClient.waitForTransactionReceipt({
+            hash: txHash,
+            timeout: 60000,
+          }),
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error("Transaction confirmation timeout")), 60000)
+          ),
+        ]);
+
+        logger.info(
+          {
+            participants,
+            action,
+            txHash,
+            attempt,
+          },
+          "Blockchain transaction confirmed for participants"
+        );
+
+        return txHash;
+      } catch (error: any) {
+        lastError = error;
+        logger.warn(
+          {
+            error: error.message,
+            participants,
+            action,
+            attempt,
+            maxRetries,
+          },
+          `Blockchain transaction attempt ${attempt} failed for participants`
+        );
+
+        if (
+          error.message?.includes("insufficient funds") ||
+          error.message?.includes("gas required exceeds allowance")
+        ) {
+          throw error;
+        }
+
+        if (attempt < maxRetries) {
+          const delay = Math.pow(2, attempt) * 1000; // 2s, 4s, 8s
+          await new Promise((resolve) => setTimeout(resolve, delay));
+        }
+      }
+    }
+
+    throw new Error(
+      `Blockchain transaction failed after ${maxRetries} attempts: ${lastError.message}`
+    );
+  }
+
   private createDataHash(sensitiveData: Record<string, any>): string {
     if (Object.keys(sensitiveData).length === 0) {
       return "0x0000000000000000000000000000000000000000000000000000000000000000";
@@ -381,7 +562,7 @@ class AuditService {
     userAddress: string,
     studyId: string,
     success: boolean,
-    proofData?: Record<string, any>
+    metadata?: Record<string, any>
   ) {
     return this.logAction({
       user: userAddress,
@@ -390,7 +571,7 @@ class AuditService {
       resource: `study_${studyId}`,
       action: "join_study",
       success,
-      sensitiveData: proofData,
+      metadata,
     });
   }
 
@@ -409,6 +590,131 @@ class AuditService {
       success,
       metadata,
     });
+  }
+
+  async logStudyCompletion(
+    creatorAddress: string,
+    participantsAddresses: string[],
+    studyId: string,
+    success: boolean,
+    metadata?: Record<string, any>
+  ) {
+    const creatorResult = await this.logAction({
+      user: creatorAddress,
+      userProfile: UserProfile.RESEARCHER,
+      actionType: ActionType.STUDY_STATUS_CHANGE,
+      resource: `study_${studyId}`,
+      action: "complete_study",
+      success,
+      metadata: {
+        ...metadata,
+        participantCount: participantsAddresses.length,
+        role: "creator",
+      },
+    });
+
+    const participantsResult = await this.logActionForParticipants(participantsAddresses, {
+      userProfile: UserProfile.DATA_SELLER,
+      actionType: ActionType.STUDY_STATUS_CHANGE,
+      resource: `study_${studyId}`,
+      action: "study_completed",
+      success,
+      metadata: {
+        ...metadata,
+        creator: creatorAddress,
+        role: "participant",
+      },
+    });
+
+    return {
+      creatorLog: creatorResult,
+      participantsLog: participantsResult,
+    };
+  }
+
+  async logCompensationSent(
+    creatorAddress: string,
+    participantsAddresses: string[],
+    studyId: string,
+    success: boolean,
+    totalMoney: number,
+    metadata?: Record<string, any>
+  ) {
+    const creatorResult = await this.logAction({
+      user: creatorAddress,
+      userProfile: UserProfile.RESEARCHER,
+      actionType: ActionType.SENT_COMPENSATION,
+      resource: `compensation_study_${studyId}`,
+      action: "send_compensation",
+      success,
+      metadata: {
+        ...metadata,
+        studyId,
+        totalMoney,
+        role: "creator",
+      },
+    });
+
+    const participantsResult = await this.logActionForParticipants(participantsAddresses, {
+      userProfile: UserProfile.DATA_SELLER,
+      actionType: ActionType.RECEIVED_COMPENSATION,
+      resource: `compensation_study_${studyId}`,
+      action: "receive_compensation",
+      success,
+      metadata: {
+        ...metadata,
+        studyId,
+        studyCreator: creatorAddress,
+        totalMoney: totalMoney / participantsAddresses.length,
+        role: "participant",
+      },
+    });
+
+    return {
+      creatorLog: creatorResult,
+      participantsLog: participantsResult,
+    };
+  }
+
+  async logStudyDataAccess(
+    creatorAddress: string,
+    participantsAddresses: string[],
+    studyId: string,
+    success: boolean,
+    metadata?: Record<string, any>
+  ) {
+    const creatorResult = await this.logAction({
+      user: creatorAddress,
+      userProfile: UserProfile.RESEARCHER,
+      actionType: ActionType.STUDY_AGGREGATED_DATA_ACCESS,
+      resource: `study_${studyId}_aggregated_data`,
+      action: "access_aggregated_data",
+      success,
+      metadata: {
+        ...metadata,
+        role: "creator",
+      },
+    });
+
+    const participantsResult = await this.logActionForParticipants(participantsAddresses, {
+      userProfile: UserProfile.DATA_SELLER,
+      actionType: ActionType.STUDY_AGGREGATED_DATA_ACCESS,
+      resource: `study_${studyId}_aggregated_data`,
+      action: "access_aggregated_data",
+      success,
+      metadata: {
+        ...metadata,
+        creator: creatorAddress,
+        role: "participant",
+        message: "Your data was included in aggregated results accessed by the study creator.",
+        studyId: studyId,
+      },
+    });
+
+    return {
+      creatorLog: creatorResult,
+      participantsLog: participantsResult,
+    };
   }
 
   async logAdminAction(
@@ -712,6 +1018,75 @@ class AuditService {
       actionType: ActionType.USERNAME_CHANGE,
       resource: "user_profile",
       action: "change_username",
+      success,
+      metadata: enrichedMetadata,
+    });
+  }
+
+  async logProposalCreation(
+    userAddress: string,
+    proposalId: string,
+    proposalType: string,
+    success: boolean,
+    metadata?: Record<string, any>
+  ) {
+    const enrichedMetadata = {
+      proposalType,
+      ...metadata,
+    };
+
+    return this.logAction({
+      user: userAddress,
+      userProfile: UserProfile.COMMON,
+      actionType: ActionType.PROPOSAL_CREATION,
+      resource: `proposal_${proposalId}`,
+      action: "create_proposal",
+      success,
+      metadata: enrichedMetadata,
+    });
+  }
+
+  async logVoteCast(
+    userAddress: string,
+    proposalId: string,
+    vote: "yes" | "no" | "abstain",
+    success: boolean,
+    metadata?: Record<string, any>
+  ) {
+    const enrichedMetadata = {
+      vote,
+      ...metadata,
+    };
+
+    return this.logAction({
+      user: userAddress,
+      userProfile: UserProfile.COMMON,
+      actionType: ActionType.VOTE_CAST,
+      resource: `proposal_${proposalId}`,
+      action: "cast_vote",
+      success,
+      metadata: enrichedMetadata,
+    });
+  }
+
+  async logProposalRemoval(
+    userAddress: string,
+    proposalId: string,
+    reason: string,
+    success: boolean,
+    metadata?: Record<string, any>
+  ) {
+    const enrichedMetadata = {
+      reason,
+      ...metadata,
+    };
+
+    return this.logAction({
+      user: userAddress,
+      userProfile: UserProfile.COMMON,
+      actionType: ActionType.PROPOSAL_REMOVAL,
+      resource: `proposal_${proposalId}`,
+      action: "remove_proposal",
       success,
       metadata: enrichedMetadata,
     });

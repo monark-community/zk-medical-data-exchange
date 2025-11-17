@@ -255,4 +255,26 @@ contract Study {
         
         return recomputedHash == storedHash;
     }
+    
+    /**
+     * @dev Get list of all participants who have active consent
+     * @return Array of addresses with active consent
+     */
+    function getConsentedParticipants() external view returns (address[] memory) {
+        uint256 count = 0;
+        for (uint256 i = 0; i < participantList.length; i++) {
+            if (hasConsented[participantList[i]]) {
+                count++;
+            }
+        }
+        address[] memory consented = new address[](count);
+        uint256 index = 0;
+        for (uint256 i = 0; i < participantList.length; i++) {
+            if (hasConsented[participantList[i]]) {
+                consented[index] = participantList[i];
+                index++;
+            }
+        }
+        return consented;
+    }
 }

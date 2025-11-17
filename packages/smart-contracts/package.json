@@ -18,7 +18,8 @@
     "deploy:audit-trail": "bunx hardhat run scripts/deployAuditTrail.ts --network sepolia",
     "deploy:governance": "bunx hardhat run scripts/deployGovernanceDAO.ts --network sepolia",
     "deploy:governance-factory": "bunx hardhat run scripts/deployGovernanceFactory.ts --network sepolia",
-    "test:governance-factory": "tsx scripts/testGovernanceFactory.ts"
+    "test:governance-factory": "tsx scripts/testGovernanceFactory.ts",
+    "deploy:disperse": "bunx hardhat run scripts/deployDisperse.ts --network sepolia"
   },
   "dependencies": {
     "@nomicfoundation/hardhat-ethers": "^4.0.1",

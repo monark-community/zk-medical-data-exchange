@@ -39,7 +39,7 @@ const EditProfileDialog = ({ onProfileUpdate }: EditProfileDialogProps) => {
         <EditProfileField onSuccess={handleSuccess} />
         <DialogFooter className="sm:justify-start">
           <DialogClose asChild>
-            <Button className="bg-red-600 hover:bg-red-700">cancel</Button>
+            <Button className="bg-red-600 hover:bg-red-700">Cancel</Button>
           </DialogClose>
         </DialogFooter>
       </DialogContent>

@@ -20,6 +20,14 @@ const web3AuthContextConfig: Web3AuthContextConfig = {
   web3AuthOptions: {
     clientId,
     web3AuthNetwork: WEB3AUTH_NETWORK.SAPPHIRE_DEVNET,
+    modalConfig: {
+      connectors: {
+        auth: {
+          label: "Web3Auth",
+          showOnModal: false,
+        },
+      },
+    },
     ssr: true,
   },
 };

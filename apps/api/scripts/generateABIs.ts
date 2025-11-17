@@ -126,6 +126,11 @@ function generateABIs(): void {
       export: "PROPOSAL_ABI",
       path: "governance/Proposal.sol/Proposal.json",
     },
+    {
+      name: "Disperse",
+      export: "DISPERSE_ABI",
+      path: "rewards/Disperse.sol/Disperse.json",
+    },
   ];
 
   for (const contract of contracts) {

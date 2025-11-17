@@ -27,6 +27,7 @@ export interface StudySummary {
   contractAddress?: string;
   isEnrolled?: boolean;
   hasConsented?: boolean;
+  transactionHash?: string;
   criteriaSummary: {
     requiresAge: boolean;
     requiresGender: boolean;
@@ -132,6 +133,11 @@ export const getStudyDetails = async (studyId: number): Promise<StudyDetails> =>
   return data.study;
 };
 
+export const getParticipants = async (studyId: number): Promise<{ participants: string[] }> => {
+  const { data } = await apiClient.get(`/studies/${studyId}/participants`);
+  return data;
+};
+
 export const createStudy = async (studyData: CreateStudyRequest): Promise<CreateStudyResponse> => {
   try {
     const response = await apiClient.post<CreateStudyResponse>("/studies", studyData);
@@ -165,7 +171,8 @@ export const deployStudy = async (studyId: number) => {
  * End a study by updating its status to completed
  */
 export const endStudy = async (studyId: number) => {
-  return updateStudyStatus(studyId, { status: "completed" });
+  const { data } = await updateStudyStatus(studyId, { status: "completed" });
+  return data;
 };
 
 /**
@@ -270,6 +277,9 @@ export class StudyApplicationService {
       await this.submitApplication(applicationRequest);
 
       console.log("Study application completed successfully!");
+
+      const eventBus = (await import("@/lib/eventBus")).default;
+      eventBus.emit("studyJoinedSuccess");
 
       return {
         success: true,
