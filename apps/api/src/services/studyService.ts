@@ -718,7 +718,8 @@ export class StudyService {
     },
     participantWallet: string,
     dataCommitment: string,
-    challenge: string
+    challenge: string,
+    binIds?: string[] // Optional bin IDs from proof result
   ) {
     await this.initialize();
 
@@ -730,7 +731,8 @@ export class StudyService {
           participantWallet,
           proofjson,
           dataCommitment,
-          challenge
+          challenge,
+          binIds || [] // Pass empty array if no bins
         );
 
         if (blockchainResult.success) {
@@ -739,6 +741,7 @@ export class StudyService {
             {
               participantWallet,
               txHash: blockchainTxHash,
+              binCount: binIds?.length || 0,
             },
             "Participation recorded on blockchain successfully"
           );
@@ -772,12 +775,13 @@ export class StudyService {
     participantWallet: string,
     proof: { a: [string, string]; b: [[string, string], [string, string]]; c: [string, string] },
     dataCommitment: string,
-    challenge: string
+    challenge: string,
+    binIds: string[] = [] // Array of bin IDs from proof
   ): Promise<{ success: boolean; transactionHash?: string; error?: string }> {
     await this.initialize();
 
     logger.info(
-      { studyAddress, participantWallet, dataCommitment, proof },
+      { studyAddress, participantWallet, dataCommitment, proof, binIds },
       "Recording study participation on blockchain"
     );
 
@@ -818,22 +822,33 @@ export class StudyService {
         return { success: false, error: "Blockchain client not initialized" };
       }
 
-      let challengeBytes32 = challenge
-        ? challenge.startsWith("0x")
-          ? challenge
-          : `0x${challenge}`
-        : `0x${"0".repeat(64)}`;
+      // Convert challenge to bytes32 format (32 bytes = 64 hex characters + 0x prefix)
+      let challengeBytes32: string;
+      if (!challenge) {
+        challengeBytes32 = `0x${"0".repeat(64)}`;
+      } else {
+        // Convert to BigInt to handle both string and numeric inputs
+        const challengeBigInt = BigInt(challenge);
+        // Convert to hex and pad to 64 characters (32 bytes)
+        const hexValue = challengeBigInt.toString(16).padStart(64, "0");
+        challengeBytes32 = `0x${hexValue}`;
+      }
+
+      logger.info(
+        { originalChallenge: challenge, challengeBytes32 },
+        "Challenge formatted for blockchain"
+      );
 
       const result = await this.executeContractTransaction(
         studyAddress,
         "joinStudy",
-        [pA, pB, pC, commitment, challengeBytes32, participantWallet as `0x${string}`],
+        [pA, pB, pC, commitment, challengeBytes32, participantWallet as `0x${string}`, binIds],
         "Participation recording"
       );
 
       if (result.success) {
         logger.info(
-          { transactionHash: result.transactionHash, participantWallet },
+          { transactionHash: result.transactionHash, participantWallet, binCount: binIds.length },
           "Participation recorded on blockchain successfully"
         );
       } else {

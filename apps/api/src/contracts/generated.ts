@@ -2261,9 +2261,9 @@ export const MEDICAL_ELIGIBILITY_VERIFIER_ABI: ABI = [
         "type": "uint256[2]"
       },
       {
-        "internalType": "uint256[1]",
+        "internalType": "uint256[51]",
         "name": "_pubSignals",
-        "type": "uint256[1]"
+        "type": "uint256[51]"
       }
     ],
     "name": "verifyProof",
