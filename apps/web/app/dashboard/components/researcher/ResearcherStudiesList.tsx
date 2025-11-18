@@ -78,7 +78,7 @@ export default function ResearcherStudiesList({
     const isExpired = endDate ? new Date() > endDate : false;
 
     return (
-      <div className="flex items-center space-x-2">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-2">
         {originalStudy.status === "completed" && (
           <Button
             variant="outline"

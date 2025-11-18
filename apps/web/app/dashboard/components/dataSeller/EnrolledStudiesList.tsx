@@ -45,7 +45,7 @@ export default function EnrolledStudiesList({
     const isCompleted = (endDate ? new Date() > endDate : false) || study.status === "completed";
 
     return (
-      <div className="flex items-center gap-2">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-2">
         {/* Consent Status Indicator */}
         <div className="flex items-center gap-1.5 text-xs">
           {hasConsent ? (
@@ -61,85 +61,88 @@ export default function EnrolledStudiesList({
           )}
         </div>
 
-        {/* Revoke Button - Only show if consent is active and study is not completed */}
-        {hasConsent && !isCompleted && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={(e) => {
-              e.stopPropagation();
-              setRevokeStudyId(study.id);
-            }}
-            disabled={!walletAddress || isRevoking || isTxProcessing}
-            className="h-7 px-3 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
-            title={
-              walletAddress
-                ? isTxProcessing
-                  ? "Transaction in progress..."
-                  : "Revoke consent for this study"
-                : "Connect wallet to revoke consent"
-            }
-          >
-            {isRevoking ? (
-              <>
-                <Spinner className="size-3 text-blue-600" />
-                Revoking...
-              </>
-            ) : (
-              <>
-                <UserMinus className="h-3 w-3 mr-1" />
-                Revoke Consent
-              </>
-            )}
-          </Button>
-        )}
-
-        {/* Grant Button - Only show if consent is revoked and study is not completed */}
-        {!hasConsent && !isCompleted && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={(e) => {
-              e.stopPropagation();
-              if (isStudyFull) {
-                return;
+        {/* Action Buttons */}
+        <div className="flex flex-col sm:flex-row gap-2">
+          {/* Revoke Button - Only show if consent is active and study is not completed */}
+          {hasConsent && !isCompleted && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                setRevokeStudyId(study.id);
+              }}
+              disabled={!walletAddress || isRevoking || isTxProcessing}
+              className="h-7 px-3 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+              title={
+                walletAddress
+                  ? isTxProcessing
+                    ? "Transaction in progress..."
+                    : "Revoke consent for this study"
+                  : "Connect wallet to revoke consent"
               }
-              setGrantStudyId(study.id);
-            }}
-            disabled={!walletAddress || isGranting || isStudyFull || isTxProcessing}
-            className={`h-7 px-3 ${
-              isStudyFull
-                ? "text-gray-400 bg-gray-50 border-gray-200 cursor-not-allowed"
-                : "text-green-600 hover:text-green-700 hover:bg-green-50 border-green-200"
-            }`}
-            title={
-              isStudyFull
-                ? "Study is full - cannot grant consent"
-                : isTxProcessing
-                ? "Transaction in progress..."
-                : walletAddress
-                ? "Grant consent for this study"
-                : "Connect wallet to grant consent"
-            }
-          >
-            {isGranting ? (
-              <>
-                <Spinner className="size-3 text-blue-600" />
-                Granting...
-              </>
-            ) : isStudyFull ? (
-              <>
-                <XCircle className="h-3 w-3 mr-1" />
-                Study Full
-              </>
-            ) : (
-              <>
-                <UserPlus className="h-3 w-3 mr-1" />
-                Grant Consent
-              </>
-            )}
-          </Button>
-        )}
+            >
+              {isRevoking ? (
+                <>
+                  <Spinner className="size-3 text-blue-600" />
+                  Revoking...
+                </>
+              ) : (
+                <>
+                  <UserMinus className="h-3 w-3 mr-1" />
+                  Revoke Consent
+                </>
+              )}
+            </Button>
+          )}
+
+          {/* Grant Button - Only show if consent is revoked and study is not completed */}
+          {!hasConsent && !isCompleted && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (isStudyFull) {
+                  return;
+                }
+                setGrantStudyId(study.id);
+              }}
+              disabled={!walletAddress || isGranting || isStudyFull || isTxProcessing}
+              className={`h-7 px-3 ${
+                isStudyFull
+                  ? "text-gray-400 bg-gray-50 border-gray-200 cursor-not-allowed"
+                  : "text-green-600 hover:text-green-700 hover:bg-green-50 border-green-200"
+              }`}
+              title={
+                isStudyFull
+                  ? "Study is full - cannot grant consent"
+                  : isTxProcessing
+                  ? "Transaction in progress..."
+                  : walletAddress
+                  ? "Grant consent for this study"
+                  : "Connect wallet to grant consent"
+              }
+            >
+              {isGranting ? (
+                <>
+                  <Spinner className="size-3 text-blue-600" />
+                  Granting...
+                </>
+              ) : isStudyFull ? (
+                <>
+                  <XCircle className="h-3 w-3 mr-1" />
+                  Study Full
+                </>
+              ) : (
+                <>
+                  <UserPlus className="h-3 w-3 mr-1" />
+                  Grant Consent
+                </>
+              )}
+            </Button>
+          )}
+        </div>
       </div>
     );
   };

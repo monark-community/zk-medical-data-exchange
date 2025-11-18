@@ -174,37 +174,37 @@ const AuditSection: React.FC<AuditSectionProps> = ({ className = "" }) => {
       {/* Audit Table - Only show when data has been loaded */}
       {hasDataLoaded && records.length > 0 && (
         <Card className="border-0 shadow-xl overflow-hidden bg-white/95 backdrop-blur-sm">
-          <CardHeader className="bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/50 border-b border-slate-200/50 px-8 py-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
+          <CardHeader className="bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/50 border-b border-slate-200/50 px-4 sm:px-8 py-4 sm:py-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-0">
+              <div className="flex items-center space-x-3 sm:space-x-4">
                 <div className="relative group">
                   <div className="absolute inset-0 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl blur-sm opacity-75 group-hover:opacity-100 transition-opacity duration-300"></div>
-                  <div className="relative bg-gradient-to-br from-emerald-500 to-teal-600 p-3 rounded-xl shadow-lg">
-                    <Activity className="h-6 w-6 text-white" />
+                  <div className="relative bg-gradient-to-br from-emerald-500 to-teal-600 p-2 sm:p-3 rounded-xl shadow-lg">
+                    <Activity className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
                   </div>
                 </div>
-                <div className="space-y-1">
-                  <CardTitle className="text-2xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
+                <div className="space-y-1 min-w-0 flex-1">
+                  <CardTitle className="text-lg sm:text-2xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent truncate">
                     Recent Activity
                   </CardTitle>
-                  <CardDescription className="text-slate-600 font-medium">
+                  <CardDescription className="text-slate-600 font-medium text-sm sm:text-base">
                     Your latest privacy and data interactions
                   </CardDescription>
                 </div>
               </div>
-              <div className="flex items-center space-x-4">
-                <div className="flex items-center space-x-3">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                   <Badge
                     variant="secondary"
-                    className="bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800 border border-blue-200/50 px-3 py-1.5 font-semibold shadow-sm"
+                    className="bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800 border border-blue-200/50 px-2 sm:px-3 py-1 sm:py-1.5 font-semibold shadow-sm text-xs sm:text-sm"
                   >
-                    <Database className="h-3 w-3 mr-1.5" />
+                    <Database className="h-3 w-3 mr-1 sm:mr-1.5" />
                     {records.length} records
                   </Badge>
                   {pagination && (
                     <Badge
                       variant="outline"
-                      className="text-slate-600 border-slate-300/50 bg-white/50 backdrop-blur-sm px-3 py-1.5 font-medium shadow-sm"
+                      className="text-slate-600 border-slate-300/50 bg-white/50 backdrop-blur-sm px-2 sm:px-3 py-1 sm:py-1.5 font-medium shadow-sm text-xs sm:text-sm"
                     >
                       Page {Math.floor(pagination.offset / 20) + 1} of{" "}
                       {Math.ceil(pagination.total / 20)}
@@ -219,7 +219,7 @@ const AuditSection: React.FC<AuditSectionProps> = ({ className = "" }) => {
 
           {/* Pagination */}
           {pagination && (
-            <div className="bg-gradient-to-br from-slate-50/80 via-blue-50/20 to-indigo-50/30 border-t border-slate-200/50 px-8 py-6">
+            <div className="bg-gradient-to-br from-slate-50/80 via-blue-50/20 to-indigo-50/30 border-t border-slate-200/50 px-4 sm:px-8 py-4 sm:py-6">
               <AuditPagination
                 pagination={pagination}
                 onPageChange={handlePageChange}

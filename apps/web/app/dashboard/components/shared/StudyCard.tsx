@@ -43,34 +43,36 @@ export default function StudyCard({
 
   return (
     <div
-      className={`group relative bg-white rounded-xl border border-gray-200 p-3 hover:border-gray-300 hover:shadow-md transition-all duration-200 cursor-default ${
-        !isLast ? "mb-3" : ""
+      className={`group relative bg-white rounded-xl border border-gray-200 p-3 sm:p-4 hover:border-gray-300 hover:shadow-md transition-all duration-200 cursor-default ${
+        !isLast ? "mb-2 sm:mb-3" : ""
       }`}
     >
       {/* Header Section */}
-      <div className="flex items-start justify-between mb-2">
-        <div className="flex-1 pr-4">
-          <div className="flex items-center space-x-2 mb-0.5">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-2 sm:mb-3">
+        <div className="flex-1 pr-0 sm:pr-4 mb-2 sm:mb-0">
+          <div className="flex items-center space-x-2 mb-1 sm:mb-0.5">
             <FlaskConical className="h-3.5 w-3.5 text-indigo-600 flex-shrink-0" />
-            <h4 className="text-sm font-semibold text-gray-900 leading-tight">{study.title}</h4>
+            <h4 className="text-sm sm:text-base font-semibold text-gray-900 leading-tight">
+              {study.title}
+            </h4>
           </div>
           {study.description && (
-            <p className="text-xs text-gray-600 leading-relaxed">
+            <p className="text-xs sm:text-sm text-gray-600 leading-relaxed mt-1">
               {study.description.length > descriptionMaxLength
                 ? `${study.description.substring(0, descriptionMaxLength)}...`
                 : study.description}
             </p>
           )}
         </div>
-        <div className="flex items-center space-x-2 flex-shrink-0">
+        <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-2 flex-shrink-0">
           {statusBadge}
-          {actionButtons}
+          {actionButtons && <div className="flex justify-end">{actionButtons}</div>}
         </div>
       </div>
 
-      {/* Stats Row - Compact layout */}
-      <div className="flex items-center justify-between mb-2 text-xs">
-        <div className="flex items-center space-x-4">
+      {/* Stats Row - Responsive layout */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-2 sm:mb-3 text-xs sm:text-sm">
+        <div className="flex flex-wrap items-center gap-3 sm:gap-4 mb-2 sm:mb-0">
           {/* Participants */}
           <div className="flex items-center space-x-1">
             <Users className="h-3 w-3 text-gray-500" />
@@ -108,14 +110,14 @@ export default function StudyCard({
 
         {/* Template badge - compact */}
         {study.templateName && (
-          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-100">
+          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-100 self-start sm:self-center">
             {study.templateName}
           </span>
         )}
       </div>
 
       {/* Simple progress bar */}
-      <div className="w-full h-1 bg-gray-100 rounded-full overflow-hidden mb-2">
+      <div className="w-full h-1 bg-gray-100 rounded-full overflow-hidden mb-2 sm:mb-3">
         <div
           className={`h-full rounded-full transition-all duration-300 ${
             isFull ? "bg-red-500" : isAlmostFull ? "bg-orange-500" : "bg-emerald-500"
@@ -126,7 +128,7 @@ export default function StudyCard({
 
       {/* Criteria badges - only show if there are any criteria */}
       {hasAnyCriteria && (
-        <div className="pt-1.5 border-t border-gray-100">
+        <div className="pt-1.5 sm:pt-2 border-t border-gray-100">
           <StudyCriteriaBadges
             studyCriteriaSummary={study.criteriaSummary}
             showLabel={showCriteriaLabel}

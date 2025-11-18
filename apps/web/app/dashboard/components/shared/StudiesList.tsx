@@ -24,9 +24,9 @@ export default function StudiesList({
   header,
 }: StudiesListProps) {
   return (
-    <div className="p-4">
+    <div className="p-2 sm:p-4">
       {header}
-      <div className="space-y-3">
+      <div className="space-y-2 sm:space-y-3">
         {studies.map((study, index) => (
           <StudyCard
             key={study.id}

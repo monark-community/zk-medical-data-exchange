@@ -260,7 +260,7 @@ export default function DataSellerStudiesSection() {
   }, [availableStudies, searchQuery, selectedFilters]);
 
   return (
-    <div className="w-full space-y-10">
+    <div className="w-full space-y-10 overflow-y-auto">
       <DashboardSectionHeader
         icon={<BookOpen className="h-8 w-8 text-white" />}
         title="Research Studies"
@@ -269,9 +269,14 @@ export default function DataSellerStudiesSection() {
             ? "Discover and apply to participate in medical research"
             : "Manage your active study participations"
         }
+        iconBackgroundClass={
+          viewMode === "enrolled"
+            ? "bg-gradient-to-br from-emerald-600 to-green-600"
+            : "bg-gradient-to-br from-blue-600 to-indigo-600"
+        }
       >
         {/* Sleek Tab Buttons */}
-        <div className="flex space-x-2">
+        <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
           <button
             onClick={() => setViewMode("available")}
             className={`flex-1 py-3 px-4 rounded-lg font-semibold text-sm transition-all duration-200 flex items-center justify-center space-x-2 ${
@@ -329,7 +334,7 @@ export default function DataSellerStudiesSection() {
 
           {/* Search and Filter Controls */}
           <div className="px-6 py-4 border-b">
-            <div className="flex gap-4">
+            <div className="flex flex-col sm:flex-row gap-4">
               <Input
                 placeholder="Search studies by name or description..."
                 value={searchQuery}

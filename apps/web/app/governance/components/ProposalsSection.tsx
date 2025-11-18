@@ -49,7 +49,7 @@ export default function ProposalsSection({
         };
 
   return (
-    <div id="proposal-tabs-section" className={`w-full ${showEnhancedHeader ? "pb-12 pr-12" : ""}`}>
+    <div id="proposal-tabs-section" className={`w-full ${showEnhancedHeader ? "px-6 py-6" : ""}`}>
       <div
         className={
           showEnhancedHeader
