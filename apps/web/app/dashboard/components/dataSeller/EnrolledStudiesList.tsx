@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import StudiesList from "@/app/dashboard/components/shared/StudiesList";
 import { Spinner } from "@/components/ui/spinner";
 import { modifyStudiesForCompletion } from "@/utils/studyUtils";
+import { useState } from "react";
+import { CustomConfirmAlert } from "@/components/alert/CustomConfirmAlert";
 
 interface EnrolledStudiesListProps {
   studies: StudySummary[];
@@ -26,6 +28,9 @@ export default function EnrolledStudiesList({
   walletAddress,
   isTxProcessing = false,
 }: EnrolledStudiesListProps) {
+  const [revokeStudyId, setRevokeStudyId] = useState<number | null>(null);
+  const [grantStudyId, setGrantStudyId] = useState<number | null>(null);
+
   const modifiedStudies = modifyStudiesForCompletion(studies);
 
   const renderActionButtons = (study: StudySummary) => {
@@ -63,13 +68,7 @@ export default function EnrolledStudiesList({
             size="sm"
             onClick={(e) => {
               e.stopPropagation();
-              if (
-                window.confirm(
-                  "Are you sure you want to revoke consent? This will prevent researchers from accessing your data for this study."
-                )
-              ) {
-                onRevokeConsent(study.id);
-              }
+              setRevokeStudyId(study.id);
             }}
             disabled={!walletAddress || isRevoking || isTxProcessing}
             className="h-7 px-3 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
@@ -108,13 +107,7 @@ export default function EnrolledStudiesList({
                 );
                 return;
               }
-              if (
-                window.confirm(
-                  "Grant consent to allow researchers to access your data for this study again?"
-                )
-              ) {
-                onGrantConsent(study.id);
-              }
+              setGrantStudyId(study.id);
             }}
             disabled={!walletAddress || isGranting || isStudyFull || isTxProcessing}
             className={`h-7 px-3 ${
@@ -155,11 +148,43 @@ export default function EnrolledStudiesList({
   };
 
   return (
-    <StudiesList
-      studies={modifiedStudies}
-      renderActionButtons={renderActionButtons}
-      descriptionMaxLength={100}
-      showCriteriaLabel={true}
-    />
+    <>
+      <StudiesList
+        studies={modifiedStudies}
+        renderActionButtons={renderActionButtons}
+        descriptionMaxLength={100}
+        showCriteriaLabel={true}
+      />
+      <CustomConfirmAlert
+        open={revokeStudyId !== null}
+        onOpenChange={(open) => {
+          if (!open) setRevokeStudyId(null);
+        }}
+        description="Are you sure you want to revoke consent? This will prevent researchers from accessing your data for this study."
+        alertTitle="Revoke Consent"
+        onConfirm={() => {
+          if (revokeStudyId) {
+            onRevokeConsent(revokeStudyId);
+            setRevokeStudyId(null);
+          }
+        }}
+        onCancel={() => setRevokeStudyId(null)}
+      />
+      <CustomConfirmAlert
+        open={grantStudyId !== null}
+        onOpenChange={(open) => {
+          if (!open) setGrantStudyId(null);
+        }}
+        description="Grant consent to allow researchers to access your data for this study again?"
+        alertTitle="Grant Consent"
+        onConfirm={() => {
+          if (grantStudyId) {
+            onGrantConsent(grantStudyId);
+            setGrantStudyId(null);
+          }
+        }}
+        onCancel={() => setGrantStudyId(null)}
+      />
+    </>
   );
 }

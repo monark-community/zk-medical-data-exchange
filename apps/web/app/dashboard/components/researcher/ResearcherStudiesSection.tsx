@@ -12,16 +12,51 @@ import DashboardSectionHeader from "@/app/dashboard/components/shared/DashboardS
 import StudiesContainer from "@/app/dashboard/components/shared/StudiesContainer";
 import eventBus from "@/lib/eventBus";
 import { useTxStatusState } from "@/hooks/useTxStatus";
+import { CustomConfirmAlert } from "@/components/alert/CustomConfirmAlert";
 
 export default function ResearcherStudiesSection() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [deletingStudyId, setDeletingStudyId] = useState<number | null>(null);
+  const [deleteAlert, setDeleteAlert] = useState<{
+    open: boolean;
+    studyId: number;
+    description: React.ReactNode;
+  } | null>(null);
   const { address: walletAddress } = useAccount();
   const { studies, isLoading, error, refetch } = useStudies(walletAddress);
   const { isVisible: isTxProcessing } = useTxStatusState();
   const handleStudyCreated = () => {
     console.log("Study created successfully!");
     refetch();
+  };
+
+  const performDeleteStudy = async (studyId: number) => {
+    const study = studies.find((s) => s.id === studyId);
+    console.log(`Attempting to delete study ${studyId}: "${study?.title}"`);
+    console.log("Current studies count:", studies.length);
+    setDeletingStudyId(studyId);
+    try {
+      await deleteStudy(studyId, walletAddress!);
+      console.log("Study deleted successfully from API!");
+      refetch();
+      eventBus.emit("studyDeleted");
+    } catch (error: any) {
+      console.error("Error deleting study:", error);
+
+      if (error.response?.status === 400) {
+        const errorMessage = error.response?.data?.error || "Bad request";
+        alert(`Failed to delete study: ${errorMessage}`);
+      } else if (error.response?.status === 404) {
+        alert("Study not found. It may have already been deleted.");
+        refetch();
+      } else if (error.response?.status === 403) {
+        alert("You don't have permission to delete this study.");
+      } else {
+        alert(`Failed to delete study: ${error.message || "Unknown error"}`);
+      }
+    } finally {
+      setDeletingStudyId(null);
+    }
   };
 
   const handleDeleteStudy = async (studyId: number) => {
@@ -32,39 +67,51 @@ export default function ResearcherStudiesSection() {
 
     const study = studies.find((s) => s.id === studyId);
 
-    let confirmMessage = `Are you sure you want to delete "${study?.title}"?\n\nThis action cannot be undone and will permanently remove the study and all its data.`;
+    let confirmDescription: React.ReactNode;
 
     if (study?.status === "active") {
-      confirmMessage = `WARNING: You are about to delete an ACTIVE study!\n\nStudy: "${study?.title}"\nStatus: ${study.status}\nParticipants: ${study.currentParticipants}/${study.maxParticipants}\n\nThis will:\n• Permanently delete the study and all its data\n• Stop all ongoing data collection\n• Remove access for all participants\n• Cannot be undone\n\nAre you absolutely sure you want to proceed?`;
+      confirmDescription = (
+        <div className="space-y-3">
+          <p className="text-red-600 font-bold text-lg">
+            WARNING: You are about to delete an ACTIVE study!
+          </p>
+          <div className="space-y-1">
+            <p>
+              <strong>Study:</strong> "{study?.title}"
+            </p>
+            <p>
+              <strong>Status:</strong> {study.status}
+            </p>
+            <p>
+              <strong>Participants:</strong> {study.currentParticipants}/{study.maxParticipants}
+            </p>
+          </div>
+          <p>
+            <strong>This will:</strong>
+          </p>
+          <ul className="list-disc list-inside space-y-1 ml-4">
+            <li>Permanently delete the study and all its data</li>
+            <li>Stop all ongoing data collection</li>
+            <li>Remove access for all participants</li>
+            <li>Cannot be undone</li>
+          </ul>
+          <p className="font-semibold">Are you absolutely sure you want to proceed?</p>
+        </div>
+      );
+    } else {
+      confirmDescription = (
+        <div className="space-y-3">
+          <p>
+            Are you sure you want to delete <strong>"{study?.title}"</strong>?
+          </p>
+          <p>
+            This action cannot be undone and will permanently remove the study and all its data.
+          </p>
+        </div>
+      );
     }
 
-    if (window.confirm(confirmMessage)) {
-      console.log(`Attempting to delete study ${studyId}: "${study?.title}"`);
-      console.log("Current studies count:", studies.length);
-      setDeletingStudyId(studyId);
-      try {
-        await deleteStudy(studyId, walletAddress);
-        console.log("Study deleted successfully from API!");
-        refetch();
-        eventBus.emit("studyDeleted");
-      } catch (error: any) {
-        console.error("Error deleting study:", error);
-
-        if (error.response?.status === 400) {
-          const errorMessage = error.response?.data?.error || "Bad request";
-          alert(`Failed to delete study: ${errorMessage}`);
-        } else if (error.response?.status === 404) {
-          alert("Study not found. It may have already been deleted.");
-          refetch();
-        } else if (error.response?.status === 403) {
-          alert("You don't have permission to delete this study.");
-        } else {
-          alert(`Failed to delete study: ${error.message || "Unknown error"}`);
-        }
-      } finally {
-        setDeletingStudyId(null);
-      }
-    }
+    setDeleteAlert({ open: true, studyId, description: confirmDescription });
   };
 
   return (
@@ -124,6 +171,22 @@ export default function ResearcherStudiesSection() {
         open={isDialogOpen}
         onOpenChange={setIsDialogOpen}
         onStudyCreated={handleStudyCreated}
+      />
+
+      <CustomConfirmAlert
+        open={deleteAlert?.open || false}
+        onOpenChange={(open: boolean) => {
+          if (!open) setDeleteAlert(null);
+        }}
+        alertTitle="Confirm Study Deletion"
+        description={deleteAlert?.description || ""}
+        onConfirm={async () => {
+          if (deleteAlert?.studyId) {
+            await performDeleteStudy(deleteAlert.studyId);
+          }
+          setDeleteAlert(null);
+        }}
+        onCancel={() => setDeleteAlert(null)}
       />
     </div>
   );
