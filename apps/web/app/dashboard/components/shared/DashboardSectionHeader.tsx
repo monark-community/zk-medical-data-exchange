@@ -16,14 +16,14 @@ export default function DashboardSectionHeader({
   children,
 }: DashboardSectionHeaderProps) {
   return (
-    <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 rounded-xl border border-gray-200 p-6 shadow-sm">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center space-x-4">
-          <div className="p-3 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 shadow-lg">
+    <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 rounded-xl border border-gray-200 p-4 shadow-sm">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center space-x-3">
+          <div className="p-2 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 shadow-lg">
             {icon}
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-1">{title}</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-0.5">{title}</h2>
             <p className="text-sm text-gray-600">{description}</p>
           </div>
         </div>

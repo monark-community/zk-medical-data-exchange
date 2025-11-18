@@ -8,6 +8,7 @@ interface StudiesListProps {
   renderActionButtons: (study: StudySummary) => React.ReactNode;
   descriptionMaxLength?: number;
   showCriteriaLabel?: boolean;
+  header?: React.ReactNode;
 }
 
 /**
@@ -20,9 +21,11 @@ export default function StudiesList({
   renderActionButtons,
   descriptionMaxLength = 80,
   showCriteriaLabel = false,
+  header,
 }: StudiesListProps) {
   return (
     <div className="p-4">
+      {header}
       <div className="space-y-3">
         {studies.map((study, index) => (
           <StudyCard

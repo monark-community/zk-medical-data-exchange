@@ -8,7 +8,7 @@ import EnrolledStudiesList from "@/app/dashboard/components/dataSeller/EnrolledS
 import StudySectionHeader from "@/app/dashboard/components/shared/StudySectionHeader";
 import StudiesContainer from "@/app/dashboard/components/shared/StudiesContainer";
 import DashboardSectionHeader from "@/app/dashboard/components/shared/DashboardSectionHeader";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { getAggregatedMedicalData } from "@/services/core/medicalDataAggregator";
 import { convertToZkReady } from "@/services/fhir";
 import {
@@ -17,6 +17,32 @@ import {
   revokeStudyConsent,
   grantStudyConsent,
 } from "@/services/api/studyService";
+import { Input } from "@/components/ui/input";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+
+const criteriaOptions = [
+  { key: "requiresAge", label: "Age" },
+  { key: "requiresGender", label: "Gender" },
+  { key: "requiresDiabetes", label: "Diabetes" },
+  { key: "requiresSmoking", label: "Smoking" },
+  { key: "requiresBMI", label: "BMI" },
+  { key: "requiresBloodPressure", label: "Blood Pressure" },
+  { key: "requiresCholesterol", label: "Cholesterol" },
+  { key: "requiresHeartDisease", label: "Heart Disease" },
+  { key: "requiresActivity", label: "Activity Level" },
+  { key: "requiresHbA1c", label: "HbA1c" },
+  { key: "requiresBloodType", label: "Blood Type" },
+  { key: "requiresLocation", label: "Location" },
+];
+
 import eventBus from "@/lib/eventBus";
 import { useTxStatusState } from "@/hooks/useTxStatus";
 
@@ -32,6 +58,8 @@ export default function DataSellerStudiesSection() {
   const [enrolledLoading, setEnrolledLoading] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("available");
   const { show, showError, hide, isVisible: isTxProcessing } = useTxStatusState();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
 
   useEffect(() => {
     if (walletAddress) {
@@ -212,6 +240,25 @@ export default function DataSellerStudiesSection() {
   const enrolledStudyIds = new Set(enrolledStudies.map((s) => s.id));
   const availableStudies = studies.filter((study) => !enrolledStudyIds.has(study.id));
 
+  const filteredStudies = useMemo(() => {
+    return availableStudies.filter((study) => {
+      // Search filter
+      const matchesSearch =
+        !searchQuery ||
+        study.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (study.description && study.description.toLowerCase().includes(searchQuery.toLowerCase()));
+
+      // Requirements filter
+      const matchesFilters =
+        selectedFilters.length === 0 ||
+        selectedFilters.some(
+          (filter) => study.criteriaSummary[filter as keyof typeof study.criteriaSummary]
+        );
+
+      return matchesSearch && matchesFilters;
+    });
+  }, [availableStudies, searchQuery, selectedFilters]);
+
   return (
     <div className="w-full space-y-8">
       <DashboardSectionHeader
@@ -240,7 +287,7 @@ export default function DataSellerStudiesSection() {
                 viewMode === "available" ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-600"
               }`}
             >
-              {availableStudies.length}
+              {filteredStudies.length}
             </span>
           </button>
           <button
@@ -274,25 +321,68 @@ export default function DataSellerStudiesSection() {
               <div className="flex items-center space-x-2">
                 <span className="text-xs font-medium text-gray-500">Showing</span>
                 <span className="text-sm font-semibold text-blue-600">
-                  {availableStudies.length} {availableStudies.length === 1 ? "study" : "studies"}
+                  {filteredStudies.length} {filteredStudies.length === 1 ? "study" : "studies"}
                 </span>
               </div>
             }
           />
 
+          {/* Search and Filter Controls */}
+          <div className="px-6 py-4 border-b">
+            <div className="flex gap-4">
+              <Input
+                placeholder="Search studies by name or description..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="flex-1"
+              />
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline">
+                    Filter by Requirements{" "}
+                    {selectedFilters.length > 0 && `(${selectedFilters.length})`}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  {criteriaOptions.map(({ key, label }) => (
+                    <DropdownMenuCheckboxItem
+                      key={key}
+                      checked={selectedFilters.includes(key)}
+                      onSelect={(e) => {
+                        e.preventDefault();
+                        setSelectedFilters((prev) =>
+                          prev.includes(key) ? prev.filter((f) => f !== key) : [...prev, key]
+                        );
+                      }}
+                    >
+                      {label}
+                    </DropdownMenuCheckboxItem>
+                  ))}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => setSelectedFilters([])}
+                    disabled={selectedFilters.length === 0}
+                  >
+                    Clear All Filters
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+
           <StudiesContainer
             isLoading={isLoading}
             error={error}
-            studies={availableStudies}
+            studies={filteredStudies}
             onRetry={refetch}
             emptyState={{
-              title: "No studies available",
+              title: "No studies match your filters",
               description:
-                "There are currently no medical research studies available. Check back later!",
+                "Try adjusting your search terms or filter requirements to see more studies.",
             }}
           >
             <DataSellerStudiesList
-              studies={availableStudies}
+              studies={filteredStudies}
               onApplyToStudy={handleApplyToStudy}
               applyingStudyId={applyingStudyId}
               walletAddress={walletAddress}
