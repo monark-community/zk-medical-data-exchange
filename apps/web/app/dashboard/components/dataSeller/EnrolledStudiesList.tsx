@@ -102,9 +102,6 @@ export default function EnrolledStudiesList({
             onClick={(e) => {
               e.stopPropagation();
               if (isStudyFull) {
-                alert(
-                  "Cannot grant consent: This study is now full. The maximum number of active participants has been reached."
-                );
                 return;
               }
               setGrantStudyId(study.id);

@@ -111,7 +111,7 @@ export default function DataSellerStudiesSection() {
 
   const handleRevokeConsent = async (studyId: number) => {
     if (!walletAddress) {
-      alert("Wallet not connected");
+      showError("Wallet not connected");
       return;
     }
 
@@ -122,6 +122,7 @@ export default function DataSellerStudiesSection() {
     setRevokingStudyId(studyId);
 
     try {
+      show("Revoking consent...");
       console.log("Revoking consent for study:", studyId);
 
       const result = await revokeStudyConsent(studyId, walletAddress);
@@ -137,13 +138,19 @@ export default function DataSellerStudiesSection() {
         setEnrolledStudies(updatedStudies);
         setEnrolledLoading(false);
 
-        alert("Consent revoked successfully!");
+        show("✓ Consent revoked successfully!");
+        setTimeout(() => {
+          hide();
+        }, 3000);
       }
     } catch (error) {
       console.error("Failed to revoke consent:", error);
-      alert(
+      showError(
         `Failed to revoke consent: ${error instanceof Error ? error.message : "Unknown error"}`
       );
+      setTimeout(() => {
+        hide();
+      }, 5000);
     } finally {
       setRevokingStudyId(null);
     }
@@ -151,7 +158,7 @@ export default function DataSellerStudiesSection() {
 
   const handleGrantConsent = async (studyId: number) => {
     if (!walletAddress) {
-      alert("Wallet not connected");
+      showError("Wallet not connected");
       return;
     }
 
@@ -162,6 +169,7 @@ export default function DataSellerStudiesSection() {
     setGrantingStudyId(studyId);
 
     try {
+      show("Granting consent...");
       console.log("Granting consent for study:", studyId);
 
       const result = await grantStudyConsent(studyId, walletAddress);
@@ -177,19 +185,25 @@ export default function DataSellerStudiesSection() {
         setEnrolledStudies(updatedStudies);
         setEnrolledLoading(false);
 
-        alert("Consent granted successfully!");
+        show("✓ Consent granted successfully!");
+        setTimeout(() => {
+          hide();
+        }, 3000);
       }
     } catch (error) {
       console.error("Failed to grant consent:", error);
 
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
       if (errorMessage.includes("full") || errorMessage.includes("Full")) {
-        alert(
+        showError(
           "Cannot grant consent: This study is now full. The maximum number of active participants has been reached."
         );
       } else {
-        alert(`Failed to grant consent: ${errorMessage}`);
+        showError(`Failed to grant consent: ${errorMessage}`);
       }
+      setTimeout(() => {
+        hide();
+      }, 5000);
     } finally {
       setGrantingStudyId(null);
     }
