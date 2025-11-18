@@ -736,7 +736,8 @@ export class StudyService {
     participantWallet: string,
     dataCommitment: string,
     challenge: string,
-    binIds?: string[] // Optional bin IDs from proof result
+    binIds?: string[], // Optional bin IDs from proof result
+    publicInputsJson?: string[] // Public signals from ZK proof
   ) {
     await this.initialize();
 
@@ -749,7 +750,8 @@ export class StudyService {
           proofjson,
           dataCommitment,
           challenge,
-          binIds || [] // Pass empty array if no bins
+          binIds || [], // Pass empty array if no bins
+          publicInputsJson // Pass public signals for verification
         );
 
         if (blockchainResult.success) {
@@ -793,7 +795,8 @@ export class StudyService {
     proof: { a: [string, string]; b: [[string, string], [string, string]]; c: [string, string] },
     dataCommitment: string,
     challenge: string,
-    binIds: string[] = [] // Array of bin IDs from proof
+    binIds: string[] = [], // Array of bin IDs from proof
+    publicInputsJson?: string[] // Public signals from ZK proof (51 elements: [dataCommitment, binMembership[0..49]])
   ): Promise<{ success: boolean; transactionHash?: string; error?: string }> {
     await this.initialize();
 
@@ -850,43 +853,75 @@ export class StudyService {
       }
 
       // Preflight: verify against the Study's zkVerifier directly to isolate issues
-      try {
-        // 1) Read the verifier address from the Study
-        const zkVerifierAddress = await this.publicClient.readContract({
-          address: studyAddress as `0x${string}`,
-          abi: STUDY_ABI,
-          functionName: "zkVerifier",
-        });
+      if (publicInputsJson && publicInputsJson.length > 0) {
+        try {
+          // 1) Read the verifier address from the Study
+          const zkVerifierAddress = await this.publicClient.readContract({
+            address: studyAddress as `0x${string}`,
+            abi: STUDY_ABI,
+            functionName: "zkVerifier",
+          });
 
-        // 2) Call verifyProof on the verifier with the prepared proof and public signal
-        const pubSignals: [bigint] = [commitment];
-        const verifierOk = await this.publicClient.readContract({
-          address: zkVerifierAddress as `0x${string}`,
-          abi: MEDICAL_ELIGIBILITY_VERIFIER_ABI,
-          functionName: "verifyProof",
-          args: [pA, pB, pC, pubSignals],
-        });
+          // 2) Convert publicInputsJson (string[]) to bigint[]
+          // Expected format: [dataCommitment, binMembership[0..49]] = 51 elements total
+          const pubSignals = publicInputsJson.map(sig => BigInt(sig));
+          
+          logger.info(
+            { 
+              zkVerifierAddress, 
+              pubSignalsLength: pubSignals.length,
+              dataCommitment: pubSignals[0]?.toString(),
+              expectedLength: 51
+            },
+            "Preparing verifier preflight check"
+          );
 
-        logger.info(
-          { zkVerifierAddress, verifierOk, pubSignals: pubSignals[0].toString() },
-          "Verifier preflight check result"
-        );
+          // Verify we have the correct number of public signals
+          if (pubSignals.length !== 51) {
+            logger.warn(
+              { 
+                actualLength: pubSignals.length, 
+                expectedLength: 51,
+                publicInputsJson 
+              },
+              "Public signals length mismatch - expected 51 elements"
+            );
+          } else {
+            // 3) Call verifyProof on the verifier with the prepared proof and public signals
+            const verifierOk = await this.publicClient.readContract({
+              address: zkVerifierAddress as `0x${string}`,
+              abi: MEDICAL_ELIGIBILITY_VERIFIER_ABI,
+              functionName: "verifyProof",
+              args: [pA, pB, pC, pubSignals],
+            });
 
-        if (!verifierOk) {
-          // Short-circuit with explicit message; avoid spending gas on a guaranteed revert
-          const msg = "Verifier preflight failed: proof/public signal mismatch (check verifier/zkey alignment and dataCommitment)";
-          logger.error({ zkVerifierAddress, studyAddress, participantWallet }, msg);
-          return { success: false, error: msg };
+            logger.info(
+              { zkVerifierAddress, verifierOk, dataCommitment: pubSignals[0]?.toString() || 'N/A' },
+              "Verifier preflight check result"
+            );
+
+            if (!verifierOk) {
+              // Short-circuit with explicit message; avoid spending gas on a guaranteed revert
+              const msg = "Verifier preflight failed: proof/public signal mismatch (check verifier/zkey alignment and dataCommitment)";
+              logger.error({ zkVerifierAddress, studyAddress, participantWallet }, msg);
+              return { success: false, error: msg };
+            }
+          }
+        } catch (preflightError) {
+          // If read-only verification throws for non-revert reasons, log and continue to simulation
+          logger.warn(
+            {
+              error: preflightError instanceof Error ? preflightError.message : String(preflightError),
+              studyAddress,
+              participantWallet,
+            },
+            "Verifier preflight check encountered an error; continuing to simulateContract"
+          );
         }
-      } catch (preflightError) {
-        // If read-only verification throws for non-revert reasons, log and continue to simulation
+      } else {
         logger.warn(
-          {
-            error: preflightError instanceof Error ? preflightError.message : String(preflightError),
-            studyAddress,
-            participantWallet,
-          },
-          "Verifier preflight check encountered an error; continuing to simulateContract"
+          { studyAddress, participantWallet },
+          "No publicInputsJson provided - skipping verifier preflight check"
         );
       }
 

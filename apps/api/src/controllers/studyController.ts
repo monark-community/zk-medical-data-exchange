@@ -1458,7 +1458,8 @@ export const participateInStudy = async (req: Request, res: Response) => {
       participantWallet,
       dataCommitment,
       storedCommitment.challenge,
-      binIds // Pass bin IDs from proof to blockchain
+      binIds, // Pass bin IDs from proof to blockchain
+      typeof publicInputsJson === "string" ? JSON.parse(publicInputsJson) : publicInputsJson // Pass public signals array
     );
 
     await req.supabase

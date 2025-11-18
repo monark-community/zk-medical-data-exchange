@@ -184,7 +184,7 @@ contract Study {
         require(recomputedHash == storedCommitmentHash, "Commitment mismatch - data tampering detected");
         
         uint[51] memory pubSignals;
-        pubSignals[0] = dataCommitment;
+        pubSignals[50] = dataCommitment;
         
         // binMembership signals (indices 3-52) will be verified by the proof
         // We don't need to set them here as the proof will validate them
