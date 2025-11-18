@@ -13,7 +13,6 @@ import StudiesContainer from "@/app/dashboard/components/shared/StudiesContainer
 import eventBus from "@/lib/eventBus";
 import { useTxStatusState } from "@/hooks/useTxStatus";
 import { CustomConfirmAlert } from "@/components/alert/CustomConfirmAlert";
-import { useTxStatusState } from "@/hooks/useTxStatus";
 
 export default function ResearcherStudiesSection() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
