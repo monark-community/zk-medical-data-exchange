@@ -56,7 +56,6 @@ export const generateDataCommitment = (medicalData: ExtractedMedicalData, salt: 
       console.log("├─ Final inputs:", [commitment1.toString(), commitment2.toString(), salt, challengeBigInt.toString()]);
       console.log("└─ Final commitment:", finalCommitmentHash.toString());
     } else {
-      // Fallback for backward compatibility (3-input version without challenge)
       finalCommitmentHash = poseidon3([commitment1, commitment2, BigInt(salt)]);
       console.log("Data commitment generated (without challenge - for initial submission):");
       console.log("├─ Commitment 1 inputs:", commitment1Inputs);
