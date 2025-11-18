@@ -22,6 +22,7 @@ import { deleteCID } from "@/services/api";
 import { logFileAccess } from "@/services/api/auditService";
 import eventBus from "@/lib/eventBus";
 import { Spinner } from "@/components/ui/spinner";
+import { useTxStatusState } from "@/hooks/useTxStatus";
 const FileOperationDropDown = ({
   walletAddress,
   aesKey,
@@ -44,7 +45,7 @@ const FileOperationDropDown = ({
       return decryptedContent;
     } catch (error) {
       console.error("Failed to fetch IPFS content:", error);
-      alert("Failed to load content.");
+      useTxStatusState.getState().showError("Failed to load content.");
     }
   };
 
@@ -143,12 +144,12 @@ const FileOperationDropDown = ({
       const decryptedCid = decryptWithKey(cid, aesKey);
       await ipfsDelete(decryptedCid, fileId);
       await deleteCID(walletAddress!, cid);
-      alert("File deleted successfully.");
+      useTxStatusState.getState().show("File deleted successfully.");
       setMedicalData((prev) => prev.filter((item) => item.encryptedCid !== cid));
       eventBus.emit("medicalDataDeleted");
     } catch (error) {
       console.error("Failed to delete file:", error);
-      alert("Failed to delete file.");
+      useTxStatusState.getState().showError("Failed to delete file.");
       eventBus.emit("medicalDataDeleted");
     } finally {
       setIsDeleting(false);

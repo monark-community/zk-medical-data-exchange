@@ -12,6 +12,7 @@ import DashboardSectionHeader from "@/app/dashboard/components/shared/DashboardS
 import StudiesContainer from "@/app/dashboard/components/shared/StudiesContainer";
 import eventBus from "@/lib/eventBus";
 import { CustomConfirmAlert } from "@/components/alert/CustomConfirmAlert";
+import { useTxStatusState } from "@/hooks/useTxStatus";
 
 export default function ResearcherStudiesSection() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -44,14 +45,16 @@ export default function ResearcherStudiesSection() {
 
       if (error.response?.status === 400) {
         const errorMessage = error.response?.data?.error || "Bad request";
-        alert(`Failed to delete study: ${errorMessage}`);
+        useTxStatusState.getState().showError(`Failed to delete study: ${errorMessage}`);
       } else if (error.response?.status === 404) {
-        alert("Study not found. It may have already been deleted.");
+        useTxStatusState.getState().showError("Study not found. It may have already been deleted.");
         refetch();
       } else if (error.response?.status === 403) {
-        alert("You don't have permission to delete this study.");
+        useTxStatusState.getState().showError("You don't have permission to delete this study.");
       } else {
-        alert(`Failed to delete study: ${error.message || "Unknown error"}`);
+        useTxStatusState
+          .getState()
+          .showError(`Failed to delete study: ${error.message || "Unknown error"}`);
       }
     } finally {
       setDeletingStudyId(null);
@@ -60,7 +63,7 @@ export default function ResearcherStudiesSection() {
 
   const handleDeleteStudy = async (studyId: number) => {
     if (!walletAddress) {
-      alert("Wallet not connected");
+      useTxStatusState.getState().showError("Wallet not connected");
       return;
     }
 
