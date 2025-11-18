@@ -625,7 +625,6 @@ class StudyService {
         address: contractAddress as `0x${string}`,
         abi: STUDY_ABI,
         functionName: "registerCommitment",
-        // Include participant wallet as third arg per updated contract signature
         args: [commitmentBigInt, challengeBytes32, participantWallet as `0x${string}`],
       });
 

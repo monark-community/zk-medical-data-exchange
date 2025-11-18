@@ -209,10 +209,14 @@ export class StudyApplicationService {
         dataCommitment: dataCommitment.toString(),
         signature
       });
-      
+
       if (!data.challenge) {
         throw new Error("Data commitment generation failed.");
       }
+      
+      console.log("Regenerating commitment with challenge:", data.challenge);
+      const finalDataCommitment = generateDataCommitment(medicalData, salt, data.challenge);
+      console.log("Final data commitment (with challenge):", finalDataCommitment.toString());
       
       console.log("Fetching study criteria");
       const studyCriteria = await this.getStudyCriteria(studyId);
@@ -250,7 +254,7 @@ export class StudyApplicationService {
       const { proof, publicSignals } = await generateZKProof(
         medicalData,
         studyCriteria,
-        dataCommitment,
+        finalDataCommitment,
         salt,
         data.challenge
       );
