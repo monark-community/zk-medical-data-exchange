@@ -31,12 +31,10 @@ export const generateDataCommitment = (medicalData: ExtractedMedicalData, salt: 
     const commitment1 = poseidon7(commitment1InputsBigInt);
     const commitment2 = poseidon7(commitment2InputsBigInt);
 
-    let finalCommitmentHash: bigint;
-
     const challengeHex = challenge.startsWith('0x') ? challenge.slice(2) : challenge;
     const challengeBigInt = BigInt(`0x${challengeHex}`);
 
-    finalCommitmentHash = poseidon4([commitment1, commitment2, BigInt(salt), challengeBigInt]);
+    let finalCommitmentHash = poseidon4([commitment1, commitment2, BigInt(salt), challengeBigInt]);
     console.log("Data commitment generated (with challenge):");
     console.log("├─ Commitment 1 inputs:", commitment1Inputs);
     console.log("├─ Commitment 1 hash:", commitment1.toString());
