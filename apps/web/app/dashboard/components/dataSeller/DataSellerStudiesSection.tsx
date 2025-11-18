@@ -43,6 +43,13 @@ const criteriaOptions = [
   { key: "requiresLocation", label: "Location" },
 ];
 
+const statusOptions = [
+  { key: "active", label: "Active" },
+  { key: "inactive", label: "Inactive" },
+  { key: "completed", label: "Completed" },
+  { key: "draft", label: "Draft" },
+];
+
 import eventBus from "@/lib/eventBus";
 import { useTxStatusState } from "@/hooks/useTxStatus";
 
@@ -60,6 +67,7 @@ export default function DataSellerStudiesSection() {
   const { show, showError, hide, isVisible: isTxProcessing } = useTxStatusState();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
+  const [selectedStatusFilters, setSelectedStatusFilters] = useState<string[]>(["active"]);
 
   useEffect(() => {
     if (walletAddress) {
@@ -255,9 +263,14 @@ export default function DataSellerStudiesSection() {
           (filter) => study.criteriaSummary[filter as keyof typeof study.criteriaSummary]
         );
 
-      return matchesSearch && matchesFilters;
+      // Status filter
+      const matchesStatus =
+        selectedStatusFilters.length === 0 ||
+        selectedStatusFilters.includes(study.status || "active");
+
+      return matchesSearch && matchesFilters && matchesStatus;
     });
-  }, [availableStudies, searchQuery, selectedFilters]);
+  }, [availableStudies, searchQuery, selectedFilters, selectedStatusFilters]);
 
   return (
     <div className="w-full space-y-10 overflow-y-auto">
@@ -341,6 +354,37 @@ export default function DataSellerStudiesSection() {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="flex-1"
               />
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline">
+                    Filter by Status{" "}
+                    {selectedStatusFilters.length > 0 && `(${selectedStatusFilters.length})`}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  {statusOptions.map(({ key, label }) => (
+                    <DropdownMenuCheckboxItem
+                      key={key}
+                      checked={selectedStatusFilters.includes(key)}
+                      onSelect={(e) => {
+                        e.preventDefault();
+                        setSelectedStatusFilters((prev) =>
+                          prev.includes(key) ? prev.filter((f) => f !== key) : [...prev, key]
+                        );
+                      }}
+                    >
+                      {label}
+                    </DropdownMenuCheckboxItem>
+                  ))}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => setSelectedStatusFilters([])}
+                    disabled={selectedStatusFilters.length === 0}
+                  >
+                    Clear All Filters
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline">
