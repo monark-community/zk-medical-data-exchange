@@ -442,6 +442,7 @@ const StudyCreationForm = ({ onSuccess, isModal = false }: StudyCreationFormProp
         try {
           await deleteStudy(result.study.id, walletAddress!);
           console.log("Study deleted from database due to deployment failure");
+          eventBus.emit("studyDeleted");
         } catch (deleteError) {
           console.error("Failed to delete study after deployment failure:", deleteError);
         }
