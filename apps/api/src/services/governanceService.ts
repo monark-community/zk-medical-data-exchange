@@ -180,44 +180,29 @@ class GovernanceService {
   }
 
   /**
-   * Helper: read voting snapshot (votes + state) from a proposal contract
+   * Helper: read voting snapshot (votes + state) from a proposal contract using getState
    */
-  private async getProposalVotingSnapshot(
-    proposalContract: string,
-    stateFunction: "state" | "getState"
-  ) {
-    const [votesFor, votesAgainst, totalVoters, state] = await Promise.all([
-      this.publicClient.readContract({
-        address: proposalContract as `0x${string}`,
-        abi: PROPOSAL_ABI,
-        functionName: "votesFor",
-        args: [],
-      }),
-      this.publicClient.readContract({
-        address: proposalContract as `0x${string}`,
-        abi: PROPOSAL_ABI,
-        functionName: "votesAgainst",
-        args: [],
-      }),
-      this.publicClient.readContract({
-        address: proposalContract as `0x${string}`,
-        abi: PROPOSAL_ABI,
-        functionName: "totalVoters",
-        args: [],
-      }),
-      this.publicClient.readContract({
-        address: proposalContract as `0x${string}`,
-        abi: PROPOSAL_ABI,
-        functionName: stateFunction,
-        args: [],
-      }),
-    ]);
+  private async getProposalVotingSnapshot(proposalContract: string) {
+    const stateData = await this.publicClient.readContract({
+      address: proposalContract as `0x${string}`,
+      abi: PROPOSAL_ABI,
+      functionName: "getState",
+      args: [],
+    });
+
+    // getState returns: (currentState, votesFor, votesAgainst, totalVoters)
+    const [currentState, votesFor, votesAgainst, totalVoters] = stateData as [
+      number,
+      bigint,
+      bigint,
+      bigint
+    ];
 
     return {
       votesFor: Number(votesFor),
       votesAgainst: Number(votesAgainst),
       totalVoters: Number(totalVoters),
-      state: Number(state),
+      state: Number(currentState),
     };
   }
 
@@ -296,7 +281,7 @@ class GovernanceService {
       });
 
       // Votes + state from proposal contract (use storage state here, same as before)
-      const votingSnapshot = await this.getProposalVotingSnapshot(proposalContract!, "state");
+      const votingSnapshot = await this.getProposalVotingSnapshot(proposalContract!);
 
       // Save to database for fast queries
       const { error: dbError } = await this.supabase.from(PROPOSALS!.name).insert({
@@ -375,7 +360,7 @@ class GovernanceService {
       logger.info({ receipt }, "Vote cast on blockchain successfully");
 
       // Updated counts from proposal contract (using getState here, same as before)
-      const votingSnapshot = await this.getProposalVotingSnapshot(proposalContract, "getState");
+      const votingSnapshot = await this.getProposalVotingSnapshot(proposalContract);
 
       // Update proposal vote counts in database
       const { error: updateError } = await this.supabase
@@ -474,7 +459,7 @@ class GovernanceService {
         // Fetch current state from blockchain for accuracy
         const { proposalContract } = await this.getProposalRegistryEntry(proposalId);
 
-        const blockchainState = await this.publicClient.readContract({
+        const [blockchainState] = await this.publicClient.readContract({
           address: proposalContract as `0x${string}`,
           abi: PROPOSAL_ABI,
           functionName: "getState",
@@ -556,7 +541,7 @@ class GovernanceService {
         args: [],
       });
 
-      const votingSnapshot = await this.getProposalVotingSnapshot(proposalContract, "getState");
+      const votingSnapshot = await this.getProposalVotingSnapshot(proposalContract);
 
       const proposal: Proposal = {
         id: proposalId,
@@ -640,7 +625,7 @@ class GovernanceService {
             const { proposalContract } = await this.getProposalRegistryEntry(dbProposal.id);
 
             // Get current state from blockchain
-            const blockchainState = await this.publicClient.readContract({
+            const [blockchainState] = await this.publicClient.readContract({
               address: proposalContract as `0x${string}`,
               abi: PROPOSAL_ABI,
               functionName: "getState",

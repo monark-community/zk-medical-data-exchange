@@ -1,5 +1,5 @@
 // Auto-generated contract ABIs
-// Generated on 2025-11-17T02:15:53.608Z
+// Generated on 2025-11-18T00:13:41.063Z
 
 // ABI type definitions
 interface ABIInput {
@@ -3386,6 +3386,34 @@ export const PROPOSAL_ABI: ABI = [
     "name": "finalize",
     "outputs": [],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getState",
+    "outputs": [
+      {
+        "internalType": "enum Proposal.ProposalState",
+        "name": "_currentState",
+        "type": "uint8"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_votesFor",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_votesAgainst",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_totalVoters",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
     "type": "function"
   },
   {
