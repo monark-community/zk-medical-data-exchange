@@ -10,46 +10,42 @@ import ConfirmEditUsernameDialog from "./confirmEditUsernameDialog";
 
 import { notifyUserUpdated } from "@/utils/userEvents";
 
-import CustomAlert from "@/components/alert/CustomAlert";
+import { useTxStatusState } from "@/hooks/useTxStatus";
 interface EditProfileFieldProps {
   onSuccess: () => void;
+  onProcessingStart?: () => void;
 }
 
-const EditProfileField = ({ onSuccess }: EditProfileFieldProps) => {
+const EditProfileField = ({ onSuccess, onProcessingStart }: EditProfileFieldProps) => {
   const { address: walletAddress } = useAccount();
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
-  const [isAlertDialogOpen, setIsAlertDialogOpen] = React.useState(false);
   const [isWaitingUsernameChange, setIsWaitingUsernameChange] = React.useState(false);
   const [pendingUsername, setPendingUsername] = React.useState("");
-  const [error, setError] = React.useState<string | null>(null);
-  const openResultAlertDialog = () => {
-    setIsAlertDialogOpen(true);
-  };
+  const { show, showError } = useTxStatusState();
 
   const handleConfirmUpdate = async () => {
     try {
       if (!walletAddress) {
-        setError("Wallet address not found. Please log in again.");
-        setIsAlertDialogOpen(true);
+        showError("Wallet address not found. Please log in again.");
         return;
       }
       setIsWaitingUsernameChange(true);
-      openResultAlertDialog();
+      onProcessingStart?.();
+      show("Updating username...");
       await updateUser(walletAddress, { username: pendingUsername });
       setIsWaitingUsernameChange(false);
       notifyUserUpdated();
-      setError(null);
+      show("Your changes have been saved successfully ✓");
+      setTimeout(() => {
+        hide();
+      }, 3000);
+      setTimeout(() => {
+        onSuccess();
+      }, 2000);
     } catch (error) {
+      setIsWaitingUsernameChange(false);
       console.error("Error updating profile:", error);
-      setError("An error occurred while saving changes.");
-      setIsAlertDialogOpen(true);
-    }
-  };
-
-  const handleAlertClose = () => {
-    setIsAlertDialogOpen(false);
-    if (!error) {
-      onSuccess();
+      showError("An error occurred while saving changes.");
     }
   };
 
@@ -61,7 +57,7 @@ const EditProfileField = ({ onSuccess }: EditProfileFieldProps) => {
           const username = (document.getElementById("edit-username") as HTMLInputElement).value;
 
           if (!walletAddress) {
-            setError("Wallet address not found. Please log in again.");
+            showError("Wallet address not found. Please log in again.");
             return;
           }
 
@@ -92,7 +88,9 @@ const EditProfileField = ({ onSuccess }: EditProfileFieldProps) => {
             </FieldGroup>
           </FieldSet>
           <Field orientation="horizontal">
-            <Button type="submit">Save Changes</Button>
+            <Button type="submit" disabled={isWaitingUsernameChange}>
+              {isWaitingUsernameChange ? "Processing..." : "Save Changes"}
+            </Button>
           </Field>
         </FieldGroup>
       </form>
@@ -102,19 +100,14 @@ const EditProfileField = ({ onSuccess }: EditProfileFieldProps) => {
         onOpenChange={() => setIsDialogOpen(false)}
         onConfirm={handleConfirmUpdate}
         onCancel={() => {
-          setError(null);
           setPendingUsername("");
         }}
-      />
-      <CustomAlert
-        isAlertDialogOpen={isAlertDialogOpen}
-        isWaitingForAction={isWaitingUsernameChange}
-        error={error}
-        successMessage="Your changes have been saved."
-        handleAlertClose={handleAlertClose}
       />
     </div>
   );
 };
 
 export default EditProfileField;
+function hide() {
+  throw new Error("Function not implemented.");
+}

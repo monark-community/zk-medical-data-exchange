@@ -14,6 +14,7 @@ import { useUser } from "@/hooks/useUser";
 import ProfileAvatar from "@/components/profileAvatar";
 import { getTransactionByWalletAddress } from "@/services/api/transactionService";
 import { Transaction } from "@/interfaces/transaction";
+import { useTxStatusState } from "@/hooks/useTxStatus";
 
 const ProfileCard = () => {
   const formatWalletAddress = (address: string) => {
@@ -31,6 +32,7 @@ const ProfileCard = () => {
   const { currentProfile, getProfileDisplayName } = useProfile();
   const { address } = useAccount();
   const { user, refetchUser } = useUser();
+  const { isVisible } = useTxStatusState();
 
   const [profileCardInfo, setProfileCardInfo] = React.useState<ProfileCardProps | null>(null);
   const [isWaitingForExportData, setIsWaitingForExportData] = React.useState(false);
@@ -216,7 +218,7 @@ const ProfileCard = () => {
 
           {/* Footer Buttons */}
           <div className="flex gap-3 mt-8 pt-6 border-t">
-            <EditProfileDialog onProfileUpdate={refetchUser} />
+            <EditProfileDialog onProfileUpdate={refetchUser} isProcessing={isVisible} />
             <Button variant="outline" disabled>
               Privacy Settings
             </Button>
