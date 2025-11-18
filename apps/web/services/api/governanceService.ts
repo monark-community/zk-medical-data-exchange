@@ -1,9 +1,4 @@
-import {
-  CreateProposalParams,
-  CreateProposalResponse,
-  Proposal,
-  ProposalState,
-} from "@/interfaces/proposal";
+import { CreateProposalParams, CreateProposalResponse, Proposal } from "@/interfaces/proposal";
 import { apiClient } from "@/services/core/apiClient";
 
 export const getProposals = async (walletAddress?: string): Promise<Proposal[]> => {
@@ -52,26 +47,4 @@ export const vote = async (
     const errorMessage = error.response?.data?.error || error.message || "Network error";
     return { success: false, error: errorMessage };
   }
-};
-
-/**
- * Helper function to check if a proposal is currently active
- * A proposal is active if its state is Active AND the voting period hasn't ended
- * @param proposal The proposal to check
- * @returns true if the proposal is active and voting is still open, false otherwise
- */
-export const isProposalActive = (proposal: Proposal): boolean => {
-  // Must be in Active state
-  if (proposal.state !== ProposalState.Active) {
-    return false;
-  }
-
-  // Must have time remaining (voting period not ended)
-  if (proposal.timeRemaining !== undefined) {
-    return proposal.timeRemaining > 0;
-  }
-
-  // Fallback: check endTime directly
-  const now = Math.floor(Date.now() / 1000);
-  return now <= proposal.endTime;
 };
