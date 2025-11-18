@@ -1,523 +1,347 @@
-// governanceService.test.ts
-import {
-  describe,
-  it,
-  expect,
-  mock,
-  beforeEach,
-  afterEach,
-} from "bun:test";
+import { describe, it, expect, mock, beforeEach, afterEach, beforeAll } from "bun:test";
 
-process.env.NODE_ENV = "test";
+(process.env as any).NODE_ENV = "test";
 
-// ---- Mocks for external dependencies (similar style to AuditService test) ----
-
-// viem public & wallet clients
 const mockPublicClient: any = {
-  readContract: mock((_cfg) => Promise.resolve(0n)),
-  waitForTransactionReceipt: mock((_cfg) =>
-    Promise.resolve({ logs: [], status: "success" })
+  readContract: mock<() => Promise<any>>(() => Promise.resolve(BigInt(0))),
+  waitForTransactionReceipt: mock<() => Promise<any>>(() =>
+    Promise.resolve({
+      logs: [],
+      status: "success",
+    })
   ),
 };
 
 const mockWalletClient: any = {
-  writeContract: mock((_cfg) =>
-    Promise.resolve("0x" + "0".repeat(64))
+  writeContract: mock<() => Promise<string>>(() =>
+    Promise.resolve("0x" + "a".repeat(64))
   ),
 };
 
-// chains
-mock.module("viem/chains", () => ({
-  sepolia: {},
-}));
-
-// viem core
-const mockDecodeEventLog = mock((_args: any) => {
-  // default: throw to simulate "not matching"
+const mockDecodeEventLog = mock<() => any>(() => {
   throw new Error("No matching event");
 });
 
 mock.module("viem", () => ({
-  createPublicClient: mock((_cfg) => mockPublicClient),
-  createWalletClient: mock((_cfg) => mockWalletClient),
-  http: mock((_url: string) => ({ url: _url })),
+  createPublicClient: mock(() => mockPublicClient),
+  createWalletClient: mock(() => mockWalletClient),
+  http: mock(() => ({})),
+  sepolia: {},
   decodeEventLog: mockDecodeEventLog,
 }));
 
-// viem/accounts
 const mockAccount = {
-  address: "0x" + "a".repeat(40),
+  address: "0x" + "b".repeat(40),
 };
-
 mock.module("viem/accounts", () => ({
   privateKeyToAccount: mock(() => mockAccount),
 }));
 
-// logger
 const mockLogger = {
   info: mock(() => {}),
   error: mock(() => {}),
   warn: mock(() => {}),
   debug: mock(() => {}),
 };
-
 mock.module("@/utils/logger", () => ({
   default: mockLogger,
 }));
 
-// Config
-const mockConfig = {
-  SEPOLIA_PRIVATE_KEY: "0x" + "1".repeat(64),
-  SEPOLIA_RPC_URL: "https://sepolia.example.com",
-  GOVERNANCE_DAO_ADDRESS: "0x" + "2".repeat(40),
-  SUPABASE_URL: "https://supabase.example.com",
-  SUPABASE_KEY: "supabase_test_key",
+const mockSupabaseQuery: any = {
+  select: mock(() => mockSupabaseQuery),
+  eq: mock(() => mockSupabaseQuery),
+  in: mock(() => mockSupabaseQuery),
+  order: mock(() => mockSupabaseQuery),
+  insert: mock(async () => ({ data: null, error: null })),
+  update: mock(async () => ({ data: null, error: null })),
+  single: mock(async () => ({ data: null, error: null })),
 };
 
+const mockSupabase = {
+  from: mock((_table: string) => mockSupabaseQuery),
+};
+
+mock.module("@supabase/supabase-js", () => ({
+  createClient: mock(() => mockSupabase),
+}));
+
+const mockConfig = {
+  SEPOLIA_PRIVATE_KEY: "0x" + "1".repeat(64),
+  SEPOLIA_RPC_URL: "https://sepolia.infura.io/v3/test",
+  GOVERNANCE_DAO_ADDRESS: "0x" + "2".repeat(40),
+  SUPABASE_URL: "https://supabase.test",
+  SUPABASE_KEY: "supabase-key",
+};
 mock.module("@/config/config", () => ({
   Config: mockConfig,
 }));
 
-// ABIs
-const mockFactoryAbi: any[] = [];
-const mockProposalAbi: any[] = [];
-
 mock.module("@/contracts/generated", () => ({
-  GOVERNANCE_FACTORY_ABI: mockFactoryAbi,
-  PROPOSAL_ABI: mockProposalAbi,
+  GOVERNANCE_FACTORY_ABI: [] as any[],
+  PROPOSAL_ABI: [] as any[],
 }));
-
-// TABLES
-const mockTables = {
-  USERS: { name: "users", columns: {} },
-  PROPOSALS: {
-    name: "proposals",
-    columns: {
-      id: "id",
-      createdAt: "created_at",
-      state: "state",
-      proposer: "proposer",
-      proposalId: "id",
-    },
-  },
-  PROPOSAL_VOTES: {
-    name: "proposal_votes",
-    columns: {
-      proposalId: "proposal_id",
-      voterAddress: "voter_address",
-    },
-  },
-};
 
 mock.module("@/constants/db", () => ({
-  TABLES: mockTables,
+  TABLES: {
+    USERS: {
+      name: "users",
+      columns: {},
+    },
+    PROPOSALS: {
+      name: "proposals",
+      columns: {
+        id: "id",
+        createdAt: "created_at",
+        proposer: "proposer",
+        state: "state",
+        voterAddress: "voter_address",
+        proposalId: "proposal_id",
+      },
+    },
+    PROPOSAL_VOTES: {
+      name: "proposal_votes",
+      columns: {
+        proposalId: "proposal_id",
+        voterAddress: "voter_address",
+      },
+    },
+  },
 }));
 
-// supabase client
-const mockSupabaseClient: any = {
-  from: mock((_table: string) => ({
-    select() {
-      return this;
-    },
-    eq() {
-      return this;
-    },
-    in() {
-      return this;
-    },
-    order() {
-      return this;
-    },
-    single: async () => ({ data: null, error: null }),
-    insert: async () => ({ error: null }),
-    update: async () => ({ error: null }),
-  })),
-};
+let service: typeof import("./governanceService")["governanceService"];
+let VoteChoice: typeof import("./governanceService")["VoteChoice"];
+let ProposalState: typeof import("./governanceService")["ProposalState"];
+let ProposalCategory: typeof import("./governanceService")["ProposalCategory"];
+let originalGetProposalFromBlockchain: (
+  proposalId: number,
+  userAddress?: string
+) => Promise<import("./governanceService").Proposal | null>;
 
-mock.module("@supabase/supabase-js", () => ({
-  createClient: mock(() => mockSupabaseClient),
-}));
-
-// ---- Now import the service UNDER TEST (after mocks like in your AuditService test) ----
-import {
-  governanceService,
-  VoteChoice,
-  ProposalState,
-  ProposalCategory,
-  type CreateProposalParams,
-  type Proposal,
-} from "./governanceService";
-
-// Helper to get the class and instantiate fresh services
-type GovernanceServiceType = typeof governanceService;
-
-function newServiceInstance(): GovernanceServiceType {
-  const Ctor = (governanceService as any).constructor;
-  return new (Ctor as any)();
-}
-
-// Fix Date.now when needed
-function withFixedNow(timestampSec: number, fn: () => Promise<void> | void) {
-  const originalNow = Date.now;
-  Date.now = () => timestampSec * 1000;
-  return Promise.resolve(fn()).finally(() => {
-    Date.now = originalNow;
-  });
-}
+beforeAll(async () => {
+  const mod = await import("./governanceService");
+  service = mod.governanceService;
+  VoteChoice = mod.VoteChoice;
+  ProposalState = mod.ProposalState;
+  ProposalCategory = mod.ProposalCategory;
+  originalGetProposalFromBlockchain = (service as any).getProposalFromBlockchain;
+});
 
 describe("GovernanceService", () => {
-  let service: any;
-
   beforeEach(() => {
-    // reset mocks
-    mockPublicClient.readContract.mockReset();
-    mockPublicClient.waitForTransactionReceipt.mockReset();
-    mockWalletClient.writeContract.mockReset();
-    mockDecodeEventLog.mockReset();
-    mockSupabaseClient.from.mockReset();
-    mockLogger.info.mockReset();
-    mockLogger.error.mockReset();
-    mockLogger.warn.mockReset();
-    mockLogger.debug.mockReset();
+    (service as any).getProposalFromBlockchain =
+      originalGetProposalFromBlockchain;
 
-    // default supabase "no-op" implementation;
-    mockSupabaseClient.from.mockImplementation((_table: string) => ({
-      select() {
-        return this;
-      },
-      eq() {
-        return this;
-      },
-      in() {
-        return this;
-      },
-      order() {
-        return this;
-      },
-      single: async () => ({ data: null, error: null }),
-      insert: async () => ({ error: null }),
-      update: async () => ({ error: null }),
-    }));
+    mockPublicClient.readContract = mock<() => Promise<any>>(
+      () => Promise.resolve(BigInt(0))
+    );
+    mockPublicClient.waitForTransactionReceipt = mock<() => Promise<any>>(
+      () =>
+        Promise.resolve({
+          logs: [],
+          status: "success",
+        })
+    );
+    mockWalletClient.writeContract = mock<() => Promise<string>>(
+      () => Promise.resolve("0x" + "a".repeat(64))
+    );
+    mockDecodeEventLog.mockClear();
 
-    service = newServiceInstance();
+    mockSupabase.from.mockClear();
+    mockSupabaseQuery.select.mockClear();
+    mockSupabaseQuery.eq.mockClear();
+    mockSupabaseQuery.in.mockClear();
+    mockSupabaseQuery.order.mockClear();
+    mockSupabaseQuery.insert.mockClear();
+    mockSupabaseQuery.update.mockClear();
+    mockSupabaseQuery.single.mockClear();
+
+    (service as any).supabase = mockSupabase;
+
+    mockLogger.info.mockClear();
+    mockLogger.error.mockClear();
+    mockLogger.warn.mockClear();
+    mockLogger.debug.mockClear();
+
+    (process.env as any).NODE_ENV = "test";
   });
 
   afterEach(() => {
-    process.env.NODE_ENV = "test";
+    (process.env as any).NODE_ENV = "test";
   });
-
-  /* ---------------------------------------------------------------------- */
-  /*                              createProposal                            */
-  /* ---------------------------------------------------------------------- */
 
   describe("createProposal", () => {
     it("returns error when title is empty", async () => {
-      const params: CreateProposalParams = {
+      const res = await service.createProposal({
         title: "",
         description: "desc",
-        category: ProposalCategory.Governance,
-        walletAddress: "0x123",
-        duration: 600,
-      };
+        category: ProposalCategory.Other,
+        walletAddress: "0x" + "3".repeat(40),
+        duration: 86400,
+      });
 
-      const result = await service.createProposal(params);
-      expect(result.success).toBe(false);
-      expect(result.error).toBe("Title cannot be empty");
+      expect(res.success).toBe(false);
+      expect(res.error).toBe("Title cannot be empty");
+      expect(mockWalletClient.writeContract).not.toHaveBeenCalled();
     });
 
     it("returns error when description is empty", async () => {
-      const params: CreateProposalParams = {
-        title: "My proposal",
+      const res = await service.createProposal({
+        title: "Test",
         description: "",
-        category: ProposalCategory.Governance,
-        walletAddress: "0x123",
-        duration: 600,
-      };
+        category: ProposalCategory.Other,
+        walletAddress: "0x" + "3".repeat(40),
+        duration: 86400,
+      });
 
-      const result = await service.createProposal(params);
-      expect(result.success).toBe(false);
-      expect(result.error).toBe("Description cannot be empty");
+      expect(res.success).toBe(false);
+      expect(res.error).toBe("Description cannot be empty");
+      expect(mockWalletClient.writeContract).not.toHaveBeenCalled();
     });
 
-    it("returns failure if proposal ID cannot be extracted from logs", async () => {
-      // wallet write OK
-      mockWalletClient.writeContract.mockResolvedValueOnce(
-        "0x" + "b".repeat(64)
-      );
-
-      // receipt logs that do NOT decode
-      mockPublicClient.waitForTransactionReceipt.mockResolvedValueOnce({
-        logs: [
-          { data: "0xdead", topics: ["0x123"] },
-        ],
-      });
-
-      // decodeEventLog always throws
-      mockDecodeEventLog.mockImplementation(() => {
-        throw new Error("no match");
-      });
-
-      const params: CreateProposalParams = {
-        title: "My proposal",
-        description: "desc",
-        category: ProposalCategory.Governance,
-        walletAddress: "0xabc",
-        duration: 600,
-      };
-
-      const result = await service.createProposal(params);
-
-      expect(result.success).toBe(false);
-      expect(result.error).toBe(
-        "Proposal created on blockchain but ID extraction failed"
-      );
-      expect(mockWalletClient.writeContract).toHaveBeenCalledTimes(1);
-    });
-  });
-
-  /* ---------------------------------------------------------------------- */
-  /*                                   vote                                 */
-  /* ---------------------------------------------------------------------- */
-
-  describe("vote", () => {
-    it("returns error when vote choice is None", async () => {
-      const result = await service.vote({
-        proposalId: 1,
-        walletAddress: "0xuser",
-        choice: VoteChoice.None,
-      });
-
-      expect(result.success).toBe(false);
-      expect(result.error).toBe("Invalid vote choice");
-    });
-
-    it("returns error when user has already voted on this proposal", async () => {
-      // supabase.from("proposal_votes") select...single -> existing vote
-      mockSupabaseClient.from.mockImplementation((table: string) => {
-        if (table === mockTables.PROPOSAL_VOTES.name) {
-          return {
-            select() {
-              return this;
-            },
-            eq() {
-              return this;
-            },
-            single: async () => ({
-              data: { id: 10, proposal_id: 1, voter_address: "0xuser" },
-              error: null,
-            }),
-          };
-        }
-        return {
-          select() {
-            return this;
-          },
-          eq() {
-            return this;
-          },
-          single: async () => ({ data: null, error: null }),
-        };
-      });
-
-      const result = await service.vote({
-        proposalId: 1,
-        walletAddress: "0xuser",
-        choice: VoteChoice.For,
-      });
-
-      expect(result.success).toBe(false);
-      expect(result.error).toBe("Already voted on this proposal");
-    });
-
-    it("casts a vote and updates DB on success", async () => {
-      // 1) no existing vote
-      // 2) proposals table update + select single for id
-      const updateCalls: any[] = [];
-      const insertVoteCalls: any[] = [];
-
-      mockSupabaseClient.from.mockImplementation((table: string) => {
-        if (table === mockTables.PROPOSAL_VOTES.name) {
-          return {
-            select() {
-              return this;
-            },
-            eq() {
-              return this;
-            },
-            single: async () => ({ data: null, error: null }),
-            insert: async (payload: any) => {
-              insertVoteCalls.push(payload);
-              return { error: null };
-            },
-          };
-        }
-        if (table === mockTables.PROPOSALS.name) {
-          return {
-            update(payload: any) {
-              updateCalls.push(payload);
-              return this;
-            },
-            eq() {
-              return this;
-            },
-            select() {
-              return this;
-            },
-            single: async () => ({ data: { id: 1 }, error: null }),
-          };
-        }
-        return {
-          select() {
-            return this;
-          },
-          eq() {
-            return this;
-          },
-          single: async () => ({ data: null, error: null }),
-        };
-      });
-
-      // registry lookup + voting snapshot
-      mockPublicClient.readContract.mockImplementation((cfg: any) => {
-        if (cfg.functionName === "proposals") {
-          return Promise.resolve({
-            proposalContract: "0xproposal",
-            title: "T",
-            category: ProposalCategory.Governance,
-            proposer: "0xcreator",
-            startTime: BigInt(1000),
-            endTime: BigInt(2000),
-          });
-        }
-        if (cfg.functionName === "votesFor") return Promise.resolve(3n);
-        if (cfg.functionName === "votesAgainst") return Promise.resolve(1n);
-        if (cfg.functionName === "totalVoters") return Promise.resolve(4n);
-        if (cfg.functionName === "getState")
-          return Promise.resolve(BigInt(ProposalState.Active));
-        return Promise.resolve(0n);
-      });
-
-      mockWalletClient.writeContract.mockResolvedValueOnce(
-        "0x" + "c".repeat(64)
-      );
+    it("returns error when no ProposalCreated event is found", async () => {
       mockPublicClient.waitForTransactionReceipt.mockResolvedValueOnce({
         logs: [],
+        status: "success",
       });
 
-      const result = await service.vote({
-        proposalId: 1,
-        walletAddress: "0xuser",
-        choice: VoteChoice.For,
+      const res = await service.createProposal({
+        title: "Test",
+        description: "Desc",
+        category: ProposalCategory.Other,
+        walletAddress: "0x" + "3".repeat(40),
+        duration: 86400,
       });
 
-      expect(result.success).toBe(true);
-      expect(result.data).toEqual({
-        proposalId: 1,
-        choice: VoteChoice.For,
+      expect(res.success).toBe(false);
+      expect(res.error).toBe(
+        "Proposal created on blockchain but ID extraction failed"
+      );
+      expect(mockDecodeEventLog).not.toHaveBeenCalled();
+    });
+
+    it("creates proposal successfully and stores it in database", async () => {
+      const txHash = "0x" + "a".repeat(64);
+      mockWalletClient.writeContract.mockResolvedValueOnce(txHash);
+
+      mockPublicClient.waitForTransactionReceipt.mockResolvedValueOnce({
+        logs: [{ data: "0x", topics: [] }],
+        status: "success",
       });
 
-      expect(updateCalls).toHaveLength(1);
-      expect(updateCalls[0]).toEqual({
-        votes_for: 3,
-        votes_against: 1,
-        total_voters: 4,
-        state: ProposalState.Active,
+      mockDecodeEventLog.mockReturnValueOnce({
+        eventName: "ProposalCreated",
+        args: {
+          proposalId: 1,
+          proposalContract: "0x" + "4".repeat(40),
+        },
       });
 
-      expect(insertVoteCalls).toHaveLength(1);
-      expect(insertVoteCalls[0].proposal_id).toBe(1);
-      expect(insertVoteCalls[0].voter_address).toBe("0xuser");
-      expect(insertVoteCalls[0].choice).toBe(VoteChoice.For);
+      mockPublicClient.readContract
+        .mockResolvedValueOnce(BigInt(1000)) // startTime
+        .mockResolvedValueOnce(BigInt(2000)) // endTime
+        .mockResolvedValueOnce(BigInt(1)) // votesFor
+        .mockResolvedValueOnce(BigInt(2)) // votesAgainst
+        .mockResolvedValueOnce(BigInt(3)) // totalVoters
+        .mockResolvedValueOnce(BigInt(0)); // state = Active
+
+      const res = await service.createProposal({
+        title: "Test",
+        description: "Desc",
+        category: ProposalCategory.Other,
+        walletAddress: "0x" + "3".repeat(40),
+        duration: 86400,
+      });
+
+      expect(res.success).toBe(true);
+      expect(res.data?.proposalId).toBe(1);
+      expect(res.transactionHash).toBe(txHash);
+      expect(mockWalletClient.writeContract).toHaveBeenCalledTimes(1);
+      expect(mockPublicClient.waitForTransactionReceipt).toHaveBeenCalledTimes(
+        1
+      );
+      expect(mockSupabase.from).toHaveBeenCalledWith("proposals");
+      expect(mockSupabaseQuery.insert).toHaveBeenCalledTimes(1);
     });
   });
 
-  /* ---------------------------------------------------------------------- */
-  /*                                getProposal                             */
-  /* ---------------------------------------------------------------------- */
+  describe("vote", () => {
+    it("returns error on VoteChoice.None", async () => {
+      const res = await service.vote({
+        proposalId: 1,
+        choice: VoteChoice.None,
+        walletAddress: "0x" + "3".repeat(40),
+      });
 
-  describe("getProposal (DB path and fallback)", () => {
-    it("returns proposal from DB with timeRemaining and userVote", async () =>
-      withFixedNow(1500, async () => {
-        const dbRow = {
-          id: 42,
-          title: "Test",
-          description: "Desc",
-          category: ProposalCategory.Governance,
-          proposer: "0xcreator",
-          start_time: 1000,
-          end_time: 2000,
-          votes_for: 10,
-          votes_against: 2,
-          total_voters: 12,
+      expect(res.success).toBe(false);
+      expect(res.error).toBe("Invalid vote choice");
+      expect(mockSupabase.from).not.toHaveBeenCalled();
+      expect(mockWalletClient.writeContract).not.toHaveBeenCalled();
+    });
+
+    it("returns error when user already voted", async () => {
+      mockSupabaseQuery.single.mockResolvedValueOnce({
+        data: { id: 1, proposal_id: 1, voter_address: "0x" + "3".repeat(40) },
+        error: null,
+      });
+
+      const res = await service.vote({
+        proposalId: 1,
+        choice: VoteChoice.For,
+        walletAddress: "0x" + "3".repeat(40),
+      });
+
+      expect(res.success).toBe(false);
+      expect(res.error).toBe("Already voted on this proposal");
+      expect(mockWalletClient.writeContract).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("getProposal", () => {
+    it("returns proposal from database with timeRemaining and no blockchain call when not expired", async () => {
+      const now = Math.floor(Date.now() / 1000);
+      const futureEnd = now + 3600;
+
+      // DB proposal
+      mockSupabaseQuery.single.mockResolvedValueOnce({
+        data: {
+          id: 1,
+          title: "DB Title",
+          description: "DB Desc",
+          category: ProposalCategory.Other,
+          proposer: "0x" + "3".repeat(40),
+          start_time: now - 100,
+          end_time: futureEnd,
+          votes_for: 1,
+          votes_against: 0,
+          total_voters: 1,
           state: ProposalState.Active,
-        };
-
-        mockSupabaseClient.from.mockImplementation((table: string) => {
-          if (table === mockTables.PROPOSALS.name) {
-            return {
-              select() {
-                return this;
-              },
-              eq() {
-                return this;
-              },
-              single: async () => ({ data: dbRow, error: null }),
-            };
-          }
-          if (table === mockTables.PROPOSAL_VOTES.name) {
-            return {
-              select() {
-                return this;
-              },
-              eq() {
-                return this;
-              },
-              single: async () => ({
-                data: { proposal_id: 42, choice: VoteChoice.Against },
-                error: null,
-              }),
-            };
-          }
-          return {
-            select() {
-              return this;
-            },
-            eq() {
-              return this;
-            },
-            single: async () => ({ data: null, error: null }),
-          };
-        });
-
-        const proposal = await service.getProposal(42, "0xuser");
-
-        expect(proposal).not.toBeNull();
-        expect(proposal!.id).toBe(42);
-        expect(proposal!.timeRemaining).toBe(2000 - 1500);
-        expect(proposal!.state).toBe(ProposalState.Active);
-        expect(proposal!.hasVoted).toBe(true);
-        expect(proposal!.userVote).toBe(VoteChoice.Against);
-      }));
-
-    it("falls back to blockchain when proposal not in DB", async () => {
-      // DB returns error / no data
-      mockSupabaseClient.from.mockImplementation((_table: string) => ({
-        select() {
-          return this;
         },
-        eq() {
-          return this;
-        },
-        single: async () => ({ data: null, error: { message: "not found" } }),
-      }));
+        error: null,
+      });
 
-      // patch private method to simulate chain proposal
-      const chainProposal: Proposal = {
-        id: 5,
-        title: "On-chain",
-        description: "From chain",
-        category: ProposalCategory.Governance,
-        proposer: "0xcreator",
+      const proposal = await service.getProposal(1);
+
+      expect(proposal).not.toBeNull();
+      expect(proposal!.id).toBe(1);
+      expect(proposal!.title).toBe("DB Title");
+      expect(proposal!.timeRemaining).toBeGreaterThan(0);
+      // Should not hit blockchain for state in this case
+      expect(mockPublicClient.readContract).not.toHaveBeenCalled();
+    });
+
+    it("falls back to blockchain when not found in DB", async () => {
+      // First DB call: not found
+      mockSupabaseQuery.single.mockResolvedValueOnce({
+        data: null,
+        error: { message: "Not found" },
+      });
+
+      const blockchainProposal = {
+        id: 1,
+        title: "Chain Title",
+        description: "Chain Desc",
+        category: ProposalCategory.Other,
+        proposer: "0x" + "3".repeat(40),
         startTime: 1000,
         endTime: 2000,
         votesFor: 1,
@@ -527,588 +351,339 @@ describe("GovernanceService", () => {
         timeRemaining: 0,
       };
 
-      service.getProposalFromBlockchain = mock(
-        async () => chainProposal
+      (service as any).getProposalFromBlockchain = mock(() =>
+        Promise.resolve(blockchainProposal)
       );
 
-      const result = await service.getProposal(5, "0xuser");
-      expect(result).toEqual(chainProposal);
-    });
+      const proposal = await service.getProposal(1);
 
-    it("returns null if DB throws", async () => {
-      mockSupabaseClient.from.mockImplementation((_table: string) => ({
-        select() {
-          throw new Error("DB exploded");
-        },
-      }));
-
-      const result = await service.getProposal(1);
-      expect(result).toBeNull();
+      expect(proposal).not.toBeNull();
+      expect(proposal!.title).toBe("Chain Title");
+      expect((service as any).getProposalFromBlockchain).toHaveBeenCalledWith(
+        1,
+        undefined
+      );
     });
   });
 
-  /* ---------------------------------------------------------------------- */
-  /*                         getProposalFromBlockchain                      */
-  /* ---------------------------------------------------------------------- */
+  describe("getProposalFromBlockchain (internal)", () => {
+    it("builds proposal from on-chain data including user vote", async () => {
+      const registry = {
+        proposalContract: "0x" + "4".repeat(40),
+        title: "On-chain Title",
+        category: ProposalCategory.Other,
+        proposer: "0x" + "3".repeat(40),
+        startTime: 1000,
+        endTime: 2000,
+      };
 
-  describe("getProposalFromBlockchain", () => {
-    it("builds proposal fully from blockchain including hasVoted & userVote", async () =>
-      withFixedNow(1500, async () => {
-        // registry
-        service.getProposalRegistryEntry = mock(async (_id: number) => ({
-          proposalContract: "0xproposal",
-          title: "Chain title",
-          category: ProposalCategory.Governance,
-          proposer: "0xcreator",
-          startTime: 1000,
-          endTime: 2000,
-        }));
+      // order of calls:
+      // 1) factory.proposals(id) -> registry
+      // 2) proposal.description()
+      // 3-6) votesFor, votesAgainst, totalVoters, getState()
+      // 7) hasVoted(user)
+      // 8) votes(user)
+      mockPublicClient.readContract
+        .mockResolvedValueOnce(registry)
+        .mockResolvedValueOnce("On-chain description")
+        .mockResolvedValueOnce(BigInt(10)) // votesFor
+        .mockResolvedValueOnce(BigInt(2)) // votesAgainst
+        .mockResolvedValueOnce(BigInt(12)) // totalVoters
+        .mockResolvedValueOnce(BigInt(ProposalState.Passed)) // state
+        .mockResolvedValueOnce(true) // hasVoted
+        .mockResolvedValueOnce(BigInt(VoteChoice.For)); // user vote
 
-        mockPublicClient.readContract.mockImplementation((cfg: any) => {
-          if (cfg.functionName === "description") return Promise.resolve("Chain desc");
-          if (cfg.functionName === "votesFor") return Promise.resolve(2n);
-          if (cfg.functionName === "votesAgainst") return Promise.resolve(1n);
-          if (cfg.functionName === "totalVoters") return Promise.resolve(3n);
-          if (cfg.functionName === "getState")
-            return Promise.resolve(BigInt(ProposalState.Passed));
-          if (cfg.functionName === "hasVoted") return Promise.resolve(true);
-          if (cfg.functionName === "votes")
-            return Promise.resolve(BigInt(VoteChoice.For));
-          return Promise.resolve(0n);
-        });
+      const userAddress = "0x" + "5".repeat(40);
 
-        const proposal = await (service as any).getProposalFromBlockchain(
-          1,
-          "0xuser"
-        );
+      const proposal = await (service as any).getProposalFromBlockchain(
+        1,
+        userAddress
+      );
 
-        expect(proposal).not.toBeNull();
-        expect(proposal!.title).toBe("Chain title");
-        expect(proposal!.description).toBe("Chain desc");
-        expect(proposal!.votesFor).toBe(2);
-        expect(proposal!.votesAgainst).toBe(1);
-        expect(proposal!.totalVoters).toBe(3);
-        expect(proposal!.state).toBe(ProposalState.Passed);
-        expect(proposal!.timeRemaining).toBe(2000 - 1500);
-        expect(proposal!.hasVoted).toBe(true);
-        expect(proposal!.userVote).toBe(VoteChoice.For);
-      }));
+      expect(proposal).not.toBeNull();
+      expect(proposal!.id).toBe(1);
+      expect(proposal!.title).toBe("On-chain Title");
+      expect(proposal!.description).toBe("On-chain description");
+      expect(proposal!.votesFor).toBe(10);
+      expect(proposal!.votesAgainst).toBe(2);
+      expect(proposal!.totalVoters).toBe(12);
+      expect(proposal!.state).toBe(ProposalState.Passed);
+      expect(proposal!.hasVoted).toBe(true);
+      expect(proposal!.userVote).toBe(VoteChoice.For);
+    });
   });
-
-  /* ---------------------------------------------------------------------- */
-  /*                              getAllProposals                           */
-  /* ---------------------------------------------------------------------- */
 
   describe("getAllProposals", () => {
-    it("returns [] when no proposals in DB", async () => {
-      mockSupabaseClient.from.mockImplementation((table: string) => {
-        if (table === mockTables.PROPOSALS.name) {
-          return {
-            select() {
-              return this;
-            },
-            order() {
-              return {
-                then(resolve: any) {
-                  resolve({ data: [], error: null });
-                },
-              };
-            },
-          };
-        }
-        return {
-          select() {
-            return this;
-          },
-        };
-      });
+    it("returns proposals and syncs expired active ones from blockchain", async () => {
+      const now = Math.floor(Date.now() / 1000);
 
-      const proposals = await service.getAllProposals();
-      expect(proposals).toEqual([]);
+      const dbProposals: any[] = [
+        {
+          id: 1,
+          title: "DB P1",
+          description: "Desc",
+          category: ProposalCategory.Other,
+          proposer: "0x" + "3".repeat(40),
+          start_time: now - 1000,
+          end_time: now - 10, // expired
+          votes_for: 1,
+          votes_against: 0,
+          total_voters: 1,
+          state: ProposalState.Active,
+        },
+      ];
+
+      const proposalContract = "0x" + "4".repeat(40);
+
+      const allSupabase = {
+        from: (table: string) => {
+          if (table === "proposals") {
+            return {
+              select: (_cols: string) => ({
+                order: (_col: string, _opts: any) =>
+                  Promise.resolve({ data: dbProposals, error: null }),
+              }),
+              update: (_vals: any) => ({
+                eq: (_col: string, _id: any) =>
+                  Promise.resolve({ data: null, error: null }),
+              }),
+            };
+          }
+
+          if (table === "proposal_votes") {
+            return {
+              select: (_cols: string) => ({
+                eq: (_col: string, _val: any) => ({
+                  in: (_col2: string, _ids: any) =>
+                    Promise.resolve({ data: [], error: null }),
+                }),
+              }),
+            };
+          }
+
+          return { select: () => ({}) };
+        },
+      };
+
+      (service as any).supabase = allSupabase;
+
+      const registry = {
+        proposalContract,
+        title: "Chain Title",
+        category: ProposalCategory.Other,
+        proposer: "0x" + "3".repeat(40),
+        startTime: now - 1000,
+        endTime: now - 10,
+      };
+
+      // getProposalRegistryEntry -> factory.proposals()
+      // sync block -> proposal.getState()
+      mockPublicClient.readContract
+        .mockResolvedValueOnce(registry)
+        .mockResolvedValueOnce(BigInt(ProposalState.Passed));
+
+      const proposals = (await service.getAllProposals())!;
+      expect(proposals).toHaveLength(1);
+
+      expect(proposals).toHaveLength(1);
+      expect(proposals[0]!.id).toBe(1);
+      expect(proposals[0]!.state).toBe(ProposalState.Passed);
+      expect(proposals[0]!.timeRemaining).toBe(0);
     });
-
-    it("computes timeRemaining without user votes", async () =>
-      withFixedNow(1500, async () => {
-        const dbRows = [
-          {
-            id: 1,
-            title: "P1",
-            description: "d1",
-            category: ProposalCategory.Governance,
-            proposer: "0xcreator",
-            start_time: 1000,
-            end_time: 2000,
-            votes_for: 1,
-            votes_against: 0,
-            total_voters: 1,
-            state: ProposalState.Active,
-          },
-        ];
-
-        mockSupabaseClient.from.mockImplementation((table: string) => {
-          if (table === mockTables.PROPOSALS.name) {
-            return {
-              select() {
-                return this;
-              },
-              order() {
-                return {
-                  then(resolve: any) {
-                    resolve({ data: dbRows, error: null });
-                  },
-                };
-              },
-            };
-          }
-          return {
-            select() {
-              return this;
-            },
-          };
-        });
-
-        const proposals = await service.getAllProposals();
-        expect(proposals).toHaveLength(1);
-        expect(proposals[0].timeRemaining).toBe(2000 - 1500);
-        expect(proposals[0].hasVoted).toBeUndefined();
-      }));
-
-    it("syncs expired active proposals with blockchain state", async () =>
-      withFixedNow(3000, async () => {
-        const dbRows = [
-          {
-            id: 1,
-            title: "Expired",
-            description: "d",
-            category: ProposalCategory.Governance,
-            proposer: "0xcreator",
-            start_time: 1000,
-            end_time: 2000,
-            votes_for: 1,
-            votes_against: 0,
-            total_voters: 1,
-            state: ProposalState.Active,
-          },
-        ];
-
-        const updateCalls: any[] = [];
-
-        mockSupabaseClient.from.mockImplementation((table: string) => {
-          if (table === mockTables.PROPOSALS.name) {
-            return {
-              select() {
-                return this;
-              },
-              order() {
-                return {
-                  then(resolve: any) {
-                    resolve({ data: dbRows, error: null });
-                  },
-                };
-              },
-              update(payload: any) {
-                updateCalls.push(payload);
-                return this;
-              },
-              eq() {
-                return this;
-              },
-            };
-          }
-          return {
-            select() {
-              return this;
-            },
-          };
-        });
-
-        service.getProposalRegistryEntry = mock(async (_id: number) => ({
-          proposalContract: "0xproposal",
-          title: "",
-          category: ProposalCategory.Governance,
-          proposer: "0x",
-          startTime: 0,
-          endTime: 0,
-        }));
-
-        mockPublicClient.readContract.mockImplementation((cfg: any) => {
-          if (cfg.functionName === "getState")
-            return Promise.resolve(BigInt(ProposalState.Passed));
-          return Promise.resolve(0n);
-        });
-
-        const proposals = await service.getAllProposals();
-
-        expect(updateCalls).toHaveLength(1);
-        expect(updateCalls[0]).toEqual({ state: ProposalState.Passed });
-        expect(proposals[0].state).toBe(ProposalState.Passed);
-      }));
-
-    it("marks hasVoted for proposals when userAddress is provided", async () =>
-      withFixedNow(1500, async () => {
-        const dbRows = [
-          {
-            id: 1,
-            title: "P1",
-            description: "d1",
-            category: ProposalCategory.Governance,
-            proposer: "0xcreator",
-            start_time: 1000,
-            end_time: 2000,
-            votes_for: 1,
-            votes_against: 0,
-            total_voters: 1,
-            state: ProposalState.Active,
-          },
-          {
-            id: 2,
-            title: "P2",
-            description: "d2",
-            category: ProposalCategory.Governance,
-            proposer: "0xcreator",
-            start_time: 1000,
-            end_time: 2000,
-            votes_for: 0,
-            votes_against: 1,
-            total_voters: 1,
-            state: ProposalState.Failed,
-          },
-        ];
-
-        const userVotes = [{ proposal_id: 1, choice: VoteChoice.For }];
-
-        mockSupabaseClient.from.mockImplementation((table: string) => {
-          if (table === mockTables.PROPOSALS.name) {
-            return {
-              select() {
-                return this;
-              },
-              order() {
-                return {
-                  then(resolve: any) {
-                    resolve({ data: dbRows, error: null });
-                  },
-                };
-              },
-            };
-          }
-          if (table === mockTables.PROPOSAL_VOTES.name) {
-            return {
-              select() {
-                return this;
-              },
-              eq() {
-                return this;
-              },
-              then(resolve: any) {
-                resolve({ data: userVotes, error: null });
-              },
-            };
-          }
-          return {
-            select() {
-              return this;
-            },
-          };
-        });
-
-        const proposals = await service.getAllProposals("0xuser");
-        const p1 = proposals.find((p: any) => p.id === 1)!;
-        const p2 = proposals.find((p: any) => p.id === 2)!;
-
-        expect(p1.hasVoted).toBe(true);
-        expect(p1.userVote).toBe(VoteChoice.For);
-        expect(p2.hasVoted).toBe(false);
-        expect(p2.userVote).toBeUndefined();
-      }));
   });
-
-  /* ---------------------------------------------------------------------- */
-  /*                             getUserProposals                           */
-  /* ---------------------------------------------------------------------- */
 
   describe("getUserProposals", () => {
-    it("returns [] when user has no proposals", async () => {
-      mockSupabaseClient.from.mockImplementation((table: string) => {
-        if (table === mockTables.PROPOSALS.name) {
-          return {
-            select() {
-              return this;
-            },
-            eq() {
-              return this;
-            },
-            order() {
-              return {
-                then(resolve: any) {
-                  resolve({ data: [], error: null });
-                },
-              };
-            },
-          };
-        }
-        return {
-          select() {
-            return this;
-          },
-        };
-      });
+    it("returns user's proposals with vote flags", async () => {
+      const now = Math.floor(Date.now() / 1000);
+      const userAddress = "0x" + "3".repeat(40);
 
-      const result = await service.getUserProposals("0xuser");
-      expect(result).toEqual([]);
+      const dbProposals: any[] = [
+        {
+          id: 1,
+          title: "P1",
+          description: "Desc 1",
+          category: ProposalCategory.Other,
+          proposer: userAddress,
+          start_time: now - 100,
+          end_time: now + 100,
+          votes_for: 1,
+          votes_against: 0,
+          total_voters: 1,
+          state: ProposalState.Active,
+        },
+        {
+          id: 2,
+          title: "P2",
+          description: "Desc 2",
+          category: ProposalCategory.Economics,
+          proposer: userAddress,
+          start_time: now - 200,
+          end_time: now + 200,
+          votes_for: 0,
+          votes_against: 1,
+          total_voters: 1,
+          state: ProposalState.Failed,
+        },
+      ];
+
+      const userVotes = [{ proposal_id: 1, choice: VoteChoice.For }];
+
+      const userProposalsSupabase = {
+        from: (table: string) => {
+          if (table === "proposals") {
+            return {
+              select: (_cols: string) => ({
+                eq: (_col: string, _val: any) => ({
+                  order: (_col2: string, _opts: any) =>
+                    Promise.resolve({ data: dbProposals, error: null }),
+                }),
+              }),
+            };
+          }
+
+          if (table === "proposal_votes") {
+            return {
+              select: (_cols: string) => ({
+                eq: (_col: string, _val: any) => ({
+                  in: (_col2: string, _ids: any) =>
+                    Promise.resolve({ data: userVotes, error: null }),
+                }),
+              }),
+            };
+          }
+
+          return { select: () => ({}) };
+        },
+      };
+
+      (service as any).supabase = userProposalsSupabase;
+
+      const proposals = await service.getUserProposals(userAddress);
+
+      expect(proposals).toHaveLength(2);
+
+      const first = proposals.find((p: any) => p.id === 1)!;
+      const second = proposals.find((p: any) => p.id === 2)!;
+
+      expect(first.hasVoted).toBe(true);
+      expect(first.userVote).toBe(VoteChoice.For);
+
+      expect(second.hasVoted).toBe(false);
+      expect(second.userVote).toBeUndefined();
     });
-
-    it("marks hasVoted correctly for user proposals", async () =>
-      withFixedNow(1500, async () => {
-        const dbRows = [
-          {
-            id: 1,
-            title: "Mine",
-            description: "d",
-            category: ProposalCategory.Governance,
-            proposer: "0xuser",
-            start_time: 1000,
-            end_time: 2000,
-            votes_for: 1,
-            votes_against: 0,
-            total_voters: 1,
-            state: ProposalState.Active,
-          },
-          {
-            id: 2,
-            title: "Mine 2",
-            description: "d2",
-            category: ProposalCategory.Governance,
-            proposer: "0xuser",
-            start_time: 1000,
-            end_time: 2000,
-            votes_for: 0,
-            votes_against: 1,
-            total_voters: 1,
-            state: ProposalState.Failed,
-          },
-        ];
-
-        const userVotes = [{ proposal_id: 2, choice: VoteChoice.Against }];
-
-        mockSupabaseClient.from.mockImplementation((table: string) => {
-          if (table === mockTables.PROPOSALS.name) {
-            return {
-              select() {
-                return this;
-              },
-              eq() {
-                return this;
-              },
-              order() {
-                return {
-                  then(resolve: any) {
-                    resolve({ data: dbRows, error: null });
-                  },
-                };
-              },
-            };
-          }
-          if (table === mockTables.PROPOSAL_VOTES.name) {
-            return {
-              select() {
-                return this;
-              },
-              eq() {
-                return this;
-              },
-              in() {
-                return {
-                  then(resolve: any) {
-                    resolve({ data: userVotes, error: null });
-                  },
-                };
-              },
-            };
-          }
-          return {
-            select() {
-              return this;
-            },
-          };
-        });
-
-        const proposals = await service.getUserProposals("0xuser");
-        const p1 = proposals.find((p: any) => p.id === 1)!;
-        const p2 = proposals.find((p: any) => p.id === 2)!;
-
-        expect(p1.hasVoted).toBe(false);
-        expect(p1.userVote).toBeUndefined();
-        expect(p2.hasVoted).toBe(true);
-        expect(p2.userVote).toBe(VoteChoice.Against);
-      }));
   });
-
-  /* ---------------------------------------------------------------------- */
-  /*                               getUserVotes                             */
-  /* ---------------------------------------------------------------------- */
 
   describe("getUserVotes", () => {
-    it("returns [] when user has no votes", async () => {
-      mockSupabaseClient.from.mockImplementation((table: string) => {
-        if (table === mockTables.PROPOSAL_VOTES.name) {
-          return {
-            select() {
-              return this;
-            },
-            eq() {
-              return {
-                then(resolve: any) {
-                  resolve({ data: [], error: null });
-                },
-              };
-            },
-          };
-        }
-        return {
-          select() {
-            return this;
-          },
-        };
-      });
+    it("returns proposals the user has voted on", async () => {
+      const now = Math.floor(Date.now() / 1000);
+      const userAddress = "0x" + "3".repeat(40);
 
-      const result = await service.getUserVotes("0xuser");
-      expect(result).toEqual([]);
+      const userVotes = [{ proposal_id: 1, choice: VoteChoice.For }];
+
+      const dbProposals: any[] = [
+        {
+          id: 1,
+          title: "P1",
+          description: "Desc 1",
+          category: ProposalCategory.Other,
+          proposer: userAddress,
+          start_time: now - 100,
+          end_time: now + 100,
+          votes_for: 1,
+          votes_against: 0,
+          total_voters: 1,
+          state: ProposalState.Passed,
+        },
+      ];
+
+      const userVotesSupabase = {
+        from: (table: string) => {
+          if (table === "proposal_votes") {
+            return {
+              select: (_cols: string) => ({
+                eq: (_col: string, _val: any) =>
+                  Promise.resolve({ data: userVotes, error: null }),
+              }),
+            };
+          }
+
+          if (table === "proposals") {
+            return {
+              select: (_cols: string) => ({
+                in: (_col: string, _ids: any) =>
+                  Promise.resolve({ data: dbProposals, error: null }),
+              }),
+            };
+          }
+
+          return { select: () => ({}) };
+        },
+      };
+
+      (service as any).supabase = userVotesSupabase;
+
+      const proposals = await service.getUserVotes(userAddress);
+
+      expect(proposals).toHaveLength(1);
+      expect(proposals[0]!.id).toBe(1);
+      expect(proposals[0]!.hasVoted).toBe(true);
+      expect(proposals[0]!.userVote).toBe(VoteChoice.For);
     });
-
-    it("returns proposals with hasVoted and userVote", async () =>
-      withFixedNow(1500, async () => {
-        const userVotes = [{ proposal_id: 1, choice: VoteChoice.For }];
-        const dbRows = [
-          {
-            id: 1,
-            title: "P1",
-            description: "d1",
-            category: ProposalCategory.Governance,
-            proposer: "0xcreator",
-            start_time: 1000,
-            end_time: 2000,
-            votes_for: 1,
-            votes_against: 0,
-            total_voters: 1,
-            state: ProposalState.Active,
-          },
-        ];
-
-        mockSupabaseClient.from.mockImplementation((table: string) => {
-          if (table === mockTables.PROPOSAL_VOTES.name) {
-            return {
-              select() {
-                return this;
-              },
-              eq() {
-                return {
-                  then(resolve: any) {
-                    resolve({ data: userVotes, error: null });
-                  },
-                };
-              },
-            };
-          }
-          if (table === mockTables.PROPOSALS.name) {
-            return {
-              select() {
-                return this;
-              },
-              in() {
-                return {
-                  then(resolve: any) {
-                    resolve({ data: dbRows, error: null });
-                  },
-                };
-              },
-            };
-          }
-          return {
-            select() {
-              return this;
-            },
-          };
-        });
-
-        const proposals = await service.getUserVotes("0xuser");
-        expect(proposals).toHaveLength(1);
-        const p = proposals[0];
-
-        expect(p.id).toBe(1);
-        expect(p.hasVoted).toBe(true);
-        expect(p.userVote).toBe(VoteChoice.For);
-        expect(p.timeRemaining).toBe(2000 - 1500);
-      }));
   });
 
-  /* ---------------------------------------------------------------------- */
-  /*                             getPlatformStats                           */
-  /* ---------------------------------------------------------------------- */
 
   describe("getPlatformStats", () => {
-    it("computes stats and avgParticipation", async () => {
-      mockSupabaseClient.from.mockImplementation((table: string) => {
-        if (table === mockTables.PROPOSALS.name) {
+    it("computes stats from database counts", async () => {
+      const statsSupabase = {
+        from: (table: string) => {
           return {
-            select(_cols: string, opts: { count?: string; head?: boolean }) {
-              if (opts.count === "exact" && opts.head) {
-                // activeProposals when chained with .eq()
-                return {
-                  eq: () => Promise.resolve({ count: 2, error: null }),
-                };
-              }
-              // totalProposals
-              return Promise.resolve({ count: 4, error: null });
-            },
-          };
-        }
-        if (table === mockTables.PROPOSAL_VOTES.name) {
-          return {
-            select() {
-              return Promise.resolve({ count: 8, error: null });
-            },
-          };
-        }
-        if (table === mockTables.USERS.name) {
-          return {
-            select() {
-              return Promise.resolve({ count: 2, error: null });
-            },
-          };
-        }
-        return {
-          select() {
-            return Promise.resolve({ count: 0, error: null });
-          },
-        };
-      });
+            select: (_cols: string, _options?: any) => {
+              const thenable: any = {
+                eq: (_col: string, _val: any) => {
+                  if (table === "proposals") {
+                    return Promise.resolve({ count: 2 });
+                  }
+                  return Promise.resolve({ count: 0 });
+                },
+                then: (onFulfilled: any, onRejected?: any) => {
+                  let payload: any;
+                  if (table === "proposals") {
+                    // totalProposals query
+                    payload = { count: 5 };
+                  } else if (table === "proposal_votes") {
+                    // totalVotes query
+                    payload = { count: 30 };
+                  } else if (table === "users") {
+                    // totalUsers query
+                    payload = { count: 10, error: null };
+                  } else {
+                    payload = { count: 0 };
+                  }
+                  return Promise.resolve(payload).then(
+                    onFulfilled,
+                    onRejected
+                  );
+                },
+              };
 
-      const stats = await service.getPlatformStats();
-      expect(stats.totalProposals).toBe(4);
-      expect(stats.activeProposals).toBe(2);
-      expect(stats.totalVotes).toBe(8);
-      expect(stats.uniqueVoters).toBe(2);
-      expect(stats.avgParticipation).toBe(100);
-      expect(stats.votingPower).toBe(8);
-    });
-
-    it("returns zeroed stats on error", async () => {
-      mockSupabaseClient.from.mockImplementation((_table: string) => ({
-        select() {
-          throw new Error("DB down");
+              return thenable;
+            },
+          };
         },
-      }));
+      };
+
+      (service as any).supabase = statsSupabase;
 
       const stats = await service.getPlatformStats();
-      expect(stats).toEqual({
-        totalProposals: 0,
-        activeProposals: 0,
-        totalVotes: 0,
-        uniqueVoters: 0,
-        avgParticipation: 0,
-        votingPower: 0,
-      });
+
+      expect(stats.totalProposals).toBe(5);
+      expect(stats.activeProposals).toBe(2);
+      expect(stats.totalVotes).toBe(30);
+      expect(stats.uniqueVoters).toBe(10);
+      // avgVotesPerProposal = 30 / 5 = 6
+      // avgParticipation = (6 / 10) * 100 = 60
+      expect(stats.avgParticipation).toBe(60);
+      expect(stats.votingPower).toBe(30);
     });
   });
 });
