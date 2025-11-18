@@ -809,6 +809,7 @@ export class StudyService {
     let pB: [[bigint, bigint], [bigint, bigint]];
     let pC: [bigint, bigint];
     let commitment: bigint;
+    let pubSignals: bigint[] = [];
 
     try {
       try {
@@ -852,6 +853,7 @@ export class StudyService {
         );
       }
 
+
       // Preflight: verify against the Study's zkVerifier directly to isolate issues
       if (publicInputsJson && publicInputsJson.length > 0) {
         try {
@@ -864,7 +866,7 @@ export class StudyService {
 
           // 2) Convert publicInputsJson (string[]) to bigint[]
           // Expected format: [dataCommitment, binMembership[0..49]] = 51 elements total
-          const pubSignals = publicInputsJson.map(sig => BigInt(sig));
+          pubSignals = publicInputsJson.map(sig => BigInt(sig));
           
           logger.info(
             { 
@@ -965,16 +967,20 @@ export class StudyService {
         }
       }
 
+      let binIdsFromPubSignals = pubSignals.length > 1 
+        ? pubSignals.slice(0, 50)
+        : []; 
+
       const result = await this.executeContractTransaction(
         studyAddress,
         "joinStudy",
-        [pA, pB, pC, commitment, challengeBytes32, participantWallet as `0x${string}`, bigintBinIds],
+        [pA, pB, pC, commitment, challengeBytes32, participantWallet as `0x${string}`, binIdsFromPubSignals],
         "Participation recording"
       );
 
       if (result.success) {
         logger.info(
-          { transactionHash: result.transactionHash, participantWallet, binCount: binIds.length },
+          { transactionHash: result.transactionHash, participantWallet, binCount: binIdsFromPubSignals.length },
           "Participation recorded on blockchain successfully"
         );
       } else {
