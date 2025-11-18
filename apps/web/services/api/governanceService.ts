@@ -8,6 +8,7 @@ export const getProposals = async (walletAddress?: string): Promise<Proposal[]> 
 
   return data.data;
 };
+
 export const getProposalsByWalletAddress = async (walletAddress: string): Promise<Proposal[]> => {
   const { data } = await apiClient.get(`/governance/users/${walletAddress}/proposals`);
 

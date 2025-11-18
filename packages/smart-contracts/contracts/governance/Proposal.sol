@@ -139,4 +139,29 @@ contract Proposal {
         endTime += extraSeconds;
         emit DurationExtended(endTime, caller);
     }
+
+    /**
+     * @dev Returns the voting state of the proposal
+     * @return _currentState Current proposal state (Active/Passed/Failed)
+     * @return _votesFor Number of votes in favor
+     * @return _votesAgainst Number of votes against
+     * @return _totalVoters Total number of voters
+     */
+    function getState()
+        external
+        view
+        returns (
+            ProposalState _currentState,
+            uint256 _votesFor,
+            uint256 _votesAgainst,
+            uint256 _totalVoters
+        )
+    {
+        return (
+            state,
+            votesFor,
+            votesAgainst,
+            totalVoters
+        );
+    }
 }
