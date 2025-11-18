@@ -260,7 +260,7 @@ export default function DataSellerStudiesSection() {
   }, [availableStudies, searchQuery, selectedFilters]);
 
   return (
-    <div className="w-full space-y-8">
+    <div className="w-full space-y-10">
       <DashboardSectionHeader
         icon={<BookOpen className="h-8 w-8 text-white" />}
         title="Research Studies"

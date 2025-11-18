@@ -43,19 +43,19 @@ export default function StudyCard({
 
   return (
     <div
-      className={`group relative bg-white rounded-xl border border-gray-200 p-5 hover:border-gray-300 hover:shadow-md transition-all duration-200 cursor-default ${
+      className={`group relative bg-white rounded-xl border border-gray-200 p-3 hover:border-gray-300 hover:shadow-md transition-all duration-200 cursor-default ${
         !isLast ? "mb-3" : ""
       }`}
     >
       {/* Header Section */}
-      <div className="flex items-start justify-between mb-4">
+      <div className="flex items-start justify-between mb-2">
         <div className="flex-1 pr-4">
-          <div className="flex items-center space-x-2 mb-1.5">
-            <FlaskConical className="h-4 w-4 text-indigo-600 flex-shrink-0" />
-            <h4 className="text-base font-semibold text-gray-900 leading-tight">{study.title}</h4>
+          <div className="flex items-center space-x-2 mb-0.5">
+            <FlaskConical className="h-3.5 w-3.5 text-indigo-600 flex-shrink-0" />
+            <h4 className="text-sm font-semibold text-gray-900 leading-tight">{study.title}</h4>
           </div>
           {study.description && (
-            <p className="text-sm text-gray-600 leading-relaxed">
+            <p className="text-xs text-gray-600 leading-relaxed">
               {study.description.length > descriptionMaxLength
                 ? `${study.description.substring(0, descriptionMaxLength)}...`
                 : study.description}
@@ -68,17 +68,17 @@ export default function StudyCard({
         </div>
       </div>
 
-      {/* Stats Row - Clean inline layout */}
-      <div className="flex items-center space-x-6 mb-4 text-sm">
-        {/* Participants */}
-        <div className="flex items-center space-x-2">
-          <Users className="h-4 w-4 text-gray-500" />
-          <span className="font-medium text-gray-900">
-            {study.currentParticipants}/{study.maxParticipants}
-          </span>
+      {/* Stats Row - Compact layout */}
+      <div className="flex items-center justify-between mb-2 text-xs">
+        <div className="flex items-center space-x-4">
+          {/* Participants */}
           <div className="flex items-center space-x-1">
+            <Users className="h-3 w-3 text-gray-500" />
+            <span className="font-medium text-gray-900">
+              {study.currentParticipants}/{study.maxParticipants}
+            </span>
             <Circle
-              className={`h-2 w-2 ${
+              className={`h-1.5 w-1.5 ${
                 isFull
                   ? "text-red-500 fill-red-500"
                   : isAlmostFull
@@ -87,39 +87,35 @@ export default function StudyCard({
               }`}
             />
           </div>
-        </div>
 
-        {/* Activity indicator */}
-        <div className="flex items-center space-x-1.5">
-          <Activity className="h-4 w-4 text-gray-500" />
-          <span className="text-xs text-gray-600">{participantPercentage.toFixed(0)}%</span>
-        </div>
+          {/* Activity indicator */}
+          <div className="flex items-center space-x-1">
+            <Activity className="h-3 w-3 text-gray-500" />
+            <span className="text-gray-600">{participantPercentage.toFixed(0)}%</span>
+          </div>
 
-        {/* End Date */}
-        <div className="flex items-center space-x-2 text-gray-600">
-          <Calendar className="h-4 w-4 text-gray-500" />
-          <span className="text-xs">
-            Ends:{" "}
-            {displayDate.toLocaleDateString("en-US", {
-              month: "short",
-              day: "numeric",
-              year: "numeric",
-            })}
-          </span>
-        </div>
-
-        {/* Template badge - minimal */}
-        {study.templateName && (
-          <div className="ml-auto">
-            <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-100">
-              {study.templateName}
+          {/* End Date */}
+          <div className="flex items-center space-x-1 text-gray-600">
+            <Calendar className="h-3 w-3 text-gray-500" />
+            <span>
+              {displayDate.toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+              })}
             </span>
           </div>
+        </div>
+
+        {/* Template badge - compact */}
+        {study.templateName && (
+          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-100">
+            {study.templateName}
+          </span>
         )}
       </div>
 
       {/* Simple progress bar */}
-      <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden mb-4">
+      <div className="w-full h-1 bg-gray-100 rounded-full overflow-hidden mb-2">
         <div
           className={`h-full rounded-full transition-all duration-300 ${
             isFull ? "bg-red-500" : isAlmostFull ? "bg-orange-500" : "bg-emerald-500"
@@ -130,7 +126,7 @@ export default function StudyCard({
 
       {/* Criteria badges - only show if there are any criteria */}
       {hasAnyCriteria && (
-        <div className="pt-3 border-t border-gray-100">
+        <div className="pt-1.5 border-t border-gray-100">
           <StudyCriteriaBadges
             studyCriteriaSummary={study.criteriaSummary}
             showLabel={showCriteriaLabel}

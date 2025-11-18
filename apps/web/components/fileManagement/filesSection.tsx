@@ -179,38 +179,38 @@ export default function FilesSection({
         const { icon: Icon, gradient } = getResourceTypeStyle(data.resourceType);
 
         return (
-          <Card className="w-full border-2 border-gray-200 hover:border-blue-300 hover:shadow-lg transition-all duration-200 bg-white">
-            <CardHeader className="flex flex-row items-center space-x-4 justify-between p-6">
-              <div className="flex flex-row items-center space-x-4 flex-1">
+          <Card className="w-full border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all duration-200 bg-white">
+            <CardHeader className="flex flex-row items-center space-x-3 justify-between p-4">
+              <div className="flex flex-row items-center space-x-3 flex-1 min-w-0">
                 <div
-                  className={`w-14 h-14 bg-gradient-to-br ${gradient} rounded-xl flex items-center justify-center shadow-md`}
+                  className={`w-10 h-10 bg-gradient-to-br ${gradient} rounded-lg flex items-center justify-center shadow-sm flex-shrink-0`}
                 >
-                  <Icon className="text-white w-7 h-7" />
+                  <Icon className="text-white w-5 h-5" />
                 </div>
-                <div className="flex flex-col space-y-1">
-                  <CardTitle className="text-lg font-semibold text-gray-800">
+                <div className="flex flex-col space-y-0.5 min-w-0 flex-1">
+                  <CardTitle className="text-sm font-semibold text-gray-800 truncate">
                     {data.resourceType}
                   </CardTitle>
-                  <div className="flex items-center text-sm text-gray-500 space-x-2">
-                    <Calendar className="w-4 h-4" />
-                    <span>
+                  <div className="flex items-center text-xs text-gray-500 space-x-1">
+                    <Calendar className="w-3 h-3 flex-shrink-0" />
+                    <span className="truncate">
                       {new Date(data.createdAt).toLocaleDateString("en-US", {
                         month: "short",
                         day: "numeric",
                         year: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit",
                       })}
                     </span>
                   </div>
                 </div>
               </div>
-              <FileOperationDropDown
-                walletAddress={walletAddress}
-                aesKey={aesKey}
-                setMedicalData={setMedicalData}
-                data={data}
-              />
+              <div className="flex-shrink-0">
+                <FileOperationDropDown
+                  walletAddress={walletAddress}
+                  aesKey={aesKey}
+                  setMedicalData={setMedicalData}
+                  data={data}
+                />
+              </div>
             </CardHeader>
           </Card>
         );
