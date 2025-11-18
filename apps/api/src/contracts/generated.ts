@@ -1062,9 +1062,9 @@ export const STUDY_ABI: ABI = [
     "inputs": [
       {
         "indexed": true,
-        "internalType": "string",
+        "internalType": "uint256",
         "name": "binId",
-        "type": "string"
+        "type": "uint256"
       },
       {
         "indexed": false,
@@ -1219,9 +1219,9 @@ export const STUDY_ABI: ABI = [
   {
     "inputs": [
       {
-        "internalType": "string",
+        "internalType": "uint256",
         "name": "",
-        "type": "string"
+        "type": "uint256"
       }
     ],
     "name": "binCounts",
@@ -1246,9 +1246,9 @@ export const STUDY_ABI: ABI = [
     "name": "bins",
     "outputs": [
       {
-        "internalType": "string",
+        "internalType": "uint256",
         "name": "binId",
-        "type": "string"
+        "type": "uint256"
       },
       {
         "internalType": "string",
@@ -1318,9 +1318,9 @@ export const STUDY_ABI: ABI = [
       {
         "components": [
           {
-            "internalType": "string",
+            "internalType": "uint256",
             "name": "binId",
-            "type": "string"
+            "type": "uint256"
           },
           {
             "internalType": "string",
@@ -1556,9 +1556,9 @@ export const STUDY_ABI: ABI = [
       {
         "components": [
           {
-            "internalType": "string",
+            "internalType": "uint256",
             "name": "binId",
-            "type": "string"
+            "type": "uint256"
           },
           {
             "internalType": "uint256",
@@ -1577,9 +1577,9 @@ export const STUDY_ABI: ABI = [
   {
     "inputs": [
       {
-        "internalType": "string",
+        "internalType": "uint256",
         "name": "binId",
-        "type": "string"
+        "type": "uint256"
       }
     ],
     "name": "getBinCount",
@@ -1600,9 +1600,9 @@ export const STUDY_ABI: ABI = [
       {
         "components": [
           {
-            "internalType": "string",
+            "internalType": "uint256",
             "name": "binId",
-            "type": "string"
+            "type": "uint256"
           },
           {
             "internalType": "string",
@@ -1983,30 +1983,6 @@ export const STUDY_ABI: ABI = [
   {
     "inputs": [
       {
-        "internalType": "address",
-        "name": "participant",
-        "type": "address"
-      },
-      {
-        "internalType": "string",
-        "name": "binId",
-        "type": "string"
-      }
-    ],
-    "name": "isParticipantInBin",
-    "outputs": [
-      {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
         "internalType": "uint256[2]",
         "name": "_pA",
         "type": "uint256[2]"
@@ -2037,9 +2013,9 @@ export const STUDY_ABI: ABI = [
         "type": "address"
       },
       {
-        "internalType": "string[]",
+        "internalType": "uint256[]",
         "name": "binIds",
-        "type": "string[]"
+        "type": "uint256[]"
       }
     ],
     "name": "joinStudy",

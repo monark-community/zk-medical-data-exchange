@@ -952,10 +952,23 @@ export class StudyService {
         "joinStudy - values being sent to contract"
       );
 
+      let bigintBinIds: bigint[] = [];
+      for (const binId of binIds) {
+        try {
+          const binBigInt = BigInt(binId);
+          bigintBinIds.push(binBigInt);
+        } catch (binConversionError) {
+          logger.error(
+            { binId, binConversionError },
+            "Failed to convert binId to BigInt, skipping this binId"
+          );
+        }
+      }
+
       const result = await this.executeContractTransaction(
         studyAddress,
         "joinStudy",
-        [pA, pB, pC, commitment, challengeBytes32, participantWallet as `0x${string}`, binIds],
+        [pA, pB, pC, commitment, challengeBytes32, participantWallet as `0x${string}`, bigintBinIds],
         "Participation recording"
       );
 
