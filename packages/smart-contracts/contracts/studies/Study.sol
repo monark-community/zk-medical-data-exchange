@@ -45,7 +45,7 @@ contract Study {
     }
     
     struct DataBin {
-        string binId;                 // Unique identifier (e.g., "age_bin_0")
+        uint256 binId;                 // Unique identifier (e.g., "age_bin_0")
         string criteriaField;         // Field name (e.g., "age", "bmi")
         uint8 binType;                // 0=RANGE, 1=CATEGORICAL
         string label;                 // Human-readable label
@@ -59,15 +59,15 @@ contract Study {
     }
     
     struct BinCount {
-        string binId;                 // References DataBin.binId
+        uint256 binId;                 // References DataBin.binId
         uint256 count;                // Number of participants in this bin
     }
     
     DataBin[] public bins;
     
-    mapping(string => uint256) public binCounts;
+    mapping(uint256 => uint256) public binCounts;
     
-    mapping(address => string[]) private participantBins;
+    mapping(address => uint256[]) private participantBins;
     
     // Study metadata
     string public studyTitle;
@@ -96,7 +96,7 @@ contract Study {
     event EligibilityVerified(address indexed participant, bool eligible);
     event ConsentRevoked(address indexed participant, uint256 timestamp);
     event ConsentGranted(address indexed participant, uint256 timestamp);
-    event BinCountUpdated(string indexed binId, uint256 newCount);
+    event BinCountUpdated(uint256 indexed binId, uint256 newCount);
     event BinsConfigured(uint256 binCount);
     
     constructor(
@@ -168,7 +168,7 @@ contract Study {
         uint256 dataCommitment,
         bytes32 challenge,
         address participant,
-        string[] memory binIds
+        uint256[] memory binIds
     ) external {
         require(currentParticipants < maxParticipants, "Study is full");
         require(!participants[participant], "Already participating");
@@ -184,10 +184,11 @@ contract Study {
         require(recomputedHash == storedCommitmentHash, "Commitment mismatch - data tampering detected");
         
         uint[51] memory pubSignals;
+        for (uint256 i = 0; i < 50; i++) {
+            pubSignals[i] = binIds[i];
+        }
         pubSignals[50] = dataCommitment;
         
-        // binMembership signals (indices 3-52) will be verified by the proof
-        // We don't need to set them here as the proof will validate them
         bool isEligible = zkVerifier.verifyProof(_pA, _pB, _pC, pubSignals);
         
         emit EligibilityVerified(participant, isEligible);
@@ -210,11 +211,11 @@ contract Study {
     
     function _updateBinCounts(
         address participant,
-        string[] memory binIds,
+        uint256[] memory binIds,
         bool increment
     ) private {
         for (uint256 i = 0; i < binIds.length; i++) {
-            string memory binId = binIds[i];
+            uint256 binId = binIds[i];
             
             if (increment) {
                 binCounts[binId]++;
@@ -242,7 +243,7 @@ contract Study {
         hasConsented[participant] = false;
         activeParticipants--;
         
-        string[] memory binIds = participantBins[participant];
+        uint256[] memory binIds = participantBins[participant];
         _updateBinCounts(participant, binIds, false);
         
         emit ConsentRevoked(participant, block.timestamp);
@@ -261,7 +262,7 @@ contract Study {
         hasConsented[participant] = true;
         activeParticipants++;
         
-        string[] memory binIds = participantBins[participant];
+        uint256[] memory binIds = participantBins[participant];
         _updateBinCounts(participant, binIds, true);
         
         emit ConsentGranted(participant, block.timestamp);
@@ -358,7 +359,7 @@ contract Study {
         return bins;
     }
     
-    function getBinCount(string memory binId) external view returns (uint256) {
+    function getBinCount(uint256 binId) external view returns (uint256) {
         return binCounts[binId];
     }
     
@@ -375,21 +376,21 @@ contract Study {
         return counts;
     }
     
-    function isParticipantInBin(address participant, string memory binId) external view returns (bool) {
-        require(
-            msg.sender == participant,
-            "Only participant can view their own bins"
-        );
-        require(participants[participant], "Not a participant");
+    // function isParticipantInBin(address participant, string memory binId) external view returns (bool) {
+    //     require(
+    //         msg.sender == participant,
+    //         "Only participant can view their own bins"
+    //     );
+    //     require(participants[participant], "Not a participant");
         
-        string[] memory participantBinIds = participantBins[participant];
-        for (uint256 i = 0; i < participantBinIds.length; i++) {
-            if (keccak256(bytes(participantBinIds[i])) == keccak256(bytes(binId))) {
-                return true;
-            }
-        }
-        return false;
-    }
+    //     uint256[] memory participantBinIds = participantBins[participant];
+    //     for (uint256 i = 0; i < participantBinIds.length; i++) {
+    //         if (keccak256(bytes(participantBinIds[i])) == keccak256(bytes(binId))) {
+    //             return true;
+    //         }
+    //     }
+    //     return false;
+    // }
     
     function areBinsConfigured() external view returns (bool) {
         return bins.length > 0;
