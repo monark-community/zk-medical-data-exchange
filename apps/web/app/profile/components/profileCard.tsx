@@ -124,7 +124,9 @@ const ProfileCard = () => {
             {/* User Info */}
             <div className="flex-1">
               <h1 className="text-3xl font-bold mb-2 break-words break-all">
-                {profileCardInfo.userAlias}
+                {profileCardInfo.userAlias?.startsWith("0x")
+                  ? formatWalletAddress(profileCardInfo.userAlias) //if userAlias is default name ->wallet address, format it
+                  : profileCardInfo.userAlias}
               </h1>
               <p className="text-blue-100 mb-3">
                 {formatWalletAddress(profileCardInfo.walletAddress || "")}
