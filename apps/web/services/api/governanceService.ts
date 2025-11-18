@@ -48,3 +48,18 @@ export const vote = async (
     return { success: false, error: errorMessage };
   }
 };
+
+export interface GovernanceStats {
+  totalProposals: number;
+  activeProposals: number;
+  avgParticipation: number;
+  uniqueVoters: number;
+  votingPower: number;
+  totalVotes: number;
+}
+
+export const getStats = async (): Promise<GovernanceStats> => {
+  const { data } = await apiClient.get(`/governance/stats`);
+  console.log("Governance stats response data:", data);
+  return data.data;
+};

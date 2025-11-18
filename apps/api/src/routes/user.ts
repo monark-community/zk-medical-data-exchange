@@ -1,8 +1,39 @@
-import { getUserById, getUserStats, updateUser } from "@/controllers/userController";
+import {
+  getUserById,
+  getUserStats,
+  updateUser,
+  getPlatformUserCount,
+} from "@/controllers/userController";
 import { Router } from "express";
 
 const router = Router();
 
+/**
+ * @swagger
+ * /user/count:
+ *   get:
+ *     summary: Get total number of users on platform
+ *     description: Retrieves the total count of registered users on the platform
+ *     tags: [User]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: User count retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 count:
+ *                   type: number
+ *                   description: Total number of users
+ *       401:
+ *         description: Unauthorized - Invalid token
+ *       500:
+ *         description: Internal server error
+ */
+router.get("/count", getPlatformUserCount);
 /**
  * @swagger
  * /user/stats/{walletAddress}/{profile}:

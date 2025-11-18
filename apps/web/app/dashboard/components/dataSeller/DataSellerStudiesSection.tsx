@@ -8,7 +8,7 @@ import EnrolledStudiesList from "@/app/dashboard/components/dataSeller/EnrolledS
 import StudySectionHeader from "@/app/dashboard/components/shared/StudySectionHeader";
 import StudiesContainer from "@/app/dashboard/components/shared/StudiesContainer";
 import DashboardSectionHeader from "@/app/dashboard/components/shared/DashboardSectionHeader";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { getAggregatedMedicalData } from "@/services/core/medicalDataAggregator";
 import { convertToZkReady } from "@/services/fhir";
 import {
@@ -17,7 +17,41 @@ import {
   revokeStudyConsent,
   grantStudyConsent,
 } from "@/services/api/studyService";
+import { Input } from "@/components/ui/input";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+
+const criteriaOptions = [
+  { key: "requiresAge", label: "Age" },
+  { key: "requiresGender", label: "Gender" },
+  { key: "requiresDiabetes", label: "Diabetes" },
+  { key: "requiresSmoking", label: "Smoking" },
+  { key: "requiresBMI", label: "BMI" },
+  { key: "requiresBloodPressure", label: "Blood Pressure" },
+  { key: "requiresCholesterol", label: "Cholesterol" },
+  { key: "requiresHeartDisease", label: "Heart Disease" },
+  { key: "requiresActivity", label: "Activity Level" },
+  { key: "requiresHbA1c", label: "HbA1c" },
+  { key: "requiresBloodType", label: "Blood Type" },
+  { key: "requiresLocation", label: "Location" },
+];
+
+const statusOptions = [
+  { key: "active", label: "Active" },
+  { key: "inactive", label: "Inactive" },
+  { key: "completed", label: "Completed" },
+  { key: "draft", label: "Draft" },
+];
+
 import eventBus from "@/lib/eventBus";
+import { useTxStatusState } from "@/hooks/useTxStatus";
 
 type ViewMode = "enrolled" | "available";
 
@@ -30,6 +64,10 @@ export default function DataSellerStudiesSection() {
   const [enrolledStudies, setEnrolledStudies] = useState<any[]>([]);
   const [enrolledLoading, setEnrolledLoading] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("available");
+  const { show, showError, hide, isVisible: isTxProcessing } = useTxStatusState();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
+  const [selectedStatusFilters, setSelectedStatusFilters] = useState<string[]>(["active"]);
 
   useEffect(() => {
     if (walletAddress) {
@@ -45,7 +83,7 @@ export default function DataSellerStudiesSection() {
 
   const handleApplyToStudy = async (studyId: number) => {
     if (!walletAddress) {
-      alert("Wallet not connected");
+      showError("Wallet not connected");
       return;
     }
 
@@ -56,8 +94,10 @@ export default function DataSellerStudiesSection() {
     setApplyingStudyId(studyId);
 
     try {
+      show("Starting study application process...");
       console.log("Starting secure study application process...");
 
+      show("Retrieving your medical data...");
       const data = await getAggregatedMedicalData(walletAddress);
 
       console.log("Aggregated medical data retrieved for study application:", data);
@@ -66,11 +106,13 @@ export default function DataSellerStudiesSection() {
         throw new Error("No medical data available for study application.");
       }
 
+      show("Preparing data for eligibility check...");
       const zkReadyMedicalData = convertToZkReady(data);
       if (!zkReadyMedicalData) {
         throw new Error("No valid medical data available for study application.");
       }
 
+      show("Verifying eligibility and generating proof...");
       const result = await StudyApplicationService.applyToStudy(
         studyId,
         zkReadyMedicalData,
@@ -78,7 +120,11 @@ export default function DataSellerStudiesSection() {
       );
 
       if (result.success) {
-        alert(`${result.message}`);
+        show("✓ " + result.message);
+        setTimeout(() => {
+          hide();
+        }, 3000);
+
         refetch();
         if (walletAddress) {
           getEnrolledStudies(walletAddress)
@@ -90,7 +136,10 @@ export default function DataSellerStudiesSection() {
       }
     } catch (error: any) {
       console.error("Error during study application:", error);
-      alert(`Application failed: ${error.message || error}`);
+      showError(`Application failed: ${error.message || error}`);
+      setTimeout(() => {
+        hide();
+      }, 5000);
     } finally {
       setApplyingStudyId(null);
     }
@@ -98,7 +147,7 @@ export default function DataSellerStudiesSection() {
 
   const handleRevokeConsent = async (studyId: number) => {
     if (!walletAddress) {
-      alert("Wallet not connected");
+      showError("Wallet not connected");
       return;
     }
 
@@ -109,6 +158,7 @@ export default function DataSellerStudiesSection() {
     setRevokingStudyId(studyId);
 
     try {
+      show("Revoking consent...");
       console.log("Revoking consent for study:", studyId);
 
       const result = await revokeStudyConsent(studyId, walletAddress);
@@ -124,13 +174,19 @@ export default function DataSellerStudiesSection() {
         setEnrolledStudies(updatedStudies);
         setEnrolledLoading(false);
 
-        alert("Consent revoked successfully!");
+        show("✓ Consent revoked successfully!");
+        setTimeout(() => {
+          hide();
+        }, 3000);
       }
     } catch (error) {
       console.error("Failed to revoke consent:", error);
-      alert(
+      showError(
         `Failed to revoke consent: ${error instanceof Error ? error.message : "Unknown error"}`
       );
+      setTimeout(() => {
+        hide();
+      }, 5000);
     } finally {
       setRevokingStudyId(null);
     }
@@ -138,7 +194,7 @@ export default function DataSellerStudiesSection() {
 
   const handleGrantConsent = async (studyId: number) => {
     if (!walletAddress) {
-      alert("Wallet not connected");
+      showError("Wallet not connected");
       return;
     }
 
@@ -149,6 +205,7 @@ export default function DataSellerStudiesSection() {
     setGrantingStudyId(studyId);
 
     try {
+      show("Granting consent...");
       console.log("Granting consent for study:", studyId);
 
       const result = await grantStudyConsent(studyId, walletAddress);
@@ -164,19 +221,25 @@ export default function DataSellerStudiesSection() {
         setEnrolledStudies(updatedStudies);
         setEnrolledLoading(false);
 
-        alert("Consent granted successfully!");
+        show("✓ Consent granted successfully!");
+        setTimeout(() => {
+          hide();
+        }, 3000);
       }
     } catch (error) {
       console.error("Failed to grant consent:", error);
 
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
       if (errorMessage.includes("full") || errorMessage.includes("Full")) {
-        alert(
+        showError(
           "Cannot grant consent: This study is now full. The maximum number of active participants has been reached."
         );
       } else {
-        alert(`Failed to grant consent: ${errorMessage}`);
+        showError(`Failed to grant consent: ${errorMessage}`);
       }
+      setTimeout(() => {
+        hide();
+      }, 5000);
     } finally {
       setGrantingStudyId(null);
     }
@@ -185,8 +248,32 @@ export default function DataSellerStudiesSection() {
   const enrolledStudyIds = new Set(enrolledStudies.map((s) => s.id));
   const availableStudies = studies.filter((study) => !enrolledStudyIds.has(study.id));
 
+  const filteredStudies = useMemo(() => {
+    return availableStudies.filter((study) => {
+      // Search filter
+      const matchesSearch =
+        !searchQuery ||
+        study.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (study.description && study.description.toLowerCase().includes(searchQuery.toLowerCase()));
+
+      // Requirements filter
+      const matchesFilters =
+        selectedFilters.length === 0 ||
+        selectedFilters.some(
+          (filter) => study.criteriaSummary[filter as keyof typeof study.criteriaSummary]
+        );
+
+      // Status filter
+      const matchesStatus =
+        selectedStatusFilters.length === 0 ||
+        selectedStatusFilters.includes(study.status || "active");
+
+      return matchesSearch && matchesFilters && matchesStatus;
+    });
+  }, [availableStudies, searchQuery, selectedFilters, selectedStatusFilters]);
+
   return (
-    <div className="w-full space-y-8">
+    <div className="w-full space-y-10 overflow-y-auto">
       <DashboardSectionHeader
         icon={<BookOpen className="h-8 w-8 text-white" />}
         title="Research Studies"
@@ -195,9 +282,14 @@ export default function DataSellerStudiesSection() {
             ? "Discover and apply to participate in medical research"
             : "Manage your active study participations"
         }
+        iconBackgroundClass={
+          viewMode === "enrolled"
+            ? "bg-gradient-to-br from-emerald-600 to-green-600"
+            : "bg-gradient-to-br from-blue-600 to-indigo-600"
+        }
       >
         {/* Sleek Tab Buttons */}
-        <div className="flex space-x-2">
+        <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
           <button
             onClick={() => setViewMode("available")}
             className={`flex-1 py-3 px-4 rounded-lg font-semibold text-sm transition-all duration-200 flex items-center justify-center space-x-2 ${
@@ -213,7 +305,7 @@ export default function DataSellerStudiesSection() {
                 viewMode === "available" ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-600"
               }`}
             >
-              {availableStudies.length}
+              {filteredStudies.length}
             </span>
           </button>
           <button
@@ -247,28 +339,103 @@ export default function DataSellerStudiesSection() {
               <div className="flex items-center space-x-2">
                 <span className="text-xs font-medium text-gray-500">Showing</span>
                 <span className="text-sm font-semibold text-blue-600">
-                  {availableStudies.length} {availableStudies.length === 1 ? "study" : "studies"}
+                  {filteredStudies.length} {filteredStudies.length === 1 ? "study" : "studies"}
                 </span>
               </div>
             }
           />
 
+          {/* Search and Filter Controls */}
+          <div className="px-6 py-4 border-b">
+            <div className="flex flex-col sm:flex-row gap-4">
+              <Input
+                placeholder="Search studies by name or description..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="flex-1"
+              />
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline">
+                    Filter by Status{" "}
+                    {selectedStatusFilters.length > 0 && `(${selectedStatusFilters.length})`}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  {statusOptions.map(({ key, label }) => (
+                    <DropdownMenuCheckboxItem
+                      key={key}
+                      checked={selectedStatusFilters.includes(key)}
+                      onSelect={(e) => {
+                        e.preventDefault();
+                        setSelectedStatusFilters((prev) =>
+                          prev.includes(key) ? prev.filter((f) => f !== key) : [...prev, key]
+                        );
+                      }}
+                    >
+                      {label}
+                    </DropdownMenuCheckboxItem>
+                  ))}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => setSelectedStatusFilters([])}
+                    disabled={selectedStatusFilters.length === 0}
+                  >
+                    Clear All Filters
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline">
+                    Filter by Requirements{" "}
+                    {selectedFilters.length > 0 && `(${selectedFilters.length})`}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  {criteriaOptions.map(({ key, label }) => (
+                    <DropdownMenuCheckboxItem
+                      key={key}
+                      checked={selectedFilters.includes(key)}
+                      onSelect={(e) => {
+                        e.preventDefault();
+                        setSelectedFilters((prev) =>
+                          prev.includes(key) ? prev.filter((f) => f !== key) : [...prev, key]
+                        );
+                      }}
+                    >
+                      {label}
+                    </DropdownMenuCheckboxItem>
+                  ))}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => setSelectedFilters([])}
+                    disabled={selectedFilters.length === 0}
+                  >
+                    Clear All Filters
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+
           <StudiesContainer
             isLoading={isLoading}
             error={error}
-            studies={availableStudies}
+            studies={filteredStudies}
             onRetry={refetch}
             emptyState={{
-              title: "No studies available",
+              title: "No studies match your filters",
               description:
-                "There are currently no medical research studies available. Check back later!",
+                "Try adjusting your search terms or filter requirements to see more studies.",
             }}
           >
             <DataSellerStudiesList
-              studies={availableStudies}
+              studies={filteredStudies}
               onApplyToStudy={handleApplyToStudy}
               applyingStudyId={applyingStudyId}
               walletAddress={walletAddress}
+              isTxProcessing={isTxProcessing}
             />
           </StudiesContainer>
         </div>
@@ -308,6 +475,7 @@ export default function DataSellerStudiesSection() {
               revokingStudyId={revokingStudyId}
               grantingStudyId={grantingStudyId}
               walletAddress={walletAddress}
+              isTxProcessing={isTxProcessing}
             />
           </StudiesContainer>
         </div>

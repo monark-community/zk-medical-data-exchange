@@ -14,6 +14,7 @@ import { useUser } from "@/hooks/useUser";
 import ProfileAvatar from "@/components/profileAvatar";
 import { getTransactionByWalletAddress } from "@/services/api/transactionService";
 import { Transaction } from "@/interfaces/transaction";
+import { useTxStatusState } from "@/hooks/useTxStatus";
 
 const ProfileCard = () => {
   const formatWalletAddress = (address: string) => {
@@ -31,6 +32,7 @@ const ProfileCard = () => {
   const { currentProfile, getProfileDisplayName } = useProfile();
   const { address } = useAccount();
   const { user, refetchUser } = useUser();
+  const { isVisible } = useTxStatusState();
 
   const [profileCardInfo, setProfileCardInfo] = React.useState<ProfileCardProps | null>(null);
   const [isWaitingForExportData, setIsWaitingForExportData] = React.useState(false);
@@ -122,7 +124,9 @@ const ProfileCard = () => {
             {/* User Info */}
             <div className="flex-1">
               <h1 className="text-3xl font-bold mb-2 break-words break-all">
-                {profileCardInfo.userAlias}
+                {profileCardInfo.userAlias?.startsWith("0x")
+                  ? formatWalletAddress(profileCardInfo.userAlias) //if userAlias is default name ->wallet address, format it
+                  : profileCardInfo.userAlias}
               </h1>
               <p className="text-blue-100 mb-3">
                 {formatWalletAddress(profileCardInfo.walletAddress || "")}
@@ -216,7 +220,7 @@ const ProfileCard = () => {
 
           {/* Footer Buttons */}
           <div className="flex gap-3 mt-8 pt-6 border-t">
-            <EditProfileDialog onProfileUpdate={refetchUser} />
+            <EditProfileDialog onProfileUpdate={refetchUser} isProcessing={isVisible} />
             <Button variant="outline" disabled>
               Privacy Settings
             </Button>

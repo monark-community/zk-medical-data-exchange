@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { CircleCheck, CircleMinus, AlertTriangle, CircleX } from "lucide-react";
 import { vote } from "@/services/api/governanceService";
 import emitter from "@/lib/eventBus";
+import { useTxStatusState } from "@/hooks/useTxStatus";
 
 interface VoteConfirmationDialogProps {
   open: boolean;
@@ -79,37 +80,33 @@ export default function VoteConfirmationDialog({
   proposalTitle,
   walletAddress,
 }: VoteConfirmationDialogProps) {
-  const [isVoting, setIsVoting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { show, showError } = useTxStatusState();
 
   const handleConfirmVote = async () => {
-    setIsVoting(true);
     setError(null);
+
+    show("Submitting your vote on blockchain...");
+    onOpenChange(false);
 
     try {
       const result = await vote(voteChoice, proposalId, walletAddress);
 
       if (result.success) {
-        // Emit event to refresh proposals
         emitter.emit("proposalUpdated");
-
-        // Close dialog
-        onOpenChange(false);
+        show("Vote submitted successfully! ✓");
+        setTimeout(() => {
+          hide();
+        }, 3000);
       } else {
-        setError(normalizeVoteError(result.error) || "Failed to submit vote");
+        showError(normalizeVoteError(result.error) || "Failed to submit vote");
       }
     } catch (err: any) {
-      setError(normalizeVoteError(err) || "An unexpected error occurred");
-    } finally {
-      setIsVoting(false);
+      showError(normalizeVoteError(err) || "An unexpected error occurred");
     }
   };
 
   const handleOpenChange = (newOpen: boolean) => {
-    if (!newOpen && isVoting) {
-      // Prevent closing while voting
-      return;
-    }
     setError(null);
     onOpenChange(newOpen);
   };
@@ -117,38 +114,6 @@ export default function VoteConfirmationDialog({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-md">
-        {/* Loading Overlay */}
-        {isVoting && (
-          <div className="absolute inset-0 bg-background/90 z-50 flex items-center justify-center rounded-lg">
-            <div className="text-center">
-              <svg
-                className="animate-spin h-12 w-12 text-primary mx-auto mb-4"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                ></circle>
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                ></path>
-              </svg>
-              <h3 className="text-lg font-semibold mb-2">Submitting Your Vote</h3>
-              <p className="text-muted-foreground text-sm">
-                Please wait while we record your vote on the blockchain...
-              </p>
-            </div>
-          </div>
-        )}
-
         {/* Header */}
         <DialogHeader>
           <div className="flex items-center gap-3 mb-2">
@@ -212,19 +177,13 @@ export default function VoteConfirmationDialog({
         </div>
 
         {/* Footer */}
-        <DialogFooter className="gap-2 sm:gap-0">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => handleOpenChange(false)}
-            disabled={isVoting}
-          >
+        <DialogFooter className="gap-2">
+          <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
             Cancel
           </Button>
           <Button
             type="button"
             onClick={handleConfirmVote}
-            disabled={isVoting}
             className={
               voteChoice === 1
                 ? "bg-green-600 hover:bg-green-700"
@@ -233,10 +192,13 @@ export default function VoteConfirmationDialog({
                 : "bg-gray-600 hover:bg-gray-700"
             }
           >
-            {isVoting ? "Voting..." : "Confirm Vote"}
+            Confirm Vote
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
+}
+function hide() {
+  throw new Error("Function not implemented.");
 }

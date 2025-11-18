@@ -15,16 +15,8 @@ import { createProposal } from "@/services/api/governanceService";
 import { CreateProposalParams } from "@/interfaces/proposal";
 import { useAccount } from "wagmi";
 import ConfirmCreateProposalDialog from "@/app/governance/components/ConfirmCreateProposalDialog";
-import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Spinner } from "@/components/ui/spinner";
+import { useTxStatusState } from "@/hooks/useTxStatus";
+import emitter from "@/lib/eventBus";
 
 interface CreateProposalFieldProps {
   onSuccess: () => void;
@@ -32,61 +24,52 @@ interface CreateProposalFieldProps {
 
 const CreateProposalField = ({ onSuccess }: CreateProposalFieldProps) => {
   const { address: walletAddress } = useAccount();
+  const { show, showError, hide } = useTxStatusState();
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
-  const [isAlertDialogOpen, setIsAlertDialogOpen] = React.useState(false);
-  const [isWaitingProposalCreation, setIsWaitingProposalCreation] = React.useState(false);
   const [pendingProposal, setPendingProposal] = React.useState<CreateProposalParams | null>(null);
-  const [error, setError] = React.useState<string | null>(null);
   const [category, setCategory] = React.useState<string>("");
   const [duration, setDuration] = React.useState<string>("");
-
-  const openResultAlertDialog = () => {
-    setIsAlertDialogOpen(true);
-  };
 
   const handleConfirmCreate = async () => {
     try {
       if (!walletAddress) {
-        setError("Wallet address not found. Please log in again.");
-        setIsAlertDialogOpen(true);
+        showError("Wallet address not found. Please log in again.");
         return;
       }
 
       if (!pendingProposal) {
-        setError("Proposal data is missing.");
-        setIsAlertDialogOpen(true);
+        showError("Proposal data is missing.");
         return;
       }
 
-      setIsWaitingProposalCreation(true);
-      openResultAlertDialog();
+      // Show non-blocking popup
+      show("Creating proposal on blockchain...");
+
+      onSuccess();
+
+      setPendingProposal(null);
 
       const result = await createProposal(pendingProposal);
 
-      setIsWaitingProposalCreation(false);
-
       if (result.success) {
-        setError(null);
+        show("Proposal created successfully! ✓");
+        setTimeout(() => {
+          hide();
+        }, 3000);
+        emitter.emit("proposalUpdated");
       } else {
-        setError(result.error || "Failed to create proposal");
+        showError(result.error || "Failed to create proposal");
       }
     } catch (error) {
       console.error("Error creating proposal:", error);
-      setError("An error occurred while creating the proposal.");
-      setIsWaitingProposalCreation(false);
-      setIsAlertDialogOpen(true);
-    }
-  };
-
-  const handleAlertClose = () => {
-    setIsAlertDialogOpen(false);
-    if (!error) {
-      onSuccess();
+      showError(
+        error instanceof Error ? error.message : "An error occurred while creating the proposal."
+      );
     }
   };
 
   return (
-    <div className="w-full max-w-md">
+    <div className="w-full max-w-md mx-auto">
       <form
         onSubmit={async (e) => {
           e.preventDefault();
@@ -96,8 +79,7 @@ const CreateProposalField = ({ onSuccess }: CreateProposalFieldProps) => {
           ).value;
           console.log(`Creating proposal:`, { title, description, category, duration });
           if (!walletAddress) {
-            setError("Wallet address not found. Please log in again.");
-            openResultAlertDialog();
+            showError("Wallet address not found. Please log in again.");
             return;
           }
 
@@ -117,77 +99,98 @@ const CreateProposalField = ({ onSuccess }: CreateProposalFieldProps) => {
           setPendingProposal(proposal);
           setIsDialogOpen(true);
         }}
+        className="space-y-4 sm:space-y-6"
       >
         <FieldGroup>
           <FieldSet>
-            <FieldGroup>
+            <FieldGroup className="space-y-4 sm:space-y-6">
               <Field>
-                <FieldLabel htmlFor="proposal-title">Proposal Title</FieldLabel>
+                <FieldLabel htmlFor="proposal-title" className="text-sm sm:text-base">
+                  Proposal Title
+                </FieldLabel>
                 <Input
                   id="proposal-title"
                   placeholder="Enter proposal title"
                   required
                   minLength={5}
                   maxLength={60}
+                  className="text-sm sm:text-base"
                 />
               </Field>
 
               <Field>
-                <FieldLabel htmlFor="proposal-description">Description</FieldLabel>
+                <FieldLabel htmlFor="proposal-description" className="text-sm sm:text-base">
+                  Description
+                </FieldLabel>
                 <Textarea
                   id="proposal-description"
                   placeholder="Describe your proposal in detail"
                   required
                   minLength={10}
                   maxLength={250}
-                  rows={5}
+                  rows={4}
+                  className="text-sm sm:text-base resize-none"
                 />
               </Field>
 
-              <Field>
-                <FieldLabel htmlFor="proposal-category">Category</FieldLabel>
-                <Select name="category" required value={category} onValueChange={setCategory}>
-                  <SelectTrigger id="proposal-category">
-                    <SelectValue placeholder="Select a category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="0">Economics</SelectItem>
-                    <SelectItem value="1">Privacy</SelectItem>
-                    <SelectItem value="2">Governance</SelectItem>
-                    <SelectItem value="3">Policy</SelectItem>
-                    <SelectItem value="4">Other</SelectItem>
-                  </SelectContent>
-                </Select>
-              </Field>
-              <Field>
-                <FieldLabel htmlFor="proposal-duration">Open Duration / Active Period</FieldLabel>
-                <Select name="duration" required value={duration} onValueChange={setDuration}>
-                  <SelectTrigger id="proposal-duration">
-                    <SelectValue placeholder="Select a duration" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Array.from({ length: 30 }, (_, i) => {
-                      const days = i + 1;
-                      return (
-                        <SelectItem key={days} value={String(days)}>
-                          {days} day{days > 1 ? "s" : ""}
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
-              </Field>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Field>
+                  <FieldLabel htmlFor="proposal-category" className="text-sm sm:text-base">
+                    Category
+                  </FieldLabel>
+                  <Select name="category" required value={category} onValueChange={setCategory}>
+                    <SelectTrigger id="proposal-category" className="text-sm sm:text-base">
+                      <SelectValue placeholder="Select a category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="0">Economics</SelectItem>
+                      <SelectItem value="1">Privacy</SelectItem>
+                      <SelectItem value="2">Governance</SelectItem>
+                      <SelectItem value="3">Policy</SelectItem>
+                      <SelectItem value="4">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </Field>
+
+                <Field>
+                  <FieldLabel htmlFor="proposal-duration" className="text-sm sm:text-base">
+                    Duration
+                  </FieldLabel>
+                  <Select name="duration" required value={duration} onValueChange={setDuration}>
+                    <SelectTrigger id="proposal-duration" className="text-sm sm:text-base">
+                      <SelectValue placeholder="Select duration" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 30 }, (_, i) => {
+                        const days = i + 1;
+                        return (
+                          <SelectItem key={days} value={String(days)}>
+                            {days} day{days > 1 ? "s" : ""}
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                </Field>
+              </div>
 
               <Field>
-                <FieldDescription>
-                  Title must be 5-60 characters. Description must be 10-250 characters.
+                <FieldDescription className="text-xs sm:text-sm text-gray-600">
+                  Title: 5-60 characters. Description: 10-250 characters.
                 </FieldDescription>
               </Field>
             </FieldGroup>
           </FieldSet>
-          <Field orientation="horizontal">
-            <Button type="submit">Submit Proposal</Button>
-          </Field>
+
+          <div className="pt-4 sm:pt-6">
+            <Button
+              type="submit"
+              className="w-full sm:w-auto px-6 py-2 text-sm sm:text-base font-medium"
+              size="lg"
+            >
+              Submit Proposal
+            </Button>
+          </div>
         </FieldGroup>
       </form>
 
@@ -196,37 +199,10 @@ const CreateProposalField = ({ onSuccess }: CreateProposalFieldProps) => {
         onOpenChange={() => setIsDialogOpen(false)}
         onConfirm={handleConfirmCreate}
         onCancel={() => {
-          setError(null);
           setPendingProposal(null);
         }}
         proposalTitle={pendingProposal?.title || ""}
       />
-
-      <AlertDialog open={isAlertDialogOpen}>
-        {isWaitingProposalCreation ? (
-          <AlertDialogContent className="flex justify-center items-center p-16">
-            <AlertDialogHeader className="sr-only">
-              <AlertDialogTitle>Processing</AlertDialogTitle>
-              <AlertDialogDescription>
-                Please wait while your proposal is being created.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <Spinner className="size-12 text-blue-600" />
-          </AlertDialogContent>
-        ) : (
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>{error ? "Error" : "Success"}</AlertDialogTitle>
-              <AlertDialogDescription>
-                {error ? error : "Your proposal has been created successfully."}
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel onClick={handleAlertClose}>Ok</AlertDialogCancel>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        )}
-      </AlertDialog>
     </div>
   );
 };

@@ -19,6 +19,7 @@ import { createConfig } from "wagmi";
 import { Config } from "@/config/config";
 import { verifyTransaction } from "@/services/api/transactionService";
 import eventBus from "@/lib/eventBus";
+import { useTxStatusState } from "@/hooks/useTxStatus";
 
 interface EndStudyDialogProps {
   open: boolean;
@@ -86,7 +87,7 @@ export default function EndStudyDialog({
     } catch (error) {
       console.error("Failed to disperse ETH to participants:", error);
       setIsEnding(false);
-      alert("Failed to disperse ETH. Please try again.");
+      useTxStatusState.getState().showError("Failed to disperse ETH. Please try again.");
       return;
     }
 
@@ -109,7 +110,7 @@ export default function EndStudyDialog({
     } catch (error) {
       console.error("Transaction verification failed:", error);
       setIsEnding(false);
-      alert("Failed to verify transaction. Please try again.");
+      useTxStatusState.getState().showError("Failed to verify transaction. Please try again.");
       return;
     }
   };

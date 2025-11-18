@@ -10,6 +10,7 @@ interface DataSellerStudiesListProps {
   onApplyToStudy: (id: number) => Promise<void>;
   applyingStudyId: number | null;
   walletAddress?: string;
+  isTxProcessing?: boolean;
 }
 
 export default function DataSellerStudiesList({
@@ -17,6 +18,7 @@ export default function DataSellerStudiesList({
   onApplyToStudy,
   applyingStudyId,
   walletAddress,
+  isTxProcessing = false,
 }: DataSellerStudiesListProps) {
   const canApply = (study: StudySummary) => {
     return study.status === "active" && study.currentParticipants < study.maxParticipants;
@@ -34,9 +36,15 @@ export default function DataSellerStudiesList({
             e.stopPropagation();
             onApplyToStudy(study.id);
           }}
-          disabled={!walletAddress || isApplying}
+          disabled={!walletAddress || isApplying || isTxProcessing}
           className="h-7 px-3 text-green-600 hover:text-green-700 hover:bg-green-50 border-green-200"
-          title={walletAddress ? "Apply to study" : "Connect wallet to apply"}
+          title={
+            walletAddress
+              ? isTxProcessing
+                ? "Transaction in progress..."
+                : "Apply to study"
+              : "Connect wallet to apply"
+          }
         >
           {isApplying ? (
             <>
