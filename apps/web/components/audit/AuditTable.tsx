@@ -80,22 +80,22 @@ const AuditTable: React.FC<AuditTableProps> = ({
       <Table>
         <TableHeader>
           <TableRow className="border-b border-slate-200/50 bg-gradient-to-r from-slate-50/50 to-blue-50/30 hover:bg-slate-50/80">
-            <TableHead className="text-slate-700 font-semibold text-sm tracking-wide">
+            <TableHead className="text-slate-700 font-semibold text-sm tracking-wide text-center">
               Status
             </TableHead>
-            <TableHead className="text-slate-700 font-semibold text-sm tracking-wide">
+            <TableHead className="text-slate-700 font-semibold text-sm tracking-wide text-center">
               Action
             </TableHead>
-            <TableHead className="text-slate-700 font-semibold text-sm tracking-wide">
+            <TableHead className="text-slate-700 font-semibold text-sm tracking-wide text-center">
               Profile
             </TableHead>
-            <TableHead className="text-slate-700 font-semibold text-sm tracking-wide">
+            <TableHead className="text-slate-700 font-semibold text-sm tracking-wide text-center">
               Resource
             </TableHead>
-            <TableHead className="text-slate-700 font-semibold text-sm tracking-wide">
+            <TableHead className="text-slate-700 font-semibold text-sm tracking-wide text-center">
               Timestamp
             </TableHead>
-            <TableHead className="text-slate-700 font-semibold text-sm tracking-wide">
+            <TableHead className="text-slate-700 font-semibold text-sm tracking-wide text-center">
               Details
             </TableHead>
           </TableRow>
