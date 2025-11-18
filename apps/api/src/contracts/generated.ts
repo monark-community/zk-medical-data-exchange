@@ -1062,9 +1062,9 @@ export const STUDY_ABI: ABI = [
     "inputs": [
       {
         "indexed": true,
-        "internalType": "string",
+        "internalType": "uint256",
         "name": "binId",
-        "type": "string"
+        "type": "uint256"
       },
       {
         "indexed": false,
@@ -2114,30 +2114,6 @@ export const STUDY_ABI: ABI = [
       }
     ],
     "name": "isParticipant",
-    "outputs": [
-      {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "participant",
-        "type": "address"
-      },
-      {
-        "internalType": "string",
-        "name": "binId",
-        "type": "string"
-      }
-    ],
-    "name": "isParticipantInBin",
     "outputs": [
       {
         "internalType": "bool",
