@@ -207,11 +207,23 @@ export class StudyApplicationService {
   ): Promise<{ success: boolean; message: string }> {
     try {
       const salt = generateSecureSalt();
-      const dataCommitment = generateDataCommitment(medicalData, salt);
-      console.log("[JOIN_STUDY] Step 1: Initial commitment generated (without challenge):", {
-        commitment: dataCommitment.toString(),
-        salt: salt.toString().substring(0, 20) + "..."
+      // Step 1: Get challenge from backend first
+      const { data: challengeData } = await apiClient.post('/studies/request-challenge', {
+        studyId,
+        participantWallet: walletAddress,
       });
+
+      if (!challengeData.challenge) {
+        throw new Error("Challenge generation failed.");
+      }
+
+      console.log("Challenge received:", challengeData.challenge);
+
+      // Step 2: Generate final commitment WITH challenge
+      const finalDataCommitment = generateDataCommitment(medicalData, salt, challengeData.challenge);
+      console.log("Final data commitment (with challenge):", finalDataCommitment.toString());
+
+      // Step 3: Sign the final commitment
 
       if (!window.ethereum) {
         throw new Error("MetaMask not found. Please install MetaMask to continue.");
@@ -219,29 +231,23 @@ export class StudyApplicationService {
 
       const provider = new BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
-      const signature = await signer.signMessage(dataCommitment.toString());
+      const signature = await signer.signMessage(finalDataCommitment.toString());
       console.log("[JOIN_STUDY] Step 2: Signature created for initial commitment");
 
       const { data } = await apiClient.post("/studies/data-commitment", {
         studyId,
         participantWallet: walletAddress,
-        dataCommitment: dataCommitment.toString(),
+        dataCommitment: finalDataCommitment.toString(),
+        challenge: challengeData.challenge,
         signature,
       });
       console.log("[JOIN_STUDY] Step 3: Challenge received from server:", {
         challenge: data.challenge?.substring(0, 20) + "..."
       });
 
-      if (!data.challenge) {
-        throw new Error("Data commitment generation failed.");
+      if (!data.success) {
+        throw new Error("Data commitment registration failed.");
       }
-
-      console.log("[JOIN_STUDY] Step 4: Regenerating commitment WITH challenge:", data.challenge);
-      const finalDataCommitment = generateDataCommitment(medicalData, salt, data.challenge);
-      console.log("[JOIN_STUDY] Step 5: Final data commitment (with challenge):", {
-        commitment: finalDataCommitment.toString(),
-        matchesInitial: finalDataCommitment.toString() === dataCommitment.toString()
-      });
 
       console.log("Fetching study details and criteria");
       const studyDetails = await getStudyDetails(studyId);
@@ -283,14 +289,21 @@ export class StudyApplicationService {
         studyCriteria,
         finalDataCommitment,
         salt,
-        data.challenge,
+        challengeData.challenge,
         binConfiguration // Pass bin configuration if study has bins
       );
       console.log("[JOIN_STUDY] Step 7: ZK proof generated. Public signals:", {
         signalsCount: proofResult.publicSignals.length,
-        dataCommitmentFromProof: proofResult.publicSignals[0],
+        dataCommitmentFromProof: proofResult.publicSignals[proofResult.publicSignals.length - 1],
         challengeFromProof: proofResult.publicSignals[1],
-        eligible: proofResult.publicSignals[2]
+      });
+
+      // Use the commitment from the proof's public signals to ensure it matches what the circuit calculated
+      const verifiedCommitment = proofResult.publicSignals[proofResult.publicSignals.length - 1];
+      console.log("[JOIN_STUDY] Commitment comparison:", {
+        original: finalDataCommitment.toString(),
+        fromProof: verifiedCommitment,
+        match: finalDataCommitment.toString() === verifiedCommitment
       });
 
       const applicationRequest: StudyApplicationRequest = {
@@ -298,7 +311,7 @@ export class StudyApplicationService {
         participantWallet: walletAddress,
         proofJson: proofResult.proof,
         publicInputsJson: proofResult.publicSignals,
-        dataCommitment: finalDataCommitment.toString(), // FIX: Use finalDataCommitment instead of initial dataCommitment
+        dataCommitment: verifiedCommitment, // Use commitment from proof to match what was verified by the circuit
         binIds: proofResult.binMembership?.binIds, // Extract bin IDs from proof result
       };
       console.log("[JOIN_STUDY] Step 8: Application request prepared:", {

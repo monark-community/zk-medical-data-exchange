@@ -183,8 +183,6 @@ contract Study {
         ));
         require(recomputedHash == storedCommitmentHash, "Commitment mismatch - data tampering detected");
         
-        // Public signals: [dataCommitment, challenge, eligible, binMembership[0..49]]
-        // Total: 53 signals (2 inputs + 1 eligible + 50 bin outputs)
         uint[51] memory pubSignals;
         pubSignals[0] = dataCommitment;
         
