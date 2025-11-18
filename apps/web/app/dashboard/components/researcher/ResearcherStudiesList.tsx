@@ -67,10 +67,11 @@ export default function ResearcherStudiesList({
     setSummaryDialogOpen(true);
   };
 
+  const { isVisible: isTxProcessing } = useTxStatusState();
+
   const renderActionButtons = (study: StudySummary) => {
     const originalStudy = originalStudies.find((s) => s.id === study.id);
     if (!originalStudy) return null;
-    const { isVisible: isTxProcessing } = useTxStatusState();
     const endDate =
       study.createdAt && study.durationDays
         ? new Date(new Date(study.createdAt).getTime() + study.durationDays * 24 * 60 * 60 * 1000)
