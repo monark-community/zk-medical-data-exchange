@@ -16,9 +16,10 @@ import EditProfileField from "./editProfileField";
 
 interface EditProfileDialogProps {
   onProfileUpdate: () => void;
+  isProcessing?: boolean;
 }
 
-const EditProfileDialog = ({ onProfileUpdate }: EditProfileDialogProps) => {
+const EditProfileDialog = ({ onProfileUpdate, isProcessing = false }: EditProfileDialogProps) => {
   const [open, setOpen] = React.useState(false);
 
   const handleSuccess = () => {
@@ -26,17 +27,23 @@ const EditProfileDialog = ({ onProfileUpdate }: EditProfileDialogProps) => {
     onProfileUpdate();
   };
 
+  const handleProcessingStart = () => {
+    setOpen(false);
+  };
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="bg-blue-600 hover:bg-blue-700">Edit Profile</Button>
+        <Button className="bg-blue-600 hover:bg-blue-700" disabled={isProcessing}>
+          {isProcessing ? "Processing..." : "Edit Profile"}
+        </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Edit Profile</DialogTitle>
           <DialogDescription>Update your username and profile picture</DialogDescription>
         </DialogHeader>
-        <EditProfileField onSuccess={handleSuccess} />
+        <EditProfileField onSuccess={handleSuccess} onProcessingStart={handleProcessingStart} />
         <DialogFooter className="sm:justify-start">
           <DialogClose asChild>
             <Button className="bg-red-600 hover:bg-red-700">Cancel</Button>

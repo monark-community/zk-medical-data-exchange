@@ -14,6 +14,7 @@ import { useCreateStudy, deployStudy, deleteStudy } from "@/services/api/studySe
 import { useAccount } from "wagmi";
 import { STUDY_FORM_MAPPINGS, DEFAULT_STUDY_INFO } from "@/constants/studyFormMappings";
 import eventBus from "@/lib/eventBus";
+import { useTxStatusState } from "@/hooks/useTxStatus";
 const TemplateSelector = ({
   onTemplateSelect,
   selectedTemplate,
@@ -311,28 +312,20 @@ const RangeInput = ({
 interface StudyCreationFormProps {
   onSuccess?: () => void;
   isModal?: boolean;
-  onSubmitStateChange?: (isSubmitting: boolean) => void;
 }
 
-const StudyCreationForm = ({
-  onSuccess,
-  isModal = false,
-  onSubmitStateChange,
-}: StudyCreationFormProps) => {
+const StudyCreationForm = ({ onSuccess, isModal = false }: StudyCreationFormProps) => {
   const [studyInfo, setStudyInfo] = useState(DEFAULT_STUDY_INFO);
 
   const [criteria, setCriteria] = useState(() => createCriteria());
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<string | undefined>();
+  const { show, showError, hide } = useTxStatusState();
 
   const sanitizeText = (text: string) => {
     return text.replace(/[^a-zA-Z0-9\s\-.,!?()]/g, "");
   };
-
-  useEffect(() => {
-    onSubmitStateChange?.(isSubmitting);
-  }, [isSubmitting, onSubmitStateChange]);
 
   const { address: walletAddress, isConnected } = useAccount();
 
@@ -388,9 +381,16 @@ const StudyCreationForm = ({
       console.log("Creating study via API...");
 
       if (!isConnected || !walletAddress) {
-        alert("Please connect your wallet before creating a study.");
+        showError("Please connect your wallet before creating a study.");
         return;
       }
+
+      // Close the modal immediately if TxOverlay open
+      if (isModal && onSuccess) {
+        onSuccess();
+      }
+
+      show("Creating study in database...");
 
       // Step 1: Call the backend API to create study in database
       const result = await createStudyApi(
@@ -407,6 +407,7 @@ const StudyCreationForm = ({
 
       // Step 2: Deploy to blockchain
       console.log("Deploying study to blockchain...");
+      show("Deploying study to blockchain...");
 
       try {
         const deployResult = await deployStudy(result.study.id);
@@ -414,23 +415,26 @@ const StudyCreationForm = ({
         console.log("Blockchain deployment successful:", deployResult);
         eventBus.emit("studyCreated");
 
-        alert(
-          `Study "${result.study.title}" created and deployed successfully!\n\n` +
-            `Study Details:\n` +
-            `• Complexity: ${result.study.stats.complexity}\n` +
-            `• Enabled criteria: ${result.study.stats.enabledCriteriaCount}/12\n\n` +
-            `Blockchain Details:\n` +
-            `• Contract: ${deployResult.deployment.contractAddress}\n` +
-            `• Gas used: ${deployResult.deployment.gasUsed}\n` +
-            `• View on Etherscan: ${deployResult.deployment.etherscanUrl}`
+        show(
+          `✓ Study "${result.study.title}" created and deployed successfully! ` +
+            `Complexity: ${result.study.stats.complexity}, ` +
+            `Criteria: ${result.study.stats.enabledCriteriaCount}/12, ` +
+            `Contract: ${deployResult.deployment.contractAddress.slice(
+              0,
+              6
+            )}...${deployResult.deployment.contractAddress.slice(-4)}`
         );
 
         resetForm();
-        if (isModal && onSuccess) {
-          onSuccess();
-        } else {
-          router.push("/dashboard");
-        }
+
+        // Hide the overlay after a delay to let the user see the success message
+        setTimeout(() => {
+          hide();
+          eventBus.emit("studyCreated");
+          // if (!isModal) {
+          //   router.push("/dashboard");
+          // }
+        }, 3000);
       } catch (deployError) {
         console.error("Blockchain deployment failed:", deployError);
 
@@ -438,20 +442,23 @@ const StudyCreationForm = ({
         try {
           await deleteStudy(result.study.id, walletAddress!);
           console.log("Study deleted from database due to deployment failure");
+          eventBus.emit("studyDeleted");
         } catch (deleteError) {
           console.error("Failed to delete study after deployment failure:", deleteError);
         }
 
-        alert(
-          `Study creation failed during blockchain deployment.\n\n` +
-            `Error: ${deployError instanceof Error ? deployError.message : "Unknown error"}\n\n` +
-            `Please try creating the study again.`
+        showError(
+          `Study creation failed during blockchain deployment: ${
+            deployError instanceof Error ? deployError.message : "Unknown error"
+          }`
         );
         return;
       }
     } catch (error) {
       console.error("Failed to create study:", error);
-      alert(`Failed to create study: ${error instanceof Error ? error.message : "Unknown error"}`);
+      showError(
+        `Failed to create study: ${error instanceof Error ? error.message : "Unknown error"}`
+      );
     } finally {
       setIsSubmitting(false);
     }
