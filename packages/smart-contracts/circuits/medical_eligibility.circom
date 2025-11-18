@@ -3,6 +3,16 @@ pragma circom 2.0.0;
 include "circomlib/circuits/poseidon.circom";
 include "circomlib/circuits/comparators.circom";
 
+/*
+ * Medical Eligibility Circuit with Optional Bin Membership
+ * 
+ * This circuit proves eligibility for medical studies and optionally computes
+ * which bins a participant belongs to for privacy-preserving data aggregation.
+ * 
+ * For studies WITHOUT bins: Set numBins = 0, binMembership outputs will be all zeros
+ * For studies WITH bins: Set numBins > 0, binMembership outputs show which bins matched
+ */
+
 template MedicalEligibility() {
     var MAX_BINS = 50;
     var MAX_CATEGORIES_PER_BIN = 10;
@@ -122,7 +132,7 @@ template MedicalEligibility() {
     // Use hierarchical commitment for privacy and efficiency
     component commitment1 = Poseidon(7);
     component commitment2 = Poseidon(7); 
-    component finalCommitment = Poseidon(4);
+    component finalCommitment = Poseidon(3);
 
     
     // First hash: demographics + basic health metrics
@@ -147,7 +157,6 @@ template MedicalEligibility() {
     finalCommitment.inputs[0] <== commitment1.out;
     finalCommitment.inputs[1] <== commitment2.out;
     finalCommitment.inputs[2] <== salt;
-    finalCommitment.inputs[3] <== challenge;
     
     // ========================================
     // ELIGIBILITY CRITERIA CHECKING
