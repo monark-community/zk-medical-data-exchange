@@ -408,7 +408,7 @@ const StudyCreationForm = ({
       // Step 2: Deploy to blockchain
       console.log("Deploying study to blockchain...");
 
-        try {
+      try {
         const deployResult = await deployStudy(result.study.id);
 
         console.log("Blockchain deployment successful:", deployResult);
