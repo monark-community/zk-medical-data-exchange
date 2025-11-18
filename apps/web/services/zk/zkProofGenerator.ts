@@ -134,7 +134,6 @@ export const generateZKProof = async (
     if (salt === undefined || salt === null) {
       throw new Error("salt is required but was undefined");
     }
-
     const circuitInput = prepareCircuitInput(
       medicalData, 
       studyCriteria, 
@@ -262,7 +261,6 @@ function prepareCircuitInput(
     salt: salt.toString(),
     dataCommitment: dataCommitment.toString(),
     challenge: (challenge.startsWith('0x') ? BigInt(challenge) : BigInt(`0x${challenge}`)).toString(),
-
     enableAge: studyCriteria.enableAge.toString(),
     minAge: studyCriteria.minAge.toString(),
     maxAge: studyCriteria.maxAge.toString(),

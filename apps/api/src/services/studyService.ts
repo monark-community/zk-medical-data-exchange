@@ -1,4 +1,4 @@
-import { createWalletClient, createPublicClient, http, decodeEventLog } from "viem";
+import { createWalletClient, createPublicClient, http, decodeEventLog, keccak256, encodePacked } from "viem";
 import { sepolia } from "viem/chains";
 import { privateKeyToAccount } from "viem/accounts";
 import type { StudyCriteria } from "@zk-medical/shared";
@@ -654,6 +654,23 @@ export class StudyService {
       const challengeBytes32 = challenge.startsWith("0x") ? challenge : `0x${challenge}`;
 
       const commitmentBigInt = BigInt(dataCommitment);
+
+      const expectedHash = keccak256(
+        encodePacked(
+          ["address", "uint256", "bytes32"],
+          [participantWallet as `0x${string}`, commitmentBigInt, challengeBytes32 as `0x${string}`]
+        )
+      );
+
+      logger.info(
+        {
+          participant: participantWallet,
+          commitment: commitmentBigInt.toString(),
+          challenge: challengeBytes32,
+          expectedHash,
+        },
+        "registerCommitment - values being sent to contract"
+      );
 
       const simulationResult = await this.publicClient.simulateContract({
         account: this.account,

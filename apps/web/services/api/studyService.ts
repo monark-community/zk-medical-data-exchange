@@ -319,9 +319,16 @@ export class StudyApplicationService {
       );
       console.log("[JOIN_STUDY] Step 7: ZK proof generated. Public signals:", {
         signalsCount: proofResult.publicSignals.length,
-        dataCommitmentFromProof: proofResult.publicSignals[0],
+        dataCommitmentFromProof: proofResult.publicSignals[proofResult.publicSignals.length - 1],
         challengeFromProof: proofResult.publicSignals[1],
-        eligible: proofResult.publicSignals[2]
+      });
+
+      // Use the commitment from the proof's public signals to ensure it matches what the circuit calculated
+      const verifiedCommitment = proofResult.publicSignals[proofResult.publicSignals.length - 1];
+      console.log("[JOIN_STUDY] Commitment comparison:", {
+        original: finalDataCommitment.toString(),
+        fromProof: verifiedCommitment,
+        match: finalDataCommitment.toString() === verifiedCommitment
       });
 
       const verifiedCommitment = proofResult.publicSignals[proofResult.publicSignals.length - 1];

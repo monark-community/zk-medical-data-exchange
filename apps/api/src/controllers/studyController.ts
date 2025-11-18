@@ -1060,6 +1060,54 @@ export const requestChallenge = async (req: Request, res: Response) => {
 };
 
 /**
+ * Request a challenge for commitment generation
+ * POST /api/studies/request-challenge
+ */
+export const requestChallenge = async (req: Request, res: Response) => {
+  try {
+    const { studyId, participantWallet } = req.body;
+
+    if (!studyId) {
+      return res.status(400).json({ error: "Study ID is required" });
+    }
+
+    if (!participantWallet) {
+      return res.status(400).json({ error: "Participant wallet address is required" });
+    }
+
+    const { data: studyData, error: studyError } = await req.supabase
+      .from(TABLES.STUDIES!.name)
+      .select("id, status")
+      .eq(TABLES.STUDIES!.columns.id!, studyId)
+      .single();
+
+    if (studyError || !studyData) {
+      return res.status(404).json({ error: "Study not found" });
+    }
+
+    if (studyData.status !== "active") {
+      return res.status(400).json({ error: "Study is not accepting participants" });
+    }
+
+    const challenge = crypto.randomBytes(32).toString('hex');
+
+    logger.info(
+      { studyId, participantWallet, challenge: challenge.substring(0, 20) + "..." },
+      "Generated challenge for participant"
+    );
+
+    return res.status(200).json({
+      success: true,
+      challenge,
+      message: "Challenge generated successfully"
+    });
+  } catch (error) {
+    logger.error({ error }, "Request challenge error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+/**
  * Generate challenge for data commitment
  * POST /api/studies/data-commitment
  */
@@ -1126,7 +1174,7 @@ export const generateDataCommitmentChallenge = async (req: Request, res: Respons
         .delete()
         .eq(TABLES.DATA_COMMITMENTS!.columns.id!, existingCommitment.id);
 
-      logger.info({ studyId, participantWallet }, "Deleted expired commitment");
+      logger.info({ studyId, participantWallet }, "Deleted existing commitment for re-registration");
     }
 
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours from now
@@ -1443,24 +1491,13 @@ export const participateInStudy = async (req: Request, res: Response) => {
 
     logger.info({ studyId: id, participantWallet }, "Participant successfully enrolled in study");
 
-    // Parse publicInputsJson to get the public signals array
-    const publicSignals = typeof publicInputsJson === 'string' 
-      ? JSON.parse(publicInputsJson) 
-      : publicInputsJson;
-
-    // Extract values from public signals array:
-    // [0] = dataCommitment, [1] = challenge, [2] = eligible, [3..52] = binMembership[0..49]
-    const extractedDataCommitment = Array.isArray(publicSignals) ? publicSignals[0] : dataCommitment;
-    const extractedChallenge = Array.isArray(publicSignals) && publicSignals.length > 1 ? publicSignals[1] : storedCommitment.challenge;
-
     logger.info(
-      { 
-        publicSignalsLength: Array.isArray(publicSignals) ? publicSignals.length : 'not-array',
-        extractedDataCommitment: typeof extractedDataCommitment === 'string' ? extractedDataCommitment.substring(0, 20) + '...' : extractedDataCommitment,
-        extractedChallenge: typeof extractedChallenge === 'string' ? extractedChallenge.substring(0, 20) + '...' : extractedChallenge,
-        binIdsCount: binIds?.length || 0
+      {
+        participantWallet,
+        dataCommitment: dataCommitment.substring(0, 20) + "...",
+        storedChallenge: storedCommitment.challenge.substring(0, 20) + "...",
       },
-      "Extracted public signals for blockchain submission"
+      "About to call joinBlockchainStudy with stored challenge"
     );
 
     const blockchainTxHash = await studyService.joinBlockchainStudy(
