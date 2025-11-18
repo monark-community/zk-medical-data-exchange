@@ -13,10 +13,11 @@ import {
 } from "@/components/ui/dialog";
 import { Gavel } from "lucide-react";
 import CreateProposalField from "@/app/governance/components/CreateProposalField";
+import { useTxStatusState } from "@/hooks/useTxStatus";
 
 const CreateProposalDialog = () => {
   const [open, setOpen] = React.useState(false);
-
+  const { isVisible: isTxProcessing } = useTxStatusState();
   const handleSuccess = () => {
     setOpen(false);
   };
@@ -24,7 +25,11 @@ const CreateProposalDialog = () => {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="bg-gradient-to-r from-blue-600 to-teal-600" size="lg">
+        <Button
+          className="bg-gradient-to-r from-blue-600 to-teal-600"
+          size="lg"
+          disabled={isTxProcessing}
+        >
           <Gavel className="h-5 w-5 mr-2" />
           Create New Proposal
         </Button>

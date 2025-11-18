@@ -11,13 +11,14 @@ import ResearcherStudiesList from "@/app/dashboard/components/researcher/Researc
 import DashboardSectionHeader from "@/app/dashboard/components/shared/DashboardSectionHeader";
 import StudiesContainer from "@/app/dashboard/components/shared/StudiesContainer";
 import eventBus from "@/lib/eventBus";
+import { useTxStatusState } from "@/hooks/useTxStatus";
 
 export default function ResearcherStudiesSection() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [deletingStudyId, setDeletingStudyId] = useState<number | null>(null);
   const { address: walletAddress } = useAccount();
   const { studies, isLoading, error, refetch } = useStudies(walletAddress);
-
+  const { isVisible: isTxProcessing } = useTxStatusState();
   const handleStudyCreated = () => {
     console.log("Study created successfully!");
     refetch();
@@ -77,6 +78,7 @@ export default function ResearcherStudiesSection() {
             onClick={() => setIsDialogOpen(true)}
             size="lg"
             className="bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-700 hover:to-cyan-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300"
+            disabled={isTxProcessing}
           >
             <Plus className="mr-2 h-5 w-5" />
             Create New Study
