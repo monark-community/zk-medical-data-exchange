@@ -100,15 +100,17 @@ export default function ProposalsSection({
                     </>
                   ) : (
                     <>
-                      <div className="bg-white/10 backdrop-blur-sm px-4 py-2 rounded-lg border border-white/20">
-                        <div className="flex items-center gap-2">
-                          <FileText className="w-4 h-4 text-white" />
-                          <div>
-                            <div className="text-xs text-blue-100">Total</div>
-                            <div className="text-lg font-bold text-white">{proposals.length}</div>
+                      {variant === "myVotes" && (
+                        <div className="bg-white/10 backdrop-blur-sm px-4 py-2 rounded-lg border border-white/20">
+                          <div className="flex items-center gap-2">
+                            <FileText className="w-4 h-4 text-white" />
+                            <div>
+                              <div className="text-xs text-blue-100">Total</div>
+                              <div className="text-lg font-bold text-white">{proposals.length}</div>
+                            </div>
                           </div>
                         </div>
-                      </div>
+                      )}
                       <div className="bg-white/10 backdrop-blur-sm px-4 py-2 rounded-lg border border-white/20">
                         <div className="flex items-center gap-2">
                           <TrendingUp className="w-4 h-4 text-white" />
