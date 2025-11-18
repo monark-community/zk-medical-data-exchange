@@ -53,6 +53,9 @@ const CreateProposalField = ({ onSuccess }: CreateProposalFieldProps) => {
 
       if (result.success) {
         show("Proposal created successfully! ✓");
+        setTimeout(() => {
+          hide();
+        }, 3000);
         emitter.emit("proposalUpdated");
       } else {
         showError(result.error || "Failed to create proposal");
@@ -184,3 +187,6 @@ const CreateProposalField = ({ onSuccess }: CreateProposalFieldProps) => {
 };
 
 export default CreateProposalField;
+function hide() {
+  throw new Error("Function not implemented.");
+}
