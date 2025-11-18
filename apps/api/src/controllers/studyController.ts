@@ -1101,6 +1101,20 @@ export const generateDataCommitmentChallenge = async (req: Request, res: Respons
     const challenge = crypto.randomBytes(32).toString("hex");
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours from now
 
+    logger.info(
+      {
+        studyId,
+        participantWallet,
+        dataCommitmentReceived: dataCommitment.substring(0, 20) + "...",
+        dataCommitmentFull: dataCommitment,
+        dataCommitmentLength: dataCommitment.length,
+        challenge: challenge.substring(0, 20) + "...",
+        challengeFull: challenge,
+        expiresAt: expiresAt.toISOString()
+      },
+      "[CHALLENGE_REQUEST] Storing initial commitment (without challenge) to database"
+    );
+
     const { error: commitmentError } = await req.supabase
       .from(TABLES.DATA_COMMITMENTS!.name)
       .insert({
@@ -1191,6 +1205,7 @@ export const participateInStudy = async (req: Request, res: Response) => {
       dataCommitment,
       matchedCriteria,
       eligibilityScore,
+      binIds, // Bin IDs from ZK proof
     } = req.body;
 
     if (!participantWallet) {
@@ -1212,6 +1227,17 @@ export const participateInStudy = async (req: Request, res: Response) => {
       .eq(TABLES.DATA_COMMITMENTS!.columns.walletAddress!, participantWallet.toLowerCase())
       .single();
 
+    logger.info(
+      {
+        studyId: id,
+        participantWallet,
+        commitmentFound: !!storedCommitment,
+        storedCommitmentPreview: storedCommitment?.data_commitment?.substring(0, 20) + "...",
+        receivedCommitmentPreview: dataCommitment?.substring(0, 20) + "..."
+      },
+      "[PARTICIPATE] Retrieved stored commitment from database"
+    );
+
     if (commitmentFetchError || !storedCommitment) {
       logger.warn(
         { studyId: id, participantWallet },
@@ -1228,16 +1254,28 @@ export const participateInStudy = async (req: Request, res: Response) => {
         {
           studyId: id,
           participantWallet,
-          submitted: dataCommitment.substring(0, 20) + "...",
-          stored: storedCommitment.data_commitment.substring(0, 20) + "...",
+          submittedPreview: dataCommitment.substring(0, 20) + "...",
+          submittedFull: dataCommitment,
+          submittedLength: dataCommitment.length,
+          storedPreview: storedCommitment.data_commitment.substring(0, 20) + "...",
+          storedFull: storedCommitment.data_commitment,
+          storedLength: storedCommitment.data_commitment.length,
+          areEqual: storedCommitment.data_commitment === dataCommitment,
+          typeofSubmitted: typeof dataCommitment,
+          typeofStored: typeof storedCommitment.data_commitment
         },
-        "Data commitment mismatch - possible tampering detected"
+        "[PARTICIPATE] Data commitment MISMATCH - possible tampering detected or bug in commitment generation"
       );
       return res.status(400).json({
         error: "Data commitment does not match stored value",
         code: "COMMITMENT_MISMATCH",
       });
     }
+
+    logger.info(
+      { studyId: id, participantWallet },
+      "[PARTICIPATE] Commitment verification PASSED - commitments match!"
+    );
 
     if (storedCommitment.proof_submitted) {
       logger.warn(
@@ -1375,12 +1413,33 @@ export const participateInStudy = async (req: Request, res: Response) => {
 
     logger.info({ studyId: id, participantWallet }, "Participant successfully enrolled in study");
 
+    // Parse publicInputsJson to get the public signals array
+    const publicSignals = typeof publicInputsJson === 'string' 
+      ? JSON.parse(publicInputsJson) 
+      : publicInputsJson;
+
+    // Extract values from public signals array:
+    // [0] = dataCommitment, [1] = challenge, [2] = eligible, [3..52] = binMembership[0..49]
+    const extractedDataCommitment = Array.isArray(publicSignals) ? publicSignals[0] : dataCommitment;
+    const extractedChallenge = Array.isArray(publicSignals) && publicSignals.length > 1 ? publicSignals[1] : storedCommitment.challenge;
+
+    logger.info(
+      { 
+        publicSignalsLength: Array.isArray(publicSignals) ? publicSignals.length : 'not-array',
+        extractedDataCommitment: typeof extractedDataCommitment === 'string' ? extractedDataCommitment.substring(0, 20) + '...' : extractedDataCommitment,
+        extractedChallenge: typeof extractedChallenge === 'string' ? extractedChallenge.substring(0, 20) + '...' : extractedChallenge,
+        binIdsCount: binIds?.length || 0
+      },
+      "Extracted public signals for blockchain submission"
+    );
+
     const blockchainTxHash = await studyService.joinBlockchainStudy(
       studyData.contract_address,
       proofJson,
       participantWallet,
-      dataCommitment,
-      storedCommitment.challenge
+      extractedDataCommitment,
+      extractedChallenge,
+      binIds // Pass bin IDs from proof to blockchain
     );
 
     await req.supabase
@@ -1390,6 +1449,7 @@ export const participateInStudy = async (req: Request, res: Response) => {
 
     await auditService.logStudyParticipation(participantWallet, String(id), true, {
       blockchainTxHash,
+      binCount: binIds?.length || 0,
     });
 
     res.status(201).json({

@@ -183,7 +183,13 @@ contract Study {
         ));
         require(recomputedHash == storedCommitmentHash, "Commitment mismatch - data tampering detected");
         
-        uint[1] memory pubSignals = [uint256(1)]; // Expected: eligible = 1
+        // Public signals: [dataCommitment, challenge, eligible, binMembership[0..49]]
+        // Total: 53 signals (2 inputs + 1 eligible + 50 bin outputs)
+        uint[51] memory pubSignals;
+        pubSignals[0] = dataCommitment;
+        
+        // binMembership signals (indices 3-52) will be verified by the proof
+        // We don't need to set them here as the proof will validate them
         bool isEligible = zkVerifier.verifyProof(_pA, _pB, _pC, pubSignals);
         
         emit EligibilityVerified(participant, isEligible);

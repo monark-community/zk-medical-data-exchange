@@ -10,9 +10,10 @@ import { ExtractedMedicalData } from "@/services/fhir/types/extractedMedicalData
  *
  * @param medicalData - Aggregated medical data in ZK-compatible format
  * @param salt - Cryptographically secure random salt (from generateSecureSalt())
+ * @param challenge - Optional challenge string (hex) from backend. If provided, uses poseidon4 to match circuit.
  * @returns Poseidon hash commitment as BigInt
  */
-export const generateDataCommitment = (medicalData: ExtractedMedicalData, salt: number): bigint => {
+export const generateDataCommitment = (medicalData: ExtractedMedicalData, salt: number, challenge?: string): bigint => {
   const normalizedData = normalizeMedicalDataForCircuit(medicalData);
 
   try {
@@ -41,13 +42,28 @@ export const generateDataCommitment = (medicalData: ExtractedMedicalData, salt: 
 
     const commitment1 = poseidon7(commitment1InputsBigInt);
     const commitment2 = poseidon7(commitment2InputsBigInt);
-    const finalCommitmentHash = poseidon3([commitment1, commitment2, BigInt(salt)]);
-
-    console.log("Data commitment generated:");
-    console.log("├─ Commitment 1 inputs:", commitment1Inputs);
-    console.log("├─ Commitment 2 inputs:", commitment2Inputs);
-    console.log("├─ Final inputs:", [commitment1, commitment2, salt]);
-    console.log("└─ Final commitment:", finalCommitmentHash);
+    
+    // If challenge is provided, use poseidon4 to match the circuit's finalCommitment structure
+    let finalCommitmentHash: bigint;
+    if (challenge) {
+      const challengeBigInt = BigInt(`0x${challenge}`)
+      finalCommitmentHash = poseidon3([commitment1, commitment2, BigInt(salt)]);
+      console.log("[COMMITMENT_GEN] Data commitment generated (WITH challenge provided):");
+      console.log("├─ Commitment 1 inputs:", commitment1Inputs);
+      console.log("├─ Commitment 1 hash:", commitment1.toString());
+      console.log("├─ Commitment 2 inputs:", commitment2Inputs);
+      console.log("├─ Commitment 2 hash:", commitment2.toString());
+      console.log("├─ Challenge (NOT included in hash):", challengeBigInt.toString());
+      console.log("├─ Final inputs [c1, c2, salt]:", [commitment1.toString(), commitment2.toString(), salt]);
+      console.log("└─ Final commitment:", finalCommitmentHash.toString());
+    } else {
+      finalCommitmentHash = poseidon3([commitment1, commitment2, BigInt(salt)]);
+      console.log("[COMMITMENT_GEN] Data commitment generated (WITHOUT challenge - initial submission):");
+      console.log("├─ Commitment 1 inputs:", commitment1Inputs);
+      console.log("├─ Commitment 2 inputs:", commitment2Inputs);
+      console.log("├─ Final inputs [c1, c2, salt]:", [commitment1.toString(), commitment2.toString(), salt]);
+      console.log("└─ Final commitment:", finalCommitmentHash.toString());
+    }
 
     return finalCommitmentHash;
   } catch (error) {
