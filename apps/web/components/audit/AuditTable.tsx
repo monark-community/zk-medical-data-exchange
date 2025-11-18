@@ -89,6 +89,15 @@ const AuditTable: React.FC<AuditTableProps> = ({
               ${index % 2 === 0 ? "bg-white" : "bg-slate-50/50"}
             `}
             onClick={() => handleRowClick(record)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                handleRowClick(record);
+              }
+            }}
+            role="button"
+            tabIndex={onRecordClick ? 0 : undefined}
+            aria-label={`View details for ${record.action} on ${record.resource}`}
           >
             {/* Header Row */}
             <div className="flex items-center justify-between mb-3">
