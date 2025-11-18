@@ -323,14 +323,6 @@ export class StudyApplicationService {
         challengeFromProof: proofResult.publicSignals[1],
       });
 
-      // Use the commitment from the proof's public signals to ensure it matches what the circuit calculated
-      const verifiedCommitment = proofResult.publicSignals[proofResult.publicSignals.length - 1];
-      console.log("[JOIN_STUDY] Commitment comparison:", {
-        original: finalDataCommitment.toString(),
-        fromProof: verifiedCommitment,
-        match: finalDataCommitment.toString() === verifiedCommitment
-      });
-
       const verifiedCommitment = proofResult.publicSignals[proofResult.publicSignals.length - 1];
 
       const applicationRequest: StudyApplicationRequest = {

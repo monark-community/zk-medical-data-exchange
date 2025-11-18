@@ -132,7 +132,7 @@ template MedicalEligibility() {
     // Use hierarchical commitment for privacy and efficiency
     component commitment1 = Poseidon(7);
     component commitment2 = Poseidon(7); 
-    component finalCommitment = Poseidon(4);
+    component finalCommitment = Poseidon(3);
 
     
     // First hash: demographics + basic health metrics
@@ -157,7 +157,6 @@ template MedicalEligibility() {
     finalCommitment.inputs[0] <== commitment1.out;
     finalCommitment.inputs[1] <== commitment2.out;
     finalCommitment.inputs[2] <== salt;
-    finalCommitment.inputs[3] <== challenge;
     
     log("commitment1.out =", commitment1.out);
     log("commitment2.out =", commitment2.out);
