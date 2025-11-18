@@ -1,10 +1,10 @@
-import { createWalletClient, createPublicClient, http, decodeEventLog } from "viem";
+import { createWalletClient, createPublicClient, http, decodeEventLog, keccak256, encodePacked } from "viem";
 import { sepolia } from "viem/chains";
 import { privateKeyToAccount } from "viem/accounts";
 import type { StudyCriteria } from "@zk-medical/shared";
 import logger from "@/utils/logger";
 import { Config } from "@/config/config";
-import { STUDY_ABI, STUDY_FACTORY_ABI } from "../contracts/generated";
+import { STUDY_ABI, STUDY_FACTORY_ABI, MEDICAL_ELIGIBILITY_VERIFIER_ABI } from "../contracts/generated";
 
 export interface StudyDeploymentParams {
   title: string;
@@ -94,6 +94,10 @@ class StudyService {
         functionName,
         args,
       });
+
+      logger.info("---------------------------------------------------")
+
+      logger.info(simulationResult)
 
       logger.info(
         {
@@ -620,6 +624,23 @@ class StudyService {
       
       const commitmentBigInt = BigInt(dataCommitment);
 
+      const expectedHash = keccak256(
+        encodePacked(
+          ["address", "uint256", "bytes32"],
+          [participantWallet as `0x${string}`, commitmentBigInt, challengeBytes32 as `0x${string}`]
+        )
+      );
+
+      logger.info(
+        {
+          participant: participantWallet,
+          commitment: commitmentBigInt.toString(),
+          challenge: challengeBytes32,
+          expectedHash,
+        },
+        "registerCommitment - values being sent to contract"
+      );
+
       const simulationResult = await this.publicClient.simulateContract({
         account: this.account,
         address: contractAddress as `0x${string}`,
@@ -767,10 +788,83 @@ class StudyService {
 
       logger.info({ pA, pB, pC, commitment }, "Proof converted to BigInt format");
 
+      // BN254 scalar field bound check for public signal
+      try {
+        const r = BigInt("21888242871839275222246405745257275088548364400416034343698204186575808495617");
+        const withinField = commitment < r;
+        logger.info(
+          { commitment: commitment.toString(), withinField },
+          "Public signal field bound check (commitment < r)"
+        );
+      } catch (e) {
+        logger.warn(
+          { error: e instanceof Error ? e.message : String(e) },
+          "Failed field bound check logging"
+        );
+      }
+
+      // Preflight: verify against the Study's zkVerifier directly to isolate issues
+      try {
+        // 1) Read the verifier address from the Study
+        const zkVerifierAddress = await this.publicClient.readContract({
+          address: studyAddress as `0x${string}`,
+          abi: STUDY_ABI,
+          functionName: "zkVerifier",
+        });
+
+        // 2) Call verifyProof on the verifier with the prepared proof and public signal
+        const pubSignals: [bigint] = [commitment];
+        const verifierOk = await this.publicClient.readContract({
+          address: zkVerifierAddress as `0x${string}`,
+          abi: MEDICAL_ELIGIBILITY_VERIFIER_ABI,
+          functionName: "verifyProof",
+          args: [pA, pB, pC, pubSignals],
+        });
+
+        logger.info(
+          { zkVerifierAddress, verifierOk, pubSignals: pubSignals[0].toString() },
+          "Verifier preflight check result"
+        );
+
+        if (!verifierOk) {
+          // Short-circuit with explicit message; avoid spending gas on a guaranteed revert
+          const msg = "Verifier preflight failed: proof/public signal mismatch (check verifier/zkey alignment and dataCommitment)";
+          logger.error({ zkVerifierAddress, studyAddress, participantWallet }, msg);
+          return { success: false, error: msg };
+        }
+      } catch (preflightError) {
+        // If read-only verification throws for non-revert reasons, log and continue to simulation
+        logger.warn(
+          {
+            error: preflightError instanceof Error ? preflightError.message : String(preflightError),
+            studyAddress,
+            participantWallet,
+          },
+          "Verifier preflight check encountered an error; continuing to simulateContract"
+        );
+      }
+
       let challengeBytes32 = challenge 
         ? (challenge.startsWith('0x') ? challenge : `0x${challenge}`)
         : `0x${'0'.repeat(64)}`; 
 
+      const expectedHash = keccak256(
+        encodePacked(
+          ["address", "uint256", "bytes32"],
+          [participantWallet as `0x${string}`, commitment, challengeBytes32 as `0x${string}`]
+        )
+      );
+
+      logger.info(
+        {
+          participant: participantWallet,
+          commitment: commitment.toString(),
+          challenge: challengeBytes32,
+          expectedHash,
+          note: "This hash should match what was stored during registerCommitment"
+        },
+        "joinStudy - values being sent to contract"
+      );
 
       const result = await this.executeContractTransaction(
         studyAddress,

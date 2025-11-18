@@ -11,6 +11,7 @@ import {
   getEnrolledStudies,
   revokeStudyConsent,
   grantStudyConsent,
+    requestChallenge,
   generateDataCommitmentChallenge,
 } from "@/controllers/studyController";
 
@@ -323,6 +324,51 @@ router.delete("/:id", deleteStudy);
  *         description: Internal server error
  */
 router.post("/data-commitment", generateDataCommitmentChallenge);
+
+/**
+ * @swagger
+ * /studies/request-challenge:
+ *   post:
+ *     summary: Request a challenge for commitment generation
+ *     description: Generate a random challenge to include in data commitment
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - studyId
+ *               - participantWallet
+ *             properties:
+ *               studyId:
+ *                 type: integer
+ *                 description: Study ID
+ *               participantWallet:
+ *                 type: string
+ *                 description: Participant's wallet address
+ *     responses:
+ *       200:
+ *         description: Challenge generated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 challenge:
+ *                   type: string
+ *                 message:
+ *                   type: string
+ *       400:
+ *         description: Invalid request
+ *       404:
+ *         description: Study not found
+ *       500:
+ *         description: Internal server error
+ */
+router.post("/request-challenge", requestChallenge);
 
 /**
  * @swagger

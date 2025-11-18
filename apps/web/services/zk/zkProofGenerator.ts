@@ -114,24 +114,6 @@ export const generateZKProof = async (
     if (salt === undefined || salt === null) {
       throw new Error("salt is required but was undefined");
     }
-
-    // const isEligible = checkEligibility(medicalData, studyCriteria);
-    // console.log("Eligibility check:", isEligible ? "ELIGIBLE" : "NOT ELIGIBLE");
-
-    // if (!isEligible) {
-    //   return {
-    //     proof: {
-    //       a: ["0", "0"],
-    //       b: [
-    //         ["0", "0"],
-    //         ["0", "0"],
-    //       ],
-    //       c: ["0", "0"],
-    //     },
-    //     publicSignals: ["0"],
-    //     isEligible: false,
-    //   };
-    // }
     
     const circuitInput = prepareCircuitInput(medicalData, studyCriteria, dataCommitment, salt, challenge);
     console.log("Circuit input prepared with commitment verification");
@@ -151,6 +133,13 @@ export const generateZKProof = async (
     console.log("├─ circuitInput:", circuitInput);
     console.log("├─ circuitWasm type:", typeof circuitWasm);
     console.log("└─ provingKey type:", typeof provingKey);
+    
+    // Debug: Verify commitment calculation matches
+    console.log("\n🔍 PRE-PROOF VERIFICATION:");
+    console.log("├─ Expected dataCommitment:", circuitInput.dataCommitment);
+    console.log("├─ Salt:", circuitInput.salt);
+    console.log("├─ Challenge:", circuitInput.challenge);
+    console.log("└─ These should match circuit logs below...\n");
 
     const { proof, publicSignals } = await snarkjs.groth16.fullProve(
       circuitInput,
@@ -163,12 +152,24 @@ export const generateZKProof = async (
     console.log("When running full prove, publicSignals are:", publicSignals);
 
     const formattedProof: ZKProof = {
-      a: [proof.pi_a[0], proof.pi_a[1]],
-      b: [
-        [proof.pi_b[0][1], proof.pi_b[0][0]],
-        [proof.pi_b[1][1], proof.pi_b[1][0]],
+      a: [
+        proof.pi_a[0].toString(),
+        proof.pi_a[1].toString(),
       ],
-      c: [proof.pi_c[0], proof.pi_c[1]],
+      b: [
+        [
+          proof.pi_b[0][1].toString(),
+          proof.pi_b[0][0].toString(),
+        ],
+        [
+          proof.pi_b[1][1].toString(),
+          proof.pi_b[1][0].toString(),
+        ],
+      ],
+      c: [
+        proof.pi_c[0].toString(),
+        proof.pi_c[1].toString(),
+      ],
     };
 
     console.log("ZK proof generated successfully!");
@@ -229,7 +230,7 @@ function prepareCircuitInput(
 
     salt: salt.toString(),
     dataCommitment: dataCommitment.toString(),
-    challenge: BigInt(`0x${challenge}`).toString(),
+    challenge: (challenge.startsWith('0x') ? BigInt(challenge) : BigInt(`0x${challenge}`)).toString(),
     
     enableAge: studyCriteria.enableAge.toString(),
     minAge: studyCriteria.minAge.toString(),

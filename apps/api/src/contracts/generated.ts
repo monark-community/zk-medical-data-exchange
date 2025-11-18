@@ -1,5 +1,5 @@
 // Auto-generated contract ABIs
-// Generated on 2025-11-17T23:54:55.866Z
+// Generated on 2025-11-18T04:14:37.427Z
 
 // ABI type definitions
 interface ABIInput {

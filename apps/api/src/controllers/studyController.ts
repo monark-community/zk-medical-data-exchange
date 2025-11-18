@@ -906,9 +906,57 @@ export const updateStudy = async (req: Request, res: Response) => {
  * Generate challenge for data commitment
  * POST /api/studies/data-commitment
  */
+/**
+ * Request a challenge for commitment generation
+ * POST /api/studies/request-challenge
+ */
+export const requestChallenge = async (req: Request, res: Response) => {
+  try {
+    const { studyId, participantWallet } = req.body;
+
+    if (!studyId) {
+      return res.status(400).json({ error: "Study ID is required" });
+    }
+
+    if (!participantWallet) {
+      return res.status(400).json({ error: "Participant wallet address is required" });
+    }
+
+    const { data: studyData, error: studyError } = await req.supabase
+      .from(TABLES.STUDIES!.name)
+      .select("id, status")
+      .eq(TABLES.STUDIES!.columns.id!, studyId)
+      .single();
+
+    if (studyError || !studyData) {
+      return res.status(404).json({ error: "Study not found" });
+    }
+
+    if (studyData.status !== "active") {
+      return res.status(400).json({ error: "Study is not accepting participants" });
+    }
+
+    const challenge = crypto.randomBytes(32).toString('hex');
+    
+    logger.info(
+      { studyId, participantWallet, challenge: challenge.substring(0, 20) + "..." },
+      "Generated challenge for participant"
+    );
+
+    return res.status(200).json({
+      success: true,
+      challenge,
+      message: "Challenge generated successfully"
+    });
+  } catch (error) {
+    logger.error({ error }, "Request challenge error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
 export const generateDataCommitmentChallenge = async (req: Request, res: Response) => {
   try {
-    const { studyId, participantWallet, dataCommitment, signature } = req.body;
+    const { studyId, participantWallet, dataCommitment, signature, challenge } = req.body;
 
     if (!studyId) {
       return res.status(400).json({ error: "Study ID is required" });
@@ -924,6 +972,10 @@ export const generateDataCommitmentChallenge = async (req: Request, res: Respons
 
     if (!signature) {
       return res.status(400).json({ error: "Signature is required" });
+    }
+    
+    if (!challenge) {
+      return res.status(400).json({ error: "Challenge is required" });
     }
 
     const recoveredAddress = verifyMessage(dataCommitment.toString(), signature);
@@ -960,27 +1012,6 @@ export const generateDataCommitmentChallenge = async (req: Request, res: Respons
         });
       }
 
-      const expiresAt = new Date(existingCommitment.expires_at);
-      const now = new Date();
-      
-      if (now < expiresAt) {
-        logger.info(
-          { 
-            studyId, 
-            participantWallet,
-            expiresAt,
-          },
-          "Returning existing valid challenge"
-        );
-        
-        return res.status(200).json({
-          success: true,
-          challenge: existingCommitment.challenge,
-          message: "Using existing challenge (not expired)",
-          expiresAt: expiresAt.toISOString(),
-        });
-      }
-
       await req.supabase
         .from(TABLES.DATA_COMMITMENTS!.name)
         .delete()
@@ -988,11 +1019,10 @@ export const generateDataCommitmentChallenge = async (req: Request, res: Respons
       
       logger.info(
         { studyId, participantWallet },
-        "Deleted expired commitment"
+        "Deleted existing commitment for re-registration"
       );
     }
 
-    const challenge = crypto.randomBytes(32).toString('hex');
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours from now
 
     const { error: commitmentError } = await req.supabase
@@ -1011,7 +1041,7 @@ export const generateDataCommitmentChallenge = async (req: Request, res: Respons
 
     if (commitmentError) {
       logger.error({ error: commitmentError }, "Failed to store commitment");
-      return res.status(500).json({ error: "Failed to generate challenge" });
+      return res.status(500).json({ error: "Failed to register commitment" });
     }
 
     logger.info(
@@ -1022,7 +1052,7 @@ export const generateDataCommitmentChallenge = async (req: Request, res: Respons
         challenge: challenge.substring(0, 20) + "...",
         expiresAt,
       },
-      "Generated data commitment challenge - now registering on blockchain"
+      "Storing final commitment - now registering on blockchain"
     );
 
     if (studyData.contract_address) {
@@ -1061,9 +1091,8 @@ export const generateDataCommitmentChallenge = async (req: Request, res: Respons
 
     return res.status(200).json({
       success: true,
-      challenge,
       expiresAt: expiresAt.toISOString(),
-      message: "Challenge generated successfully"
+      message: "Commitment registered successfully"
     });
   } catch (error) {
     logger.error({ error }, "Generate data commitment challenge error");
@@ -1271,6 +1300,15 @@ export const participateInStudy = async (req: Request, res: Response) => {
       .eq(TABLES.STUDIES!.columns.id!, id);
 
     logger.info({ studyId: id, participantWallet }, "Participant successfully enrolled in study");
+
+    logger.info(
+      {
+        participantWallet,
+        dataCommitment: dataCommitment.substring(0, 20) + "...",
+        storedChallenge: storedCommitment.challenge.substring(0, 20) + "...",
+      },
+      "About to call joinBlockchainStudy with stored challenge"
+    );
 
     const blockchainTxHash = await studyService.joinBlockchainStudy(
       studyData.contract_address,

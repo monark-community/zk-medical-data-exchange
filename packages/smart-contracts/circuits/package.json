@@ -8,7 +8,6 @@
     "trusted-setup": "snarkjs powersoftau new bn128 12 build/pot12_0000.ptau -v && snarkjs powersoftau contribute build/pot12_0000.ptau build/pot12_0001.ptau --name='First contribution' -v && snarkjs powersoftau prepare phase2 build/pot12_0001.ptau build/pot12_final.ptau -v",
     "setup-circuit": "snarkjs groth16 setup build/medical_eligibility.r1cs build/pot12_final.ptau build/medical_eligibility_0000.zkey && snarkjs zkey contribute build/medical_eligibility_0000.zkey build/medical_eligibility_0001.zkey --name='First contribution' -v && snarkjs zkey export verificationkey build/medical_eligibility_0001.zkey build/verification_key.json",
     "generate-verifier": "snarkjs zkey export solidityverifier build/medical_eligibility_0001.zkey ../contracts/studies/MedicalEligibilityVerifier.sol",
-    "generate-proof": "node scripts/generate_proof.js",
     "verify-proof": "snarkjs groth16 verify build/verification_key.json build/public.json build/proof.json",
     "setup-all": "npm run compile && npm run trusted-setup && npm run setup-circuit && npm run generate-verifier"
   },

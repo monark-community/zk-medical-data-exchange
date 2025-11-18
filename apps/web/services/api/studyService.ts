@@ -193,30 +193,43 @@ export class StudyApplicationService {
   ): Promise<{ success: boolean; message: string }> {
     try {
       const salt = generateSecureSalt();
-      const dataCommitment = generateDataCommitment(medicalData, salt);
+      // Step 1: Get challenge from backend first
+      const { data: challengeData } = await apiClient.post('/studies/request-challenge', {
+        studyId,
+        participantWallet: walletAddress,
+      });
+
+      if (!challengeData.challenge) {
+        throw new Error("Challenge generation failed.");
+      }
       
+      console.log("Challenge received:", challengeData.challenge);
+      
+      // Step 2: Generate final commitment WITH challenge
+      const finalDataCommitment = generateDataCommitment(medicalData, salt, challengeData.challenge);
+      console.log("Final data commitment (with challenge):", finalDataCommitment.toString());
+      
+      // Step 3: Sign the final commitment
       if (!window.ethereum) {
         throw new Error("MetaMask not found. Please install MetaMask to continue.");
       }
       
       const provider = new BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
-      const signature = await signer.signMessage(dataCommitment.toString());
+      const signature = await signer.signMessage(finalDataCommitment.toString());
 
+      // Step 4: Register the final commitment (with challenge) on-chain
       const { data } = await apiClient.post('/studies/data-commitment', {
         studyId,
         participantWallet: walletAddress,
-        dataCommitment: dataCommitment.toString(),
+        dataCommitment: finalDataCommitment.toString(),
+        challenge: challengeData.challenge,
         signature
       });
 
-      if (!data.challenge) {
-        throw new Error("Data commitment generation failed.");
+      if (!data.success) {
+        throw new Error("Data commitment registration failed.");
       }
-      
-      console.log("Regenerating commitment with challenge:", data.challenge);
-      const finalDataCommitment = generateDataCommitment(medicalData, salt, data.challenge);
-      console.log("Final data commitment (with challenge):", finalDataCommitment.toString());
       
       console.log("Fetching study criteria");
       const studyCriteria = await this.getStudyCriteria(studyId);
@@ -256,7 +269,7 @@ export class StudyApplicationService {
         studyCriteria,
         finalDataCommitment,
         salt,
-        data.challenge
+        challengeData.challenge
       );
 
       const applicationRequest: StudyApplicationRequest = {
@@ -264,7 +277,7 @@ export class StudyApplicationService {
         participantWallet: walletAddress,
         proofJson: proof,
         publicInputsJson: publicSignals,
-        dataCommitment: dataCommitment.toString(),
+        dataCommitment: finalDataCommitment.toString(), // Use the final commitment (with challenge)
       };
 
       await this.submitApplication(applicationRequest);
