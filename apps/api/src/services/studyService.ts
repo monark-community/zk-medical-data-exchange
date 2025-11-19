@@ -1,4 +1,4 @@
-import { createWalletClient, createPublicClient, http, decodeEventLog, keccak256, encodePacked } from "viem";
+import { createWalletClient, createPublicClient, http, decodeEventLog } from "viem";
 import { sepolia } from "viem/chains";
 import { privateKeyToAccount } from "viem/accounts";
 import type { StudyCriteria } from "@zk-medical/shared";
@@ -6,7 +6,7 @@ import logger from "@/utils/logger";
 import { Config } from "@/config/config";
 import { STUDY_ABI, STUDY_FACTORY_ABI, MEDICAL_ELIGIBILITY_VERIFIER_ABI } from "../contracts/generated";
 import { BIN_COUNT, MEDICAL_ELIGIBILITY_PUBSIGNALS_LENGTH } from "@/services/constants/signals";
-import { JoinStudyError } from "./errors/JoinStudyError";
+import { JoinStudyError } from "@/services/errors/joinStudyError";
 
 export interface StudyDeploymentParams {
   title: string;
