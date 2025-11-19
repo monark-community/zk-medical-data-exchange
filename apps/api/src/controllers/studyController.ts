@@ -1269,18 +1269,13 @@ export const participateInStudy = async (req: Request, res: Response) => {
           typeofSubmitted: typeof dataCommitment,
           typeofStored: typeof storedCommitment.data_commitment
         },
-        "[PARTICIPATE] Data commitment MISMATCH - possible tampering detected or bug in commitment generation"
+        "Data commitment mismatch - possible tampering detected"
       );
       return res.status(400).json({
         error: "Data commitment does not match stored value",
         code: "COMMITMENT_MISMATCH",
       });
     }
-
-    logger.info(
-      { studyId: id, participantWallet },
-      "[PARTICIPATE] Commitment verification PASSED - commitments match!"
-    );
 
     if (storedCommitment.proof_submitted) {
       logger.warn(
@@ -1366,16 +1361,7 @@ export const participateInStudy = async (req: Request, res: Response) => {
     if (existing) {
       return res.status(400).json({ error: "Already participated in this study" });
     }
-
-    logger.info(
-      {
-        participantWallet,
-        dataCommitment: dataCommitment.substring(0, 20) + "...",
-        storedChallenge: storedCommitment.challenge.substring(0, 20) + "...",
-      },
-      "Calling joinBlockchainStudy with stored challenge"
-    );
-
+    
     const blockchainTxHash = await studyService.joinBlockchainStudy(
       studyData.contract_address,
       proofJson,
