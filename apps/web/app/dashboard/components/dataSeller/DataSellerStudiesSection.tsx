@@ -64,7 +64,7 @@ export default function DataSellerStudiesSection() {
   const [enrolledStudies, setEnrolledStudies] = useState<any[]>([]);
   const [enrolledLoading, setEnrolledLoading] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("available");
-  const { show, showError, hide, isVisible: isTxProcessing } = useTxStatusState();
+  const { show, showError, isVisible: isTxProcessing } = useTxStatusState();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
   const [selectedStatusFilters, setSelectedStatusFilters] = useState<string[]>(["active"]);
@@ -131,9 +131,6 @@ export default function DataSellerStudiesSection() {
 
       if (result.success) {
         show("✓ " + result.message);
-        setTimeout(() => {
-          hide();
-        }, 3000);
 
         refetch();
         if (walletAddress) {
@@ -147,9 +144,6 @@ export default function DataSellerStudiesSection() {
     } catch (error: any) {
       console.error("Error during study application:", error);
       showError(`Application failed: ${error.message || error}`);
-      setTimeout(() => {
-        hide();
-      }, 5000);
     } finally {
       setApplyingStudyId(null);
     }
@@ -185,18 +179,12 @@ export default function DataSellerStudiesSection() {
         setEnrolledLoading(false);
 
         show("✓ Consent revoked successfully!");
-        setTimeout(() => {
-          hide();
-        }, 3000);
       }
     } catch (error) {
       console.error("Failed to revoke consent:", error);
       showError(
         `Failed to revoke consent: ${error instanceof Error ? error.message : "Unknown error"}`
       );
-      setTimeout(() => {
-        hide();
-      }, 5000);
     } finally {
       setRevokingStudyId(null);
     }
@@ -232,9 +220,6 @@ export default function DataSellerStudiesSection() {
         setEnrolledLoading(false);
 
         show("✓ Consent granted successfully!");
-        setTimeout(() => {
-          hide();
-        }, 3000);
       }
     } catch (error) {
       console.error("Failed to grant consent:", error);
@@ -247,9 +232,6 @@ export default function DataSellerStudiesSection() {
       } else {
         showError(`Failed to grant consent: ${errorMessage}`);
       }
-      setTimeout(() => {
-        hide();
-      }, 5000);
     } finally {
       setGrantingStudyId(null);
     }
