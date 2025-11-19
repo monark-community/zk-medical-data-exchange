@@ -1015,6 +1015,50 @@ export const updateStudy = async (req: Request, res: Response) => {
   }
 };
 
+export const requestChallenge = async (req: Request, res: Response) => {
+  try {
+    const { studyId, participantWallet } = req.body;
+
+    if (!studyId) {
+      return res.status(400).json({ error: "Study ID is required" });
+    }
+
+    if (!participantWallet) {
+      return res.status(400).json({ error: "Participant wallet address is required" });
+    }
+
+    const { data: studyData, error: studyError } = await req.supabase
+      .from(TABLES.STUDIES!.name)
+      .select("id, status")
+      .eq(TABLES.STUDIES!.columns.id!, studyId)
+      .single();
+
+    if (studyError || !studyData) {
+      return res.status(404).json({ error: "Study not found" });
+    }
+
+    if (studyData.status !== "active") {
+      return res.status(400).json({ error: "Study is not accepting participants" });
+    }
+
+    const challenge = crypto.randomBytes(32).toString('hex');
+
+    logger.info(
+      { studyId, participantWallet, challenge: challenge.substring(0, 20) + "..." },
+      "Generated challenge for participant"
+    );
+
+    return res.status(200).json({
+      success: true,
+      challenge,
+      message: "Challenge generated successfully"
+    });
+  } catch (error) {
+    logger.error({ error }, "Request challenge error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
 /**
  * Request a challenge for commitment generation
  * POST /api/studies/request-challenge

@@ -676,23 +676,6 @@ export class StudyService {
 
       const commitmentBigInt = BigInt(dataCommitment);
 
-      const expectedHash = keccak256(
-        encodePacked(
-          ["address", "uint256", "bytes32"],
-          [participantWallet as `0x${string}`, commitmentBigInt, challengeBytes32 as `0x${string}`]
-        )
-      );
-
-      logger.info(
-        {
-          participant: participantWallet,
-          commitment: commitmentBigInt.toString(),
-          challenge: challengeBytes32,
-          expectedHash,
-        },
-        "registerCommitment - values being sent to contract"
-      );
-
       let simulationResult;
       try {
         simulationResult = await this.publicClient.simulateContract({

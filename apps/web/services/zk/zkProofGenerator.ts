@@ -143,13 +143,6 @@ export const generateZKProof = async (
       binConfiguration
     );
     console.log("Circuit input prepared with commitment verification");
-    
-    // Log bin info if present
-    if (binConfiguration?.bins && binConfiguration.bins.length > 0) {
-      console.log(`✅ Study has ${binConfiguration.bins.length} bins configured`);
-    } else {
-      console.log("ℹ️ Study has no bins configured (numBins = 0)");
-    }
 
     console.log("Loading circuit files...");
     const circuitWasm = await loadCircuitWasm();
@@ -399,26 +392,22 @@ function getFieldCode(fieldName: string): number {
 function extractBinMembershipFromProof(
   publicSignals: any[],
   binConfiguration: BinConfiguration
-): { binIds: string[]; binIndices: number[] } {
-  // Public signals format:
-  // [0] = dataCommitment
-  // [1] = challenge
-  // [2] = eligible
-  // [3..52] = binMembership[0..49]
-  
+): { binIds: string[]; numericBinIds: number[]; binIndices: number[] } {
   const binIds: string[] = [];
+  const numericBinIds: number[] = [];
   const binIndices: number[] = [];
-  
+
   for (let i = 0; i < binConfiguration.bins.length; i++) {
-    const binFlag = publicSignals[3 + i]; // offset by 3
-    
+    const binFlag = publicSignals[3 + i];
+
     if (binFlag === "1" || binFlag === 1) {
       binIds.push(binConfiguration.bins[i].id);
+      numericBinIds.push(binConfiguration.bins[i].numericId);
       binIndices.push(i);
     }
   }
-  
-  return { binIds, binIndices };
+
+  return { binIds, numericBinIds, binIndices };
 }
 
 /**

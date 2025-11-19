@@ -288,10 +288,6 @@ template MedicalEligibility() {
     // Final result: ALL criteria must be satisfied
     eligible <== allButMedical * medicalHistoryChecks;
     dataCommitment === finalCommitment.out;
-
-    log("Eligibility result =", eligible);
-    log("Final commitment output =", finalCommitment.out);
-    log("Data commitment input =", dataCommitment);
     
     // ========================================
     // BIN MEMBERSHIP COMPUTATION (Optional - only if numBins > 0)

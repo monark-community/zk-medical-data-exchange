@@ -325,6 +325,8 @@ export class StudyApplicationService {
 
       const verifiedCommitment = proofResult.publicSignals[proofResult.publicSignals.length - 1];
 
+      const verifiedCommitment = proofResult.publicSignals[proofResult.publicSignals.length - 1];
+
       const applicationRequest: StudyApplicationRequest = {
         studyId,
         participantWallet: walletAddress,
@@ -337,6 +339,10 @@ export class StudyApplicationService {
         dataCommitmentSent: applicationRequest.dataCommitment.substring(0, 20) + "...",
         binIdsCount: applicationRequest.binIds?.length || 0
       });
+
+      if (proofResult.binMembership?.binIds) {
+        console.log(`Proof includes bin membership: ${proofResult.binMembership.binIds.length} bins`);
+      }
 
       if (proofResult.binMembership?.binIds) {
         console.log(`Proof includes bin membership: ${proofResult.binMembership.binIds.length} bins`);
