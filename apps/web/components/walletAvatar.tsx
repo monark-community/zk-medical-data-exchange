@@ -24,7 +24,6 @@ const BASE_SIZE = 72;
 type EarVariant = "bunny" | "cat" | "antenna" | "dog" | "mouse" | "fox" | "bear";
 type EyeVariant = "dot" | "arc" | "spark" | "star";
 type ExpressionVariant = "smile" | "laugh" | "calm" | "wow" | "grin" | "frown";
-type PetVariant = "spark" | "pill" | "shield" | "heart";
 type HeadShape = "circle" | "squircle" | "roundedSquare" | "oval";
 type BodyPattern = "plain" | "stripes" | "sash" | "signals" | "dots" | "checks";
 type CollarVariant = "round" | "v" | "tech" | "bow" | "chain";
@@ -40,9 +39,6 @@ interface AvatarFeatures {
   eyeVariant: EyeVariant;
   expressionVariant: ExpressionVariant;
   hasFreckles: boolean;
-  petVariant: PetVariant;
-  petSide: number;
-  petDelay: number;
   headShape: HeadShape;
   bodyPattern: BodyPattern;
   collarVariant: CollarVariant;
@@ -102,9 +98,6 @@ const generateFeatures = (hash: number, accent: string): AvatarFeatures => {
       : neutral[getIndex(8, neutral.length)];
   })();
   const hasFreckles = ((hash >> 7) & 1) === 0;
-  const petVariant: PetVariant = (["pill", "spark", "heart", "shield"] as const)[getIndex(9, 4)];
-  const petSide = (hash & 1) === 0 ? -1 : 1;
-  const petDelay = (hash % 6) * 0.2;
   const headShape: HeadShape = (["squircle", "roundedSquare", "circle", "oval"] as const)[
     getIndex(11, 4)
   ];
@@ -133,9 +126,6 @@ const generateFeatures = (hash: number, accent: string): AvatarFeatures => {
     eyeVariant,
     expressionVariant,
     hasFreckles,
-    petVariant,
-    petSide,
-    petDelay,
     headShape,
     bodyPattern,
     collarVariant,
@@ -211,7 +201,7 @@ const Mouth = ({ features, theme }: ComponentProps) => {
     case "laugh":
       return (
         <span
-          className="absolute left-1/2 top-8 flex h-3 w-5 -translate-x-1/2 items-center justify-center rounded-b-full border-b-2 border-slate-900 bg-white/70"
+          className="absolute left-1/2 top-10 flex h-3 w-5 -translate-x-1/2 items-center justify-center rounded-b-full border-b-2 border-slate-900 bg-white/70"
           style={{
             color: theme.accent,
             boxShadow: `0 0 8px ${theme.accent}80`,
@@ -232,21 +222,21 @@ const Mouth = ({ features, theme }: ComponentProps) => {
     case "calm":
       return (
         <span
-          className="absolute left-1/2 top-8 h-1 w-4 -translate-x-1/2 rounded-full bg-slate-900/70"
+          className="absolute left-1/2 top-10 h-1 w-4 -translate-x-1/2 rounded-full bg-slate-900/70"
           style={{ opacity: 0.85 }}
         />
       );
     case "wow":
       return (
         <span
-          className="absolute left-1/2 top-[30px] h-2.5 w-2.5 -translate-x-1/2 rounded-full border-2 border-slate-900/80"
+          className="absolute left-1/2 top-[34px] h-2.5 w-2.5 -translate-x-1/2 rounded-full border-2 border-slate-900/80"
           style={{ backgroundColor: "#fff", opacity: 0.9 }}
         />
       );
     default:
       return (
         <span
-          className="absolute left-1/2 top-8 h-1.5 w-6 -translate-x-1/2 rounded-full bg-slate-900"
+          className="absolute left-1/2 top-10 h-1.5 w-6 -translate-x-1/2 rounded-full bg-slate-900"
           style={{
             boxShadow: `0 0 6px ${theme.accent}60`,
             borderRadius: "50% 50% 80% 80%",
@@ -538,7 +528,7 @@ const Ears = ({ features, earColor }: ComponentProps) => {
       return (
         <>
           <span
-            className="absolute -top-2 left-1/2 h-2 w-1 -translate-x-[90%] rounded-full"
+            className="absolute -top-2 left-1/2 h-2 w-2 -translate-x-[120%] rounded-full"
             style={{ backgroundColor: earColor, opacity: 0.8 }}
           >
             <span
@@ -547,7 +537,7 @@ const Ears = ({ features, earColor }: ComponentProps) => {
             />
           </span>
           <span
-            className="absolute -top-2 left-1/2 h-2 w-1 translate-x-[10%] rounded-full"
+            className="absolute -top-2 left-1/2 h-2 w-2 translate-x-[20%] rounded-full"
             style={{ backgroundColor: earColor, opacity: 0.8 }}
           >
             <span
@@ -658,13 +648,12 @@ const WalletAvatar = ({ address, size = 40, className }: WalletAvatarProps) => {
             style={characterStyle}
           >
             <div className="relative">
-              <Ears features={features} earColor={earColor} />
               <div
                 className="relative h-14 w-14 border border-white/20"
                 style={{
                   backgroundColor: features.face,
                   boxShadow: "0 6px 12px rgba(15, 23, 42, 0.25)",
-                  overflow: "hidden",
+                  overflow: "visible",
                   ...HEAD_SHAPE_CONFIG[features.headShape],
                 }}
               >
@@ -687,6 +676,7 @@ const WalletAvatar = ({ address, size = 40, className }: WalletAvatarProps) => {
                 <Nose features={features} />
                 <Mouth features={features} theme={theme} />
               </div>
+              <Ears features={features} earColor={earColor} />
             </div>
             <div
               className="mt-1 flex h-10 w-14 items-center justify-center rounded-3xl border border-white/10 px-2"
@@ -700,6 +690,23 @@ const WalletAvatar = ({ address, size = 40, className }: WalletAvatarProps) => {
               <BodyPatternComponent features={features} theme={theme} />
               <Collar features={features} theme={theme} />
               <Accessory features={features} theme={theme} />
+              {/* Arms */}
+              <span
+                className="absolute left-[-6px] top-1/2 h-3 w-4 -translate-y-1/2 rounded-full border border-white/10"
+                style={{
+                  backgroundColor: features.body,
+                  boxShadow: `0 2px 4px ${theme.accent}20`,
+                  opacity: 0.9,
+                }}
+              />
+              <span
+                className="absolute right-[-6px] top-1/2 h-3 w-4 -translate-y-1/2 rounded-full border border-white/10"
+                style={{
+                  backgroundColor: features.body,
+                  boxShadow: `0 2px 4px ${theme.accent}20`,
+                  opacity: 0.9,
+                }}
+              />
             </div>
           </div>
         </div>
