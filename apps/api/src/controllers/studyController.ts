@@ -1709,6 +1709,124 @@ export const grantStudyConsent = async (req: Request, res: Response) => {
   return handleConsentOperation(req, res, "grant");
 };
 
+export const getAggregatedData = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { creatorWallet } = req.query;
+
+    if (!id) {
+      return res.status(400).json({ error: "Study ID is required" });
+    }
+
+    logger.info({ studyId: id, creatorWallet }, "GET /api/studies/:id/aggregated-data");
+
+    // Get study details
+    const { data: study, error: studyError } = await req.supabase
+      .from(TABLES.STUDIES!.name)
+      .select("id, title, contract_address, created_by, status, bin_configuration")
+      .eq(TABLES.STUDIES!.columns.id!, id)
+      .single();
+
+    if (studyError || !study) {
+      logger.warn({ studyId: id, error: studyError }, "Study not found");
+      return res.status(404).json({ error: "Study not found" });
+    }
+
+    // Verify the requester is the study creator
+    if (creatorWallet && study.created_by?.toLowerCase() !== (creatorWallet as string).toLowerCase()) {
+      logger.warn(
+        { studyId: id, creatorWallet, actualCreator: study.created_by },
+        "Unauthorized aggregated data access attempt"
+      );
+      return res.status(403).json({ error: "Only the study creator can access aggregated data" });
+    }
+
+    // Check if study is completed
+    if (study.status !== "completed") {
+      logger.warn({ studyId: id, status: study.status }, "Study not completed");
+      return res.status(400).json({ error: "Study must be completed to view aggregated data" });
+    }
+
+    const studyData = study as unknown as { 
+      contract_address: string | null; 
+      bin_configuration: any;
+      title: string;
+    };
+
+    if (!studyData.contract_address) {
+      logger.warn({ studyId: id }, "Study not deployed to blockchain");
+      return res.status(400).json({ error: "Study not deployed to blockchain" });
+    }
+
+    const publicClient = createPublicClient({
+      chain: sepolia,
+      transport: http(Config.SEPOLIA_RPC_URL),
+    });
+
+    // Fetch bins and bin counts from blockchain
+    const [bins, binCounts, activeParticipants] = await Promise.all([
+      publicClient.readContract({
+        address: studyData.contract_address as `0x${string}`,
+        abi: STUDY_ABI,
+        functionName: "getBins",
+      }) as Promise<any[]>,
+      publicClient.readContract({
+        address: studyData.contract_address as `0x${string}`,
+        abi: STUDY_ABI,
+        functionName: "getAllBinCounts",
+      }) as Promise<any[]>,
+      publicClient.readContract({
+        address: studyData.contract_address as `0x${string}`,
+        abi: STUDY_ABI,
+        functionName: "getParticipantCount",
+      }) as Promise<bigint>,
+    ]);
+
+    logger.info(
+      { studyId: id, binsCount: bins.length, activeParticipants: activeParticipants.toString() },
+      "Fetched aggregated data from blockchain"
+    );
+
+    // Transform the data for frontend consumption
+    const aggregatedData = {
+      studyId: Number(id),
+      studyTitle: studyData.title,
+      totalParticipants: Number(activeParticipants),
+      bins: bins.map((bin: any, index: number) => ({
+        binId: bin.binId.toString(),
+        criteriaField: bin.criteriaField,
+        binType: Number(bin.binType) === 0 ? "RANGE" : "CATEGORICAL",
+        label: bin.label,
+        minValue: bin.minValue ? Number(bin.minValue) : undefined,
+        maxValue: bin.maxValue ? Number(bin.maxValue) : undefined,
+        includeMin: bin.includeMin,
+        includeMax: bin.includeMax,
+        categoriesBitmap: bin.categoriesBitmap ? Number(bin.categoriesBitmap) : undefined,
+        count: binCounts[index] ? Number(binCounts[index].count) : 0,
+      })),
+      generatedAt: Date.now(),
+    };
+
+    res.json(aggregatedData);
+  } catch (error) {
+    logger.error(
+      {
+        error:
+          error instanceof Error
+            ? {
+                message: error.message,
+                stack: error.stack,
+                name: error.name,
+              }
+            : error,
+        studyId: req.params.id,
+      },
+      "Get aggregated data error"
+    );
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
 export const logStudyDataAccess = async (req: Request, res: Response) => {
   const { startTime, userAgent, ipAddress } = getAuditMetadata(req);
 

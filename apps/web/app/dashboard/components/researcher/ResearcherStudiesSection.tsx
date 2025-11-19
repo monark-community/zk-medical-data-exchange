@@ -113,6 +113,7 @@ export default function ResearcherStudiesSection() {
             onDeleteStudy={handleDeleteStudy}
             deletingStudyId={deletingStudyId}
             onStudyEnded={refetch}
+            creatorWallet={walletAddress || ""}
           />
         </StudiesContainer>
       </div>

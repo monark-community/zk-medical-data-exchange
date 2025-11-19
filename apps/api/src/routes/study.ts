@@ -15,6 +15,7 @@ import {
   fetchParticipantsBlockchain,
   requestChallenge,
   logStudyDataAccess,
+  getAggregatedData,
 } from "@/controllers/studyController";
 
 const router = Router();
@@ -578,5 +579,65 @@ router.post("/:id/consent/grant", grantStudyConsent);
  *         description: Internal server error
  */
 router.post("/:id/data-access", logStudyDataAccess);
+
+/**
+ * @swagger
+ * /studies/{id}/aggregated-data:
+ *   get:
+ *     summary: Get aggregated bin data for a completed study
+ *     description: Retrieves privacy-preserving aggregated data showing participant distribution across bins. Only accessible by study creator.
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Study ID
+ *       - name: creatorWallet
+ *         in: query
+ *         schema:
+ *           type: string
+ *         description: Study creator's wallet address for authorization
+ *     responses:
+ *       200:
+ *         description: Aggregated study data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 studyId:
+ *                   type: integer
+ *                 studyTitle:
+ *                   type: string
+ *                 totalParticipants:
+ *                   type: integer
+ *                 bins:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       binId:
+ *                         type: string
+ *                       criteriaField:
+ *                         type: string
+ *                       binType:
+ *                         type: string
+ *                       label:
+ *                         type: string
+ *                       count:
+ *                         type: integer
+ *                 generatedAt:
+ *                   type: integer
+ *       400:
+ *         description: Invalid request or study not completed
+ *       403:
+ *         description: Unauthorized - only study creator can access
+ *       404:
+ *         description: Study not found
+ *       500:
+ *         description: Internal server error
+ */
+router.get("/:id/aggregated-data", getAggregatedData);
 
 export default router;

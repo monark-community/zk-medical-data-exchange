@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import StudiesList from "@/app/dashboard/components/shared/StudiesList";
 import EndStudyDialog from "./EndStudyDialog";
 import StudyCompletionSummary from "./StudyCompletionSummary";
+import AggregatedDataView from "./AggregatedDataView";
 import { Spinner } from "@/components/ui/spinner";
 import { modifyStudiesForCompletion } from "@/utils/studyUtils";
 
@@ -16,6 +17,7 @@ interface ResearcherStudiesListProps {
   onDeleteStudy: (id: number) => Promise<void>;
   deletingStudyId: number | null;
   onStudyEnded?: () => void;
+  creatorWallet: string;
 }
 
 export type StudyData = {
@@ -31,12 +33,14 @@ export default function ResearcherStudiesList({
   onDeleteStudy,
   deletingStudyId,
   onStudyEnded,
+  creatorWallet,
 }: ResearcherStudiesListProps) {
   const originalStudies = studies;
   const modifiedStudies = modifyStudiesForCompletion(studies);
 
   const [endStudyDialogOpen, setEndStudyDialogOpen] = useState(false);
   const [summaryDialogOpen, setSummaryDialogOpen] = useState(false);
+  const [aggregatedDataDialogOpen, setAggregatedDataDialogOpen] = useState(false);
   const [selectedStudy, setSelectedStudy] = useState<StudySummary | null>(null);
   const [summaryStudy, setSummaryStudy] = useState<{
     id: number;
@@ -44,6 +48,10 @@ export default function ResearcherStudiesList({
     transactionHash: string;
     currentParticipants: number;
     durationDays: number | undefined;
+  } | null>(null);
+  const [aggregatedDataStudy, setAggregatedDataStudy] = useState<{
+    id: number;
+    title: string;
   } | null>(null);
 
   const handleEndStudyClick = (study: StudySummary) => {
@@ -57,6 +65,14 @@ export default function ResearcherStudiesList({
 
   const handleShowResults = (study: StudySummary) => {
     console.log("study:", study);
+    setAggregatedDataStudy({
+      id: study.id,
+      title: study.title,
+    });
+    setAggregatedDataDialogOpen(true);
+  };
+
+  const handleViewCompletionSummary = (study: StudySummary) => {
     setSummaryStudy({
       id: study.id,
       title: study.title,
@@ -176,6 +192,16 @@ export default function ResearcherStudiesList({
           transactionHash={summaryStudy.transactionHash}
           currentParticipants={summaryStudy.currentParticipants}
           durationDays={summaryStudy.durationDays}
+        />
+      )}
+
+      {aggregatedDataStudy && (
+        <AggregatedDataView
+          open={aggregatedDataDialogOpen}
+          onOpenChange={setAggregatedDataDialogOpen}
+          studyId={aggregatedDataStudy.id}
+          studyTitle={aggregatedDataStudy.title}
+          creatorWallet={creatorWallet}
         />
       )}
     </>
