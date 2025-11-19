@@ -1,5 +1,6 @@
 import { describe, test, expect, beforeEach, mock } from "bun:test";
 import type { StudyCriteria } from "@zk-medical/shared";
+import { JoinStudyError } from "@/services/errors/joinStudyError";
 
 // Set test environment before imports
 process.env.NODE_ENV = "test";
@@ -175,8 +176,8 @@ describe("StudyService", () => {
   });
 
   describe("joinBlockchainStudy", () => {
-    test("should return null when contractAddress is empty", async () => {
-      const result = await studyService.joinBlockchainStudy(
+    test("should throw JoinStudyError when contractAddress is empty", async () => {
+      const promise = studyService.joinBlockchainStudy(
         "",
         {
           a: ["1", "2"] as [string, string],
@@ -188,13 +189,15 @@ describe("StudyService", () => {
         },
         "0xParticipant",
         "1234",
-        "0xchallenge"
+        "0xchallenge",
+        ["publicInput1", "publicInput2"]
       );
-      expect(result).toBe(null);
+      
+      await expect(promise).rejects.toThrow(JoinStudyError);
     });
 
-    test("should handle errors gracefully", async () => {
-      const result = await studyService.joinBlockchainStudy(
+    test("should throw JoinStudyError on blockchain error", async () => {
+      const promise = studyService.joinBlockchainStudy(
         "0xContract",
         {
           a: ["1", "2"] as [string, string],
@@ -206,9 +209,10 @@ describe("StudyService", () => {
         },
         "0xParticipant",
         "1234",
-        "0xchallenge"
+        "0xchallenge",
+        []
       );
-      expect(result).toBe(null);
+      await expect(promise).rejects.toThrow(JoinStudyError);
     });
   });
 
@@ -226,7 +230,8 @@ describe("StudyService", () => {
           c: ["7", "8"] as [string, string],
         },
         "1234",
-        "0xchallenge"
+        "0xchallenge",
+        []
       );
       expect(result.success).toBe(false);
       expect(result.error).toContain("Invalid proof format");
@@ -245,7 +250,8 @@ describe("StudyService", () => {
           c: ["7", "8"] as [string, string],
         },
         "1234",
-        "0xchallenge"
+        "0xchallenge",
+        []
       );
       expect(result.success).toBe(false);
       expect(result.error).toBeDefined();
