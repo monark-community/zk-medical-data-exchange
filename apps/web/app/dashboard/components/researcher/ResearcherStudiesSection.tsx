@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus, BookOpen } from "lucide-react";
 import { useAccount } from "wagmi";
@@ -25,10 +25,21 @@ export default function ResearcherStudiesSection() {
   const { address: walletAddress } = useAccount();
   const { studies, isLoading, error, refetch } = useStudies(walletAddress);
   const { isVisible: isTxProcessing } = useTxStatusState();
+
   const handleStudyCreated = () => {
     console.log("Study created successfully!");
     refetch();
   };
+
+  useEffect(() => {
+    eventBus.on("studyCreated", refetch);
+    eventBus.on("studyDeleted", refetch);
+
+    return () => {
+      eventBus.off("studyCreated", refetch);
+      eventBus.off("studyDeleted", refetch);
+    };
+  }, [refetch]);
 
   const performDeleteStudy = async (studyId: number) => {
     const study = studies.find((s) => s.id === studyId);

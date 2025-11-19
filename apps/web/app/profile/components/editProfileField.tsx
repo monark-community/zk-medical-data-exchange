@@ -21,7 +21,7 @@ const EditProfileField = ({ onSuccess, onProcessingStart }: EditProfileFieldProp
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [isWaitingUsernameChange, setIsWaitingUsernameChange] = React.useState(false);
   const [pendingUsername, setPendingUsername] = React.useState("");
-  const { show, showError, hide } = useTxStatusState();
+  const { show, showError } = useTxStatusState();
 
   const handleConfirmUpdate = async () => {
     try {
@@ -36,10 +36,7 @@ const EditProfileField = ({ onSuccess, onProcessingStart }: EditProfileFieldProp
       setIsWaitingUsernameChange(false);
       notifyUserUpdated();
       show("Your changes have been saved successfully ✓");
-      setTimeout(() => {
-        hide();
-        onSuccess();
-      }, 3000);
+      onSuccess();
     } catch (error) {
       setIsWaitingUsernameChange(false);
       console.error("Error updating profile:", error);

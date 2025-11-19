@@ -413,7 +413,6 @@ const StudyCreationForm = ({ onSuccess, isModal = false }: StudyCreationFormProp
         const deployResult = await deployStudy(result.study.id);
 
         console.log("Blockchain deployment successful:", deployResult);
-        eventBus.emit("studyCreated");
 
         show(
           `✓ Study "${result.study.title}" created and deployed successfully! ` +
@@ -427,14 +426,7 @@ const StudyCreationForm = ({ onSuccess, isModal = false }: StudyCreationFormProp
 
         resetForm();
 
-        // Hide the overlay after a delay to let the user see the success message
-        setTimeout(() => {
-          hide();
-          eventBus.emit("studyCreated");
-          // if (!isModal) {
-          //   router.push("/dashboard");
-          // }
-        }, 3000);
+        eventBus.emit("studyCreated");
       } catch (deployError) {
         console.error("Blockchain deployment failed:", deployError);
 
