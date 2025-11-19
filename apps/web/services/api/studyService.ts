@@ -268,9 +268,6 @@ export class StudyApplicationService {
         challenge: challengeData.challenge,
         signature,
       });
-      console.log("[JOIN_STUDY] Step 3: Challenge received from server:", {
-        challenge: data.challenge?.substring(0, 20) + "..."
-      });
 
       if (!data.success) {
         throw new Error("Data commitment generation failed.");
@@ -317,11 +314,6 @@ export class StudyApplicationService {
         challengeData.challenge,
         binConfiguration
       );
-      console.log("[JOIN_STUDY] Step 7: ZK proof generated. Public signals:", {
-        signalsCount: proofResult.publicSignals.length,
-        dataCommitmentFromProof: proofResult.publicSignals[proofResult.publicSignals.length - 1],
-        challengeFromProof: proofResult.publicSignals[1],
-      });
 
       const verifiedCommitment = proofResult.publicSignals[proofResult.publicSignals.length - 1];
 
@@ -333,22 +325,6 @@ export class StudyApplicationService {
         dataCommitment: verifiedCommitment,
         binIds: proofResult.binMembership?.binIds,
       };
-      console.log("[JOIN_STUDY] Step 8: Application request prepared:", {
-        dataCommitmentSent: applicationRequest.dataCommitment.substring(0, 20) + "...",
-        binIdsCount: applicationRequest.binIds?.length || 0
-      });
-
-      if (proofResult.binMembership?.binIds) {
-        console.log(`Proof includes bin membership: ${proofResult.binMembership.binIds.length} bins`);
-      }
-
-      if (proofResult.binMembership?.binIds) {
-        console.log(`Proof includes bin membership: ${proofResult.binMembership.binIds.length} bins`);
-      }
-
-      if (proofResult.binMembership?.binIds) {
-        console.log(`Proof includes bin membership: ${proofResult.binMembership.binIds.length} bins`);
-      }
 
       await this.submitApplication(applicationRequest);
 
