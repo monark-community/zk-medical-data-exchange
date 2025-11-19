@@ -70,41 +70,41 @@ const WalletAvatar = ({ address, size = 40, className }: WalletAvatarProps) => {
     const hash = theme.hash;
     const face = FACE_TONES[hash % FACE_TONES.length];
     const body = BODY_TONES[hash % BODY_TONES.length];
-    const earVariant = ["antenna", "bunny", "cat", "dog", "mouse", "fox", "bear"][
+    const earVariant = ["bunny", "fox", "cat", "bear", "mouse", "dog", "antenna"][
       hash % 7
     ] as EarVariant;
-    const accessoryVariant = ["visor", "badge", "stethoscope", "hat", "bowtie"][
+    const accessoryVariant = ["stethoscope", "hat", "visor", "bowtie", "badge"][
       Math.abs((hash >> 2) % 5)
     ] as "badge" | "visor" | "stethoscope" | "hat" | "bowtie";
-    const eyeVariant = ["spark", "dot", "arc", "star"][Math.abs((hash >> 6) % 4)] as EyeVariant;
-    const expressionVariant = ["wow", "smile", "laugh", "calm", "grin", "frown"][
+    const eyeVariant = ["star", "arc", "spark", "dot"][Math.abs((hash >> 6) % 4)] as EyeVariant;
+    const expressionVariant = ["grin", "calm", "wow", "frown", "smile", "laugh"][
       Math.abs((hash >> 8) % 6)
     ] as ExpressionVariant;
     const hasFreckles = ((hash >> 7) & 1) === 0;
-    const petVariant = ["heart", "spark", "pill", "shield"][
+    const petVariant = ["shield", "heart", "spark", "pill"][
       Math.abs((hash >> 9) % 4)
     ] as PetVariant;
     const petSide = (hash & 1) === 0 ? -1 : 1;
     const petDelay = (hash % 6) * 0.2;
-    const headShape = ["circle", "squircle", "roundedSquare", "oval"][
+    const headShape = ["oval", "circle", "roundedSquare", "squircle"][
       Math.abs((hash >> 11) % 4)
     ] as HeadShape;
-    const bodyPattern = ["signals", "plain", "stripes", "sash", "dots", "checks"][
+    const bodyPattern = ["checks", "dots", "plain", "sash", "signals", "stripes"][
       Math.abs((hash >> 12) % 6)
     ] as BodyPattern;
-    const collarVariant = ["tech", "round", "v", "bow", "chain"][
+    const collarVariant = ["chain", "bow", "tech", "v", "round"][
       Math.abs((hash >> 14) % 5)
     ] as CollarVariant;
-    const cheekStyle = ["solid", "ring", "blush"][Math.abs((hash >> 16) % 3)] as CheekStyle;
-    const foreheadMark = ["bar", "none", "dot"][Math.abs((hash >> 15) % 3)] as ForeheadMark;
+    const cheekStyle = ["blush", "solid", "ring"][Math.abs((hash >> 16) % 3)] as CheekStyle;
+    const foreheadMark = ["dot", "bar", "none"][Math.abs((hash >> 15) % 3)] as ForeheadMark;
     const blinkDelay = 2 + (hash % 3);
     const bobDuration = 3.5 + (hash % 35) / 10;
     const cheekTone = `${theme.accent}55`;
     const sparkleDelay = (hash % 5) * 0.4;
-    const glassesVariant = ["aviator", "square", "round", "none", "cat-eye"][
+    const glassesVariant = ["cat-eye", "none", "aviator", "round", "square"][
       Math.abs((hash >> 17) % 5)
     ] as GlassesVariant;
-    const noseVariant = ["none", "button", "pointy"][Math.abs((hash >> 18) % 3)] as NoseVariant;
+    const noseVariant = ["pointy", "none", "button"][Math.abs((hash >> 18) % 3)] as NoseVariant;
     return {
       face,
       body,
