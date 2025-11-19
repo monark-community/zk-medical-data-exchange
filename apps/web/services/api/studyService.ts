@@ -50,6 +50,7 @@ export interface StudyDetails extends StudySummary {
   deploymentTxHash?: string;
   createdBy?: string;
   deployedAt?: string;
+  binConfiguration?: any;
   stats: {
     complexityScore: number;
     criteriaHash: string;
@@ -74,6 +75,7 @@ export interface CreateStudyRequest {
   templateName?: string;
   customCriteria?: Partial<StudyCriteria>;
   createdBy?: string;
+  binConfiguration?: any;
 }
 
 export interface CreateStudyResponse {
@@ -184,6 +186,38 @@ export const deleteStudy = async (studyId: number, walletId: string) => {
   });
   return data;
 };
+
+export const getAggregatedData = async (
+  studyId: number,
+  creatorWallet: string
+): Promise<AggregatedStudyData> => {
+  const { data } = await apiClient.get(`/studies/${studyId}/aggregated-data`, {
+    params: { creatorWallet },
+  });
+  return data;
+};
+
+export interface AggregatedBinData {
+  binId: string;
+  criteriaField: string;
+  binType: "RANGE" | "CATEGORICAL";
+  label: string;
+  minValue?: number;
+  maxValue?: number;
+  includeMin?: boolean;
+  includeMax?: boolean;
+  categoriesBitmap?: number;
+  count: number;
+}
+
+export interface AggregatedStudyData {
+  studyId: number;
+  studyTitle: string;
+  totalParticipants: number;
+  bins: AggregatedBinData[];
+  generatedAt: number;
+}
+
 export interface StudyApplicationRequest {
   studyId: number;
   participantWallet: string;
@@ -194,6 +228,7 @@ export interface StudyApplicationRequest {
   };
   publicInputsJson: string[];
   dataCommitment: string;
+  binIds?: string[];
 }
 
 export class StudyApplicationService {
@@ -204,7 +239,19 @@ export class StudyApplicationService {
   ): Promise<{ success: boolean; message: string }> {
     try {
       const salt = generateSecureSalt();
-      const dataCommitment = generateDataCommitment(medicalData, salt);
+      const { data: challengeData } = await apiClient.post('/studies/request-challenge', {
+        studyId,
+        participantWallet: walletAddress,
+      });
+
+      if (!challengeData.challenge) {
+        throw new Error("Challenge generation failed.");
+      }
+
+      console.log("Challenge received:", challengeData.challenge);
+
+      const finalDataCommitment = generateDataCommitment(medicalData, salt, challengeData.challenge);
+      console.log("Final data commitment (with challenge):", finalDataCommitment.toString());
 
       if (!window.ethereum) {
         throw new Error("MetaMask not found. Please install MetaMask to continue.");
@@ -212,21 +259,23 @@ export class StudyApplicationService {
 
       const provider = new BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
-      const signature = await signer.signMessage(dataCommitment.toString());
+      const signature = await signer.signMessage(finalDataCommitment.toString());
 
       const { data } = await apiClient.post("/studies/data-commitment", {
         studyId,
         participantWallet: walletAddress,
-        dataCommitment: dataCommitment.toString(),
+        dataCommitment: finalDataCommitment.toString(),
+        challenge: challengeData.challenge,
         signature,
       });
 
-      if (!data.challenge) {
+      if (!data.success) {
         throw new Error("Data commitment generation failed.");
       }
 
-      console.log("Fetching study criteria");
-      const studyCriteria = await this.getStudyCriteria(studyId);
+      const studyDetails = await getStudyDetails(studyId);
+      const studyCriteria = studyDetails.eligibilityCriteria;
+      const binConfiguration = studyDetails.binConfiguration;
 
       console.log("Checking eligibility...");
       const isEligible = checkEligibility(medicalData, studyCriteria);
@@ -257,22 +306,29 @@ export class StudyApplicationService {
 
       console.log("Eligibility confirmed! Proceeding with commitment and proof generation...");
 
-      console.log("Generating ZK proof");
-      const { proof, publicSignals } = await generateZKProof(
+      const proofResult = await generateZKProof(
         medicalData,
         studyCriteria,
-        dataCommitment,
+        finalDataCommitment,
         salt,
-        data.challenge
+        challengeData.challenge,
+        binConfiguration
       );
+
+      const verifiedCommitment = proofResult.publicSignals[proofResult.publicSignals.length - 1];
 
       const applicationRequest: StudyApplicationRequest = {
         studyId,
         participantWallet: walletAddress,
-        proofJson: proof,
-        publicInputsJson: publicSignals,
-        dataCommitment: dataCommitment.toString(),
+        proofJson: proofResult.proof,
+        publicInputsJson: proofResult.publicSignals,
+        dataCommitment: verifiedCommitment,
+        binIds: proofResult.binMembership?.binIds,
       };
+
+      if (proofResult.binMembership?.binIds) {
+        console.log(`Proof includes bin membership: ${proofResult.binMembership.binIds.length} bins`);
+      }
 
       await this.submitApplication(applicationRequest);
 
@@ -359,7 +415,8 @@ export const useCreateStudy = () => {
     durationDays: number,
     criteria: StudyCriteria,
     selectedTemplate?: string,
-    createdBy?: string
+    createdBy?: string,
+    binConfiguration?: any
   ): Promise<CreateStudyResponse> => {
     const studyData: CreateStudyRequest = {
       title,
@@ -368,6 +425,7 @@ export const useCreateStudy = () => {
       durationDays,
       ...(selectedTemplate ? { templateName: selectedTemplate } : { customCriteria: criteria }),
       ...(createdBy ? { createdBy } : {}),
+      ...(binConfiguration ? { binConfiguration } : {}),
     };
 
     return createStudy(studyData);

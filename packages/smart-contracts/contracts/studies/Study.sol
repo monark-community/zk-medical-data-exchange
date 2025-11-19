@@ -44,6 +44,31 @@ contract Study {
         uint256 allowedHeartDisease;  // 0=no history, 1=has history, 2=any
     }
     
+    struct DataBin {
+        uint256 binId;                // Unique identifier (e.g., "age_bin_0")
+        string criteriaField;         // Field name (e.g., "age", "bmi")
+        uint8 binType;                // 0=RANGE, 1=CATEGORICAL
+        string label;                 // Human-readable label
+
+        uint256 minValue;             // Minimum value (inclusive by default)
+        uint256 maxValue;             // Maximum value
+        bool includeMin;              // Whether min is inclusive
+        bool includeMax;              // Whether max is inclusive
+
+        uint256 categoriesBitmap;     // Bitmap of allowed categories
+    }
+    
+    struct BinCount {
+        uint256 binId;                // References DataBin.binId
+        uint256 count;                // Number of participants in this bin
+    }
+    
+    DataBin[] public bins;
+    
+    mapping(uint256 => uint256) public binCounts;
+    
+    mapping(address => uint256[]) private participantBins;
+    
     // Study metadata
     string public studyTitle;
     address public studyCreator;
@@ -71,6 +96,13 @@ contract Study {
     event EligibilityVerified(address indexed participant, bool eligible);
     event ConsentRevoked(address indexed participant, uint256 timestamp);
     event ConsentGranted(address indexed participant, uint256 timestamp);
+    event BinCountUpdated(uint256 indexed binId, uint256 newCount);
+    event BinsConfigured(uint256 binCount);
+    
+    event BinConfigurationStarted(address indexed caller, uint256 binCount);
+    event BinConfigured(uint256 indexed index, uint256 binId, string criteriaField, string label, uint8 binType);
+    event BinUpdateStarted(address indexed participant, uint256 binCount, bool increment);
+    event BinCountChanged(uint256 indexed binId, uint256 oldCount, uint256 newCount, address indexed participant);
     
     constructor(
         string memory _title,
@@ -83,6 +115,21 @@ contract Study {
         maxParticipants = _maxParticipants;
         criteria = _criteria;
         zkVerifier = Groth16Verifier(_zkVerifierAddress);
+    }
+    
+    function configureBins(DataBin[] memory _bins, address caller) external {
+        require(caller == studyCreator, "Only creator can configure bins");
+        require(bins.length == 0, "Bins already configured");
+        require(currentParticipants == 0, "Cannot configure bins after participants join");
+        
+        emit BinConfigurationStarted(caller, _bins.length);
+        
+        for (uint256 i = 0; i < _bins.length; i++) {
+            bins.push(_bins[i]);
+            emit BinConfigured(i, _bins[i].binId, _bins[i].criteriaField, _bins[i].label, _bins[i].binType);
+        }
+        
+        emit BinsConfigured(_bins.length);
     }
     
     /**
@@ -120,6 +167,7 @@ contract Study {
      * @param _pC Groth16 proof point C (G1)
      * @param dataCommitment Poseidon hash of the patient's private medical data
      * @param challenge Challenge that was issued during commitment registration
+     * @param binMembership Array of 50 values (0 or 1) indicating bin membership
      */
     function joinStudy(
         uint[2] calldata _pA,
@@ -127,10 +175,12 @@ contract Study {
         uint[2] calldata _pC,
         uint256 dataCommitment,
         bytes32 challenge,
-        address participant
+        address participant,
+        uint256[] memory binMembership
     ) external {
         require(currentParticipants < maxParticipants, "Study is full");
         require(!participants[participant], "Already participating");
+        require(binMembership.length == 50, "Invalid bin membership array length");
         
         bytes32 storedCommitmentHash = registeredCommitments[participant];
         require(storedCommitmentHash != bytes32(0), "No commitment registered");
@@ -142,8 +192,15 @@ contract Study {
         ));
         require(recomputedHash == storedCommitmentHash, "Commitment mismatch - data tampering detected");
         
-        uint[1] memory pubSignals = [uint256(1)]; // Expected: eligible = 1
-        bool isEligible = zkVerifier.verifyProof(_pA, _pB, _pC, pubSignals);
+        // Construct public signals for ZK proof verification
+        // Format: [binMembership[0..49], dataCommitment]
+        uint[51] memory pubSignals;
+        for (uint i=0; i<50; i++) {
+            pubSignals[i] = binMembership[i];
+        }
+        pubSignals[50] = dataCommitment;
+
+        bool isEligible = zkVerifier.verifyProof(_pA,_pB,_pC,pubSignals);
         
         emit EligibilityVerified(participant, isEligible);
         require(isEligible, "ZK proof verification failed - not eligible");
@@ -155,15 +212,58 @@ contract Study {
         currentParticipants++;
         activeParticipants++;
         
+        uint256[] memory participantBinIds = new uint256[](50);
+        uint256 count = 0;
+        for (uint256 i = 0; i < 50; i++) {
+            if (binMembership[i] == 1) {
+                participantBinIds[count] = i;
+                count++;
+            }
+        }
+        
+        uint256[] memory actualBinIds = new uint256[](count);
+        for (uint256 i = 0; i < count; i++) {
+            actualBinIds[i] = participantBinIds[i];
+        }
+        
+        _updateBinCounts(participant, actualBinIds, true);
+        
         delete registeredCommitments[participant];
         
         emit ParticipantJoined(participant, dataCommitment);
         emit ConsentGranted(participant, block.timestamp);
     }
     
+    function _updateBinCounts(
+        address participant,
+        uint256[] memory binIds,
+        bool increment
+    ) private {
+        emit BinUpdateStarted(participant, binIds.length, increment);
+        
+        for (uint256 i = 0; i < binIds.length; i++) {
+            uint256 binId = binIds[i];
+            uint256 oldCount = binCounts[binId];
+            
+            if (increment) {
+                binCounts[binId]++;
+                participantBins[participant].push(binId);
+                emit BinCountChanged(binId, oldCount, binCounts[binId], participant);
+                emit BinCountUpdated(binId, binCounts[binId]);
+            } else {
+                if (binCounts[binId] > 0) {
+                    binCounts[binId]--;
+                    emit BinCountChanged(binId, oldCount, binCounts[binId], participant);
+                    emit BinCountUpdated(binId, binCounts[binId]);
+                }
+            }
+        }
+    }
+    
     /**
      * @dev Allow participants to revoke their consent for data usage
      * This does NOT remove them from the study, but marks their consent as revoked
+     * and decrements bin counts
      * @param participant Address of the participant revoking consent
      */
     function revokeConsent(address participant) external {
@@ -173,11 +273,15 @@ contract Study {
         hasConsented[participant] = false;
         activeParticipants--;
         
+        uint256[] memory binIds = participantBins[participant];
+        _updateBinCounts(participant, binIds, false);
+        
         emit ConsentRevoked(participant, block.timestamp);
     }
     
     /**
      * @dev Allow participants to grant consent again after revoking
+     * Re-increments bin counts
      * @param participant Address of the participant granting consent
      */
     function grantConsent(address participant) external {
@@ -187,6 +291,9 @@ contract Study {
         
         hasConsented[participant] = true;
         activeParticipants++;
+        
+        uint256[] memory binIds = participantBins[participant];
+        _updateBinCounts(participant, binIds, true);
         
         emit ConsentGranted(participant, block.timestamp);
     }
@@ -276,5 +383,30 @@ contract Study {
             }
         }
         return consented;
+    }
+    
+    function getBins() external view returns (DataBin[] memory) {
+        return bins;
+    }
+    
+    function getBinCount(uint256 binId) external view returns (uint256) {
+        return binCounts[binId];
+    }
+    
+    function getAllBinCounts() external view returns (BinCount[] memory) {
+        BinCount[] memory counts = new BinCount[](bins.length);
+        
+        for (uint256 i = 0; i < bins.length; i++) {
+            counts[i] = BinCount({
+                binId: bins[i].binId,
+                count: binCounts[bins[i].binId]
+            });
+        }
+        
+        return counts;
+    }
+    
+    function areBinsConfigured() external view returns (bool) {
+        return bins.length > 0;
     }
 }

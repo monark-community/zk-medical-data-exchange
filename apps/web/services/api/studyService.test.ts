@@ -587,9 +587,40 @@ describe("StudyApplicationService - applyToStudy", () => {
   });
 
   it("should successfully apply to study when eligible", async () => {
-    mockApiClient.post.mockResolvedValueOnce({ data: { challenge: "test-challenge" } }); // data-commitment
-    mockApiClient.get.mockResolvedValue({
-      data: { studyCriteria: mockStudyCriteria },
+    mockApiClient.post.mockResolvedValueOnce({ data: { challenge: "test-challenge" } });
+    mockApiClient.post.mockResolvedValueOnce({ data: { success: true } });
+    mockApiClient.get.mockResolvedValueOnce({
+      data: { 
+        study: {
+          id: 1,
+          title: "Test Study",
+          eligibilityCriteria: mockStudyCriteria,
+          binConfiguration: null,
+          maxParticipants: 100,
+          currentParticipants: 0,
+          status: "active",
+          complexityScore: 5,
+          createdAt: new Date().toISOString(),
+          criteriaSummary: {
+            requiresAge: true,
+            requiresGender: true,
+            requiresDiabetes: false,
+            requiresSmoking: false,
+            requiresBMI: false,
+            requiresBloodPressure: false,
+            requiresCholesterol: false,
+            requiresHeartDisease: false,
+            requiresActivity: false,
+            requiresHbA1c: false,
+            requiresBloodType: false,
+            requiresLocation: false,
+          },
+          stats: {
+            complexityScore: 5,
+            criteriaHash: "test-hash",
+          }
+        }
+      },
     });
     mockApiClient.post.mockResolvedValueOnce({ data: { success: true } }); // participants
 
@@ -599,7 +630,7 @@ describe("StudyApplicationService - applyToStudy", () => {
       "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0"
     );
 
-    expect(mockApiClient.get).toHaveBeenCalledWith("/studies/1/criteria");
+    expect(mockApiClient.get).toHaveBeenCalledWith("/studies/1");
     expect(mockZkFunctions.checkEligibility).toHaveBeenCalledWith(
       mockMedicalData,
       mockStudyCriteria
@@ -612,7 +643,7 @@ describe("StudyApplicationService - applyToStudy", () => {
       expect.objectContaining({
         studyId: 1,
         participantWallet: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0",
-        dataCommitment: "12345",
+        dataCommitment: "456",
       })
     );
     expect(result.success).toBe(true);
@@ -620,9 +651,40 @@ describe("StudyApplicationService - applyToStudy", () => {
   });
 
   it("should fail when not eligible and log failed attempt", async () => {
-    mockApiClient.post.mockResolvedValueOnce({ data: { challenge: "test-challenge" } });
-    mockApiClient.get.mockResolvedValue({
-      data: { studyCriteria: mockStudyCriteria },
+    mockApiClient.post.mockResolvedValueOnce({ data: { challenge: "test-challenge" } }); // request-challenge
+    mockApiClient.post.mockResolvedValueOnce({ data: { success: true } });
+    mockApiClient.get.mockResolvedValueOnce({
+      data: { 
+        study: {
+          id: 1,
+          title: "Test Study",
+          eligibilityCriteria: mockStudyCriteria,
+          binConfiguration: null,
+          maxParticipants: 100,
+          currentParticipants: 0,
+          status: "active",
+          complexityScore: 5,
+          createdAt: new Date().toISOString(),
+          criteriaSummary: {
+            requiresAge: true,
+            requiresGender: true,
+            requiresDiabetes: false,
+            requiresSmoking: false,
+            requiresBMI: false,
+            requiresBloodPressure: false,
+            requiresCholesterol: false,
+            requiresHeartDisease: false,
+            requiresActivity: false,
+            requiresHbA1c: false,
+            requiresBloodType: false,
+            requiresLocation: false,
+          },
+          stats: {
+            complexityScore: 5,
+            criteriaHash: "test-hash",
+          }
+        }
+      },
     });
     mockZkFunctions.checkEligibility.mockReturnValue(false);
     mockApiClient.post.mockResolvedValueOnce({ data: { success: true } }); // audit
@@ -648,14 +710,44 @@ describe("StudyApplicationService - applyToStudy", () => {
   });
 
   it("should continue even if audit logging fails (non-critical)", async () => {
-    mockApiClient.post.mockResolvedValueOnce({ data: { challenge: "test-challenge" } });
-    mockApiClient.get.mockResolvedValue({
-      data: { studyCriteria: mockStudyCriteria },
+    mockApiClient.post.mockResolvedValueOnce({ data: { challenge: "test-challenge" } }); // request-challenge
+    mockApiClient.post.mockResolvedValueOnce({ data: { success: true } });
+    mockApiClient.get.mockResolvedValueOnce({
+      data: { 
+        study: {
+          id: 1,
+          title: "Test Study",
+          eligibilityCriteria: mockStudyCriteria,
+          binConfiguration: null,
+          maxParticipants: 100,
+          currentParticipants: 0,
+          status: "active",
+          complexityScore: 5,
+          createdAt: new Date().toISOString(),
+          criteriaSummary: {
+            requiresAge: true,
+            requiresGender: true,
+            requiresDiabetes: false,
+            requiresSmoking: false,
+            requiresBMI: false,
+            requiresBloodPressure: false,
+            requiresCholesterol: false,
+            requiresHeartDisease: false,
+            requiresActivity: false,
+            requiresHbA1c: false,
+            requiresBloodType: false,
+            requiresLocation: false,
+          },
+          stats: {
+            complexityScore: 5,
+            criteriaHash: "test-hash",
+          }
+        }
+      },
     });
 
     mockZkFunctions.checkEligibility.mockReturnValue(false);
 
-    // First post call (audit) fails, but should still return gracefully
     mockApiClient.post.mockRejectedValueOnce(new Error("Audit service down"));
 
     const result = await StudyApplicationService.applyToStudy(
@@ -670,7 +762,9 @@ describe("StudyApplicationService - applyToStudy", () => {
 
   it("should handle error fetching study criteria", async () => {
     mockApiClient.post.mockResolvedValueOnce({ data: { challenge: "test-challenge" } });
-    mockApiClient.get.mockRejectedValue(new Error("Network error"));
+    mockApiClient.post.mockResolvedValueOnce({ data: { success: true } });
+    mockApiClient.get.mockRejectedValueOnce(new Error("Network error"));
+    mockApiClient.post.mockResolvedValueOnce({ data: { success: true } });
 
     const result = await StudyApplicationService.applyToStudy(
       1,
@@ -679,16 +773,48 @@ describe("StudyApplicationService - applyToStudy", () => {
     );
 
     expect(result.success).toBe(false);
-    expect(result.message).toContain("Failed to fetch study criteria from server");
+    expect(result.message).toContain("Network error");
   });
 
   it("should handle error during proof generation", async () => {
     mockApiClient.post.mockResolvedValueOnce({ data: { challenge: "test-challenge" } });
-    mockApiClient.get.mockResolvedValue({
-      data: { studyCriteria: mockStudyCriteria },
+    mockApiClient.post.mockResolvedValueOnce({ data: { success: true } });
+    mockApiClient.get.mockResolvedValueOnce({
+      data: { 
+        study: {
+          id: 1,
+          title: "Test Study",
+          eligibilityCriteria: mockStudyCriteria,
+          binConfiguration: null,
+          maxParticipants: 100,
+          currentParticipants: 0,
+          status: "active",
+          complexityScore: 5,
+          createdAt: new Date().toISOString(),
+          criteriaSummary: {
+            requiresAge: true,
+            requiresGender: true,
+            requiresDiabetes: false,
+            requiresSmoking: false,
+            requiresBMI: false,
+            requiresBloodPressure: false,
+            requiresCholesterol: false,
+            requiresHeartDisease: false,
+            requiresActivity: false,
+            requiresHbA1c: false,
+            requiresBloodType: false,
+            requiresLocation: false,
+          },
+          stats: {
+            complexityScore: 5,
+            criteriaHash: "test-hash",
+          }
+        }
+      },
     });
 
     mockZkFunctions.generateZKProof.mockRejectedValue(new Error("Proof generation failed"));
+    mockApiClient.post.mockResolvedValueOnce({ data: { success: true } });
 
     const result = await StudyApplicationService.applyToStudy(
       1,
@@ -713,12 +839,41 @@ describe("StudyApplicationService - applyToStudy", () => {
 
   it("should handle API error during application submission", async () => {
     mockApiClient.post.mockResolvedValueOnce({ data: { challenge: "test-challenge" } });
-    mockApiClient.get.mockResolvedValue({
-      data: { studyCriteria: mockStudyCriteria },
+    mockApiClient.post.mockResolvedValueOnce({ data: { success: true } });
+    mockApiClient.get.mockResolvedValueOnce({
+      data: { 
+        study: {
+          id: 1,
+          title: "Test Study",
+          eligibilityCriteria: mockStudyCriteria,
+          binConfiguration: null,
+          maxParticipants: 100,
+          currentParticipants: 0,
+          status: "active",
+          complexityScore: 5,
+          createdAt: new Date().toISOString(),
+          criteriaSummary: {
+            requiresAge: true,
+            requiresGender: true,
+            requiresDiabetes: false,
+            requiresSmoking: false,
+            requiresBMI: false,
+            requiresBloodPressure: false,
+            requiresCholesterol: false,
+            requiresHeartDisease: false,
+            requiresActivity: false,
+            requiresHbA1c: false,
+            requiresBloodType: false,
+            requiresLocation: false,
+          },
+          stats: {
+            complexityScore: 5,
+            criteriaHash: "test-hash",
+          }
+        }
+      },
     });
 
-    // First post call is for the submission (which fails)
-    // Second post call would be for audit logging
     mockApiClient.post.mockRejectedValueOnce({
       response: {
         status: 400,
@@ -739,12 +894,44 @@ describe("StudyApplicationService - applyToStudy", () => {
 
   it("should handle unknown errors gracefully", async () => {
     mockApiClient.post.mockResolvedValueOnce({ data: { challenge: "test-challenge" } });
-    mockApiClient.get.mockResolvedValue({
-      data: { studyCriteria: mockStudyCriteria },
+    mockApiClient.post.mockResolvedValueOnce({ data: { success: true } });
+    mockApiClient.get.mockResolvedValueOnce({
+      data: { 
+        study: {
+          id: 1,
+          title: "Test Study",
+          eligibilityCriteria: mockStudyCriteria,
+          binConfiguration: null,
+          maxParticipants: 100,
+          currentParticipants: 0,
+          status: "active",
+          complexityScore: 5,
+          createdAt: new Date().toISOString(),
+          criteriaSummary: {
+            requiresAge: true,
+            requiresGender: true,
+            requiresDiabetes: false,
+            requiresSmoking: false,
+            requiresBMI: false,
+            requiresBloodPressure: false,
+            requiresCholesterol: false,
+            requiresHeartDisease: false,
+            requiresActivity: false,
+            requiresHbA1c: false,
+            requiresBloodType: false,
+            requiresLocation: false,
+          },
+          stats: {
+            complexityScore: 5,
+            criteriaHash: "test-hash",
+          }
+        }
+      },
     });
 
     // Mock non-Error object thrown
     mockZkFunctions.generateZKProof.mockRejectedValue("String error");
+    mockApiClient.post.mockResolvedValueOnce({ data: { success: true } });
 
     const result = await StudyApplicationService.applyToStudy(
       1,
@@ -1053,8 +1240,39 @@ describe("StudyService - Edge Cases", () => {
     });
 
     mockApiClient.post.mockResolvedValueOnce({ data: { challenge: "test-challenge" } });
-    mockApiClient.get.mockResolvedValue({
-      data: { studyCriteria: mockStudyCriteria },
+    mockApiClient.post.mockResolvedValueOnce({ data: { success: true } });
+    mockApiClient.get.mockResolvedValueOnce({
+      data: { 
+        study: {
+          id: 1,
+          title: "Test Study",
+          eligibilityCriteria: mockStudyCriteria,
+          binConfiguration: null,
+          maxParticipants: 100,
+          currentParticipants: 0,
+          status: "active",
+          complexityScore: 5,
+          createdAt: new Date().toISOString(),
+          criteriaSummary: {
+            requiresAge: true,
+            requiresGender: true,
+            requiresDiabetes: false,
+            requiresSmoking: false,
+            requiresBMI: false,
+            requiresBloodPressure: false,
+            requiresCholesterol: false,
+            requiresHeartDisease: false,
+            requiresActivity: false,
+            requiresHbA1c: false,
+            requiresBloodType: false,
+            requiresLocation: false,
+          },
+          stats: {
+            complexityScore: 5,
+            criteriaHash: "test-hash",
+          }
+        }
+      },
     });
 
     mockApiClient.post.mockResolvedValueOnce({
@@ -1072,7 +1290,9 @@ describe("StudyService - Edge Cases", () => {
     expect(mockApiClient.post).toHaveBeenCalledWith(
       "/studies/1/participants",
       expect.objectContaining({
-        dataCommitment: largeBigInt.toString(),
+        dataCommitment: "456",
+        participantWallet: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0",
+        studyId: 1,
       })
     );
   });

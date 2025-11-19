@@ -4,7 +4,7 @@ import { privateKeyToAccount } from "viem/accounts";
 import type { StudyCriteria } from "@zk-medical/shared";
 import logger from "@/utils/logger";
 import { Config } from "@/config/config";
-import { STUDY_ABI, STUDY_FACTORY_ABI } from "../contracts/generated";
+import { STUDY_ABI, STUDY_FACTORY_ABI, MEDICAL_ELIGIBILITY_VERIFIER_ABI } from "../contracts/generated";
 
 export interface StudyDeploymentParams {
   title: string;
@@ -660,7 +660,6 @@ export class StudyService {
         address: contractAddress as `0x${string}`,
         abi: STUDY_ABI,
         functionName: "registerCommitment",
-        // Include participant wallet as third arg per updated contract signature
         args: [commitmentBigInt, challengeBytes32, participantWallet as `0x${string}`],
       });
 
@@ -718,7 +717,9 @@ export class StudyService {
     },
     participantWallet: string,
     dataCommitment: string,
-    challenge: string
+    challenge: string,
+    binIds?: string[],
+    publicInputsJson?: string[]
   ) {
     await this.initialize();
 
@@ -730,7 +731,9 @@ export class StudyService {
           participantWallet,
           proofjson,
           dataCommitment,
-          challenge
+          challenge,
+          binIds || [],
+          publicInputsJson
         );
 
         if (blockchainResult.success) {
@@ -739,6 +742,7 @@ export class StudyService {
             {
               participantWallet,
               txHash: blockchainTxHash,
+              binCount: binIds?.length || 0,
             },
             "Participation recorded on blockchain successfully"
           );
@@ -772,12 +776,14 @@ export class StudyService {
     participantWallet: string,
     proof: { a: [string, string]; b: [[string, string], [string, string]]; c: [string, string] },
     dataCommitment: string,
-    challenge: string
+    challenge: string,
+    binIds: string[] = [],
+    publicInputsJson?: string[]
   ): Promise<{ success: boolean; transactionHash?: string; error?: string }> {
     await this.initialize();
 
     logger.info(
-      { studyAddress, participantWallet, dataCommitment, proof },
+      { studyAddress, participantWallet, dataCommitment, proof, binIds },
       "Recording study participation on blockchain"
     );
 
@@ -785,6 +791,7 @@ export class StudyService {
     let pB: [[bigint, bigint], [bigint, bigint]];
     let pC: [bigint, bigint];
     let commitment: bigint;
+    let pubSignals: bigint[] = [];
 
     try {
       try {
@@ -813,29 +820,162 @@ export class StudyService {
 
       logger.info({ pA, pB, pC, commitment }, "Proof converted to BigInt format");
 
+      try {
+        const r = BigInt("21888242871839275222246405745257275088548364400416034343698204186575808495617");
+        const withinField = commitment < r;
+        logger.info(
+          { commitment: commitment.toString(), withinField },
+          "Public signal field bound check (commitment < r)"
+        );
+      } catch (e) {
+        logger.warn(
+          { error: e instanceof Error ? e.message : String(e) },
+          "Failed field bound check logging"
+        );
+      }
+
+
+      // Preflight: verify against the Study's zkVerifier directly to isolate issues
+      if (publicInputsJson && publicInputsJson.length > 0) {
+        try {
+          const zkVerifierAddress = await this.publicClient.readContract({
+            address: studyAddress as `0x${string}`,
+            abi: STUDY_ABI,
+            functionName: "zkVerifier",
+          });
+
+          pubSignals = publicInputsJson.map(sig => BigInt(sig));
+          
+          logger.info(
+            { 
+              zkVerifierAddress, 
+              pubSignalsLength: pubSignals.length,
+              dataCommitment: pubSignals[0]?.toString(),
+              expectedLength: 51
+            },
+            "Preparing verifier preflight check"
+          );
+
+          if (pubSignals.length !== 51) {
+            logger.warn(
+              { 
+                actualLength: pubSignals.length, 
+                expectedLength: 51,
+                publicInputsJson 
+              },
+              "Public signals length mismatch - expected 51 elements"
+            );
+          } else {
+            const verifierOk = await this.publicClient.readContract({
+              address: zkVerifierAddress as `0x${string}`,
+              abi: MEDICAL_ELIGIBILITY_VERIFIER_ABI,
+              functionName: "verifyProof",
+              args: [pA, pB, pC, pubSignals],
+            });
+
+            logger.info(
+              { zkVerifierAddress, verifierOk, dataCommitment: pubSignals[0]?.toString() || 'N/A' },
+              "Verifier preflight check result"
+            );
+
+            if (!verifierOk) {
+              const msg = "Verifier preflight failed: proof/public signal mismatch (check verifier/zkey alignment and dataCommitment)";
+              logger.error({ zkVerifierAddress, studyAddress, participantWallet }, msg);
+              return { success: false, error: msg };
+            }
+          }
+        } catch (preflightError) {
+          logger.warn(
+            {
+              error: preflightError instanceof Error ? preflightError.message : String(preflightError),
+              studyAddress,
+              participantWallet,
+            },
+            "Verifier preflight check encountered an error; continuing to simulateContract"
+          );
+        }
+      } else {
+        logger.warn(
+          { studyAddress, participantWallet },
+          "No publicInputsJson provided - skipping verifier preflight check"
+        );
+      }
+
       // In test mode or when clients are not initialized, return failure
       if (!this.publicClient || !this.walletClient) {
         return { success: false, error: "Blockchain client not initialized" };
       }
 
-      let challengeBytes32 = challenge
-        ? challenge.startsWith("0x")
-          ? challenge
-          : `0x${challenge}`
-        : `0x${"0".repeat(64)}`;
+      let challengeBytes32 = challenge 
+        ? (challenge.startsWith('0x') ? challenge : `0x${challenge}`)
+        : `0x${'0'.repeat(64)}`; 
+
+      logger.info(
+        {
+          participantWallet,
+          studyAddress,
+          binIdsReceived: binIds.length,
+        },
+        "Processing participant join - preparing bin updates"
+      );
+
+      const binMembershipSignals = pubSignals.length >= 51 
+        ? pubSignals.slice(0, 50)
+        : [];
+      
+      logger.info(
+        {
+          participantWallet,
+          studyAddress,
+          totalBinSlots: binMembershipSignals.length,
+          publicSignalsLength: pubSignals.length,
+        },
+        "Processing participant join - extracting bin membership from proof"
+      );
+      
+      const binsToIncrement: number[] = [];
+      binMembershipSignals.forEach((signal, index) => {
+        const signalStr = String(signal);
+        if (signalStr === "1" || signal === 1n) {
+          binsToIncrement.push(index);
+        }
+      });
+      
+      logger.info(
+        {
+          binsToIncrement,
+          binCount: binsToIncrement.length,
+        },
+        `Participant belongs to ${binsToIncrement.length} bins - will increment these on blockchain`
+      );
+
+      const binMembershipBigInt = binMembershipSignals.map(signal => BigInt(signal));
 
       const result = await this.executeContractTransaction(
         studyAddress,
         "joinStudy",
-        [pA, pB, pC, commitment, challengeBytes32, participantWallet as `0x${string}`],
+        [pA, pB, pC, commitment, challengeBytes32, participantWallet as `0x${string}`, binMembershipBigInt],
         "Participation recording"
       );
 
       if (result.success) {
         logger.info(
-          { transactionHash: result.transactionHash, participantWallet },
-          "Participation recorded on blockchain successfully"
+          { 
+            transactionHash: result.transactionHash, 
+            participantWallet,
+            studyAddress,
+            binCount: binsToIncrement.length,
+            binsIncremented: binsToIncrement,
+          },
+          `Participation recorded! ${binsToIncrement.length} bin(s) incremented on blockchain`
         );
+        
+        binsToIncrement.forEach(binId => {
+          logger.info(
+            { binId, participant: participantWallet },
+            `Bin ${binId} count incremented for participant`
+          );
+        });
       } else {
         logger.error(
           { error: result.error, studyAddress, participantWallet },
@@ -1017,6 +1157,138 @@ export class StudyService {
       return {
         isParticipant: false,
         error: error instanceof Error ? error.message : "Unknown error checking participant status",
+      };
+    }
+  }
+
+  async configureBins(
+    studyAddress: string,
+    bins: Array<{
+      binId: string;
+      criteriaField: string;
+      binType: number;
+      label: string;
+      minValue: bigint | number;
+      maxValue: bigint | number;
+      includeMin: boolean;
+      includeMax: boolean;
+      categoriesBitmap: bigint | number;
+    }>
+  ): Promise<{ success: boolean; transactionHash?: string; error?: string }> {
+    await this.initialize();
+
+    if (!this.publicClient || !this.walletClient) {
+      return { success: false, error: "Blockchain client not initialized" };
+    }
+
+    try {
+      logger.info(
+        {
+          studyAddress,
+          binCount: bins.length,
+        },
+        "Starting bin configuration on study contract"
+      );
+
+      const binsWithBigInt = bins.map((bin, index) => {
+        const converted = {
+          binId: bin.binId,
+          criteriaField: bin.criteriaField,
+          binType: bin.binType,
+          label: bin.label,
+          minValue: BigInt(bin.minValue),
+          maxValue: BigInt(bin.maxValue),
+          includeMin: bin.includeMin,
+          includeMax: bin.includeMax,
+          categoriesBitmap: BigInt(bin.categoriesBitmap),
+        };
+        logger.info(
+          {
+            index,
+            binId: converted.binId,
+            field: converted.criteriaField,
+            type: converted.binType === 0 ? 'RANGE' : 'CATEGORICAL',
+            label: converted.label,
+            range: `[${converted.minValue}, ${converted.maxValue}]`,
+          },
+          `Preparing bin ${index}`
+        );
+        return converted;
+      });
+
+      logger.info({ bins: binsWithBigInt }, "All bins prepared for configuration");
+      logger.info(
+        { walletAddress: this.walletClient.account.address },
+        "Wallet client account address"
+      );
+      logger.info(
+        { walletAddress: this.account.address },
+        "Deployer account address"
+      );
+      logger.info(
+        { factoryAddress: Config.STUDY_FACTORY_ADDRESS },
+        "Factory address (studyCreator)"
+      );
+
+      const result = await this.executeContractTransaction(
+        studyAddress,
+        "configureBins",
+        [binsWithBigInt, Config.STUDY_FACTORY_ADDRESS as `0x${string}`],
+        "Bin configuration"
+      );
+
+      if (result.success) {
+        logger.info(
+          {
+            transactionHash: result.transactionHash,
+            studyAddress,
+            binCount: bins.length,
+          },
+          "Bins configured successfully on blockchain"
+        );
+        
+        bins.forEach((bin, index) => {
+          logger.info(
+            {
+              index,
+              binId: bin.binId,
+              field: bin.criteriaField,
+              label: bin.label,
+            },
+            `Bin ${index} now active on blockchain`
+          );
+        });
+      } else {
+        logger.error(
+          {
+            error: result.error,
+            studyAddress,
+            binCount: bins.length,
+          },
+          "Failed to configure bins"
+        );
+      }
+
+      return {
+        success: result.success,
+        transactionHash: result.transactionHash,
+        error: result.error,
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.error(
+        {
+          error,
+          errorMessage,
+          errorStack: error instanceof Error ? error.stack : undefined,
+          studyAddress,
+          binCount: bins.length,
+        },
+        "Exception in configureBins"
+      );
+      return {
+        success: false,
+        error: errorMessage,
       };
     }
   }

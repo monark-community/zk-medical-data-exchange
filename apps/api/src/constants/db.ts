@@ -71,6 +71,7 @@ export const TABLES: Record<string, TableDefinition> = {
       complexityScore: "complexity_score",
       templateName: "template_name",
       transactionHash: "transaction_hash",
+      binConfiguration: "bin_configuration",
     },
   },
 

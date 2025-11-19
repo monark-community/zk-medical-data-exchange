@@ -1,4 +1,4 @@
-import { StudyCriteria } from "@zk-medical/shared";
+import { StudyCriteria, BinConfiguration } from "@zk-medical/shared";
 
 // Import snarkjs for proof generation
 // @ts-ignore - snarkjs doesn't have proper TypeScript definitions
@@ -28,6 +28,11 @@ export interface ZKProofResult {
   proof: ZKProof;
   publicSignals: string[]; // Public outputs from the circuit
   isEligible: boolean; // Whether the patient is eligible
+  binMembership?: {
+    binIds: string[]; // Human-readable bin IDs
+    numericBinIds: number[]; // Numeric bin IDs for blockchain
+    binIndices: number[];
+  };
 }
 
 /**
@@ -51,7 +56,7 @@ interface CircuitInput {
 
   dataCommitment: string;
   challenge: string;
-  
+
   enableAge: string;
   minAge: string;
   maxAge: string;
@@ -84,17 +89,30 @@ interface CircuitInput {
   allowedDiabetes: string;
   enableHeartDisease: string;
   allowedHeartDisease: string;
+
+  numBins: string;
+  binFieldCodes: string[];
+  binTypes: string[];
+  binMinValues: string[];
+  binMaxValues: string[];
+  binIncludeMin: string[];
+  binIncludeMax: string[];
+  binCategories: string[][];
+  binCategoryCount: string[];
 }
 
 /**
  * Generates a ZK proof for medical data eligibility
  * This proves that the patient meets study criteria without revealing their medical data
+ * 
+ * Optionally includes bin membership computation if binConfiguration is provided
  *
  * @param medicalData - Patient's aggregated medical data
  * @param studyCriteria - Study eligibility criteria
  * @param dataCommitment - Poseidon hash of the medical data (prevents data manipulation)
  * @param salt - Random salt used in commitment (from generateSecureSalt())
- * @returns ZK proof and public signals
+ * @param binConfiguration - Optional bin configuration for studies with bins
+ * @returns ZK proof and public signals (including bin membership if applicable)
  *
  */
 export const generateZKProof = async (
@@ -102,11 +120,14 @@ export const generateZKProof = async (
   studyCriteria: StudyCriteria,
   dataCommitment: bigint,
   salt: number,
-  challenge: string
+  challenge: string,
+  binConfiguration?: BinConfiguration
 ): Promise<ZKProofResult> => {
   try {
     console.log("Data commitment:", dataCommitment?.toString() || 'UNDEFINED');
     console.log("Salt:", salt);
+    console.log("Challenge:", challenge);
+    console.log("Bin configuration:", binConfiguration);
 
     if (!dataCommitment) {
       throw new Error("dataCommitment is required but was undefined");
@@ -115,25 +136,14 @@ export const generateZKProof = async (
       throw new Error("salt is required but was undefined");
     }
 
-    const isEligible = checkEligibility(medicalData, studyCriteria);
-    console.log("Eligibility check:", isEligible ? "ELIGIBLE" : "NOT ELIGIBLE");
-
-    if (!isEligible) {
-      return {
-        proof: {
-          a: ["0", "0"],
-          b: [
-            ["0", "0"],
-            ["0", "0"],
-          ],
-          c: ["0", "0"],
-        },
-        publicSignals: ["0"],
-        isEligible: false,
-      };
-    }
-    
-    const circuitInput = prepareCircuitInput(medicalData, studyCriteria, dataCommitment, salt, challenge);
+    const circuitInput = prepareCircuitInput(
+      medicalData, 
+      studyCriteria, 
+      dataCommitment, 
+      salt, 
+      challenge,
+      binConfiguration
+    );
     console.log("Circuit input prepared with commitment verification");
 
     console.log("Loading circuit files...");
@@ -148,31 +158,50 @@ export const generateZKProof = async (
 
     console.log("Generating ZK proof");
     console.log("Calling snarkjs.groth16.fullProve with inputs");
+    console.log("├─ circuitInput:", circuitInput);
+    console.log("├─ circuitWasm type:", typeof circuitWasm);
+    console.log("└─ provingKey type:", typeof provingKey);
+
     const { proof, publicSignals } = await snarkjs.groth16.fullProve(
       circuitInput,
       circuitWasm,
       provingKey
     );
 
-    console.log("Raw proof from snarkjs:", proof);
-    console.log("Proof types - a[0]:", typeof proof.pi_a[0], "a[1]:", typeof proof.pi_a[1]);
-
     const formattedProof: ZKProof = {
-      a: [proof.pi_a[0], proof.pi_a[1]],
-      b: [
-        [proof.pi_b[0][1], proof.pi_b[0][0]],
-        [proof.pi_b[1][1], proof.pi_b[1][0]],
+      a: [
+        proof.pi_a[0].toString(),
+        proof.pi_a[1].toString(),
       ],
-      c: [proof.pi_c[0], proof.pi_c[1]],
+      b: [
+        [
+          proof.pi_b[0][1].toString(),
+          proof.pi_b[0][0].toString(),
+        ],
+        [
+          proof.pi_b[1][1].toString(),
+          proof.pi_b[1][0].toString(),
+        ],
+      ],
+      c: [
+        proof.pi_c[0].toString(),
+        proof.pi_c[1].toString(),
+      ],
     };
 
     console.log("ZK proof generated successfully!");
     console.log("Public signals:", publicSignals);
 
+    let binMembershipInfo;
+    if (binConfiguration?.bins && binConfiguration.bins.length > 0) {
+      binMembershipInfo = extractBinMembershipFromProof(publicSignals, binConfiguration);
+    }
+
     return {
       proof: formattedProof,
       publicSignals: publicSignals.map((signal: any) => signal.toString()),
       isEligible: true,
+      binMembership: binMembershipInfo,
     };
   } catch (error) {
     console.error("ZK proof generation failed:", error);
@@ -189,13 +218,15 @@ export const generateZKProof = async (
  * @param studyCriteria - Study eligibility criteria (determines which fields are required)
  * @param dataCommitment - Poseidon commitment of the medical data (for verification)
  * @param salt - Random salt used in the commitment (number from generateSecureSalt())
+ * @param binConfiguration - Optional bin configuration for bin membership computation
  */
 function prepareCircuitInput(
   medicalData: ExtractedMedicalData,
   studyCriteria: StudyCriteria,
   dataCommitment: bigint,
   salt: number,
-  challenge: string
+  challenge: string,
+  binConfiguration?: BinConfiguration
 ): CircuitInput {
     console.log("Preparing circuit input...");
     console.log("├─ dataCommitment:", dataCommitment?.toString() || 'UNDEFINED');
@@ -203,7 +234,7 @@ function prepareCircuitInput(
     console.log("├─ medicalData (raw):", medicalData);
     console.log("├─ challenge:", challenge);
     console.log("└─ studyCriteria:", studyCriteria);
-  
+
   const normalized = normalizeMedicalDataForCircuit(medicalData);
   console.log("├─ medicalData (normalized):", normalized);
 
@@ -224,8 +255,8 @@ function prepareCircuitInput(
 
     salt: salt.toString(),
     dataCommitment: dataCommitment.toString(),
-    challenge: BigInt(`0x${challenge}`).toString(),
-    
+    challenge: (challenge.startsWith('0x') ? BigInt(challenge) : BigInt(`0x${challenge}`)).toString(),
+
     enableAge: studyCriteria.enableAge.toString(),
     minAge: studyCriteria.minAge.toString(),
     maxAge: studyCriteria.maxAge.toString(),
@@ -258,7 +289,123 @@ function prepareCircuitInput(
     allowedDiabetes: studyCriteria.allowedDiabetes.toString(),
     enableHeartDisease: studyCriteria.enableHeartDisease.toString(),
     allowedHeartDisease: studyCriteria.allowedHeartDisease.toString(),
+
+    ...prepareBinInputs(binConfiguration),
   };
+}
+
+function prepareBinInputs(binConfiguration?: BinConfiguration) {
+  const MAX_BINS = 50;
+  const MAX_CATEGORIES_PER_BIN = 10;
+
+  const binFieldCodes = new Array(MAX_BINS).fill(0);
+  const binTypes = new Array(MAX_BINS).fill(0);
+  const binMinValues = new Array(MAX_BINS).fill(0);
+  const binMaxValues = new Array(MAX_BINS).fill(0);
+  const binIncludeMin = new Array(MAX_BINS).fill(0);
+  const binIncludeMax = new Array(MAX_BINS).fill(0);
+  const binCategories = Array.from({ length: MAX_BINS }, () => 
+    new Array(MAX_CATEGORIES_PER_BIN).fill(0)
+  );
+  const binCategoryCount = new Array(MAX_BINS).fill(0);
+
+  const numBins = binConfiguration?.bins?.length ?? 0;
+
+  if (binConfiguration?.bins) {
+    binConfiguration.bins.forEach((bin, i) => {
+      if (i >= MAX_BINS) {
+        console.warn(`Warning: Bin index ${i} exceeds MAX_BINS (${MAX_BINS}), skipping`);
+        return;
+      }
+
+      binFieldCodes[i] = getFieldCode(bin.criteriaField);
+      binTypes[i] = bin.type === "RANGE" ? 0 : 1;
+
+      if (bin.type === "RANGE") {
+        binMinValues[i] = bin.minValue ?? 0;
+        binMaxValues[i] = bin.maxValue ?? 0;
+        binIncludeMin[i] = bin.includeMin ? 1 : 0;
+        binIncludeMax[i] = bin.includeMax ? 1 : 0;
+      } else {
+        const categories = bin.categories ?? [];
+        binCategoryCount[i] = Math.min(categories.length, MAX_CATEGORIES_PER_BIN);
+
+        categories.forEach((cat, j) => {
+          if (j < MAX_CATEGORIES_PER_BIN) {
+            binCategories[i][j] = cat;
+          }
+        });
+      }
+    });
+  }
+
+  return {
+    numBins: numBins.toString(),
+    binFieldCodes: binFieldCodes.map(String),
+    binTypes: binTypes.map(String),
+    binMinValues: binMinValues.map(String),
+    binMaxValues: binMaxValues.map(String),
+    binIncludeMin: binIncludeMin.map(String),
+    binIncludeMax: binIncludeMax.map(String),
+    binCategories: binCategories.map(row => row.map(String)),
+    binCategoryCount: binCategoryCount.map(String),
+  };
+}
+
+/**
+ * Map field names to circuit field codes
+ * 0=age, 1=gender, 2=region, 3=cholesterol, 4=bmi, 5=systolicBP,
+ * 6=diastolicBP, 7=bloodType, 8=hba1c, 9=smokingStatus, 10=activityLevel,
+ * 11=diabetesStatus, 12=heartDiseaseHistory
+ */
+function getFieldCode(fieldName: string): number {
+  const fieldMap: Record<string, number> = {
+    age: 0,
+    gender: 1,
+    region: 2,
+    cholesterol: 3,
+    bmi: 4,
+    systolicBP: 5,
+    diastolicBP: 6,
+    bloodType: 7,
+    hba1c: 8,
+    smokingStatus: 9,
+    activityLevel: 10,
+    diabetesStatus: 11,
+    heartDisease: 12,
+  };
+
+  const code = fieldMap[fieldName];
+  if (code === undefined) {
+    console.warn(`Unknown field: ${fieldName}, defaulting to 0`);
+    return 0;
+  }
+
+  return code;
+}
+
+/**
+ * Extract bin membership from proof's public signals
+ */
+function extractBinMembershipFromProof(
+  publicSignals: any[],
+  binConfiguration: BinConfiguration
+): { binIds: string[]; numericBinIds: number[]; binIndices: number[] } {
+  const binIds: string[] = [];
+  const numericBinIds: number[] = [];
+  const binIndices: number[] = [];
+
+  for (let i = 0; i < binConfiguration.bins.length; i++) {
+    const binFlag = publicSignals[3 + i];
+
+    if (binFlag === "1" || binFlag === 1) {
+      binIds.push(binConfiguration.bins[i].id);
+      numericBinIds.push(binConfiguration.bins[i].numericId);
+      binIndices.push(i);
+    }
+  }
+
+  return { binIds, numericBinIds, binIndices };
 }
 
 /**

@@ -791,6 +791,14 @@ describe("StudyController - Comprehensive Coverage Tests", () => {
                   })),
                 })),
               })),
+              delete: mock(() => ({
+                eq: mock(() => Promise.resolve({ error: null })),
+              })),
+              insert: mock(() => ({
+                select: mock(() => ({
+                  single: mock(() => Promise.resolve({ data: { id: 1 }, error: null })),
+                })),
+              })),
             };
           }
           return {};
@@ -803,6 +811,7 @@ describe("StudyController - Comprehensive Coverage Tests", () => {
           participantWallet: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0",
           dataCommitment: "12345",
           signature: "0xsig",
+          challenge: "test-challenge-123",
         },
         supabase: mockSupabase as any,
       });
@@ -813,7 +822,7 @@ describe("StudyController - Comprehensive Coverage Tests", () => {
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith(
         expect.objectContaining({
-          message: "Using existing challenge (not expired)",
+          success: true,
         })
       );
     });
@@ -870,6 +879,7 @@ describe("StudyController - Comprehensive Coverage Tests", () => {
           participantWallet: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0",
           dataCommitment: "12345",
           signature: "0xsig",
+          challenge: "test-challenge-123",
         },
         supabase: mockSupabase as any,
       });
@@ -1490,6 +1500,7 @@ describe("StudyController - Comprehensive Coverage Tests", () => {
           participantWallet: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0",
           dataCommitment: "12345",
           signature: "0xsig",
+          challenge: "test-challenge-123",
         },
         supabase: mockSupabase as any,
       });
@@ -1501,7 +1512,6 @@ describe("StudyController - Comprehensive Coverage Tests", () => {
       expect(res.json).toHaveBeenCalledWith(
         expect.objectContaining({
           success: true,
-          message: "Challenge generated successfully",
         })
       );
     });
@@ -1546,6 +1556,7 @@ describe("StudyController - Comprehensive Coverage Tests", () => {
           participantWallet: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0",
           dataCommitment: "12345",
           signature: "0xsig",
+          challenge: "test-challenge-123",
         },
         supabase: mockSupabase as any,
       });

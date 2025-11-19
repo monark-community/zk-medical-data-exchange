@@ -5,8 +5,8 @@
   "main": "index.js",
   "scripts": {
     "compile": "circom medical_eligibility.circom --r1cs --wasm --sym -o build/ -l node_modules",
-    "trusted-setup": "snarkjs powersoftau new bn128 12 build/pot12_0000.ptau -v && snarkjs powersoftau contribute build/pot12_0000.ptau build/pot12_0001.ptau --name='First contribution' -v && snarkjs powersoftau prepare phase2 build/pot12_0001.ptau build/pot12_final.ptau -v",
-    "setup-circuit": "snarkjs groth16 setup build/medical_eligibility.r1cs build/pot12_final.ptau build/medical_eligibility_0000.zkey && snarkjs zkey contribute build/medical_eligibility_0000.zkey build/medical_eligibility_0001.zkey --name='First contribution' -v && snarkjs zkey export verificationkey build/medical_eligibility_0001.zkey build/verification_key.json",
+    "trusted-setup": "snarkjs powersoftau new bn128 15 build/pot15_0000.ptau -v && snarkjs powersoftau contribute build/pot15_0000.ptau build/pot15_0001.ptau --name=\"First contribution\" -e=\"random entropy\" -v && snarkjs powersoftau prepare phase2 build/pot15_0001.ptau build/pot15_final.ptau -v",
+    "setup-circuit": "snarkjs groth16 setup build/medical_eligibility.r1cs build/pot15_final.ptau build/medical_eligibility_0000.zkey && snarkjs zkey contribute build/medical_eligibility_0000.zkey build/medical_eligibility_0001.zkey --name=\"First contribution\" -e=\"random entropy\" -v && snarkjs zkey export verificationkey build/medical_eligibility_0001.zkey build/verification_key.json",
     "generate-verifier": "snarkjs zkey export solidityverifier build/medical_eligibility_0001.zkey ../contracts/studies/MedicalEligibilityVerifier.sol",
     "generate-proof": "node scripts/generate_proof.js",
     "verify-proof": "snarkjs groth16 verify build/verification_key.json build/public.json build/proof.json",

@@ -1,20 +1,23 @@
-"use client";
 /* eslint-disable no-unused-vars */
 
+"use client";
+
 import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   createCriteria,
   validateCriteria,
   STUDY_TEMPLATES,
   CRITERIA_DEFAULTS,
+  generateBinsFromCriteria,
+  type BinConfiguration,
 } from "@zk-medical/shared";
 import { useCreateStudy, deployStudy, deleteStudy } from "@/services/api/studyService";
 import { useAccount } from "wagmi";
 import { STUDY_FORM_MAPPINGS, DEFAULT_STUDY_INFO } from "@/constants/studyFormMappings";
 import eventBus from "@/lib/eventBus";
 import { useTxStatusState } from "@/hooks/useTxStatus";
+import { BinPreview } from "@/components/BinPreview";
 const TemplateSelector = ({
   onTemplateSelect,
   selectedTemplate,
@@ -322,14 +325,13 @@ const StudyCreationForm = ({ onSuccess, isModal = false }: StudyCreationFormProp
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<string | undefined>();
   const { show, showError, hide } = useTxStatusState();
+  const [binConfig, setBinConfig] = useState<BinConfiguration | null>(null);
 
   const sanitizeText = (text: string) => {
     return text.replace(/[^a-zA-Z0-9\s\-.,!?()]/g, "");
   };
 
   const { address: walletAddress, isConnected } = useAccount();
-
-  const router = useRouter();
 
   const { createStudy: createStudyApi } = useCreateStudy();
   const resetForm = () => {
@@ -360,6 +362,16 @@ const StudyCreationForm = ({ onSuccess, isModal = false }: StudyCreationFormProp
     const validation = validateCriteria(newCriteria);
     setValidationErrors(validation.errors);
   };
+
+  useEffect(() => {
+    try {
+      const generatedBins = generateBinsFromCriteria(criteria);
+      setBinConfig(generatedBins);
+    } catch (error) {
+      console.error("Error generating bins:", error);
+      setBinConfig(null);
+    }
+  }, [criteria]);
 
   useEffect(() => {
     const errors: string[] = [];
@@ -400,7 +412,8 @@ const StudyCreationForm = ({ onSuccess, isModal = false }: StudyCreationFormProp
         studyInfo.durationDays,
         criteria,
         selectedTemplate,
-        walletAddress
+        walletAddress,
+        binConfig
       );
 
       console.log("Study created in database:", result);
@@ -1071,6 +1084,19 @@ const StudyCreationForm = ({ onSuccess, isModal = false }: StudyCreationFormProp
             </div>
           </CriteriaField>
         </div>
+      </div>
+
+      <div className="bg-gradient-to-br from-white to-gray-50 p-8 rounded-2xl shadow-lg border border-gray-100">
+        <div className="mb-6">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            Data Aggregation Preview
+          </h2>
+          <p className="text-gray-600">
+            Privacy-preserving data collection bins automatically generated from your eligibility
+            criteria
+          </p>
+        </div>
+        <BinPreview binConfig={binConfig} isGenerating={false} />
       </div>
 
       {/* Validation Errors */}
