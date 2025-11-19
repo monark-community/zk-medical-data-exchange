@@ -105,6 +105,7 @@ mock.module("../contracts/generated", () => ({
 }));
 
 import { StudyService } from "./studyService";
+import { JoinStudyError } from "./errors/joinStudyError";
 
 let studyService: StudyService;
 
