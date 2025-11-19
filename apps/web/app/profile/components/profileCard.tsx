@@ -150,7 +150,7 @@ const ProfileCard = () => {
       <Card className="overflow-hidden !py-0">
         <div className={`bg-gradient-to-br ${walletTheme.gradient} p-6 text-white sm:p-8`}>
           <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
-            <WalletAvatar address={address} size={96} className="flex-shrink-0" />
+            <WalletAvatar address={address} size={112} className="flex-shrink-0" />
 
             <div className="flex-1 space-y-2">
               <div>
