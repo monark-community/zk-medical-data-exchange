@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, type CSSProperties } from "react";
 import { getWalletTheme } from "@/lib/walletTheme";
 
 interface WalletAvatarProps {
@@ -9,8 +9,24 @@ interface WalletAvatarProps {
   className?: string;
 }
 
-const FACE_TONES = ["#FFE0CC", "#FBD5D5", "#FDE2E4", "#E0F2FE", "#DCFCE7", "#F5E0FF"];
-const BODY_TONES = ["#0F172A", "#111827", "#0B1F3A", "#132D46"];
+const FACE_TONES = ["#F5E0FF", "#DCFCE7", "#E0F2FE", "#FDE2E4", "#FBD5D5", "#FFE0CC"];
+const BODY_TONES = ["#132D46", "#0B1F3A", "#111827", "#0F172A"];
+
+type EarVariant = "bunny" | "cat" | "antenna";
+type EyeVariant = "dot" | "arc" | "spark";
+type ExpressionVariant = "smile" | "laugh" | "calm" | "wow";
+type PetVariant = "spark" | "pill" | "shield" | "heart";
+type HeadShape = "circle" | "squircle" | "roundedSquare";
+type BodyPattern = "plain" | "stripes" | "sash" | "signals";
+type CollarVariant = "round" | "v" | "tech";
+type CheekStyle = "solid" | "ring";
+type ForeheadMark = "none" | "dot" | "bar";
+
+const HEAD_SHAPE_CONFIG: Record<HeadShape, CSSProperties> = {
+  circle: { borderRadius: "50%" },
+  squircle: { borderRadius: "45% / 50%" },
+  roundedSquare: { borderRadius: "35%" },
+};
 
 const styleId = "wallet-avatar-animations";
 if (typeof document !== "undefined" && !document.getElementById(styleId)) {
@@ -32,6 +48,12 @@ if (typeof document !== "undefined" && !document.getElementById(styleId)) {
       50% { transform: translateY(-2px) scale(1.02); }
       100% { transform: translateY(0) scale(1); }
     }
+
+    @keyframes wallet-avatar-orbit {
+      0% { transform: rotate(0deg) translateX(6px) rotate(0deg); }
+      50% { transform: rotate(180deg) translateX(6px) rotate(-180deg); }
+      100% { transform: rotate(360deg) translateX(6px) rotate(-360deg); }
+    }
   `;
   document.head.appendChild(style);
 }
@@ -45,11 +67,30 @@ const WalletAvatar = ({ address, size = 40, className }: WalletAvatarProps) => {
     const hash = theme.hash;
     const face = FACE_TONES[hash % FACE_TONES.length];
     const body = BODY_TONES[hash % BODY_TONES.length];
-    const earVariant = ["bunny", "cat", "antenna"][hash % 3] as "bunny" | "cat" | "antenna";
-    const accessoryVariant = ["badge", "visor", "stethoscope"][Math.abs((hash >> 2) % 3)] as
+    const earVariant = ["antenna", "bunny", "cat"][hash % 3] as EarVariant;
+    const accessoryVariant = ["visor", "badge", "stethoscope"][Math.abs((hash >> 2) % 3)] as
       | "badge"
       | "visor"
       | "stethoscope";
+    const eyeVariant = ["spark", "dot", "arc"][Math.abs((hash >> 6) % 3)] as EyeVariant;
+    const expressionVariant = ["wow", "smile", "laugh", "calm"][
+      Math.abs((hash >> 8) % 4)
+    ] as ExpressionVariant;
+    const hasFreckles = ((hash >> 7) & 1) === 0;
+    const petVariant = ["heart", "spark", "pill", "shield"][
+      Math.abs((hash >> 9) % 4)
+    ] as PetVariant;
+    const petSide = (hash & 1) === 0 ? -1 : 1;
+    const petDelay = (hash % 6) * 0.2;
+    const headShape = ["droplet", "circle", "squircle", "roundedSquare"][
+      Math.abs((hash >> 11) % 4)
+    ] as HeadShape;
+    const bodyPattern = ["signals", "plain", "stripes", "sash"][
+      Math.abs((hash >> 12) % 4)
+    ] as BodyPattern;
+    const collarVariant = ["tech", "round", "v"][Math.abs((hash >> 14) % 3)] as CollarVariant;
+    const cheekStyle = ["ring", "solid"][Math.abs((hash >> 16) % 2)] as CheekStyle;
+    const foreheadMark = ["bar", "none", "dot"][Math.abs((hash >> 15) % 3)] as ForeheadMark;
     const blinkDelay = 2 + (hash % 3);
     const bobDuration = 3.5 + (hash % 35) / 10;
     const cheekTone = `${theme.accent}55`;
@@ -59,6 +100,17 @@ const WalletAvatar = ({ address, size = 40, className }: WalletAvatarProps) => {
       body,
       earVariant,
       accessoryVariant,
+      eyeVariant,
+      expressionVariant,
+      hasFreckles,
+      petVariant,
+      petSide,
+      petDelay,
+      headShape,
+      bodyPattern,
+      collarVariant,
+      cheekStyle,
+      foreheadMark,
       blinkDelay,
       bobDuration,
       cheekTone,
@@ -81,6 +133,205 @@ const WalletAvatar = ({ address, size = 40, className }: WalletAvatarProps) => {
 
   const blinkStyleLeft = { animationDelay: `${features.blinkDelay}s` };
   const blinkStyleRight = { animationDelay: `${features.blinkDelay + 0.8}s` };
+
+  const renderEye = (side: "left" | "right") => {
+    const positionClass = side === "left" ? "left-3" : "right-3";
+    const blinkStyle = side === "left" ? blinkStyleLeft : blinkStyleRight;
+    if (features.eyeVariant === "arc") {
+      return (
+        <span
+          className={`absolute ${positionClass} top-[22px] h-1.5 w-3 rounded-full border-b-2 border-slate-900`}
+          style={{
+            animation: "wallet-avatar-blink 3.5s ease-in-out infinite",
+            transformOrigin: "center",
+            ...blinkStyle,
+          }}
+        />
+      );
+    }
+    if (features.eyeVariant === "spark") {
+      return (
+        <span
+          className={`absolute ${positionClass} top-[20px] flex h-2 w-2 rotate-45 items-center justify-center rounded-[2px] bg-white/80`}
+          style={{
+            boxShadow: `0 0 6px ${theme.accent}`,
+            animation: `wallet-avatar-hover 2.8s ease-in-out infinite`,
+            ...blinkStyle,
+          }}
+        />
+      );
+    }
+    return (
+      <span
+        className={`absolute ${positionClass} top-5 h-2 w-2 rounded-full bg-slate-900`}
+        style={{
+          animation: "wallet-avatar-blink 3.5s ease-in-out infinite",
+          ...blinkStyle,
+        }}
+      />
+    );
+  };
+
+  const mouthElement = (() => {
+    switch (features.expressionVariant) {
+      case "laugh":
+        return (
+          <span
+            className="absolute left-1/2 top-8 flex h-3 w-5 -translate-x-1/2 items-center justify-center rounded-b-full border-b-2 border-slate-900 bg-white/70"
+            style={{ color: theme.accent }}
+          >
+            <span className="h-2 w-4 rounded-b-full bg-slate-900/20" />
+          </span>
+        );
+      case "calm":
+        return (
+          <span
+            className="absolute left-1/2 top-8 h-1 w-4 -translate-x-1/2 rounded-full bg-slate-900/70"
+            style={{ opacity: 0.85 }}
+          />
+        );
+      case "wow":
+        return (
+          <span
+            className="absolute left-1/2 top-[30px] h-2.5 w-2.5 -translate-x-1/2 rounded-full border-2 border-slate-900/80"
+            style={{ backgroundColor: "#fff", opacity: 0.9 }}
+          />
+        );
+      default:
+        return (
+          <span
+            className="absolute left-1/2 top-8 h-1 w-5 -translate-x-1/2 rounded-full bg-slate-900"
+            style={{ boxShadow: `0 0 4px ${theme.accent}40` }}
+          />
+        );
+    }
+  })();
+
+  const renderCheek = (side: "left" | "right") => {
+    const className = side === "left" ? "left-2" : "right-2";
+    if (features.cheekStyle === "ring") {
+      return (
+        <span
+          className={`absolute ${className} top-6 h-2 w-2 rounded-full border border-white/50`}
+          style={{ boxShadow: `0 0 6px ${theme.accent}40` }}
+        />
+      );
+    }
+    return (
+      <span
+        className={`absolute ${className} top-6 h-1.5 w-3 rounded-full`}
+        style={{ backgroundColor: features.cheekTone }}
+      />
+    );
+  };
+
+  const renderPet = () => {
+    const baseStyle: CSSProperties = {
+      position: "absolute",
+      top: "30%",
+      ...(features.petSide === -1 ? { left: "-8%" } : { right: "-8%" }),
+      animation: `wallet-avatar-orbit ${3.2 + (features.petDelay % 2)}s ease-in-out infinite`,
+      animationDelay: `${features.petDelay}s`,
+    };
+
+    switch (features.petVariant) {
+      case "pill":
+        return (
+          <span
+            className="flex h-3 w-6 items-center justify-center rounded-full border border-white/50"
+            style={{
+              ...baseStyle,
+              background: `linear-gradient(90deg, ${theme.accentMuted}, ${theme.accent})`,
+            }}
+          >
+            <span className="h-1.5 w-1.5 rounded-full bg-white/80" />
+          </span>
+        );
+      case "shield":
+        return (
+          <span className="flex h-4 w-4 items-center justify-center" style={baseStyle}>
+            <svg viewBox="0 0 24 24" width="16" height="16" fill={theme.accent} opacity={0.85}>
+              <path d="M12 2l7 4v5c0 4.418-2.686 8.418-7 10-4.314-1.582-7-5.582-7-10V6l7-4z" />
+            </svg>
+          </span>
+        );
+      case "heart":
+        return (
+          <span
+            className="flex h-4 w-4 items-center justify-center text-[10px]"
+            style={{ ...baseStyle, color: theme.accent }}
+          >
+            ♥
+          </span>
+        );
+      default:
+        return (
+          <span className="flex h-4 w-4 items-center justify-center" style={baseStyle}>
+            <span
+              className="h-2 w-2 rotate-45 rounded-sm"
+              style={{ backgroundColor: theme.accent, boxShadow: `0 0 6px ${theme.accent}` }}
+            />
+          </span>
+        );
+    }
+  };
+
+  const renderBodyPattern = () => {
+    if (features.bodyPattern === "plain") return null;
+    if (features.bodyPattern === "stripes") {
+      return (
+        <span
+          className="absolute inset-0 opacity-60"
+          style={{
+            backgroundImage: `linear-gradient(135deg, transparent 40%, ${theme.accentMuted} 40%, ${theme.accentMuted} 60%, transparent 60%)`,
+            backgroundSize: "12px 12px",
+          }}
+        />
+      );
+    }
+    if (features.bodyPattern === "sash") {
+      return (
+        <span
+          className="absolute inset-0 opacity-70"
+          style={{
+            backgroundImage: `linear-gradient(120deg, transparent 45%, ${theme.accent} 45%, ${theme.accentMuted} 60%, transparent 60%)`,
+          }}
+        />
+      );
+    }
+    return (
+      <span className="absolute inset-0 flex items-center justify-around text-[8px] text-white/50">
+        <span>●●●</span>
+        <span>◦◦◦</span>
+      </span>
+    );
+  };
+
+  const renderCollar = () => {
+    if (features.collarVariant === "round") {
+      return (
+        <span
+          className="absolute -top-1 left-1/2 h-2 w-10 -translate-x-1/2 rounded-full border border-white/20 bg-white/10"
+          style={{ boxShadow: `0 4px 8px ${theme.accent}30` }}
+        />
+      );
+    }
+    if (features.collarVariant === "v") {
+      return (
+        <span className="absolute -top-1 flex items-center justify-center text-[10px] text-white/70">
+          <span className="h-2 w-8 border-b border-white/40" />
+        </span>
+      );
+    }
+    return (
+      <span
+        className="absolute -top-1 flex w-full items-center justify-center gap-2 text-[8px] uppercase tracking-widest text-white/60"
+        style={{ letterSpacing: "0.15em" }}
+      >
+        ▢ ▢ ▢
+      </span>
+    );
+  };
 
   return (
     <div
@@ -110,6 +361,7 @@ const WalletAvatar = ({ address, size = 40, className }: WalletAvatarProps) => {
             className="absolute inset-[15%] rounded-full bg-black/20 blur-xl"
             style={sparkleStyle}
           />
+          {renderPet()}
           <div
             className="relative flex h-full w-full flex-col items-center justify-end"
             style={characterStyle}
@@ -118,11 +370,11 @@ const WalletAvatar = ({ address, size = 40, className }: WalletAvatarProps) => {
               {features.earVariant === "bunny" && (
                 <>
                   <span
-                    className="absolute -top-7 left-1/2 h-9 w-4 -translate-x-[110%] rounded-full"
+                    className="absolute -top-7 left-1/2 h-8 w-4 -translate-x-[110%] rounded-full"
                     style={{ backgroundColor: earColor, opacity: 0.9 }}
                   />
                   <span
-                    className="absolute -top-7 left-1/2 h-9 w-4 translate-x-[10%] rounded-full"
+                    className="absolute -top-7 left-1/2 h-8 w-4 translate-x-[10%] rounded-full"
                     style={{ backgroundColor: earColor }}
                   />
                 </>
@@ -163,42 +415,52 @@ const WalletAvatar = ({ address, size = 40, className }: WalletAvatarProps) => {
               )}
 
               <div
-                className="relative h-14 w-14 rounded-full border border-white/20"
+                className="relative h-14 w-14 border border-white/20"
                 style={{
                   backgroundColor: features.face,
                   boxShadow: "0 6px 12px rgba(15, 23, 42, 0.25)",
+                  overflow: "hidden",
+                  ...HEAD_SHAPE_CONFIG[features.headShape],
                 }}
               >
-                <span
-                  className="absolute left-2 top-6 h-1.5 w-3 rounded-full"
-                  style={{ backgroundColor: features.cheekTone }}
-                />
-                <span
-                  className="absolute right-2 top-6 h-1.5 w-3 rounded-full"
-                  style={{ backgroundColor: features.cheekTone }}
-                />
-                <span
-                  className="absolute left-3 top-5 h-2 w-2 rounded-full bg-slate-900"
-                  style={{
-                    animation: "wallet-avatar-blink 3.5s ease-in-out infinite",
-                    ...blinkStyleLeft,
-                  }}
-                />
-                <span
-                  className="absolute right-3 top-5 h-2 w-2 rounded-full bg-slate-900"
-                  style={{
-                    animation: "wallet-avatar-blink 3.5s ease-in-out infinite",
-                    ...blinkStyleRight,
-                  }}
-                />
-                <span className="absolute left-1/2 top-8 h-1 w-5 -translate-x-1/2 rounded-full bg-slate-900" />
+                {features.foreheadMark !== "none" && (
+                  <span
+                    className="absolute left-1/2 top-2 -translate-x-1/2 rounded-full"
+                    style={{
+                      width: features.foreheadMark === "dot" ? 6 : 12,
+                      height: features.foreheadMark === "dot" ? 6 : 2,
+                      backgroundColor: theme.accentMuted,
+                      boxShadow: `0 0 6px ${theme.accent}`,
+                    }}
+                  />
+                )}
+                {renderCheek("left")}
+                {renderCheek("right")}
+                {features.hasFreckles && (
+                  <>
+                    <span className="absolute left-4 top-7 h-0.5 w-0.5 rounded-full bg-amber-400/70" />
+                    <span className="absolute left-5 top-7 h-0.5 w-0.5 rounded-full bg-amber-400/70" />
+                    <span className="absolute right-5 top-7 h-0.5 w-0.5 rounded-full bg-amber-400/70" />
+                    <span className="absolute right-4 top-7 h-0.5 w-0.5 rounded-full bg-amber-400/70" />
+                  </>
+                )}
+                {renderEye("left")}
+                {renderEye("right")}
+                {mouthElement}
               </div>
             </div>
 
             <div
               className="mt-1 flex h-10 w-14 items-center justify-center rounded-3xl border border-white/10 px-2"
-              style={{ backgroundColor: features.body, boxShadow: `0 6px 14px ${theme.accent}40` }}
+              style={{
+                backgroundColor: features.body,
+                boxShadow: `0 6px 14px ${theme.accent}40`,
+                position: "relative",
+                overflow: "hidden",
+              }}
             >
+              {renderBodyPattern()}
+              {renderCollar()}
               {features.accessoryVariant === "badge" && (
                 <span
                   className="h-3 w-3 rounded-full"
