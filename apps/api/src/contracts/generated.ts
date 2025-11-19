@@ -1,5 +1,5 @@
 // Auto-generated contract ABIs
-// Generated on 2025-11-18T00:13:41.063Z
+// Generated on 2025-11-19T04:50:42.656Z
 
 // ABI type definitions
 interface ABIInput {
@@ -1063,6 +1063,150 @@ export const STUDY_ABI: ABI = [
       {
         "indexed": true,
         "internalType": "address",
+        "name": "caller",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "binCount",
+        "type": "uint256"
+      }
+    ],
+    "name": "BinConfigurationStarted",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "index",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "binId",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "string",
+        "name": "criteriaField",
+        "type": "string"
+      },
+      {
+        "indexed": false,
+        "internalType": "string",
+        "name": "label",
+        "type": "string"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint8",
+        "name": "binType",
+        "type": "uint8"
+      }
+    ],
+    "name": "BinConfigured",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "binId",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "oldCount",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "newCount",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "participant",
+        "type": "address"
+      }
+    ],
+    "name": "BinCountChanged",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "binId",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "newCount",
+        "type": "uint256"
+      }
+    ],
+    "name": "BinCountUpdated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "participant",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "binCount",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "bool",
+        "name": "increment",
+        "type": "bool"
+      }
+    ],
+    "name": "BinUpdateStarted",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "binCount",
+        "type": "uint256"
+      }
+    ],
+    "name": "BinsConfigured",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
         "name": "participant",
         "type": "address"
       },
@@ -1172,6 +1316,97 @@ export const STUDY_ABI: ABI = [
     "type": "function"
   },
   {
+    "inputs": [],
+    "name": "areBinsConfigured",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "binCounts",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "bins",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "binId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "string",
+        "name": "criteriaField",
+        "type": "string"
+      },
+      {
+        "internalType": "uint8",
+        "name": "binType",
+        "type": "uint8"
+      },
+      {
+        "internalType": "string",
+        "name": "label",
+        "type": "string"
+      },
+      {
+        "internalType": "uint256",
+        "name": "minValue",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "maxValue",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bool",
+        "name": "includeMin",
+        "type": "bool"
+      },
+      {
+        "internalType": "bool",
+        "name": "includeMax",
+        "type": "bool"
+      },
+      {
+        "internalType": "uint256",
+        "name": "categoriesBitmap",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
         "internalType": "address",
@@ -1188,6 +1423,71 @@ export const STUDY_ABI: ABI = [
       }
     ],
     "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "components": [
+          {
+            "internalType": "uint256",
+            "name": "binId",
+            "type": "uint256"
+          },
+          {
+            "internalType": "string",
+            "name": "criteriaField",
+            "type": "string"
+          },
+          {
+            "internalType": "uint8",
+            "name": "binType",
+            "type": "uint8"
+          },
+          {
+            "internalType": "string",
+            "name": "label",
+            "type": "string"
+          },
+          {
+            "internalType": "uint256",
+            "name": "minValue",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "maxValue",
+            "type": "uint256"
+          },
+          {
+            "internalType": "bool",
+            "name": "includeMin",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "includeMax",
+            "type": "bool"
+          },
+          {
+            "internalType": "uint256",
+            "name": "categoriesBitmap",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct Study.DataBin[]",
+        "name": "_bins",
+        "type": "tuple[]"
+      },
+      {
+        "internalType": "address",
+        "name": "caller",
+        "type": "address"
+      }
+    ],
+    "name": "configureBins",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -1356,6 +1656,110 @@ export const STUDY_ABI: ABI = [
         "internalType": "uint256",
         "name": "",
         "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getAllBinCounts",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "uint256",
+            "name": "binId",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "count",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct Study.BinCount[]",
+        "name": "",
+        "type": "tuple[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "binId",
+        "type": "uint256"
+      }
+    ],
+    "name": "getBinCount",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getBins",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "uint256",
+            "name": "binId",
+            "type": "uint256"
+          },
+          {
+            "internalType": "string",
+            "name": "criteriaField",
+            "type": "string"
+          },
+          {
+            "internalType": "uint8",
+            "name": "binType",
+            "type": "uint8"
+          },
+          {
+            "internalType": "string",
+            "name": "label",
+            "type": "string"
+          },
+          {
+            "internalType": "uint256",
+            "name": "minValue",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "maxValue",
+            "type": "uint256"
+          },
+          {
+            "internalType": "bool",
+            "name": "includeMin",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "includeMax",
+            "type": "bool"
+          },
+          {
+            "internalType": "uint256",
+            "name": "categoriesBitmap",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct Study.DataBin[]",
+        "name": "",
+        "type": "tuple[]"
       }
     ],
     "stateMutability": "view",
@@ -1719,6 +2123,11 @@ export const STUDY_ABI: ABI = [
         "internalType": "address",
         "name": "participant",
         "type": "address"
+      },
+      {
+        "internalType": "uint256[]",
+        "name": "binMembership",
+        "type": "uint256[]"
       }
     ],
     "name": "joinStudy",
@@ -1940,9 +2349,9 @@ export const MEDICAL_ELIGIBILITY_VERIFIER_ABI: ABI = [
         "type": "uint256[2]"
       },
       {
-        "internalType": "uint256[1]",
+        "internalType": "uint256[51]",
         "name": "_pubSignals",
-        "type": "uint256[1]"
+        "type": "uint256[51]"
       }
     ],
     "name": "verifyProof",

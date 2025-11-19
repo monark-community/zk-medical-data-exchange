@@ -1,18 +1,7 @@
-import { poseidon3, poseidon7 } from "poseidon-lite";
+import { poseidon4, poseidon7 } from "poseidon-lite";
 import { ExtractedMedicalData } from "@/services/fhir/types/extractedMedicalData";
 
-/**
- * Generates a secure data commitment using Poseidon hash
- * This matches the commitment structure expected by the ZK circuit
- *
- * IMPORTANT: Call checkEligibility() BEFORE this function to ensure required fields exist.
- * This function will throw an error if required fields are missing.
- *
- * @param medicalData - Aggregated medical data in ZK-compatible format
- * @param salt - Cryptographically secure random salt (from generateSecureSalt())
- * @returns Poseidon hash commitment as BigInt
- */
-export const generateDataCommitment = (medicalData: ExtractedMedicalData, salt: number): bigint => {
+export const generateDataCommitment = (medicalData: ExtractedMedicalData, salt: number, challenge: string): bigint => {
   const normalizedData = normalizeMedicalDataForCircuit(medicalData);
 
   try {
@@ -41,13 +30,22 @@ export const generateDataCommitment = (medicalData: ExtractedMedicalData, salt: 
 
     const commitment1 = poseidon7(commitment1InputsBigInt);
     const commitment2 = poseidon7(commitment2InputsBigInt);
-    const finalCommitmentHash = poseidon3([commitment1, commitment2, BigInt(salt)]);
 
-    console.log("Data commitment generated:");
+    let finalCommitmentHash: bigint;
+
+    const challengeHex = challenge.startsWith('0x') ? challenge.slice(2) : challenge;
+    const challengeBigInt = BigInt(`0x${challengeHex}`);
+
+    finalCommitmentHash = poseidon4([commitment1, commitment2, BigInt(salt), challengeBigInt]);
+    console.log("Data commitment generated (with challenge):");
     console.log("├─ Commitment 1 inputs:", commitment1Inputs);
+    console.log("├─ Commitment 1 hash:", commitment1.toString());
     console.log("├─ Commitment 2 inputs:", commitment2Inputs);
-    console.log("├─ Final inputs:", [commitment1, commitment2, salt]);
-    console.log("└─ Final commitment:", finalCommitmentHash);
+    console.log("├─ Commitment 2 hash:", commitment2.toString());
+    console.log("├─ Challenge (hex):", challenge);
+    console.log("├─ Challenge (bigint):", challengeBigInt.toString());
+    console.log("├─ Final inputs:", [commitment1.toString(), commitment2.toString(), salt.toString(), challengeBigInt.toString()]);
+    console.log("└─ Final commitment:", finalCommitmentHash.toString());
 
     return finalCommitmentHash;
   } catch (error) {
@@ -64,13 +62,6 @@ export const generateSecureSalt = (): number => {
   return crypto.getRandomValues(new Uint32Array(1))[0];
 };
 
-/**
- * Normalize medical data into integer, circuit-ready inputs.
- *
- * @param medicalData - ExtractedMedicalData from FHIR extraction
- * @returns Normalized numeric fields ready to be fed into the Poseidon circuit
- * @throws {Error} if required fields are missing
- */
 export const normalizeMedicalDataForCircuit = (medicalData: ExtractedMedicalData) => {
   const age = medicalData.age;
   const gender = medicalData.gender;
