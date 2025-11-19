@@ -598,7 +598,15 @@ const StudyCreationForm = ({ onSuccess, isModal = false }: StudyCreationFormProp
             label="Age Requirements"
             enabled={criteria.enableAge === 1}
             onEnabledChange={(enabled) =>
-              updateCriteria(enabled ? { enableAge: 1 } : { enableAge: 0, minAge: 0, maxAge: 0 })
+              updateCriteria(
+                enabled
+                  ? {
+                      enableAge: 1,
+                      minAge: CRITERIA_DEFAULTS.age.min,
+                      maxAge: CRITERIA_DEFAULTS.age.max,
+                    }
+                  : { enableAge: 0, minAge: 0, maxAge: 0 }
+              )
             }
           >
             <RangeInput
@@ -646,7 +654,15 @@ const StudyCreationForm = ({ onSuccess, isModal = false }: StudyCreationFormProp
             label="BMI Requirements"
             enabled={criteria.enableBMI === 1}
             onEnabledChange={(enabled) =>
-              updateCriteria(enabled ? { enableBMI: 1 } : { enableBMI: 0, minBMI: 0, maxBMI: 0 })
+              updateCriteria(
+                enabled
+                  ? {
+                      enableBMI: 1,
+                      minBMI: CRITERIA_DEFAULTS.bmi.min * 10,
+                      maxBMI: CRITERIA_DEFAULTS.bmi.max * 10,
+                    }
+                  : { enableBMI: 0, minBMI: 0, maxBMI: 0 }
+              )
             }
           >
             <RangeInput
@@ -670,7 +686,11 @@ const StudyCreationForm = ({ onSuccess, isModal = false }: StudyCreationFormProp
             onEnabledChange={(enabled) =>
               updateCriteria(
                 enabled
-                  ? { enableCholesterol: 1 }
+                  ? {
+                      enableCholesterol: 1,
+                      minCholesterol: CRITERIA_DEFAULTS.cholesterol.min,
+                      maxCholesterol: CRITERIA_DEFAULTS.cholesterol.max,
+                    }
                   : { enableCholesterol: 0, minCholesterol: 0, maxCholesterol: 0 }
               )
             }
@@ -704,7 +724,13 @@ const StudyCreationForm = ({ onSuccess, isModal = false }: StudyCreationFormProp
             onEnabledChange={(enabled) =>
               updateCriteria(
                 enabled
-                  ? { enableBloodPressure: 1 }
+                  ? {
+                      enableBloodPressure: 1,
+                      minSystolic: CRITERIA_DEFAULTS.bloodPressure.systolic.min * 10,
+                      maxSystolic: CRITERIA_DEFAULTS.bloodPressure.systolic.max * 10,
+                      minDiastolic: CRITERIA_DEFAULTS.bloodPressure.diastolic.min * 10,
+                      maxDiastolic: CRITERIA_DEFAULTS.bloodPressure.diastolic.max * 10,
+                    }
                   : {
                       enableBloodPressure: 0,
                       minSystolic: 0,
@@ -915,7 +941,13 @@ const StudyCreationForm = ({ onSuccess, isModal = false }: StudyCreationFormProp
             enabled={criteria.enableHbA1c === 1}
             onEnabledChange={(enabled) =>
               updateCriteria(
-                enabled ? { enableHbA1c: 1 } : { enableHbA1c: 0, minHbA1c: 0, maxHbA1c: 0 }
+                enabled
+                  ? {
+                      enableHbA1c: 1,
+                      minHbA1c: CRITERIA_DEFAULTS.hbA1c.min * 10,
+                      maxHbA1c: CRITERIA_DEFAULTS.hbA1c.max * 10,
+                    }
+                  : { enableHbA1c: 0, minHbA1c: 0, maxHbA1c: 0 }
               )
             }
           >
