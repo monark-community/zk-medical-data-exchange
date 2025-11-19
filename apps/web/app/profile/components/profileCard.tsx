@@ -11,7 +11,6 @@ import { getUser } from "@/services/api/userService";
 import { useAccount } from "wagmi";
 import EditProfileDialog from "./editProfileDialog";
 import { useUser } from "@/hooks/useUser";
-import ProfileAvatar from "@/components/profileAvatar";
 import { getTransactionByWalletAddress } from "@/services/api/transactionService";
 import { Transaction } from "@/interfaces/transaction";
 import { useTxStatusState } from "@/hooks/useTxStatus";
@@ -173,7 +172,54 @@ const ProfileCard = () => {
       <Card className="overflow-hidden !py-0">
         <div className={`bg-gradient-to-br ${getGradientColors(address)} p-6 text-white sm:p-8`}>
           <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
-            <ProfileAvatar size={96} radius={48} />
+            {/* Animated Robot Profile Avatar */}
+            <div className="relative flex-shrink-0">
+              <div className="relative w-24 h-24 sm:w-32 sm:h-32">
+                {/* Robot Head */}
+                <div
+                  className={`absolute inset-0 bg-gradient-to-br ${getGradientColors(
+                    address
+                  )} rounded-full border-4 border-white/50 shadow-xl`}
+                >
+                  {/* Eyes */}
+                  <div className="absolute top-4 left-3 w-3 h-3 bg-white rounded-full animate-pulse shadow-sm"></div>
+                  <div
+                    className="absolute top-4 right-3 w-3 h-3 bg-white rounded-full animate-pulse shadow-sm"
+                    style={{ animationDelay: "0.5s" }}
+                  ></div>
+
+                  {/* Mouth/Screen */}
+                  <div className="absolute bottom-3 left-1/2 transform -translate-x-1/2 w-8 h-1.5 bg-white/90 rounded-full shadow-sm"></div>
+
+                  {/* Antenna */}
+                  <div className="absolute -top-1.5 left-1/2 transform -translate-x-1/2 w-1 h-3 bg-white/70 rounded-full shadow-sm"></div>
+                  <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-yellow-300 rounded-full animate-ping shadow-lg"></div>
+                </div>
+
+                {/* Robot Body */}
+                <div className="absolute top-20 left-1/2 transform -translate-x-1/2 w-12 h-8 bg-gradient-to-br from-gray-200 to-gray-400 rounded-xl border-2 border-white/30 shadow-lg">
+                  {/* Chest Panel */}
+                  <div className="absolute inset-1 bg-gradient-to-br from-white/20 to-white/10 rounded-lg border border-white/20">
+                    <div className="w-full h-full flex items-center justify-center">
+                      <div className="w-2 h-2 bg-white/80 rounded-full animate-pulse shadow-sm"></div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Arms */}
+                <div className="absolute top-16 left-2 w-4 h-10 bg-gradient-to-b from-blue-300 to-blue-500 rounded-full transform -rotate-12 animate-wave origin-top shadow-md"></div>
+                <div
+                  className="absolute top-16 right-2 w-4 h-10 bg-gradient-to-b from-blue-300 to-blue-500 rounded-full transform rotate-12 animate-wave origin-top shadow-md"
+                  style={{ animationDelay: "1s" }}
+                ></div>
+
+                {/* Floating particles */}
+                <div className="absolute -top-3 -left-3 w-2 h-2 bg-white/60 rounded-full animate-float-1 shadow-sm"></div>
+                <div className="absolute top-2 -right-4 w-1.5 h-1.5 bg-blue-200/70 rounded-full animate-float-2 shadow-sm"></div>
+                <div className="absolute -bottom-2 left-3 w-2.5 h-2.5 bg-indigo-200/60 rounded-full animate-float-3 shadow-sm"></div>
+              </div>
+            </div>
+
             <div className="flex-1 space-y-2">
               <div>
                 <h1 className="break-words text-3xl font-bold sm:text-4xl">
@@ -484,6 +530,45 @@ const ProfileCard = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Custom CSS Animations for Animated Character */}
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
+          @keyframes bounce-slow {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-8px); }
+          }
+
+          @keyframes wave {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(5deg); }
+            75% { transform: rotate(-5deg); }
+          }
+
+          @keyframes float-1 {
+            0%, 100% { transform: translateY(0px) translateX(0px); opacity: 0.4; }
+            50% { transform: translateY(-12px) translateX(4px); opacity: 0.8; }
+          }
+
+          @keyframes float-2 {
+            0%, 100% { transform: translateY(0px) translateX(0px); opacity: 0.6; }
+            50% { transform: translateY(-8px) translateX(-6px); opacity: 1; }
+          }
+
+          @keyframes float-3 {
+            0%, 100% { transform: translateY(0px) translateX(0px); opacity: 0.5; }
+            50% { transform: translateY(10px) translateX(8px); opacity: 0.9; }
+          }
+
+          .animate-bounce-slow { animation: bounce-slow 3s ease-in-out infinite; }
+          .animate-wave { animation: wave 2s ease-in-out infinite; }
+          .animate-float-1 { animation: float-1 4s ease-in-out infinite; }
+          .animate-float-2 { animation: float-2 5s ease-in-out infinite; }
+          .animate-float-3 { animation: float-3 3.5s ease-in-out infinite; }
+        `,
+        }}
+      />
     </div>
   );
 };
