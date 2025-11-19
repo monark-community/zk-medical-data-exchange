@@ -298,7 +298,6 @@ function prepareBinInputs(binConfiguration?: BinConfiguration) {
   const MAX_BINS = 50;
   const MAX_CATEGORIES_PER_BIN = 10;
   
-  // Initialize with zeros
   const binFieldCodes = new Array(MAX_BINS).fill(0);
   const binTypes = new Array(MAX_BINS).fill(0);
   const binMinValues = new Array(MAX_BINS).fill(0);
