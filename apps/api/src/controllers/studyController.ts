@@ -792,9 +792,14 @@ export const deployStudy = async (req: Request, res: Response) => {
             "Configuring bins on deployed contract"
           );
 
+          const binsForContract = solidityBins.map(bin => ({
+            ...bin,
+            binId: bin.binId.toString()
+          }));
+
           const binConfigResult = await studyService.configureBins(
             deploymentResult.studyAddress,
-            solidityBins
+            binsForContract
           );
           
           if (binConfigResult.success) {
@@ -1011,10 +1016,6 @@ export const updateStudy = async (req: Request, res: Response) => {
   }
 };
 
-/**
- * Request a challenge for commitment generation
- * POST /api/studies/request-challenge
- */
 export const requestChallenge = async (req: Request, res: Response) => {
   try {
     const { studyId, participantWallet } = req.body;
@@ -1126,24 +1127,10 @@ export const generateDataCommitmentChallenge = async (req: Request, res: Respons
         .delete()
         .eq(TABLES.DATA_COMMITMENTS!.columns.id!, existingCommitment.id);
 
-      logger.info({ studyId, participantWallet }, "Deleted existing commitment for re-registration");
+      logger.info({ studyId, participantWallet }, "Deleted expired commitment");
     }
 
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours from now
-
-    logger.info(
-      {
-        studyId,
-        participantWallet,
-        dataCommitmentReceived: dataCommitment.substring(0, 20) + "...",
-        dataCommitmentFull: dataCommitment,
-        dataCommitmentLength: dataCommitment.length,
-        challenge: challenge.substring(0, 20) + "...",
-        challengeFull: challenge,
-        expiresAt: expiresAt.toISOString()
-      },
-      "[CHALLENGE_REQUEST] Storing initial commitment (without challenge) to database"
-    );
 
     const { error: commitmentError } = await req.supabase
       .from(TABLES.DATA_COMMITMENTS!.name)
@@ -1257,17 +1244,6 @@ export const participateInStudy = async (req: Request, res: Response) => {
       .eq(TABLES.DATA_COMMITMENTS!.columns.walletAddress!, participantWallet.toLowerCase())
       .single();
 
-    logger.info(
-      {
-        studyId: id,
-        participantWallet,
-        commitmentFound: !!storedCommitment,
-        storedCommitmentPreview: storedCommitment?.data_commitment?.substring(0, 20) + "...",
-        receivedCommitmentPreview: dataCommitment?.substring(0, 20) + "..."
-      },
-      "[PARTICIPATE] Retrieved stored commitment from database"
-    );
-
     if (commitmentFetchError || !storedCommitment) {
       logger.warn(
         { studyId: id, participantWallet },
@@ -1294,18 +1270,13 @@ export const participateInStudy = async (req: Request, res: Response) => {
           typeofSubmitted: typeof dataCommitment,
           typeofStored: typeof storedCommitment.data_commitment
         },
-        "[PARTICIPATE] Data commitment MISMATCH - possible tampering detected or bug in commitment generation"
+        "Data commitment mismatch - possible tampering detected"
       );
       return res.status(400).json({
         error: "Data commitment does not match stored value",
         code: "COMMITMENT_MISMATCH",
       });
     }
-
-    logger.info(
-      { studyId: id, participantWallet },
-      "[PARTICIPATE] Commitment verification PASSED - commitments match!"
-    );
 
     if (storedCommitment.proof_submitted) {
       logger.warn(
@@ -1443,23 +1414,14 @@ export const participateInStudy = async (req: Request, res: Response) => {
 
     logger.info({ studyId: id, participantWallet }, "Participant successfully enrolled in study");
 
-    logger.info(
-      {
-        participantWallet,
-        dataCommitment: dataCommitment.substring(0, 20) + "...",
-        storedChallenge: storedCommitment.challenge.substring(0, 20) + "...",
-      },
-      "About to call joinBlockchainStudy with stored challenge"
-    );
-
     const blockchainTxHash = await studyService.joinBlockchainStudy(
       studyData.contract_address,
       proofJson,
       participantWallet,
       dataCommitment,
       storedCommitment.challenge,
-      binIds, // Pass bin IDs from proof to blockchain
-      typeof publicInputsJson === "string" ? JSON.parse(publicInputsJson) : publicInputsJson // Pass public signals array
+      binIds,
+      typeof publicInputsJson === "string" ? JSON.parse(publicInputsJson) : publicInputsJson
     );
 
     await req.supabase
@@ -1720,7 +1682,6 @@ export const getAggregatedData = async (req: Request, res: Response) => {
 
     logger.info({ studyId: id, creatorWallet }, "GET /api/studies/:id/aggregated-data");
 
-    // Get study details
     const { data: study, error: studyError } = await req.supabase
       .from(TABLES.STUDIES!.name)
       .select("id, title, contract_address, created_by, status, bin_configuration")
@@ -1732,7 +1693,6 @@ export const getAggregatedData = async (req: Request, res: Response) => {
       return res.status(404).json({ error: "Study not found" });
     }
 
-    // Verify the requester is the study creator
     if (creatorWallet && study.created_by?.toLowerCase() !== (creatorWallet as string).toLowerCase()) {
       logger.warn(
         { studyId: id, creatorWallet, actualCreator: study.created_by },
@@ -1741,7 +1701,6 @@ export const getAggregatedData = async (req: Request, res: Response) => {
       return res.status(403).json({ error: "Only the study creator can access aggregated data" });
     }
 
-    // Check if study is completed (or active for testing/viewing current data)
     if (study.status !== "completed" && study.status !== "active") {
       logger.warn({ studyId: id, status: study.status }, "Study not in viewable status");
       return res.status(400).json({ error: "Study must be active or completed to view aggregated data" });
@@ -1762,12 +1721,6 @@ export const getAggregatedData = async (req: Request, res: Response) => {
       chain: sepolia,
       transport: http(Config.SEPOLIA_RPC_URL),
     });
-
-    // Fetch bins and bin counts from blockchain
-    logger.info(
-      { studyId: id, contractAddress: studyData.contract_address },
-      "[AGGREGATED_DATA] Fetching data from blockchain..."
-    );
 
     let bins: any[];
     let binCounts: any[];
@@ -1799,7 +1752,7 @@ export const getAggregatedData = async (req: Request, res: Response) => {
           contractAddress: studyData.contract_address,
           errorMessage: blockchainError instanceof Error ? blockchainError.message : String(blockchainError)
         },
-        "[AGGREGATED_DATA] Failed to fetch data from blockchain"
+        "Failed to fetch data from blockchain"
       );
       return res.status(500).json({ 
         error: "Failed to fetch data from blockchain", 
@@ -1816,10 +1769,9 @@ export const getAggregatedData = async (req: Request, res: Response) => {
         rawBinsPreview: bins.slice(0, 2),
         rawBinCountsPreview: binCounts.slice(0, 2)
       },
-      "[AGGREGATED_DATA] Fetched raw data from blockchain"
+      "Fetched raw data from blockchain"
     );
 
-    // Transform the data for frontend consumption
     const aggregatedData = {
       studyId: Number(id),
       studyTitle: studyData.title,
@@ -1838,17 +1790,6 @@ export const getAggregatedData = async (req: Request, res: Response) => {
       })),
       generatedAt: Date.now(),
     };
-
-    logger.info(
-      {
-        studyId: id,
-        transformedBinsCount: aggregatedData.bins.length,
-        totalParticipants: aggregatedData.totalParticipants,
-        uniqueFields: [...new Set(aggregatedData.bins.map(b => b.criteriaField))],
-        binsPreview: aggregatedData.bins.slice(0, 3)
-      },
-      "[AGGREGATED_DATA] Transformed data for frontend"
-    );
 
     res.json(aggregatedData);
   } catch (error) {
