@@ -14,9 +14,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const headersList = await headers();
   const web3authInitialState = cookieToWeb3AuthState(headersList.get("cookie"));
   return (
-    <html lang="en">
-      <body>
-        <Provider web3authInitialState={web3authInitialState}>{children}</Provider>
+    <html lang="en" className="h-full">
+      <body className="h-full">
+        <div className="flex h-full min-h-screen w-full flex-col overflow-y-auto bg-background text-foreground">
+          <Provider web3authInitialState={web3authInitialState}>{children}</Provider>
+        </div>
         <TxStatusOverlay />
       </body>
     </html>
