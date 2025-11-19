@@ -126,6 +126,7 @@ const WalletAvatar = ({ address, size = 40, className }: WalletAvatarProps) => {
       cheekTone,
       sparkleDelay,
       glassesVariant,
+      noseVariant,
     };
   }, [theme.hash, theme.accent]);
 
