@@ -1,6 +1,20 @@
 import { StudySummary } from "@/services/api/studyService";
-import { Users, Calendar, Activity, Circle, FlaskConical } from "lucide-react";
+import {
+  Users,
+  Calendar,
+  Activity,
+  Circle,
+  FlaskConical,
+  ExternalLink,
+  Heart,
+  User,
+  Users as UsersIcon,
+  Award,
+  HeartPulse,
+  UserCog,
+} from "lucide-react";
 import StudyCriteriaBadges from "@/app/dashboard/components/shared/StudyCriteriaBadges";
+import Link from "next/link";
 
 interface StudyCardProps {
   study: StudySummary;
@@ -41,6 +55,56 @@ export default function StudyCard({
 
   const displayDate = getEndDate();
 
+  const getStudyIcon = () => {
+    if (!study.criteriaSummary) return FlaskConical;
+
+    const { requiresAge, requiresGender, requiresLocation, requiresBloodType } =
+      study.criteriaSummary;
+    const hasDemographicRequirements =
+      requiresAge || requiresGender || requiresLocation || requiresBloodType;
+
+    const {
+      requiresDiabetes,
+      requiresHeartDisease,
+      requiresBMI,
+      requiresBloodPressure,
+      requiresCholesterol,
+      requiresHbA1c,
+    } = study.criteriaSummary;
+    const hasMedicalRequirements =
+      requiresDiabetes ||
+      requiresHeartDisease ||
+      requiresBMI ||
+      requiresBloodPressure ||
+      requiresCholesterol ||
+      requiresHbA1c;
+
+    const { requiresSmoking, requiresActivity } = study.criteriaSummary;
+    const hasLifestyleRequirements = requiresSmoking || requiresActivity;
+
+    const hasAllTypes =
+      hasMedicalRequirements && hasDemographicRequirements && hasLifestyleRequirements;
+    const hasMedicalAndDemographic =
+      hasMedicalRequirements && hasDemographicRequirements && !hasLifestyleRequirements;
+    const hasMedicalAndLifestyle =
+      hasMedicalRequirements && hasLifestyleRequirements && !hasDemographicRequirements;
+    const hasDemographicAndLifestyle =
+      hasDemographicRequirements && hasLifestyleRequirements && !hasMedicalRequirements;
+
+    // Return appropriate icon based on combination
+    if (hasAllTypes) return Award; // Comprehensive study
+    if (hasMedicalAndDemographic) return UsersIcon; // Population health study
+    if (hasMedicalAndLifestyle) return HeartPulse; // Health-focused lifestyle study
+    if (hasDemographicAndLifestyle) return UserCog; // Targeted demographic lifestyle study
+    if (hasMedicalRequirements) return Heart; // Medical-focused study
+    if (hasDemographicRequirements) return User; // Demographic-focused study
+    if (hasLifestyleRequirements) return Activity; // Lifestyle-focused study
+
+    return FlaskConical;
+  };
+
+  const StudyIcon = getStudyIcon();
+
   return (
     <div
       className={`group relative bg-white rounded-xl border border-gray-200 p-3 sm:p-4 hover:border-gray-300 hover:shadow-md transition-all duration-200 cursor-default ${
@@ -51,7 +115,7 @@ export default function StudyCard({
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-2 sm:mb-3">
         <div className="flex-1 pr-0 sm:pr-4 mb-2 sm:mb-0">
           <div className="flex items-center space-x-2 mb-1 sm:mb-0.5">
-            <FlaskConical className="h-3.5 w-3.5 text-indigo-600 flex-shrink-0" />
+            <StudyIcon className="h-3.5 w-3.5 text-indigo-600 flex-shrink-0" />
             <h4 className="text-sm sm:text-base font-semibold text-gray-900 leading-tight">
               {study.title}
             </h4>
@@ -103,9 +167,25 @@ export default function StudyCard({
               {displayDate.toLocaleDateString("en-US", {
                 month: "short",
                 day: "numeric",
+                year: "numeric",
               })}
             </span>
           </div>
+
+          {/* Contract Address */}
+          {study.contractAddress && (
+            <div className="flex items-center space-x-1">
+              <ExternalLink className="h-3 w-3 text-gray-500" />
+              <Link
+                href={`https://sepolia.etherscan.io/address/${study.contractAddress}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-indigo-600 hover:text-indigo-800 underline font-mono"
+              >
+                {study.contractAddress.slice(0, 6)}...{study.contractAddress.slice(-4)}
+              </Link>
+            </div>
+          )}
         </div>
 
         {/* Template badge - compact */}

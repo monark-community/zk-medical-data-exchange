@@ -3,7 +3,7 @@ import React from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Settings, Activity, ArrowDownRight, ArrowUpRight, ExternalLink } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, ExternalLink, DollarSign } from "lucide-react";
 
 import { ProfileCardProps } from "@/interfaces/profile";
 import { useProfile } from "@/contexts/ProfileContext";
@@ -29,13 +29,48 @@ const ProfileCard = () => {
       maximumFractionDigits: 2,
     })}`;
 
+  const formatDateTime = (value: string | number | Date) => {
+    if (!value) return "—";
+    const date = new Date(value);
+    return new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(
+      date
+    );
+  };
+
+  const getGradientColors = (address: string | undefined) => {
+    if (!address) return "from-blue-700 via-indigo-600 to-teal-600";
+
+    let hash = 0;
+    for (let i = 0; i < address.length; i++) {
+      hash = ((hash << 5) - hash + address.charCodeAt(i)) & 0xffffffff;
+    }
+
+    const gradients = [
+      "from-emerald-700 via-green-600 to-teal-600", // Green theme
+      "from-blue-700 via-indigo-600 to-cyan-600", // Blue theme
+      "from-purple-700 via-violet-600 to-indigo-600", // Purple theme
+      "from-rose-700 via-pink-600 to-purple-600", // Pink theme
+      "from-amber-700 via-orange-600 to-red-600", // Orange theme
+      "from-teal-700 via-cyan-600 to-blue-600", // Teal theme
+      "from-indigo-700 via-purple-600 to-pink-600", // Indigo theme
+      "from-green-700 via-emerald-600 to-cyan-600", // Green-cyan theme
+      "from-violet-700 via-purple-600 to-indigo-600", // Violet theme
+      "from-cyan-700 via-blue-600 to-teal-600", // Cyan theme
+      "from-lime-700 via-green-600 to-emerald-600", // Lime theme
+      "from-sky-700 via-blue-600 to-indigo-600", // Sky theme
+    ];
+
+    return gradients[Math.abs(hash) % gradients.length];
+  };
+
   const { currentProfile, getProfileDisplayName } = useProfile();
   const { address } = useAccount();
   const { user, refetchUser } = useUser();
   const { isVisible } = useTxStatusState();
 
   const [profileCardInfo, setProfileCardInfo] = React.useState<ProfileCardProps | null>(null);
-  const [isWaitingForExportData, setIsWaitingForExportData] = React.useState(false);
+  const [isExportingProfile, setIsExportingProfile] = React.useState(false);
+  const [isExportingTransactions, setIsExportingTransactions] = React.useState(false);
 
   const [txs, setTxs] = React.useState<Transaction[]>([]);
   const [txsLoading, setTxsLoading] = React.useState(false);
@@ -86,24 +121,44 @@ const ProfileCard = () => {
     fetchTransactions();
   }, [user, address, currentProfile, getProfileDisplayName]);
 
-  const exportUserData = async () => {
-    if (!address) return;
+  const downloadJsonFile = (fileName: string, payload: unknown) => {
+    const json = JSON.stringify(payload, null, 2);
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = fileName;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
 
+  const exportProfileSnapshot = async () => {
+    if (!address) return;
     try {
-      setIsWaitingForExportData(true);
+      setIsExportingProfile(true);
       const userData = await getUser(address);
-      const json = JSON.stringify(userData, null, 2);
-      const blob = new Blob([json], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = "user_data.json";
-      link.click();
-      URL.revokeObjectURL(url);
+      downloadJsonFile("profile_snapshot.json", {
+        exportedAt: new Date().toISOString(),
+        user: userData,
+      });
     } catch (error) {
-      console.error("Failed to export user data:", error);
+      console.error("Failed to export profile data:", error);
     } finally {
-      setIsWaitingForExportData(false);
+      setIsExportingProfile(false);
+    }
+  };
+
+  const exportTransactionLedger = async () => {
+    try {
+      setIsExportingTransactions(true);
+      downloadJsonFile("transaction_ledger.json", {
+        exportedAt: new Date().toISOString(),
+        transactions: txs,
+      });
+    } catch (error) {
+      console.error("Failed to export transactions:", error);
+    } finally {
+      setIsExportingTransactions(false);
     }
   };
 
@@ -114,128 +169,154 @@ const ProfileCard = () => {
   const viewerWallet = address?.toLowerCase() ?? "";
 
   return (
-    <div className="w-full max-w-4xl mx-auto space-y-6">
-      <Card className="overflow-hidden py-0">
-        {/* Header Section with Gradient */}
-        <CardHeader className="bg-gradient-to-r from-blue-600 to-teal-500 p-8 text-white">
-          <div className="flex items-start gap-6">
-            {/* Avatar */}
+    <div className="mx-auto w-full max-w-5xl space-y-6">
+      <Card className="overflow-hidden !py-0">
+        <div className={`bg-gradient-to-br ${getGradientColors(address)} p-6 text-white sm:p-8`}>
+          <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
             <ProfileAvatar size={96} radius={48} />
-            {/* User Info */}
-            <div className="flex-1">
-              <h1 className="text-3xl font-bold mb-2 break-words break-all">
-                {profileCardInfo.userAlias?.startsWith("0x")
-                  ? formatWalletAddress(profileCardInfo.userAlias) //if userAlias is default name ->wallet address, format it
-                  : profileCardInfo.userAlias}
-              </h1>
-              <p className="text-blue-100 mb-3">
-                {formatWalletAddress(profileCardInfo.walletAddress || "")}
+            <div className="flex-1 space-y-2">
+              <div>
+                <h1 className="break-words text-3xl font-bold sm:text-4xl">
+                  {profileCardInfo.userAlias?.startsWith("0x")
+                    ? formatWalletAddress(profileCardInfo.userAlias)
+                    : profileCardInfo.userAlias}
+                </h1>
+              </div>
+              <p className="text-sm font-mono text-white/80 break-all">
+                {profileCardInfo.walletAddress}
               </p>
-              <div className="flex gap-2">
-                <Badge variant="secondary" className="bg-white/20 text-white hover:bg-white/30">
-                  {profileCardInfo.accountType}
-                </Badge>
+              <div className="flex flex-wrap gap-2">
                 <Badge
                   variant="secondary"
-                  className="bg-green-500/80 text-white hover:bg-green-500"
+                  className="bg-emerald-500/80 text-white hover:bg-emerald-500"
                 >
-                  <span className="w-2 h-2 rounded-full bg-white mr-2"></span>
+                  <span className="mr-2 inline-flex h-2 w-2 rounded-full bg-white" />
                   Connected
                 </Badge>
               </div>
             </div>
           </div>
-        </CardHeader>
 
-        <CardContent className="p-8">
-          {/* Two Column Layout */}
-          <div className="grid md:grid-cols-2 gap-8">
-            {/* Left Column - Account Settings */}
-            <div>
-              <div className="flex items-center gap-2 mb-6">
-                <Settings className="w-5 h-5 text-gray-600" />
-                <h2 className="text-xl font-semibold">Account Settings</h2>
-              </div>
-
-              <div className="space-y-6">
-                <div>
-                  <label className="text-sm font-semibold text-gray-600 mb-2 block">
-                    Wallet Address
-                  </label>
-                  <p className="text-sm text-gray-800 bg-gray-50 p-3 rounded break-all font-mono">
-                    {profileCardInfo.walletAddress}
-                  </p>
-                </div>
-
-                <div>
-                  <label className="text-sm font-semibold text-gray-600 mb-2 block">
-                    User Alias
-                  </label>
-                  <p className="text-gray-800">{profileCardInfo.userAlias}</p>
-                </div>
-
-                <div>
-                  <label className="text-sm font-semibold text-gray-600 mb-2 block">
-                    Account Type
-                  </label>
-                  <p className="text-gray-800">{profileCardInfo.accountType}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-semibold text-gray-600 mb-2 block">
-                    Account Creation Date
-                  </label>
-                  <p className="text-gray-800">{profileCardInfo.createdAt}</p>
-                </div>
-              </div>
+          <div className="mt-6 grid gap-3 sm:grid-cols-3">
+            <div className="rounded-2xl bg-white/10 p-4">
+              <p className="text-xs uppercase tracking-wide text-white/80">Earnings</p>
+              <p className="text-2xl font-semibold">{formatUsd(profileCardInfo.earnings ?? 0)}</p>
+              <p className="text-xs text-white/70">Total rewards</p>
             </div>
-
-            {/* Right Column - Activity Summary */}
-            <div>
-              <div className="flex items-center gap-2 mb-6">
-                <Activity className="w-5 h-5 text-gray-600" />
-                <h2 className="text-xl font-semibold">Activity Summary</h2>
-              </div>
-
-              <div className="space-y-4">
-                {/* Earnings */}
-                <div className="bg-teal-50 p-4 rounded-lg">
-                  <p className="text-sm font-semibold text-teal-700 mb-1">Earnings</p>
-                  <p className="text-3xl font-bold text-teal-600">
-                    {formatUsd(profileCardInfo.earnings ?? 0)}
-                  </p>
-                  <p className="text-sm text-teal-600 mt-1">Total rewards earned</p>
-                </div>
-
-                {/* Privacy Score */}
-                <div className="bg-green-50 p-4 rounded-lg">
-                  <p className="text-sm font-semibold text-green-700 mb-1">Privacy Score</p>
-                  <p className="text-3xl font-bold text-green-600">
-                    {profileCardInfo.privacyScore}%
-                  </p>
-                  <p className="text-sm text-green-600 mt-1">Data always protected</p>
-                </div>
-              </div>
+            <div className="rounded-2xl bg-white/10 p-4">
+              <p className="text-xs uppercase tracking-wide text-white/80">Privacy Score</p>
+              <p className="text-2xl font-semibold">{profileCardInfo.privacyScore}%</p>
+              <p className="text-xs text-white/70">All your data remained private</p>
+            </div>
+            <div className="rounded-2xl bg-white/10 p-4">
+              <p className="text-xs uppercase tracking-wide text-white/80">Member Since</p>
+              <p className="text-2xl font-semibold">
+                {profileCardInfo.createdAt
+                  ? new Date(profileCardInfo.createdAt).toLocaleDateString("en-US", {
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
+                    })
+                  : "—"}
+              </p>
             </div>
           </div>
-
-          {/* Footer Buttons */}
-          <div className="flex gap-3 mt-8 pt-6 border-t">
-            <EditProfileDialog onProfileUpdate={refetchUser} isProcessing={isVisible} />
-            <Button variant="outline" disabled>
-              Privacy Settings
-            </Button>
-            <Button variant="outline" disabled={isWaitingForExportData} onClick={exportUserData}>
-              {isWaitingForExportData ? "Exporting..." : "Download Data"}
-            </Button>
-          </div>
-        </CardContent>
+        </div>
       </Card>
 
-      {/* Transaction History */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card className="h-full">
+          <CardHeader>
+            <h3 className="text-lg font-semibold">Profile Controls</h3>
+            <p className="text-sm text-muted-foreground">
+              Manage your identity and account settings.
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-4 rounded-2xl bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100">
+                <div className="flex items-center gap-3">
+                  <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">Wallet Connected</p>
+                    <p className="text-xs text-gray-500 font-mono">
+                      {formatWalletAddress(profileCardInfo.walletAddress || "")}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <h4 className="text-sm font-semibold text-gray-900">Identity Settings</h4>
+                <EditProfileDialog onProfileUpdate={refetchUser} isProcessing={isVisible} />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <p className="text-sm text-muted-foreground">
+              Choose exactly what information you want to export.
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="rounded-2xl border border-gray-100 p-4">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="font-semibold text-gray-900">Profile Snapshot</p>
+                  <p className="text-sm text-gray-500">
+                    Includes your identity info and preferences.
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  className="shrink-0 border-blue-200 text-blue-700 hover:bg-blue-50 hover:border-blue-300"
+                  disabled={isExportingProfile}
+                  onClick={exportProfileSnapshot}
+                >
+                  {isExportingProfile ? "Preparing…" : "Download"}
+                </Button>
+              </div>
+            </div>
+            <div className="rounded-2xl border border-gray-100 p-4">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="font-semibold text-gray-900">Transaction Ledger</p>
+                  <p className="text-sm text-gray-500">
+                    Detailed on-chain history for studies compensations.
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  className="shrink-0 border-blue-200 text-blue-700 hover:bg-blue-50 hover:border-blue-300"
+                  disabled={isExportingTransactions || txs.length === 0}
+                  onClick={exportTransactionLedger}
+                >
+                  {isExportingTransactions ? "Preparing…" : "Export JSON"}
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       <Card>
         <CardHeader className="p-6">
-          <h3 className="text-lg font-semibold">Transaction History</h3>
-          <p className="text-sm text-muted-foreground">Payments you've sent or received on-chain</p>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h3 className="flex items-center gap-2 text-lg font-semibold">
+                <DollarSign className="h-5 w-5 text-emerald-600" />
+                Transaction History
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                Payments you&apos;ve sent or received on-chain.
+              </p>
+            </div>
+            <div className="text-sm text-muted-foreground">
+              {txs.length > 0 && `${txs.length} recorded movement${txs.length === 1 ? "" : "s"}`}
+            </div>
+          </div>
         </CardHeader>
         <CardContent className="p-0">
           {txsLoading ? (
@@ -245,67 +326,161 @@ const ProfileCard = () => {
           ) : txs.length === 0 ? (
             <div className="p-6 text-sm text-muted-foreground">No transactions yet.</div>
           ) : (
-            // 👇 scrollable wrapper
-            <div className="max-h-80 overflow-y-auto overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
-              <table className="min-w-full text-sm">
-                <thead className="bg-gray-50 border-t sticky top-0">
-                  <tr className="text-left text-gray-600">
-                    <th className="py-3 px-4">Direction</th>
-                    <th className="py-3 px-4">Amount (USD)</th>
-                    <th className="py-3 px-4">Study</th>
-                    <th className="py-3 px-4">Tx Hash</th>
-                    <th className="py-3 px-4">Date</th>
-                  </tr>
-                </thead>
-                <tbody>
+            <>
+              <div className="hidden md:block">
+                <div className="max-h-[32rem] overflow-x-auto overflow-y-auto rounded-b-2xl border-t bg-white scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+                  <table className="min-w-full text-sm text-gray-700">
+                    <thead className="sticky top-0 bg-gradient-to-r from-indigo-50 via-white to-emerald-50">
+                      <tr className="text-center text-xs font-semibold uppercase tracking-wide text-gray-500">
+                        <th className="px-5 py-3">Direction</th>
+                        <th className="px-5 py-3">Amount</th>
+                        <th className="px-5 py-3">Study</th>
+                        <th className="px-5 py-3">Tx Hash</th>
+                        <th className="px-5 py-3">Date</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {txs.map((tx) => {
+                        const incoming = tx.toWallet?.toLowerCase() === viewerWallet;
+                        const dirIcon = incoming ? (
+                          <ArrowDownRight className="h-4 w-4 text-emerald-600" />
+                        ) : (
+                          <ArrowUpRight className="h-4 w-4 text-rose-600" />
+                        );
+
+                        return (
+                          <tr
+                            key={tx.id}
+                            className="border-t bg-white/80 transition hover:bg-gray-50/90"
+                          >
+                            <td className="px-5 py-4 text-center align-top">
+                              <div className="flex items-center justify-center gap-2">
+                                {dirIcon}
+                                <Badge
+                                  variant="secondary"
+                                  className={`rounded-full px-2 py-0 text-xs ${
+                                    incoming
+                                      ? "bg-emerald-50 text-emerald-700"
+                                      : "bg-rose-50 text-rose-700"
+                                  }`}
+                                >
+                                  {incoming ? "Incoming" : "Outgoing"}
+                                </Badge>
+                              </div>
+                              <div className="mt-1 text-xs text-gray-500">
+                                {incoming
+                                  ? `From ${formatWalletAddress(tx.fromWallet)}`
+                                  : `To ${formatWalletAddress(tx.toWallet)}`}
+                              </div>
+                            </td>
+                            <td className="px-5 py-4 text-center align-top">
+                              <div
+                                className={`inline-flex rounded-full px-3 py-1 text-sm font-semibold ${
+                                  incoming
+                                    ? "bg-emerald-50 text-emerald-700"
+                                    : "bg-rose-50 text-rose-700"
+                                }`}
+                              >
+                                {formatUsd(tx.valueUsd ?? 0)}
+                              </div>
+                            </td>
+                            <td className="px-5 py-4 text-center align-top">
+                              <Badge className="rounded-full bg-purple-50 text-purple-700">
+                                Study #{tx.studyId}
+                              </Badge>
+                            </td>
+                            <td className="px-5 py-4 text-center align-top">
+                              <button
+                                onClick={() =>
+                                  window.open(
+                                    `https://sepolia.etherscan.io/tx/${tx.transactionHash}`,
+                                    "_blank",
+                                    "noopener"
+                                  )
+                                }
+                                className="inline-flex items-center gap-1 font-mono text-xs text-indigo-600 hover:text-indigo-700"
+                                title={tx.transactionHash}
+                              >
+                                {tx.transactionHash.slice(0, 10)}…
+                                <ExternalLink className="h-3 w-3" />
+                              </button>
+                            </td>
+                            <td className="px-5 py-4 text-center align-top text-sm text-gray-600">
+                              {formatDateTime(tx.createdAt)}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div className="md:hidden">
+                <div className="max-h-[32rem] space-y-3 overflow-y-auto p-4 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
                   {txs.map((tx) => {
                     const incoming = tx.toWallet?.toLowerCase() === viewerWallet;
-                    const dirIcon = incoming ? (
-                      <ArrowDownRight className="h-4 w-4 text-emerald-600" />
-                    ) : (
-                      <ArrowUpRight className="h-4 w-4 text-rose-600" />
-                    );
-
                     return (
-                      <tr key={tx.id} className="border-t">
-                        <td className="py-3 px-4">
-                          <div className="flex items-center gap-2">
-                            {dirIcon}
-                            <span className={incoming ? "text-emerald-700" : "text-rose-700"}>
-                              {incoming ? "Incoming" : "Outgoing"}
-                            </span>
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            {incoming
-                              ? `From ${formatWalletAddress(tx.fromWallet)}`
-                              : `To ${formatWalletAddress(tx.toWallet)}`}
-                          </div>
-                        </td>
-                        <td className="py-3 px-4 font-medium">{formatUsd(tx.valueUsd ?? 0)}</td>
-                        <td className="py-3 px-4">#{tx.studyId}</td>
-                        <td className="py-3 px-4">
-                          <button
-                            onClick={() =>
-                              window.open(
-                                `https://sepolia.etherscan.io/tx/${tx.transactionHash}`,
-                                "_blank",
-                                "noopener"
-                              )
-                            }
-                            className="font-mono text-xs text-indigo-600 hover:text-indigo-700 inline-flex items-center gap-1"
-                            title={tx.transactionHash}
+                      <div
+                        key={tx.id}
+                        className="rounded-2xl border border-gray-100 bg-white/90 p-4 shadow-sm"
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <Badge
+                            variant="secondary"
+                            className={`rounded-full px-3 ${
+                              incoming
+                                ? "bg-emerald-50 text-emerald-700"
+                                : "bg-rose-50 text-rose-700"
+                            }`}
                           >
-                            {tx.transactionHash.slice(0, 10)}…
-                            <ExternalLink className="h-3 w-3" />
-                          </button>
-                        </td>
-                        <td className="py-3 px-4">{new Date(tx.createdAt).toLocaleString()}</td>
-                      </tr>
+                            {incoming ? "Incoming" : "Outgoing"}
+                          </Badge>
+                          <span
+                            className={`text-lg font-semibold ${
+                              incoming ? "text-emerald-600" : "text-rose-600"
+                            }`}
+                          >
+                            {formatUsd(tx.valueUsd ?? 0)}
+                          </span>
+                        </div>
+                        <p className="mt-2 text-xs text-gray-500">
+                          {incoming
+                            ? `From ${formatWalletAddress(tx.fromWallet)}`
+                            : `To ${formatWalletAddress(tx.toWallet)}`}
+                        </p>
+                        <div className="mt-3 grid grid-cols-2 gap-3 text-xs text-gray-500">
+                          <div>
+                            <p className="font-semibold text-gray-700">Study</p>
+                            <p>#{tx.studyId}</p>
+                          </div>
+                          <div>
+                            <p className="font-semibold text-gray-700">Date</p>
+                            <p>{formatDateTime(tx.createdAt)}</p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() =>
+                            window.open(
+                              `https://sepolia.etherscan.io/tx/${tx.transactionHash}`,
+                              "_blank",
+                              "noopener"
+                            )
+                          }
+                          className="mt-3 inline-flex w-full items-center justify-between rounded-xl border border-indigo-100 bg-indigo-50/60 px-3 py-2 text-[13px] font-medium text-indigo-700 transition hover:bg-indigo-100"
+                          title={tx.transactionHash}
+                        >
+                          <span className="truncate font-mono">
+                            {tx.transactionHash.slice(0, 12)}…
+                          </span>
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
                     );
                   })}
-                </tbody>
-              </table>
-            </div>
+                </div>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

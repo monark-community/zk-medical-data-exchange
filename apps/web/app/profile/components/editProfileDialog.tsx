@@ -35,13 +35,13 @@ const EditProfileDialog = ({ onProfileUpdate, isProcessing = false }: EditProfil
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button className="bg-blue-600 hover:bg-blue-700" disabled={isProcessing}>
-          {isProcessing ? "Processing..." : "Edit Profile"}
+          {isProcessing ? "Processing..." : "Edit Username"}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Edit Profile</DialogTitle>
-          <DialogDescription>Update your username and profile picture</DialogDescription>
+          <DialogTitle>Edit Username</DialogTitle>
+          <DialogDescription>Update your username</DialogDescription>
         </DialogHeader>
         <EditProfileField onSuccess={handleSuccess} onProcessingStart={handleProcessingStart} />
         <DialogFooter className="sm:justify-start">
