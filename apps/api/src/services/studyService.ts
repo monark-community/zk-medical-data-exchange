@@ -825,7 +825,6 @@ export class StudyService {
     participantWallet: string,
     dataCommitment: string,
     challenge: string,
-    binIds?: string[],
     publicInputsJson: string[]
   ) {
     await this.initialize();
@@ -839,7 +838,6 @@ export class StudyService {
           proofjson,
           dataCommitment,
           challenge,
-          binIds || [],
           publicInputsJson
         );
 
@@ -875,7 +873,6 @@ export class StudyService {
     proof: { a: [string, string]; b: [[string, string], [string, string]]; c: [string, string] },
     dataCommitment: string,
     challenge: string,
-    binIds: string[] = [],
     publicInputsJson: string[]
   ): Promise<{ success: boolean; transactionHash?: string; error?: string }> {
     await this.initialize();
