@@ -13,7 +13,7 @@ const GovernanceOverview = () => {
     totalProposals: stats?.totalProposals ?? 0,
     nbActiveVoters: stats?.uniqueVoters ?? 0,
     avgParticipationPercentage: (stats?.avgParticipation ?? 0) + "%",
-    votingPower: stats?.votingPower ?? 0,
+    proposalsPassed: stats?.proposalsPassed ?? 0,
   };
 
   if (isLoading) {

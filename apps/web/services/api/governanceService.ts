@@ -54,7 +54,7 @@ export interface GovernanceStats {
   activeProposals: number;
   avgParticipation: number;
   uniqueVoters: number;
-  votingPower: number;
+  proposalsPassed: number;
   totalVotes: number;
 }
 
