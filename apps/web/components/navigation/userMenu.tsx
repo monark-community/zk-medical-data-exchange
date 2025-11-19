@@ -42,8 +42,8 @@ const UserMenu = () => {
   return (
     <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline">
-          <WalletAvatar address={address} size={44} className="mr-3" />
+        <Button variant="outline" className="overflow-visible">
+          <WalletAvatar address={address} size={32} className="mr-3" />
           <div className="flex flex-col items-start">
             <span className="text-sm font-medium">{user.username}</span>
             <span className="text-xs text-gray-500">
