@@ -133,8 +133,8 @@ export class StudyService {
         abi: STUDY_ABI,
         functionName,
         args,
-        maxFeePerGas: BigInt(1_000_000_000),
-        maxPriorityFeePerGas: BigInt(2_000_000_000),
+        maxFeePerGas: BigInt("100000000000"),
+        maxPriorityFeePerGas: BigInt("10000000000"),
       });
 
       logger.info(
@@ -145,8 +145,8 @@ export class StudyService {
       );
 
       const transactionHash = await this.walletClient.writeContract(simulationResult.request, {
-        maxFeePerGas: BigInt(1_000_000_000),
-        maxPriorityFeePerGas: BigInt(2_000_000_000),
+        maxFeePerGas: BigInt("100000000000"),
+        maxPriorityFeePerGas: BigInt("10000000000"),
       });
 
       logger.info({ transactionHash }, `${context} transaction submitted`);
@@ -454,8 +454,8 @@ export class StudyService {
             Config.ZK_VERIFIER_ADDRESS as `0x${string}`,
             contractCriteria,
           ],
-          maxFeePerGas: BigInt(1_000_000_000),
-          maxPriorityFeePerGas: BigInt(2_000_000_000),
+          maxFeePerGas: BigInt("100000000000"),
+          maxPriorityFeePerGas: BigInt("10000000000"),
         });
 
         request = simulationResult.request;

@@ -231,8 +231,8 @@ class GovernanceService {
           BigInt(params.duration),
           params.walletAddress,
         ],
-        maxFeePerGas: BigInt(1_000_000_000),
-        maxPriorityFeePerGas: BigInt(2_000_000_000),
+        maxFeePerGas: BigInt("100000000000"),
+        maxPriorityFeePerGas: BigInt("10000000000"),
       });
 
       logger.info({ hash }, "Proposal creation transaction sent");
@@ -353,8 +353,8 @@ class GovernanceService {
         abi: PROPOSAL_ABI,
         functionName: "vote",
         args: [params.choice, params.walletAddress],
-        maxFeePerGas: BigInt(1_000_000_000),
-        maxPriorityFeePerGas: BigInt(2_000_000_000),
+        maxFeePerGas: BigInt("100000000000"),
+        maxPriorityFeePerGas: BigInt("10000000000"),
       });
 
       logger.info({ hash }, "Vote transaction sent");
@@ -466,8 +466,8 @@ class GovernanceService {
             abi: PROPOSAL_ABI,
             functionName: "finalize",
             args: [],
-            maxFeePerGas: BigInt(1_000_000_000),
-            maxPriorityFeePerGas: BigInt(2_000_000_000),
+            maxFeePerGas: BigInt("100000000000"),
+            maxPriorityFeePerGas: BigInt("10000000000"),
           });
 
           logger.info({ proposalId, hash }, "Proposal finalized on blockchain");
@@ -670,8 +670,8 @@ class GovernanceService {
                 abi: PROPOSAL_ABI,
                 functionName: "finalize",
                 args: [],
-                maxFeePerGas: BigInt(1_000_000_000),
-                maxPriorityFeePerGas: BigInt(2_000_000_000),
+                maxFeePerGas: BigInt("100000000000"),
+                maxPriorityFeePerGas: BigInt("10000000000"),
               });
               logger.info(
                 { proposalId: dbProposal.id, hash },
