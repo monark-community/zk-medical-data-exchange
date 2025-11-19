@@ -1396,6 +1396,24 @@ export const participateInStudy = async (req: Request, res: Response) => {
       return res.status(400).json({ error: "Already participated in this study" });
     }
 
+    logger.info(
+      {
+        participantWallet,
+        dataCommitment: dataCommitment.substring(0, 20) + "...",
+        storedChallenge: storedCommitment.challenge.substring(0, 20) + "...",
+      },
+      "Calling joinBlockchainStudy with stored challenge"
+    );
+
+    const blockchainTxHash = await studyService.joinBlockchainStudy(
+      studyData.contract_address,
+      proofJson,
+      participantWallet,
+      dataCommitment,
+      storedCommitment.challenge,
+      typeof publicInputsJson === "string" ? JSON.parse(publicInputsJson) : publicInputsJson 
+    );
+
     const participationData = {
       study_id: id,
       participant_wallet: participantWallet,
@@ -1406,7 +1424,7 @@ export const participateInStudy = async (req: Request, res: Response) => {
       eligibility_score: eligibilityScore,
       status: proofJson ? "verified" : "pending",
       has_consented: true,
-      enrolled_at: new Date().toISOString(),
+      enrolled_at: new Date().toISOString()
     };
 
     const { data: participation, error: participationError } = await req.supabase
@@ -1446,30 +1464,6 @@ export const participateInStudy = async (req: Request, res: Response) => {
       .eq(TABLES.STUDIES!.columns.id!, id);
 
     logger.info({ studyId: id, participantWallet }, "Participant successfully enrolled in study");
-
-    logger.info(
-      {
-        participantWallet,
-        dataCommitment: dataCommitment.substring(0, 20) + "...",
-        storedChallenge: storedCommitment.challenge.substring(0, 20) + "...",
-      },
-      "About to call joinBlockchainStudy with stored challenge"
-    );
-
-    const blockchainTxHash = await studyService.joinBlockchainStudy(
-      studyData.contract_address,
-      proofJson,
-      participantWallet,
-      dataCommitment,
-      storedCommitment.challenge,
-      binIds,
-      typeof publicInputsJson === "string" ? JSON.parse(publicInputsJson) : publicInputsJson
-    );
-
-    await req.supabase
-      .from(TABLES.STUDY_PARTICIPATIONS!.name)
-      .update({ blockchain_tx_hash: blockchainTxHash })
-      .eq(TABLES.STUDY_PARTICIPATIONS!.columns.id!, participation.id);
 
     await auditService.logStudyParticipation(participantWallet, String(id), true, {
       blockchainTxHash,

@@ -6,6 +6,7 @@ import logger from "@/utils/logger";
 import { Config } from "@/config/config";
 import { STUDY_ABI, STUDY_FACTORY_ABI, MEDICAL_ELIGIBILITY_VERIFIER_ABI } from "../contracts/generated";
 import { BIN_COUNT, MEDICAL_ELIGIBILITY_PUBSIGNALS_LENGTH } from "@/services/constants/signals";
+import { JoinStudyError } from "./errors/JoinStudyError";
 
 export interface StudyDeploymentParams {
   title: string;
@@ -814,7 +815,6 @@ export class StudyService {
     }
   }
 
-
   async joinBlockchainStudy(
     contractAddress: string,
     proofjson: {
@@ -832,6 +832,7 @@ export class StudyService {
 
     let blockchainTxHash = null;
     if (contractAddress) {
+      try {
         const blockchainResult = await this.sendParticipationToBlockchain(
           contractAddress,
           participantWallet,
@@ -842,21 +843,28 @@ export class StudyService {
           publicInputsJson
         );
 
-      if (blockchainResult.success) {
-        blockchainTxHash = blockchainResult.transactionHash;
-        logger.info(
-          {
-            participantWallet,
-            txHash: blockchainTxHash,
-            publicInputsJsonLength: publicInputsJson.length,
-          },
-          "Participation recorded on blockchain successfully"
-        );
-      } else {
-        throw new Error(blockchainResult.error || "Unknown error recording participation on blockchain");
-      }
+        if (blockchainResult.success) {
+          blockchainTxHash = blockchainResult.transactionHash;
+          logger.info(
+            {
+              participantWallet,
+              txHash: blockchainTxHash,
+              publicInputsJsonLength: publicInputsJson.length,
+            },
+            "Participation recorded on blockchain successfully"
+          );
+        } else
+        {
+          throw new Error(blockchainResult.error || "Unknown error recording participation on blockchain");
+        }
+
+        } catch (err) {
+          throw new JoinStudyError("joinBlockchainStudy failed", err);
+        }
     } else {
-      logger.info("Study has no blockchain address - skipping blockchain recording");
+      const msg = "Study has no blockchain address";
+      logger.error(msg);
+      throw new JoinStudyError(msg);
     }
     return blockchainTxHash;
   }
