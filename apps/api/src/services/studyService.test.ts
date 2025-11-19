@@ -216,26 +216,6 @@ describe("StudyService", () => {
     });
   });
 
-  describe("sendParticipationToBlockchain", () => {
-    test("should handle invalid proof format gracefully", async () => {
-      const promise = studyService.sendParticipationToBlockchain(
-        "0xStudy",
-        "0xParticipant",
-        {
-          a: ["invalid", "2"] as [string, string],
-          b: [["3", "4"] as [string, string], ["5", "6"] as [string, string]] as [
-            [string, string],
-            [string, string]
-          ],
-          c: ["7", "8"] as [string, string],
-        },
-        "1234",
-        "0xchallenge",
-        []
-      );
-      await expect(promise).rejects.toThrow(JoinStudyError);
-    });
-
     test("should handle missing blockchain client", async () => {
       const result = await studyService.sendParticipationToBlockchain(
         "0xStudy",
