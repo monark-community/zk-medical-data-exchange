@@ -1131,20 +1131,6 @@ export const generateDataCommitmentChallenge = async (req: Request, res: Respons
 
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours from now
 
-    logger.info(
-      {
-        studyId,
-        participantWallet,
-        dataCommitmentReceived: dataCommitment.substring(0, 20) + "...",
-        dataCommitmentFull: dataCommitment,
-        dataCommitmentLength: dataCommitment.length,
-        challenge: challenge.substring(0, 20) + "...",
-        challengeFull: challenge,
-        expiresAt: expiresAt.toISOString()
-      },
-      "[CHALLENGE_REQUEST] Storing initial commitment to database"
-    );
-
     const { error: commitmentError } = await req.supabase
       .from(TABLES.DATA_COMMITMENTS!.name)
       .insert({
