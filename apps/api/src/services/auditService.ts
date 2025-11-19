@@ -8,25 +8,32 @@ import logger from "@/utils/logger";
 import { Config } from "@/config/config";
 import { AUDIT_TRAIL_ABI } from "@/contracts";
 import { UserProfile } from "@zk-medical/shared";
-  USER_AUTHENTICATION,
-  PROPOSAL_CREATION,
-  VOTE_CAST,
-  PROPOSAL_REMOVAL,
-  USERNAME_CHANGE,
-  STUDY_CREATION,
-  STUDY_STATUS_CHANGE,
-  STUDY_AGGREGATED_DATA_ACCESS,
-  PERMISSION_CHANGE,
-  STUDY_PARTICIPATION,
-  STUDY_CONSENT_REVOKED,
-  STUDY_CONSENT_GRANTED,
-  DATA_UPLOAD,
-  DATA_ACCESS,
-  DATA_DELETED,
-  ADMIN_ACTION,
-  SYSTEM_CONFIG,
-  SENT_COMPENSATION,
-  RECEIVED_COMPENSATION,
+
+export enum ActionType {
+  // COMMON
+  USER_AUTHENTICATION = 0,
+  PROPOSAL_CREATION = 1,
+  VOTE_CAST = 2,
+  PROPOSAL_REMOVAL = 3,
+  USERNAME_CHANGE = 4,
+  // RESEARCHER ACTIONS
+  STUDY_CREATION = 5,
+  STUDY_STATUS_CHANGE = 6,
+  STUDY_AGGREGATED_DATA_ACCESS = 7,
+  PERMISSION_CHANGE = 8,
+  // DATA SELLER ACTIONS
+  STUDY_PARTICIPATION = 9,
+  STUDY_CONSENT_REVOKED = 10,
+  STUDY_CONSENT_GRANTED = 11,
+  DATA_UPLOAD = 12,
+  DATA_ACCESS = 13,
+  DATA_DELETED = 14,
+  // ADMIN
+  ADMIN_ACTION = 15,
+  SYSTEM_CONFIG = 16,
+  // REWARDS
+  SENT_COMPENSATION = 17,
+  RECEIVED_COMPENSATION = 18,
 }
 export interface AuditLogEntry {
   user: string;
@@ -280,8 +287,8 @@ class AuditService {
           ],
           account: this.account,
           chain: sepolia,
-          maxFeePerGas: 50000000000n,
-          maxPriorityFeePerGas: 10000000000n,
+          maxFeePerGas: BigInt("50000000000"),
+          maxPriorityFeePerGas: BigInt("10000000000"),
         });
 
         const receipt = await Promise.race([
@@ -379,8 +386,8 @@ class AuditService {
           ],
           account: this.account,
           chain: sepolia,
-          maxFeePerGas: 50000000000n,
-          maxPriorityFeePerGas: 10000000000n,
+          maxFeePerGas: BigInt("50000000000"),
+          maxPriorityFeePerGas: BigInt("10000000000"),
         });
 
         const receipt = await Promise.race([
