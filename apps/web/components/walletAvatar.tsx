@@ -75,7 +75,6 @@ const BODY_TONE_GROUPS = {
 };
 
 const getColorTemperature = (accentColor: string): "warm" | "cool" | "neutral" => {
-  // Simple hue-based classification (accent is likely a hex color)
   const hex = accentColor.replace("#", "");
   const r = parseInt(hex.substr(0, 2), 16) / 255;
   const g = parseInt(hex.substr(2, 2), 16) / 255;
@@ -119,25 +118,43 @@ const HEAD_SHAPE_CONFIG = {
   squircle: { borderRadius: "45% / 50%" },
   roundedSquare: { borderRadius: "35%" },
   oval: { borderRadius: "40% / 60%" },
+  softSquare: { borderRadius: "15%" },
+  wideOval: { borderRadius: "60% / 40%" },
+  tallOval: { borderRadius: "30% / 80%" },
 };
 
 const BASE_SIZE = 72;
 
-type EarVariant = "bunny" | "cat" | "antenna" | "dog" | "mouse" | "fox" | "bear";
+type EarVariant = "bunny" | "cat" | "dog" | "mouse" | "fox" | "bear";
 type EyeVariant = "dot" | "arc" | "spark" | "star";
 type ExpressionVariant = "smile" | "laugh" | "calm" | "wow" | "grin" | "frown";
-type HeadShape = "circle" | "squircle" | "roundedSquare" | "oval";
+type HeadShape =
+  | "circle"
+  | "squircle"
+  | "roundedSquare"
+  | "oval"
+  | "softSquare"
+  | "wideOval"
+  | "tallOval";
 type BodyPattern = "plain" | "stripes" | "sash" | "signals" | "dots" | "checks";
 type CollarVariant = "round" | "v" | "tech" | "bow" | "chain";
 type CheekStyle = "solid" | "ring" | "blush";
-type GlassesVariant = "none" | "round" | "square" | "aviator" | "cat-eye";
-type NoseVariant = "pointy" | "none" | "button";
+type GlassesVariant =
+  | "none"
+  | "round"
+  | "square"
+  | "aviator"
+  | "cat-eye"
+  | "rimless"
+  | "browline"
+  | "wayfarer"
+  | "oversized";
+type NoseVariant = "pointy" | "none" | "button" | "upturned" | "roman" | "pixie";
 
 interface AvatarFeatures {
   face: string;
   body: string;
   earVariant: EarVariant;
-  accessoryVariant: "badge" | "visor" | "stethoscope" | "hat" | "bowtie";
   eyeVariant: EyeVariant;
   expressionVariant: ExpressionVariant;
   hasFreckles: boolean;
@@ -184,12 +201,9 @@ const generateFeatures = (hash: number, accent: string): AvatarFeatures => {
   const getIndex = (shift: number, mod: number) => Math.abs((hash >> shift) % mod);
 
   const { face, body } = selectCoordinatedColors(hash, accent);
-  const earVariant: EarVariant = (
-    ["dog", "cat", "fox", "bunny", "antenna", "bear", "mouse"] as const
-  )[getIndex(0, 7)];
-  const accessoryVariant: "badge" | "visor" | "stethoscope" | "hat" | "bowtie" = (
-    ["badge", "bowtie", "visor", "stethoscope", "hat"] as const
-  )[getIndex(2, 5)];
+  const earVariant: EarVariant = (["dog", "cat", "fox", "bunny", "bear", "mouse"] as const)[
+    getIndex(0, 6)
+  ];
   const eyeVariant: EyeVariant = (["dot", "star", "spark", "arc"] as const)[getIndex(6, 4)];
   const expressionVariant: ExpressionVariant = (() => {
     const happy = ["smile", "grin", "laugh"] as const;
@@ -199,9 +213,9 @@ const generateFeatures = (hash: number, accent: string): AvatarFeatures => {
       : neutral[getIndex(8, neutral.length)];
   })();
   const hasFreckles = ((hash >> 7) & 1) === 0;
-  const headShape: HeadShape = (["squircle", "roundedSquare", "circle", "oval"] as const)[
-    getIndex(11, 4)
-  ];
+  const headShape: HeadShape = (
+    ["squircle", "roundedSquare", "circle", "oval", "softSquare", "wideOval", "tallOval"] as const
+  )[getIndex(11, 7)];
   const bodyPattern: BodyPattern = (
     ["plain", "signals", "stripes", "checks", "sash", "dots"] as const
   )[getIndex(12, 6)];
@@ -215,15 +229,26 @@ const generateFeatures = (hash: number, accent: string): AvatarFeatures => {
   const cheekTone = `${accent}55`;
   const sparkleDelay = (hash % 5) * 0.4;
   const glassesVariant: GlassesVariant = (
-    ["none", "square", "round", "aviator", "cat-eye"] as const
-  )[getIndex(17, 5)];
-  const noseVariant: NoseVariant = (["button", "pointy", "none"] as const)[getIndex(18, 3)];
+    [
+      "none",
+      "square",
+      "round",
+      "aviator",
+      "cat-eye",
+      "rimless",
+      "browline",
+      "wayfarer",
+      "oversized",
+    ] as const
+  )[getIndex(17, 9)];
+  const noseVariant: NoseVariant = (
+    ["button", "pointy", "none", "upturned", "roman", "pixie"] as const
+  )[getIndex(18, 6)];
 
   return {
     face,
     body,
     earVariant,
-    accessoryVariant,
     eyeVariant,
     expressionVariant,
     hasFreckles,
@@ -442,6 +467,66 @@ const Glasses = ({ features }: ComponentProps) => {
             />
           </>
         );
+      case "rimless":
+        return (
+          <>
+            <span
+              className="absolute left-2 h-3 w-3"
+              style={{
+                top: `${glassesTop}px`,
+                borderTop: "1px solid rgba(15, 23, 42, 0.5)",
+                borderBottom: "1px solid rgba(15, 23, 42, 0.5)",
+              }}
+            />
+            <span
+              className="absolute right-2 h-3 w-3"
+              style={{
+                top: `${glassesTop}px`,
+                borderTop: "1px solid rgba(15, 23, 42, 0.5)",
+                borderBottom: "1px solid rgba(15, 23, 42, 0.5)",
+              }}
+            />
+          </>
+        );
+      case "browline":
+        return (
+          <>
+            <span
+              className={`${baseClass} left-2 h-3 w-3 rounded-t`}
+              style={{ top: `${glassesTop}px`, borderBottom: "none" }}
+            />
+            <span
+              className={`${baseClass} right-2 h-3 w-3 rounded-t`}
+              style={{ top: `${glassesTop}px`, borderBottom: "none" }}
+            />
+          </>
+        );
+      case "wayfarer":
+        return (
+          <>
+            <span
+              className={`${baseClass} left-2 h-3 w-3`}
+              style={{ top: `${glassesTop}px`, borderRadius: "20% 20% 50% 50%" }}
+            />
+            <span
+              className={`${baseClass} right-2 h-3 w-3`}
+              style={{ top: `${glassesTop}px`, borderRadius: "20% 20% 50% 50%" }}
+            />
+          </>
+        );
+      case "oversized":
+        return (
+          <>
+            <span
+              className={`${baseClass} left-1.5 h-4 w-4 rounded-full`}
+              style={{ top: `${glassesTop - 2}px` }}
+            />
+            <span
+              className={`${baseClass} right-1.5 h-4 w-4 rounded-full`}
+              style={{ top: `${glassesTop - 2}px` }}
+            />
+          </>
+        );
     }
   };
 
@@ -461,14 +546,42 @@ const Nose = ({ features }: ComponentProps) => {
   if (features.noseVariant === "button") {
     return (
       <span
-        className="absolute left-1/2 top-8 h-1 w-1 -translate-x-1/2 rounded-full"
+        className="absolute left-1/2 top-6 h-1 w-1 -translate-x-1/2 rounded-full"
+        style={{ backgroundColor: "#000", opacity: 0.7 }}
+      />
+    );
+  }
+  if (features.noseVariant === "upturned") {
+    return (
+      <span
+        className="absolute left-1/2 top-6 h-1.5 w-0.5 -translate-x-1/2"
+        style={{
+          backgroundColor: "#000",
+          opacity: 0.7,
+          clipPath: "polygon(50% 100%, 0% 0%, 100% 0%)",
+        }}
+      />
+    );
+  }
+  if (features.noseVariant === "roman") {
+    return (
+      <span
+        className="absolute left-1/2 top-6 h-2 w-0.5 -translate-x-1/2 rounded-b-sm"
+        style={{ backgroundColor: "#000", opacity: 0.7 }}
+      />
+    );
+  }
+  if (features.noseVariant === "pixie") {
+    return (
+      <span
+        className="absolute left-1/2 top-6 h-1 w-2 -translate-x-1/2 rounded-full"
         style={{ backgroundColor: "#000", opacity: 0.7 }}
       />
     );
   }
   return (
     <span
-      className="absolute left-1/2 top-8 h-1.5 w-0.5 -translate-x-1/2"
+      className="absolute left-1/2 top-6 h-1.5 w-0.5 -translate-x-1/2"
       style={{
         backgroundColor: "#000",
         opacity: 0.7,
@@ -625,67 +738,6 @@ const Ears = ({ features, earColor }: ComponentProps) => {
           />
         </>
       );
-    case "antenna":
-      return (
-        <>
-          <span
-            className="absolute -top-2 left-1/2 h-2 w-2 -translate-x-[120%] rounded-full"
-            style={{ backgroundColor: earColor, opacity: 0.8 }}
-          >
-            <span
-              className="absolute -top-2 left-1/2 -translate-x-1/2 h-2 w-2 rounded-full"
-              style={{ backgroundColor: "#fff" }}
-            />
-          </span>
-          <span
-            className="absolute -top-2 left-1/2 h-2 w-2 translate-x-[20%] rounded-full"
-            style={{ backgroundColor: earColor, opacity: 0.8 }}
-          >
-            <span
-              className="absolute -top-2 left-1/2 -translate-x-1/2 h-2 w-2 rounded-full"
-              style={{ backgroundColor: "#fff" }}
-            />
-          </span>
-        </>
-      );
-    default:
-      return null;
-  }
-};
-
-const Accessory = ({ features, theme }: ComponentProps) => {
-  switch (features.accessoryVariant) {
-    case "badge":
-      return (
-        <span
-          className="h-3 w-3 rounded-full"
-          style={{ backgroundColor: theme.accent, boxShadow: `0 0 12px ${theme.accent}` }}
-        />
-      );
-    case "visor":
-      return (
-        <span
-          className="h-2 w-10 rounded-full"
-          style={{ backgroundColor: theme.accentMuted, opacity: 0.8 }}
-        />
-      );
-    case "stethoscope":
-      return (
-        <span
-          className="relative flex items-center gap-1 text-[10px]"
-          style={{ color: theme.accent }}
-        >
-          <span className="h-1 w-1 rounded-full bg-current" />
-          <span className="h-4 w-[2px] rounded-full bg-current" />
-          <span className="h-2 w-2 rounded-full border border-current" />
-        </span>
-      );
-    case "hat":
-      return (
-        <span className="absolute -top-2 left-1/2 h-2 w-6 -translate-x-1/2 rounded-full bg-blue-500" />
-      );
-    case "bowtie":
-      return <span className="flex items-center justify-center text-[8px] text-red-400">⋈</span>;
     default:
       return null;
   }
@@ -799,7 +851,6 @@ const WalletAvatar = ({ address, size = 40, className }: WalletAvatarProps) => {
             >
               <BodyPatternComponent features={features} theme={theme} />
               <Collar features={features} theme={theme} />
-              <Accessory features={features} theme={theme} />
               {/* Arms - positioned on shoulders */}
               <span
                 className="absolute left-[-4px] top-[15%] h-3 w-4 -translate-y-1/2 rounded-full border border-white/10"
