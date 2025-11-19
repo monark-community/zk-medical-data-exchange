@@ -57,10 +57,10 @@ const router = Router();
  *                       type: number
  *                       description: Average participation rate (0-100)
  *                       example: 67.5
- *                     votingPower:
+ *                     proposalsPassed:
  *                       type: number
- *                       description: Total voting power in the system
- *                       example: 1000000
+ *                       description: Total number of proposals that have passed
+ *                       example: 10
  *       500:
  *         description: Internal server error
  *         content:
