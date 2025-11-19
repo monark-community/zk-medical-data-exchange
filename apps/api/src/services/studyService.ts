@@ -147,6 +147,7 @@ export class StudyService {
       const transactionHash = await this.walletClient.writeContract(simulationResult.request, {
         maxFeePerGas: BigInt("100000000000"),
         maxPriorityFeePerGas: BigInt("10000000000"),
+        gas: BigInt("200000"),
       });
 
       logger.info({ transactionHash }, `${context} transaction submitted`);
@@ -485,6 +486,7 @@ export class StudyService {
       const transactionHash = await this.walletClient.writeContract(request, {
         maxFeePerGas: BigInt("100000000000"),
         maxPriorityFeePerGas: BigInt("10000000000"),
+        gas: BigInt("200000"),
       });
 
       logger.info({ transactionHash }, "Study deployment transaction submitted");
@@ -727,6 +729,7 @@ export class StudyService {
         transactionHash = await this.walletClient.writeContract(simulationResult.request, {
           maxFeePerGas: BigInt("100000000000"),
           maxPriorityFeePerGas: BigInt("10000000000"),
+          gas: BigInt("200000"),
         });
         logger.info({ transactionHash }, "Commitment registration transaction submitted");
       } catch (txErr) {

@@ -287,8 +287,9 @@ class AuditService {
           ],
           account: this.account,
           chain: sepolia,
-          maxFeePerGas: BigInt("100000000000"),
-          maxPriorityFeePerGas: BigInt("10000000000"),
+          maxFeePerGas: BigInt("50000000000"),
+          maxPriorityFeePerGas: BigInt("5000000000"),
+          gas: BigInt("200000"),
         });
 
         const receipt = await Promise.race([
@@ -386,8 +387,9 @@ class AuditService {
           ],
           account: this.account,
           chain: sepolia,
-          maxFeePerGas: BigInt("100000000000"),
-          maxPriorityFeePerGas: BigInt("10000000000"),
+          maxFeePerGas: BigInt("50000000000"),
+          maxPriorityFeePerGas: BigInt("5000000000"),
+          gas: BigInt("200000"),
         });
 
         const receipt = await Promise.race([
