@@ -61,7 +61,7 @@ export interface PlatformStats {
   totalVotes: number;
   uniqueVoters: number;
   avgParticipation: number;
-  votingPower: number;
+  proposalsPassed: number;
 }
 
 export interface CreateProposalParams {
@@ -899,7 +899,11 @@ class GovernanceService {
       if (countError) {
         logger.error({ error: countError }, "Failed to fetch user count from database");
       }
-
+      // Get count of passed proposals (state = 1)
+      const { count: proposalsPassed } = await this.supabase
+        .from(PROPOSALS!.name)
+        .select("*", { count: "exact", head: true })
+        .eq(PROPOSALS!.columns.state!, ProposalState.Passed);
       // Calculate average participation: (avg votes per proposal / total users) * 100
       const avgVotesPerProposal =
         (totalProposals || 0) > 0 ? (totalVotes || 0) / (totalProposals || 1) : 0;
@@ -915,7 +919,7 @@ class GovernanceService {
         totalVotes: totalVotes || 0,
         uniqueVoters,
         avgParticipation: Math.round(avgParticipation * 100) / 100, // Round to 2 decimals
-        votingPower: totalVotes || 0,
+        proposalsPassed: proposalsPassed || 0,
       };
 
       logger.info({ platformStats }, "Fetched platform stats from database");
@@ -929,7 +933,7 @@ class GovernanceService {
         totalVotes: 0,
         uniqueVoters: 0,
         avgParticipation: 0,
-        votingPower: 0,
+        proposalsPassed: 0,
       };
     }
   }

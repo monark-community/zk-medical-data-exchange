@@ -93,12 +93,12 @@ export const GOVERNANCE_OVERVIEW_UI = {
     title: "Avg Participation",
     color: "from-purple-50 to-purple-100 border-purple-200",
   },
-  votingPower: {
+  proposalsPassed: {
     icon1: "ShieldCheck",
     icon1Color: "text-green-600",
     icon2: "Lock",
     icon2Color: "text-green-600",
-    title: "Voting Power",
+    title: "Proposals Passed",
     color: "from-green-50 to-green-100 border-green-200",
   },
 };
