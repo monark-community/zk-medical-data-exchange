@@ -3,7 +3,7 @@ import React from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowDownRight, ArrowUpRight, ExternalLink } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, ExternalLink, DollarSign } from "lucide-react";
 
 import { ProfileCardProps } from "@/interfaces/profile";
 import { useProfile } from "@/contexts/ProfileContext";
@@ -28,6 +28,14 @@ const ProfileCard = () => {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     })}`;
+
+  const formatDateTime = (value: string | number | Date) => {
+    if (!value) return "—";
+    const date = new Date(value);
+    return new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(
+      date
+    );
+  };
 
   const { currentProfile, getProfileDisplayName } = useProfile();
   const { address } = useAccount();
@@ -194,7 +202,7 @@ const ProfileCard = () => {
         <Card className="h-full">
           <CardHeader>
             <h3 className="text-lg font-semibold">Profile Controls</h3>
-            <p className="text-sm text-muted-foreground">Update your public identity.</p>
+            <p className="text-sm text-muted-foreground">Update your public profile.</p>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50/80 p-4 text-sm text-gray-600">
@@ -209,9 +217,8 @@ const ProfileCard = () => {
 
         <Card>
           <CardHeader>
-            <h3 className="text-lg font-semibold">Data & Privacy Hub</h3>
             <p className="text-sm text-muted-foreground">
-              Choose exactly what you want to export. Snapshots never leave your browser.
+              Choose exactly what information you want to export.
             </p>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -225,7 +232,7 @@ const ProfileCard = () => {
                 </div>
                 <Button
                   variant="outline"
-                  className="shrink-0 border-purple-200 text-purple-700 hover:bg-purple-50 hover:border-purple-300"
+                  className="shrink-0 border-blue-200 text-blue-700 hover:bg-blue-50 hover:border-blue-300"
                   disabled={isExportingProfile}
                   onClick={exportProfileSnapshot}
                 >
@@ -243,7 +250,7 @@ const ProfileCard = () => {
                 </div>
                 <Button
                   variant="outline"
-                  className="shrink-0 border-emerald-200 text-emerald-700 hover:bg-emerald-50 hover:border-emerald-300"
+                  className="shrink-0 border-blue-200 text-blue-700 hover:bg-blue-50 hover:border-blue-300"
                   disabled={isExportingTransactions || txs.length === 0}
                   onClick={exportTransactionLedger}
                 >
@@ -259,7 +266,10 @@ const ProfileCard = () => {
         <CardHeader className="p-6">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h3 className="text-lg font-semibold">Transaction History</h3>
+              <h3 className="flex items-center gap-2 text-lg font-semibold">
+                <DollarSign className="h-5 w-5 text-emerald-600" />
+                Transaction History
+              </h3>
               <p className="text-sm text-muted-foreground">
                 Payments you&apos;ve sent or received on-chain.
               </p>
@@ -277,66 +287,161 @@ const ProfileCard = () => {
           ) : txs.length === 0 ? (
             <div className="p-6 text-sm text-muted-foreground">No transactions yet.</div>
           ) : (
-            <div className="max-h-96 overflow-x-auto overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
-              <table className="min-w-full text-sm">
-                <thead className="sticky top-0 border-t bg-gray-50">
-                  <tr className="text-left text-gray-600">
-                    <th className="px-4 py-3">Direction</th>
-                    <th className="px-4 py-3">Amount (USD)</th>
-                    <th className="px-4 py-3">Study</th>
-                    <th className="px-4 py-3">Tx Hash</th>
-                    <th className="px-4 py-3">Date</th>
-                  </tr>
-                </thead>
-                <tbody>
+            <>
+              <div className="hidden md:block">
+                <div className="max-h-[32rem] overflow-x-auto overflow-y-auto rounded-b-2xl border-t bg-white scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+                  <table className="min-w-full text-sm text-gray-700">
+                    <thead className="sticky top-0 bg-gradient-to-r from-indigo-50 via-white to-emerald-50">
+                      <tr className="text-center text-xs font-semibold uppercase tracking-wide text-gray-500">
+                        <th className="px-5 py-3">Direction</th>
+                        <th className="px-5 py-3">Amount</th>
+                        <th className="px-5 py-3">Study</th>
+                        <th className="px-5 py-3">Tx Hash</th>
+                        <th className="px-5 py-3">Date</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {txs.map((tx) => {
+                        const incoming = tx.toWallet?.toLowerCase() === viewerWallet;
+                        const dirIcon = incoming ? (
+                          <ArrowDownRight className="h-4 w-4 text-emerald-600" />
+                        ) : (
+                          <ArrowUpRight className="h-4 w-4 text-rose-600" />
+                        );
+
+                        return (
+                          <tr
+                            key={tx.id}
+                            className="border-t bg-white/80 transition hover:bg-gray-50/90"
+                          >
+                            <td className="px-5 py-4 text-center align-top">
+                              <div className="flex items-center justify-center gap-2">
+                                {dirIcon}
+                                <Badge
+                                  variant="secondary"
+                                  className={`rounded-full px-2 py-0 text-xs ${
+                                    incoming
+                                      ? "bg-emerald-50 text-emerald-700"
+                                      : "bg-rose-50 text-rose-700"
+                                  }`}
+                                >
+                                  {incoming ? "Incoming" : "Outgoing"}
+                                </Badge>
+                              </div>
+                              <div className="mt-1 text-xs text-gray-500">
+                                {incoming
+                                  ? `From ${formatWalletAddress(tx.fromWallet)}`
+                                  : `To ${formatWalletAddress(tx.toWallet)}`}
+                              </div>
+                            </td>
+                            <td className="px-5 py-4 text-center align-top">
+                              <div
+                                className={`inline-flex rounded-full px-3 py-1 text-sm font-semibold ${
+                                  incoming
+                                    ? "bg-emerald-50 text-emerald-700"
+                                    : "bg-rose-50 text-rose-700"
+                                }`}
+                              >
+                                {formatUsd(tx.valueUsd ?? 0)}
+                              </div>
+                            </td>
+                            <td className="px-5 py-4 text-center align-top">
+                              <Badge className="rounded-full bg-purple-50 text-purple-700">
+                                Study #{tx.studyId}
+                              </Badge>
+                            </td>
+                            <td className="px-5 py-4 text-center align-top">
+                              <button
+                                onClick={() =>
+                                  window.open(
+                                    `https://sepolia.etherscan.io/tx/${tx.transactionHash}`,
+                                    "_blank",
+                                    "noopener"
+                                  )
+                                }
+                                className="inline-flex items-center gap-1 font-mono text-xs text-indigo-600 hover:text-indigo-700"
+                                title={tx.transactionHash}
+                              >
+                                {tx.transactionHash.slice(0, 10)}…
+                                <ExternalLink className="h-3 w-3" />
+                              </button>
+                            </td>
+                            <td className="px-5 py-4 text-center align-top text-sm text-gray-600">
+                              {formatDateTime(tx.createdAt)}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div className="md:hidden">
+                <div className="max-h-[32rem] space-y-3 overflow-y-auto p-4 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
                   {txs.map((tx) => {
                     const incoming = tx.toWallet?.toLowerCase() === viewerWallet;
-                    const dirIcon = incoming ? (
-                      <ArrowDownRight className="h-4 w-4 text-emerald-600" />
-                    ) : (
-                      <ArrowUpRight className="h-4 w-4 text-rose-600" />
-                    );
-
                     return (
-                      <tr key={tx.id} className="border-t">
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-2">
-                            {dirIcon}
-                            <span className={incoming ? "text-emerald-700" : "text-rose-700"}>
-                              {incoming ? "Incoming" : "Outgoing"}
-                            </span>
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            {incoming
-                              ? `From ${formatWalletAddress(tx.fromWallet)}`
-                              : `To ${formatWalletAddress(tx.toWallet)}`}
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 font-medium">{formatUsd(tx.valueUsd ?? 0)}</td>
-                        <td className="px-4 py-3">#{tx.studyId}</td>
-                        <td className="px-4 py-3">
-                          <button
-                            onClick={() =>
-                              window.open(
-                                `https://sepolia.etherscan.io/tx/${tx.transactionHash}`,
-                                "_blank",
-                                "noopener"
-                              )
-                            }
-                            className="inline-flex items-center gap-1 font-mono text-xs text-indigo-600 hover:text-indigo-700"
-                            title={tx.transactionHash}
+                      <div
+                        key={tx.id}
+                        className="rounded-2xl border border-gray-100 bg-white/90 p-4 shadow-sm"
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <Badge
+                            variant="secondary"
+                            className={`rounded-full px-3 ${
+                              incoming
+                                ? "bg-emerald-50 text-emerald-700"
+                                : "bg-rose-50 text-rose-700"
+                            }`}
                           >
-                            {tx.transactionHash.slice(0, 10)}…
-                            <ExternalLink className="h-3 w-3" />
-                          </button>
-                        </td>
-                        <td className="px-4 py-3">{new Date(tx.createdAt).toLocaleString()}</td>
-                      </tr>
+                            {incoming ? "Incoming" : "Outgoing"}
+                          </Badge>
+                          <span
+                            className={`text-lg font-semibold ${
+                              incoming ? "text-emerald-600" : "text-rose-600"
+                            }`}
+                          >
+                            {formatUsd(tx.valueUsd ?? 0)}
+                          </span>
+                        </div>
+                        <p className="mt-2 text-xs text-gray-500">
+                          {incoming
+                            ? `From ${formatWalletAddress(tx.fromWallet)}`
+                            : `To ${formatWalletAddress(tx.toWallet)}`}
+                        </p>
+                        <div className="mt-3 grid grid-cols-2 gap-3 text-xs text-gray-500">
+                          <div>
+                            <p className="font-semibold text-gray-700">Study</p>
+                            <p>#{tx.studyId}</p>
+                          </div>
+                          <div>
+                            <p className="font-semibold text-gray-700">Date</p>
+                            <p>{formatDateTime(tx.createdAt)}</p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() =>
+                            window.open(
+                              `https://sepolia.etherscan.io/tx/${tx.transactionHash}`,
+                              "_blank",
+                              "noopener"
+                            )
+                          }
+                          className="mt-3 inline-flex w-full items-center justify-between rounded-xl border border-indigo-100 bg-indigo-50/60 px-3 py-2 text-[13px] font-medium text-indigo-700 transition hover:bg-indigo-100"
+                          title={tx.transactionHash}
+                        >
+                          <span className="truncate font-mono">
+                            {tx.transactionHash.slice(0, 12)}…
+                          </span>
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
                     );
                   })}
-                </tbody>
-              </table>
-            </div>
+                </div>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
