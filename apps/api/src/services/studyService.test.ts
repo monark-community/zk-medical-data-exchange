@@ -505,4 +505,3 @@ describe("StudyService", () => {
       expect(mockLogger.error).toHaveBeenCalled();
     });
   });
-});
