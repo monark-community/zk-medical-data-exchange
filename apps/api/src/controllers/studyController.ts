@@ -1243,17 +1243,6 @@ export const participateInStudy = async (req: Request, res: Response) => {
       .eq(TABLES.DATA_COMMITMENTS!.columns.walletAddress!, participantWallet.toLowerCase())
       .single();
 
-    logger.info(
-      {
-        studyId: id,
-        participantWallet,
-        commitmentFound: !!storedCommitment,
-        storedCommitmentPreview: storedCommitment?.data_commitment?.substring(0, 20) + "...",
-        receivedCommitmentPreview: dataCommitment?.substring(0, 20) + "..."
-      },
-      "[PARTICIPATE] Retrieved stored commitment from database"
-    );
-
     if (commitmentFetchError || !storedCommitment) {
       logger.warn(
         { studyId: id, participantWallet },
