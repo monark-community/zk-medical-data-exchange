@@ -186,6 +186,41 @@ export const deleteStudy = async (studyId: number, walletId: string) => {
   });
   return data;
 };
+
+/**
+ * Get aggregated data for a completed study (bin counts)
+ */
+export const getAggregatedData = async (
+  studyId: number,
+  creatorWallet: string
+): Promise<AggregatedStudyData> => {
+  const { data } = await apiClient.get(`/studies/${studyId}/aggregated-data`, {
+    params: { creatorWallet },
+  });
+  return data;
+};
+
+export interface AggregatedBinData {
+  binId: string;
+  criteriaField: string;
+  binType: "RANGE" | "CATEGORICAL";
+  label: string;
+  minValue?: number;
+  maxValue?: number;
+  includeMin?: boolean;
+  includeMax?: boolean;
+  categoriesBitmap?: number;
+  count: number;
+}
+
+export interface AggregatedStudyData {
+  studyId: number;
+  studyTitle: string;
+  totalParticipants: number;
+  bins: AggregatedBinData[];
+  generatedAt: number;
+}
+
 export interface StudyApplicationRequest {
   studyId: number;
   participantWallet: string;

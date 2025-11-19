@@ -43,7 +43,7 @@ export function BinPreview({ binConfig, isGenerating }: BinPreviewProps) {
       acc[bin.criteriaField] = [];
     }
     acc[bin.criteriaField].push(bin);
-    return {};
+    return acc;
   }, {} as Record<string, DataBin[]>);
 
   const fieldCount = Object.keys(binsByField).length;
