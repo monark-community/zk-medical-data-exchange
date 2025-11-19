@@ -778,34 +778,45 @@ const WalletAvatar = ({ address, size = 40, className }: WalletAvatarProps) => {
                 <Mouth features={features} theme={theme} />
               </div>
               <Ears features={features} earColor={earColor} />
+              {/* Neck */}
+              <div
+                className="absolute left-1/2 top-14 h-1.5 w-3 -translate-x-1/2 rounded-b-md"
+                style={{
+                  backgroundColor: features.face,
+                  boxShadow: "0 2px 4px rgba(15, 23, 42, 0.15)",
+                }}
+              />
             </div>
             <div
-              className="mt-1 flex h-10 w-14 items-center justify-center rounded-3xl border border-white/10 px-2"
+              className="mt-0.5 flex h-10 w-16 items-center justify-center rounded-t-2xl rounded-b-3xl border border-white/10 px-2"
               style={{
                 backgroundColor: features.body,
                 boxShadow: `0 6px 14px ${theme.accent}40`,
                 position: "relative",
                 overflow: "hidden",
+                clipPath: "polygon(10% 0%, 90% 0%, 100% 20%, 100% 100%, 0% 100%, 0% 20%)",
               }}
             >
               <BodyPatternComponent features={features} theme={theme} />
               <Collar features={features} theme={theme} />
               <Accessory features={features} theme={theme} />
-              {/* Arms */}
+              {/* Arms - positioned on shoulders */}
               <span
-                className="absolute left-[-6px] top-1/2 h-3 w-4 -translate-y-1/2 rounded-full border border-white/10"
+                className="absolute left-[-4px] top-[15%] h-3 w-4 -translate-y-1/2 rounded-full border border-white/10"
                 style={{
                   backgroundColor: features.body,
                   boxShadow: `0 2px 4px ${theme.accent}20`,
                   opacity: 0.9,
+                  transform: "rotate(-10deg)",
                 }}
               />
               <span
-                className="absolute right-[-6px] top-1/2 h-3 w-4 -translate-y-1/2 rounded-full border border-white/10"
+                className="absolute right-[-4px] top-[15%] h-3 w-4 -translate-y-1/2 rounded-full border border-white/10"
                 style={{
                   backgroundColor: features.body,
                   boxShadow: `0 2px 4px ${theme.accent}20`,
                   opacity: 0.9,
+                  transform: "rotate(10deg)",
                 }}
               />
             </div>
