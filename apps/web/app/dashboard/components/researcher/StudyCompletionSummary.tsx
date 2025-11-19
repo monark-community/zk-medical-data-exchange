@@ -113,7 +113,6 @@ export default function StudyCompletionSummary({
       try {
         const aggregatedData = await getAggregatedData(studyId, creatorWallet);
         
-        // Calculate data points: each participant provides data for each unique criteria field
         const uniqueFields = new Set(aggregatedData.bins.map(bin => bin.criteriaField));
         const dataPoints = aggregatedData.totalParticipants * uniqueFields.size;
         
@@ -143,11 +142,9 @@ export default function StudyCompletionSummary({
 
       console.log("Data access logged successfully");
 
-      // Open the aggregated data view
       onAccessData();
     } catch (error) {
       console.error("Failed to access study data:", error);
-      // TODO: Show error toast/notification to user
     } finally {
       setLoadingData(false);
     }
@@ -167,16 +164,12 @@ export default function StudyCompletionSummary({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[95vw] lg:max-w-6xl w-full max-h-[90vh] overflow-y-auto">
-        {/* Loading Data Overlay */}
         {loadingData && (
           <div className="absolute inset-0 bg-background/95 z-50 flex items-center justify-center rounded-lg">
             <div className="flex flex-col items-center justify-center">
               <div className="relative mb-6">
-                {/* Outer rotating ring */}
                 <div className="absolute inset-0 rounded-full border-4 border-emerald-200 opacity-20"></div>
-                {/* Animated spinner */}
                 <Spinner className="h-16 w-16 text-emerald-600" />
-                {/* Pulsing center dot */}
                 <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
                   <div className="h-3 w-3 bg-emerald-600 rounded-full animate-pulse"></div>
                 </div>
@@ -213,11 +206,8 @@ export default function StudyCompletionSummary({
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20">
             <div className="relative mb-6">
-              {/* Outer rotating ring */}
               <div className="absolute inset-0 rounded-full border-4 border-indigo-200 opacity-20"></div>
-              {/* Animated spinner */}
               <Spinner className="h-16 w-16 text-indigo-600" />
-              {/* Pulsing center dot */}
               <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
                 <div className="h-3 w-3 bg-indigo-600 rounded-full animate-pulse"></div>
               </div>

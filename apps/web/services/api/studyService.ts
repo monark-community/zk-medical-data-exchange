@@ -50,7 +50,7 @@ export interface StudyDetails extends StudySummary {
   deploymentTxHash?: string;
   createdBy?: string;
   deployedAt?: string;
-  binConfiguration?: any; // Bin configuration for privacy-preserving aggregation
+  binConfiguration?: any;
   stats: {
     complexityScore: number;
     criteriaHash: string;
@@ -187,9 +187,6 @@ export const deleteStudy = async (studyId: number, walletId: string) => {
   return data;
 };
 
-/**
- * Get aggregated data for a completed study (bin counts)
- */
 export const getAggregatedData = async (
   studyId: number,
   creatorWallet: string
@@ -231,7 +228,7 @@ export interface StudyApplicationRequest {
   };
   publicInputsJson: string[];
   dataCommitment: string;
-  binIds?: string[]; // Bin IDs from proof (if study has bins)
+  binIds?: string[];
 }
 
 export class StudyApplicationService {
@@ -242,7 +239,6 @@ export class StudyApplicationService {
   ): Promise<{ success: boolean; message: string }> {
     try {
       const salt = generateSecureSalt();
-      // Step 1: Get challenge from backend first
       const { data: challengeData } = await apiClient.post('/studies/request-challenge', {
         studyId,
         participantWallet: walletAddress,
@@ -254,11 +250,8 @@ export class StudyApplicationService {
 
       console.log("Challenge received:", challengeData.challenge);
 
-      // Step 2: Generate final commitment WITH challenge
       const finalDataCommitment = generateDataCommitment(medicalData, salt, challengeData.challenge);
       console.log("Final data commitment (with challenge):", finalDataCommitment.toString());
-
-      // Step 3: Sign the final commitment
 
       if (!window.ethereum) {
         throw new Error("MetaMask not found. Please install MetaMask to continue.");
@@ -267,7 +260,6 @@ export class StudyApplicationService {
       const provider = new BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
       const signature = await signer.signMessage(finalDataCommitment.toString());
-      console.log("[JOIN_STUDY] Step 2: Signature created for initial commitment");
 
       const { data } = await apiClient.post("/studies/data-commitment", {
         studyId,
@@ -276,15 +268,11 @@ export class StudyApplicationService {
         challenge: challengeData.challenge,
         signature,
       });
-      console.log("[JOIN_STUDY] Step 3: Challenge received from server:", {
-        challenge: data.challenge?.substring(0, 20) + "..."
-      });
 
       if (!data.success) {
-        throw new Error("Data commitment registration failed.");
+        throw new Error("Data commitment generation failed.");
       }
 
-      console.log("Fetching study details and criteria");
       const studyDetails = await getStudyDetails(studyId);
       const studyCriteria = studyDetails.eligibilityCriteria;
       const binConfiguration = studyDetails.binConfiguration;
@@ -318,41 +306,25 @@ export class StudyApplicationService {
 
       console.log("Eligibility confirmed! Proceeding with commitment and proof generation...");
 
-      console.log("[JOIN_STUDY] Step 6: Generating ZK proof" + (binConfiguration ? " with bin membership" : ""));
       const proofResult = await generateZKProof(
         medicalData,
         studyCriteria,
         finalDataCommitment,
         salt,
         challengeData.challenge,
-        binConfiguration // Pass bin configuration if study has bins
+        binConfiguration
       );
-      console.log("[JOIN_STUDY] Step 7: ZK proof generated. Public signals:", {
-        signalsCount: proofResult.publicSignals.length,
-        dataCommitmentFromProof: proofResult.publicSignals[proofResult.publicSignals.length - 1],
-        challengeFromProof: proofResult.publicSignals[1],
-      });
 
-      // Use the commitment from the proof's public signals to ensure it matches what the circuit calculated
       const verifiedCommitment = proofResult.publicSignals[proofResult.publicSignals.length - 1];
-      console.log("[JOIN_STUDY] Commitment comparison:", {
-        original: finalDataCommitment.toString(),
-        fromProof: verifiedCommitment,
-        match: finalDataCommitment.toString() === verifiedCommitment
-      });
 
       const applicationRequest: StudyApplicationRequest = {
         studyId,
         participantWallet: walletAddress,
         proofJson: proofResult.proof,
         publicInputsJson: proofResult.publicSignals,
-        dataCommitment: verifiedCommitment, // Use commitment from proof to match what was verified by the circuit
-        binIds: proofResult.binMembership?.binIds, // Extract bin IDs from proof result
+        dataCommitment: verifiedCommitment,
+        binIds: proofResult.binMembership?.binIds,
       };
-      console.log("[JOIN_STUDY] Step 8: Application request prepared:", {
-        dataCommitmentSent: applicationRequest.dataCommitment.substring(0, 20) + "...",
-        binIdsCount: applicationRequest.binIds?.length || 0
-      });
 
       if (proofResult.binMembership?.binIds) {
         console.log(`Proof includes bin membership: ${proofResult.binMembership.binIds.length} bins`);

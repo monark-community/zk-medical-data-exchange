@@ -53,7 +53,6 @@ export default function EndStudyDialog({
     setEnrolledUsers(participants.length);
   })();
 
-  // Fetch real data points count
   (async function fetchDataPoints() {
     try {
       const aggregatedData = await getAggregatedData(studyId, "");

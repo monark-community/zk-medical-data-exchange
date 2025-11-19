@@ -6,7 +6,7 @@ export enum BinType {
 }
 
 export interface DataBin {
-  id: string; // Human-readable ID like "age_bin_0" (for display/debugging)
+  id: string; // Human-readable ID like "age_bin_0" for display
   numericId: number; // Sequential numeric ID (0, 1, 2, ...) for blockchain
   criteriaField: string;
   type: BinType;

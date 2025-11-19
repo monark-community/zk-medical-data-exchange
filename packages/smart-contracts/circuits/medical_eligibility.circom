@@ -3,18 +3,7 @@ pragma circom 2.0.0;
 include "circomlib/circuits/poseidon.circom";
 include "circomlib/circuits/comparators.circom";
 
-/*
- * Medical Eligibility Circuit with Optional Bin Membership
- * 
- * This circuit proves eligibility for medical studies and optionally computes
- * which bins a participant belongs to for privacy-preserving data aggregation.
- * 
- * For studies WITHOUT bins: Set numBins = 0, binMembership outputs will be all zeros
- * For studies WITH bins: Set numBins > 0, binMembership outputs show which bins matched
- */
-
 template MedicalEligibility() {
-    // Maximum number of bins supported by this circuit
     var MAX_BINS = 50;
     var MAX_CATEGORIES_PER_BIN = 10;
 
@@ -81,15 +70,15 @@ template MedicalEligibility() {
     // Set numBins = 0 for studies without bins (bin outputs will be all zeros)
     // Set numBins > 0 for studies with bins
     
-    signal input numBins;                                    // Number of bins (0 if no bins)
-    signal input binFieldCodes[MAX_BINS];                   // Which field: 0=age, 1=gender, etc.
-    signal input binTypes[MAX_BINS];                        // 0=range, 1=categorical
-    signal input binMinValues[MAX_BINS];                    // Min value for range bins
-    signal input binMaxValues[MAX_BINS];                    // Max value for range bins
-    signal input binIncludeMin[MAX_BINS];                   // 1=include min boundary, 0=exclude
-    signal input binIncludeMax[MAX_BINS];                   // 1=include max boundary, 0=exclude
+    signal input numBins;                                          // Number of bins (0 if no bins)
+    signal input binFieldCodes[MAX_BINS];                          // Which field: 0=age, 1=gender, etc.
+    signal input binTypes[MAX_BINS];                               // 0=range, 1=categorical
+    signal input binMinValues[MAX_BINS];                           // Min value for range bins
+    signal input binMaxValues[MAX_BINS];                           // Max value for range bins
+    signal input binIncludeMin[MAX_BINS];                          // 1=include min boundary, 0=exclude
+    signal input binIncludeMax[MAX_BINS];                          // 1=include max boundary, 0=exclude
     signal input binCategories[MAX_BINS][MAX_CATEGORIES_PER_BIN];  // Categories for categorical bins
-    signal input binCategoryCount[MAX_BINS];                // Number of valid categories
+    signal input binCategoryCount[MAX_BINS];                       // Number of valid categories
     
     // ========================================
     // PUBLIC INPUTS (Only what goes to blockchain)  
@@ -104,7 +93,7 @@ template MedicalEligibility() {
     // ========================================
     // OUTPUTS
     // ========================================
-    signal eligible;                      // 1 if participant meets all study criteria
+    signal eligible;                             // 1 if participant meets all study criteria
     signal output binMembership[MAX_BINS];       // binMembership[i] = 1 if participant belongs to bin i (all zeros if numBins = 0)
     
     // ========================================
@@ -160,10 +149,6 @@ template MedicalEligibility() {
     finalCommitment.inputs[2] <== salt;
     finalCommitment.inputs[3] <== challenge;
     
-    log("commitment1.out =", commitment1.out);
-    log("commitment2.out =", commitment2.out);
-    log("finalCommitment.out =", finalCommitment.out);
-    log("dataCommitment input =", dataCommitment);
     // ========================================
     // ELIGIBILITY CRITERIA CHECKING
     // ========================================
@@ -289,22 +274,16 @@ template MedicalEligibility() {
     // Final result: ALL criteria must be satisfied
     eligible <== allButMedical * medicalHistoryChecks;
     dataCommitment === finalCommitment.out;
-
-    log("Eligibility result =", eligible);
-    log("Final commitment output =", finalCommitment.out);
-    log("Data commitment input =", dataCommitment);
     
     // ========================================
     // BIN MEMBERSHIP COMPUTATION (Optional - only if numBins > 0)
     // ========================================
     
-    // For each bin, determine if participant belongs to it
     component binChecks[MAX_BINS];
     
     for (var i = 0; i < MAX_BINS; i++) {
         binChecks[i] = BinMembershipCheck(MAX_CATEGORIES_PER_BIN);
         
-        // Connect inputs
         binChecks[i].binIndex <== i;
         binChecks[i].numBins <== numBins;
         binChecks[i].fieldCode <== binFieldCodes[i];
@@ -319,7 +298,6 @@ template MedicalEligibility() {
             binChecks[i].categories[j] <== binCategories[i][j];
         }
         
-        // Connect medical data fields
         binChecks[i].age <== age;
         binChecks[i].gender <== gender;
         binChecks[i].region <== region;
@@ -334,7 +312,6 @@ template MedicalEligibility() {
         binChecks[i].diabetesStatus <== diabetesStatus;
         binChecks[i].heartDiseaseHistory <== heartDiseaseHistory;
         
-        // Output bin membership (will be 0 if numBins = 0 or binIndex >= numBins)
         binMembership[i] <== binChecks[i].belongs;
     }
 }
@@ -353,19 +330,17 @@ template MedicalEligibility() {
  * 11 = diabetesStatus, 12 = heartDiseaseHistory
  */
 template BinMembershipCheck(MAX_CATEGORIES) {
-    // Bin configuration
-    signal input binIndex;           // Index of this bin (0 to MAX_BINS-1)
-    signal input numBins;            // Total number of bins configured (0 if no bins)
-    signal input fieldCode;          // Which medical field this bin applies to
-    signal input binType;            // 0=range, 1=categorical
-    signal input minValue;           // Min value for range bins
-    signal input maxValue;           // Max value for range bins
-    signal input includeMin;         // 1=include min boundary
-    signal input includeMax;         // 1=include max boundary
+    signal input binIndex;                    // Index of this bin (0 to MAX_BINS-1)
+    signal input numBins;                     // Total number of bins configured (0 if no bins)
+    signal input fieldCode;                   // Which medical field this bin applies to
+    signal input binType;                     // 0=range, 1=categorical
+    signal input minValue;                    // Min value for range bins
+    signal input maxValue;                    // Max value for range bins
+    signal input includeMin;                  // 1=include min boundary
+    signal input includeMax;                  // 1=include max boundary
     signal input categories[MAX_CATEGORIES];  // Category values for categorical bins
-    signal input categoryCount;      // Number of valid categories
+    signal input categoryCount;               // Number of valid categories
     
-    // Medical data (all fields)
     signal input age;
     signal input gender;
     signal input region;
@@ -380,8 +355,7 @@ template BinMembershipCheck(MAX_CATEGORIES) {
     signal input diabetesStatus;
     signal input heartDiseaseHistory;
     
-    // Output
-    signal output belongs;           // 1 if participant belongs to this bin, 0 otherwise
+    signal output belongs;                    // 1 if participant belongs to this bin, 0 otherwise
     
     // Check if this bin is active (binIndex < numBins)
     component isActive = LessThan(8);

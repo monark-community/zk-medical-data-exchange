@@ -736,8 +736,8 @@ export class StudyService {
     participantWallet: string,
     dataCommitment: string,
     challenge: string,
-    binIds?: string[], // Optional bin IDs from proof result
-    publicInputsJson?: string[] // Public signals from ZK proof
+    binIds?: string[],
+    publicInputsJson?: string[]
   ) {
     await this.initialize();
 
@@ -750,8 +750,8 @@ export class StudyService {
           proofjson,
           dataCommitment,
           challenge,
-          binIds || [], // Pass empty array if no bins
-          publicInputsJson // Pass public signals for verification
+          binIds || [],
+          publicInputsJson
         );
 
         if (blockchainResult.success) {
@@ -795,8 +795,8 @@ export class StudyService {
     proof: { a: [string, string]; b: [[string, string], [string, string]]; c: [string, string] },
     dataCommitment: string,
     challenge: string,
-    binIds: string[] = [], // Array of bin IDs from proof
-    publicInputsJson?: string[] // Public signals from ZK proof (51 elements: [dataCommitment, binMembership[0..49]])
+    binIds: string[] = [],
+    publicInputsJson?: string[]
   ): Promise<{ success: boolean; transactionHash?: string; error?: string }> {
     await this.initialize();
 
@@ -838,7 +838,6 @@ export class StudyService {
 
       logger.info({ pA, pB, pC, commitment }, "Proof converted to BigInt format");
 
-      // BN254 scalar field bound check for public signal
       try {
         const r = BigInt("21888242871839275222246405745257275088548364400416034343698204186575808495617");
         const withinField = commitment < r;
@@ -857,15 +856,12 @@ export class StudyService {
       // Preflight: verify against the Study's zkVerifier directly to isolate issues
       if (publicInputsJson && publicInputsJson.length > 0) {
         try {
-          // 1) Read the verifier address from the Study
           const zkVerifierAddress = await this.publicClient.readContract({
             address: studyAddress as `0x${string}`,
             abi: STUDY_ABI,
             functionName: "zkVerifier",
           });
 
-          // 2) Convert publicInputsJson (string[]) to bigint[]
-          // Expected format: [dataCommitment, binMembership[0..49]] = 51 elements total
           pubSignals = publicInputsJson.map(sig => BigInt(sig));
           
           logger.info(
@@ -878,7 +874,6 @@ export class StudyService {
             "Preparing verifier preflight check"
           );
 
-          // Verify we have the correct number of public signals
           if (pubSignals.length !== 51) {
             logger.warn(
               { 
@@ -889,7 +884,6 @@ export class StudyService {
               "Public signals length mismatch - expected 51 elements"
             );
           } else {
-            // 3) Call verifyProof on the verifier with the prepared proof and public signals
             const verifierOk = await this.publicClient.readContract({
               address: zkVerifierAddress as `0x${string}`,
               abi: MEDICAL_ELIGIBILITY_VERIFIER_ABI,
@@ -903,14 +897,12 @@ export class StudyService {
             );
 
             if (!verifierOk) {
-              // Short-circuit with explicit message; avoid spending gas on a guaranteed revert
               const msg = "Verifier preflight failed: proof/public signal mismatch (check verifier/zkey alignment and dataCommitment)";
               logger.error({ zkVerifierAddress, studyAddress, participantWallet }, msg);
               return { success: false, error: msg };
             }
           }
         } catch (preflightError) {
-          // If read-only verification throws for non-revert reasons, log and continue to simulation
           logger.warn(
             {
               error: preflightError instanceof Error ? preflightError.message : String(preflightError),
@@ -960,12 +952,9 @@ export class StudyService {
           studyAddress,
           binIdsReceived: binIds.length,
         },
-        "[BIN UPDATE BACKEND] Processing participant join - preparing bin updates"
+        "Processing participant join - preparing bin updates"
       );
 
-      // Extract bin membership from public signals
-      // Public signals format: [binMembership[0..49], dataCommitment]
-      // binMembership[i] = 1 if participant belongs to bin i, 0 otherwise
       const binMembershipSignals = pubSignals.length >= 51 
         ? pubSignals.slice(0, 50)
         : [];
@@ -977,15 +966,14 @@ export class StudyService {
           totalBinSlots: binMembershipSignals.length,
           publicSignalsLength: pubSignals.length,
         },
-        "[BIN UPDATE BACKEND] Processing participant join - extracting bin membership from proof"
+        "Processing participant join - extracting bin membership from proof"
       );
       
-      // Find bin indices where signal value is "1" (participant belongs to that bin)
       const binsToIncrement: number[] = [];
       binMembershipSignals.forEach((signal, index) => {
         const signalStr = String(signal);
         if (signalStr === "1" || signal === 1n) {
-          binsToIncrement.push(index); // The INDEX is the numeric bin ID
+          binsToIncrement.push(index);
         }
       });
       
@@ -994,11 +982,9 @@ export class StudyService {
           binsToIncrement,
           binCount: binsToIncrement.length,
         },
-        `[BIN UPDATE BACKEND] Participant belongs to ${binsToIncrement.length} bins - will increment these on blockchain`
+        `Participant belongs to ${binsToIncrement.length} bins - will increment these on blockchain`
       );
 
-      // Convert bin membership signals to BigInt array for contract call
-      // Contract expects the full 50-element array of 0s and 1s
       const binMembershipBigInt = binMembershipSignals.map(signal => BigInt(signal));
 
       const result = await this.executeContractTransaction(
@@ -1017,20 +1003,19 @@ export class StudyService {
             binCount: binsToIncrement.length,
             binsIncremented: binsToIncrement,
           },
-          `[BIN UPDATE BACKEND] ✅ Participation recorded! ${binsToIncrement.length} bin(s) incremented on blockchain`
+          `Participation recorded! ${binsToIncrement.length} bin(s) incremented on blockchain`
         );
         
-        // Log each incremented bin
         binsToIncrement.forEach(binId => {
           logger.info(
             { binId, participant: participantWallet },
-            `[BIN UPDATE BACKEND] ✅ Bin ${binId} count incremented for participant`
+            `Bin ${binId} count incremented for participant`
           );
         });
       } else {
         logger.error(
           { error: result.error, studyAddress, participantWallet },
-          "[BIN UPDATE BACKEND] ❌ Failed to record participation on blockchain"
+          "Failed to record participation on blockchain"
         );
       }
 
@@ -1238,7 +1223,7 @@ export class StudyService {
           studyAddress,
           binCount: bins.length,
         },
-        "[BIN CONFIG BACKEND] Starting bin configuration on study contract"
+        "Starting bin configuration on study contract"
       );
 
       const binsWithBigInt = bins.map((bin, index) => {
@@ -1262,12 +1247,12 @@ export class StudyService {
             label: converted.label,
             range: `[${converted.minValue}, ${converted.maxValue}]`,
           },
-          `[BIN CONFIG BACKEND] Preparing bin ${index}`
+          `Preparing bin ${index}`
         );
         return converted;
       });
 
-      logger.info({ bins: binsWithBigInt }, "[BIN CONFIG BACKEND] All bins prepared for configuration");
+      logger.info({ bins: binsWithBigInt }, "All bins prepared for configuration");
       logger.info(
         { walletAddress: this.walletClient.account.address },
         "Wallet client account address"
@@ -1295,10 +1280,9 @@ export class StudyService {
             studyAddress,
             binCount: bins.length,
           },
-          "[BIN CONFIG BACKEND] ✅ Bins configured successfully on blockchain"
+          "Bins configured successfully on blockchain"
         );
         
-        // Log each configured bin for verification
         bins.forEach((bin, index) => {
           logger.info(
             {
@@ -1307,7 +1291,7 @@ export class StudyService {
               field: bin.criteriaField,
               label: bin.label,
             },
-            `[BIN CONFIG BACKEND] ✅ Bin ${index} now active on blockchain`
+            `Bin ${index} now active on blockchain`
           );
         });
       } else {
@@ -1317,7 +1301,7 @@ export class StudyService {
             studyAddress,
             binCount: bins.length,
           },
-          "[BIN CONFIG BACKEND] ❌ Failed to configure bins"
+          "Failed to configure bins"
         );
       }
 

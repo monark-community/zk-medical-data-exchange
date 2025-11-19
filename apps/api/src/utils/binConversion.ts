@@ -2,14 +2,10 @@ import { BinType } from "@zk-medical/shared";
 import type { BinConfiguration, DataBin } from "@zk-medical/shared";
 import logger from "@/utils/logger";
 
-/**
- * Converts a TypeScript BinConfiguration to Solidity DataBin[] format
- * for calling the configureBins() function on the Study smart contract.
- */
 export interface SolidityDataBin {
-  binId: bigint; // Changed from string to bigint - uses numericId for blockchain
+  binId: bigint;
   criteriaField: string;
-  binType: number; // 0 = Range, 1 = Categorical
+  binType: number;
   label: string;
   minValue: bigint;
   maxValue: bigint;
@@ -18,12 +14,6 @@ export interface SolidityDataBin {
   categoriesBitmap: bigint;
 }
 
-/**
- * Convert TypeScript BinConfiguration to Solidity DataBin[] format
- * 
- * @param binConfig - The bin configuration from the frontend
- * @returns Array of bins in Solidity format, ready for contract call
- */
 export function convertBinsForSolidity(binConfig: BinConfiguration): SolidityDataBin[] {
   if (!binConfig || !binConfig.bins || binConfig.bins.length === 0) {
     logger.warn("Empty or invalid bin configuration provided");
@@ -33,7 +23,6 @@ export function convertBinsForSolidity(binConfig: BinConfiguration): SolidityDat
   logger.info({ totalBins: binConfig.bins.length }, "Converting bins to Solidity format");
 
   return binConfig.bins.map((bin: DataBin) => {
-    // Determine bin type enum value
     let binType: number;
     if (bin.type === BinType.RANGE) {
       binType = 0;
@@ -44,26 +33,22 @@ export function convertBinsForSolidity(binConfig: BinConfiguration): SolidityDat
       binType = 0;
     }
 
-    // Convert range values to BigInt (use 0 if not applicable)
     const minValue = bin.minValue !== undefined ? BigInt(Math.floor(bin.minValue)) : BigInt(0);
     const maxValue = bin.maxValue !== undefined ? BigInt(Math.floor(bin.maxValue)) : BigInt(0);
     
-    // Get include flags (default to true for min, false for max to get [min, max) behavior)
     const includeMin = bin.includeMin !== undefined ? bin.includeMin : true;
     const includeMax = bin.includeMax !== undefined ? bin.includeMax : false;
 
-    // Convert categorical values to BigInt (use bitmap from categories array)
     let categoriesBitmap = BigInt(0);
     
     if (bin.categories && bin.categories.length > 0) {
-      // Create bitmap from all categories
       for (const category of bin.categories) {
         categoriesBitmap |= BigInt(1) << BigInt(category);
       }
     }
 
     const solidityBin: SolidityDataBin = {
-      binId: BigInt(bin.numericId), // Use numeric ID for blockchain
+      binId: BigInt(bin.numericId),
       criteriaField: bin.criteriaField,
       binType,
       label: bin.label,
@@ -84,12 +69,6 @@ export function convertBinsForSolidity(binConfig: BinConfiguration): SolidityDat
   });
 }
 
-/**
- * Validate that bins are properly formatted for Solidity
- * 
- * @param bins - Array of Solidity-formatted bins
- * @returns Object with isValid flag and any error messages
- */
 export function validateSolidityBins(bins: SolidityDataBin[]): { 
   isValid: boolean; 
   errors: string[] 
@@ -109,7 +88,6 @@ export function validateSolidityBins(bins: SolidityDataBin[]): {
     
     const prefix = `Bin ${i} (${bin.binId})`;
 
-    // Check required fields
     if (bin.binId === undefined || bin.binId === null) {
       errors.push(`${prefix}: binId is required`);
     }
@@ -122,26 +100,23 @@ export function validateSolidityBins(bins: SolidityDataBin[]): {
       errors.push(`${prefix}: label is required`);
     }
 
-    // Check for duplicate binIds
     if (binIds.has(bin.binId)) {
       errors.push(`${prefix}: Duplicate binId detected`);
     }
     binIds.add(bin.binId);
 
-    // Validate binType
     if (![0, 1].includes(bin.binType)) {
       errors.push(`${prefix}: Invalid binType ${bin.binType}, must be 0 (range) or 1 (categorical)`);
     }
 
-    // Type-specific validation
-    if (bin.binType === 0) { // Range
+    if (bin.binType === 0) {
       if (bin.minValue >= bin.maxValue) {
         errors.push(`${prefix}: Range bin must have minValue < maxValue`);
       }
       if (bin.minValue < BigInt(0)) {
         errors.push(`${prefix}: Range bin minValue must be >= 0`);
       }
-    } else if (bin.binType === 1) { // Categorical
+    } else if (bin.binType === 1) {
       if (bin.categoriesBitmap === BigInt(0)) {
         errors.push(`${prefix}: Categorical bin must have non-zero categoriesBitmap`);
       }
@@ -154,9 +129,6 @@ export function validateSolidityBins(bins: SolidityDataBin[]): {
   };
 }
 
-/**
- * Format bins for logging (converts BigInts to strings for JSON serialization)
- */
 export function formatBinsForLogging(bins: SolidityDataBin[]): any[] {
   return bins.map(bin => ({
     ...bin,
@@ -167,13 +139,6 @@ export function formatBinsForLogging(bins: SolidityDataBin[]): any[] {
   }));
 }
 
-/**
- * Create a mapping from string bin IDs to numeric IDs
- * Useful for converting frontend bin IDs to blockchain-compatible numeric IDs
- * 
- * @param binConfig - The bin configuration with both string and numeric IDs
- * @returns Map from string ID to numeric ID
- */
 export function createBinIdMap(binConfig: BinConfiguration): Map<string, number> {
   const map = new Map<string, number>();
   binConfig.bins.forEach((bin) => {
@@ -182,13 +147,6 @@ export function createBinIdMap(binConfig: BinConfiguration): Map<string, number>
   return map;
 }
 
-/**
- * Convert an array of string bin IDs to numeric IDs using the bin configuration
- * 
- * @param stringBinIds - Array of string bin IDs (e.g., ["age_bin_0", "gender_bin_1"])
- * @param binConfig - The bin configuration with both string and numeric IDs
- * @returns Array of numeric IDs
- */
 export function convertStringBinIdsToNumeric(
   stringBinIds: string[],
   binConfig: BinConfiguration

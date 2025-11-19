@@ -45,7 +45,7 @@ contract Study {
     }
     
     struct DataBin {
-        uint256 binId;                 // Unique identifier (e.g., "age_bin_0")
+        uint256 binId;                // Unique identifier (e.g., "age_bin_0")
         string criteriaField;         // Field name (e.g., "age", "bmi")
         uint8 binType;                // 0=RANGE, 1=CATEGORICAL
         string label;                 // Human-readable label
@@ -59,7 +59,7 @@ contract Study {
     }
     
     struct BinCount {
-        uint256 binId;                 // References DataBin.binId
+        uint256 binId;                // References DataBin.binId
         uint256 count;                // Number of participants in this bin
     }
     
@@ -99,7 +99,6 @@ contract Study {
     event BinCountUpdated(uint256 indexed binId, uint256 newCount);
     event BinsConfigured(uint256 binCount);
     
-    // Detailed logging events for bin operations
     event BinConfigurationStarted(address indexed caller, uint256 binCount);
     event BinConfigured(uint256 indexed index, uint256 binId, string criteriaField, string label, uint8 binType);
     event BinUpdateStarted(address indexed participant, uint256 binCount, bool increment);
@@ -213,17 +212,15 @@ contract Study {
         currentParticipants++;
         activeParticipants++;
         
-        // Extract bin IDs where membership is 1
-        uint256[] memory participantBinIds = new uint256[](50); // Max size
+        uint256[] memory participantBinIds = new uint256[](50);
         uint256 count = 0;
         for (uint256 i = 0; i < 50; i++) {
             if (binMembership[i] == 1) {
-                participantBinIds[count] = i; // Store the bin INDEX (which is the bin ID)
+                participantBinIds[count] = i;
                 count++;
             }
         }
         
-        // Create correctly sized array with only the bins participant belongs to
         uint256[] memory actualBinIds = new uint256[](count);
         for (uint256 i = 0; i < count; i++) {
             actualBinIds[i] = participantBinIds[i];
@@ -408,22 +405,6 @@ contract Study {
         
         return counts;
     }
-    
-    // function isParticipantInBin(address participant, string memory binId) external view returns (bool) {
-    //     require(
-    //         msg.sender == participant,
-    //         "Only participant can view their own bins"
-    //     );
-    //     require(participants[participant], "Not a participant");
-        
-    //     uint256[] memory participantBinIds = participantBins[participant];
-    //     for (uint256 i = 0; i < participantBinIds.length; i++) {
-    //         if (keccak256(bytes(participantBinIds[i])) == keccak256(bytes(binId))) {
-    //             return true;
-    //         }
-    //     }
-    //     return false;
-    // }
     
     function areBinsConfigured() external view returns (bool) {
         return bins.length > 0;

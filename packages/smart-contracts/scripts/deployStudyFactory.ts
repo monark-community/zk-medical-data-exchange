@@ -24,7 +24,7 @@ async function main() {
   console.log(`   Balance: ${balanceEth.toFixed(4)} ETH`);
 
   if (balanceEth < 0.01) {
-    console.log("⚠️  WARNING: Low balance! You may need more ETH for deployment.");
+    console.log("WARNING: Low balance! You may need more ETH for deployment.");
     console.log("   Get Sepolia ETH from: https://sepoliafaucet.com/");
   }
 
@@ -58,12 +58,12 @@ async function main() {
     `   StudyFactory: https://sepolia.etherscan.io/address/${studyFactoryContract.address}`
   );
   console.log("");
-  console.log("📝 Next Steps:");
+  console.log("Next Steps:");
   console.log("   1. Verify contracts on Etherscan (optional)");
   console.log("   2. Update your app config with the new addresses");
   console.log("   3. Test creating a study from your frontend");
   console.log("");
-  console.log("🔧 Configuration:");
+  console.log("Configuration:");
   console.log("   - Open creation: ENABLED (anyone can create studies)");
   console.log("   - Owner: " + deployer.account.address);
   console.log("");
@@ -83,16 +83,16 @@ async function main() {
     },
   };
 
-  console.log("💾 Deployment info saved to deployment-sepolia.json");
+  console.log("Deployment info saved to deployment-sepolia.json");
 
   // Write to file (this would need fs import in a real script)
-  console.log("\n📄 Deployment JSON:");
+  console.log("\nDeployment JSON:");
   console.log(JSON.stringify(deploymentInfo, null, 2));
 }
 
 main()
   .then(() => process.exit(0))
   .catch((error) => {
-    console.error("❌ Deployment failed:", error);
+    console.error("Deployment failed:", error);
     process.exit(1);
   });

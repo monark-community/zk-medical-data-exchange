@@ -20,7 +20,7 @@ export function generateBinsFromCriteria(
 ): BinConfiguration {
   const fullConfig: BinGenerationConfig = { ...DEFAULT_BIN_CONFIG, ...config };
   const bins: DataBin[] = [];
-  let globalBinIndex = 0; // Sequential counter for numeric IDs
+  let globalBinIndex = 0;
 
   Object.values(BinnableField).forEach((field) => {
     const metadata = BINNABLE_FIELDS[field];

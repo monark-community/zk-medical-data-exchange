@@ -124,14 +124,11 @@ export default function AggregatedDataView({
   const calculateStatistics = (bins: ProcessedBinData[]): FieldStatistics => {
     const totalCount = bins.reduce((sum, bin) => sum + bin.count, 0);
 
-    // For range bins, calculate mean, median, std dev, quartiles
     if (bins.length > 0 && bins[0].binType === "RANGE") {
-      // Use bin midpoints weighted by counts
       const values: number[] = [];
       bins.forEach((bin) => {
         if (bin.minValue !== undefined && bin.maxValue !== undefined) {
           const midpoint = (bin.minValue + bin.maxValue) / 2;
-          // Add midpoint count times (approximate distribution)
           for (let i = 0; i < bin.count; i++) {
             values.push(midpoint);
           }
@@ -142,31 +139,25 @@ export default function AggregatedDataView({
         return { totalCount };
       }
 
-      // Sort for median and quartile calculations
       values.sort((a, b) => a - b);
 
-      // Mean
       const mean = values.reduce((sum, val) => sum + val, 0) / values.length;
 
-      // Median
       const midIndex = Math.floor(values.length / 2);
       const median =
         values.length % 2 === 0
           ? (values[midIndex - 1] + values[midIndex]) / 2
           : values[midIndex];
 
-      // Standard deviation
       const variance =
         values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / values.length;
       const stdDev = Math.sqrt(variance);
 
-      // Quartiles
       const q1Index = Math.floor(values.length * 0.25);
       const q3Index = Math.floor(values.length * 0.75);
       const q1 = values[q1Index];
       const q3 = values[q3Index];
 
-      // Min and Max from bin ranges
       const min = bins[0].minValue;
       const max = bins[bins.length - 1].maxValue;
 
@@ -181,7 +172,6 @@ export default function AggregatedDataView({
         totalCount,
       };
     } else {
-      // For categorical bins, find mode
       const maxBin = bins.reduce((max, bin) => (bin.count > max.count ? bin : max), bins[0]);
       return {
         mode: maxBin.displayLabel,
@@ -196,7 +186,6 @@ export default function AggregatedDataView({
       totalParticipants: aggregatedData.totalParticipants
     });
     
-    // Group bins by criteria field
     const grouped = new Map<string, ProcessedBinData[]>();
 
     aggregatedData.bins.forEach((bin) => {
@@ -223,7 +212,6 @@ export default function AggregatedDataView({
       fieldCounts: Array.from(grouped.entries()).map(([field, bins]) => ({ field, count: bins.length }))
     });
 
-    // Sort bins within each field
     grouped.forEach((bins) => {
       bins.sort((a, b) => {
         if (a.binType === "RANGE" && a.minValue !== undefined && b.minValue !== undefined) {
@@ -235,7 +223,6 @@ export default function AggregatedDataView({
 
     setProcessedData(grouped);
 
-    // Calculate statistics for each field
     const stats = new Map<string, FieldStatistics>();
     grouped.forEach((bins, field) => {
       stats.set(field, calculateStatistics(bins));
@@ -245,7 +232,6 @@ export default function AggregatedDataView({
 
   const generateDisplayLabel = (bin: AggregatedBinData): string => {
     if (bin.binType === "CATEGORICAL") {
-      // Handle categorical bins
       if (bin.criteriaField === "region") {
         const bitmap = bin.categoriesBitmap || 0;
         const regions: string[] = [];
@@ -272,7 +258,6 @@ export default function AggregatedDataView({
 
       return bin.label;
     } else {
-      // Handle range bins
       const fieldMeta = Object.values(BINNABLE_FIELDS).find(
         (f) => f.field === bin.criteriaField
       );
@@ -354,7 +339,6 @@ export default function AggregatedDataView({
 
         {!loading && !error && data && (
           <div className="space-y-6">
-            {/* Summary Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 border border-emerald-200 rounded-lg p-4">
                 <div className="flex items-center justify-between">
@@ -391,7 +375,6 @@ export default function AggregatedDataView({
               </div>
             </div>
 
-            {/* Privacy Notice */}
             <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-start gap-3">
               <Info className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
               <div className="text-sm text-amber-900">
@@ -404,7 +387,6 @@ export default function AggregatedDataView({
               </div>
             </div>
 
-            {/* Visualizations by Field */}
             <div className="space-y-6">
               {Array.from(processedData.entries()).map(([field, bins]) => {
                 const stats = statistics.get(field);
@@ -413,7 +395,6 @@ export default function AggregatedDataView({
                 const unit = fieldMeta?.unit || "";
                 const decimalPlaces = fieldMeta?.decimalPlaces || 0;
 
-                // Prepare chart data
                 const chartData = bins.map((bin, idx) => ({
                   name: bin.displayLabel.length > 20 
                     ? `${bin.displayLabel.substring(0, 17)}...` 
@@ -433,7 +414,6 @@ export default function AggregatedDataView({
                       </span>
                     </h3>
 
-                    {/* Statistics Cards for Range Data */}
                     {isRange && stats && (
                       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 mb-6">
                         {stats.mean !== undefined && (
@@ -516,7 +496,6 @@ export default function AggregatedDataView({
                       </div>
                     )}
 
-                    {/* Mode for Categorical Data */}
                     {!isRange && stats?.mode && (
                       <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 mb-6">
                         <div className="flex items-center gap-2">
@@ -529,11 +508,8 @@ export default function AggregatedDataView({
                       </div>
                     )}
 
-                    {/* Charts and Data Table Grid */}
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                      {/* Left Column: Charts */}
                       <div className="space-y-4">
-                        {/* Bar Chart */}
                         <div>
                           <h4 className="text-sm font-semibold text-gray-700 mb-3">Distribution Chart</h4>
                           <ResponsiveContainer width="100%" height={400}>
@@ -576,7 +552,6 @@ export default function AggregatedDataView({
                           </ResponsiveContainer>
                         </div>
 
-                        {/* Pie Chart for Categorical or Small Range Data */}
                         {bins.length <= 8 && (
                           <div>
                             <h4 className="text-sm font-semibold text-gray-700 mb-3">Percentage Breakdown</h4>
@@ -628,7 +603,6 @@ export default function AggregatedDataView({
                         )}
                       </div>
 
-                      {/* Right Column: Data Table */}
                       <div>
                         <h4 className="text-sm font-semibold text-gray-700 mb-3">Detailed Breakdown</h4>
                         <div className="border rounded-lg overflow-hidden">
@@ -674,7 +648,6 @@ export default function AggregatedDataView({
               })}
             </div>
 
-            {/* Actions */}
             <div className="flex items-center justify-between pt-4 border-t">
               <p className="text-xs text-muted-foreground">
                 Generated on {new Date(data.generatedAt).toLocaleString()}
