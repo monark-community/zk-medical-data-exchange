@@ -982,7 +982,7 @@ export class StudyService {
       }
 
       const binMembershipSignals = pubSignals.length >= 51 
-        ? pubSignals.slice(0, 50)
+        ? pubSignals.slice(0, BIN_COUNT)
         : [];
       
       logger.info(
