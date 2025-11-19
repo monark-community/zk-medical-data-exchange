@@ -37,6 +37,32 @@ const ProfileCard = () => {
     );
   };
 
+  const getGradientColors = (address: string | undefined) => {
+    if (!address) return "from-blue-700 via-indigo-600 to-teal-600";
+
+    let hash = 0;
+    for (let i = 0; i < address.length; i++) {
+      hash = ((hash << 5) - hash + address.charCodeAt(i)) & 0xffffffff;
+    }
+
+    const gradients = [
+      "from-emerald-700 via-green-600 to-teal-600", // Green theme
+      "from-blue-700 via-indigo-600 to-cyan-600", // Blue theme
+      "from-purple-700 via-violet-600 to-indigo-600", // Purple theme
+      "from-rose-700 via-pink-600 to-purple-600", // Pink theme
+      "from-amber-700 via-orange-600 to-red-600", // Orange theme
+      "from-teal-700 via-cyan-600 to-blue-600", // Teal theme
+      "from-indigo-700 via-purple-600 to-pink-600", // Indigo theme
+      "from-green-700 via-emerald-600 to-cyan-600", // Green-cyan theme
+      "from-violet-700 via-purple-600 to-indigo-600", // Violet theme
+      "from-cyan-700 via-blue-600 to-teal-600", // Cyan theme
+      "from-lime-700 via-green-600 to-emerald-600", // Lime theme
+      "from-sky-700 via-blue-600 to-indigo-600", // Sky theme
+    ];
+
+    return gradients[Math.abs(hash) % gradients.length];
+  };
+
   const { currentProfile, getProfileDisplayName } = useProfile();
   const { address } = useAccount();
   const { user, refetchUser } = useUser();
@@ -145,7 +171,7 @@ const ProfileCard = () => {
   return (
     <div className="mx-auto w-full max-w-5xl space-y-6">
       <Card className="overflow-hidden !py-0">
-        <div className="bg-gradient-to-br from-blue-600 via-indigo-500 to-teal-500 p-6 text-white sm:p-8">
+        <div className={`bg-gradient-to-br ${getGradientColors(address)} p-6 text-white sm:p-8`}>
           <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
             <ProfileAvatar size={96} radius={48} />
             <div className="flex-1 space-y-2">
