@@ -954,6 +954,15 @@ export class StudyService {
         "joinStudy - values being sent to contract"
       );
 
+      logger.info(
+        {
+          participantWallet,
+          studyAddress,
+          binIdsReceived: binIds.length,
+        },
+        "[BIN UPDATE BACKEND] Processing participant join - preparing bin updates"
+      );
+
       let bigintBinIds: bigint[] = [];
       for (const binId of binIds) {
         try {
@@ -962,14 +971,32 @@ export class StudyService {
         } catch (binConversionError) {
           logger.error(
             { binId, binConversionError },
-            "Failed to convert binId to BigInt, skipping this binId"
+            "[BIN UPDATE BACKEND] ❌ Failed to convert binId to BigInt, skipping this binId"
           );
         }
       }
 
       let binIdsFromPubSignals = pubSignals.length > 1 
         ? pubSignals.slice(0, 50)
-        : []; 
+        : [];
+      
+      // Log which bins will be incremented
+      const binsToIncrement = binIdsFromPubSignals
+        .map((val, idx) => ({ binId: idx, value: val }))
+        .filter(b => {
+          const valStr = String(b.value);
+          return valStr === "1" || b.value === 1n;
+        })
+        .map(b => b.binId);
+      
+      logger.info(
+        {
+          totalBinSlots: binIdsFromPubSignals.length,
+          binsToIncrement,
+          binCount: binsToIncrement.length,
+        },
+        `[BIN UPDATE BACKEND] Participant belongs to ${binsToIncrement.length} bins - will increment these on blockchain`
+      );
 
       const result = await this.executeContractTransaction(
         studyAddress,
@@ -979,14 +1006,36 @@ export class StudyService {
       );
 
       if (result.success) {
+        const binsIncremented = binIdsFromPubSignals
+          .map((val, idx) => ({ binId: idx, value: val }))
+          .filter(b => {
+            const valStr = String(b.value);
+            return valStr === "1" || b.value === 1n;
+          })
+          .map(b => b.binId);
+        
         logger.info(
-          { transactionHash: result.transactionHash, participantWallet, binCount: binIdsFromPubSignals.length },
-          "Participation recorded on blockchain successfully"
+          { 
+            transactionHash: result.transactionHash, 
+            participantWallet,
+            studyAddress,
+            binCount: binsIncremented.length,
+            binsIncremented,
+          },
+          `[BIN UPDATE BACKEND] ✅ Participation recorded! ${binsIncremented.length} bin(s) incremented on blockchain`
         );
+        
+        // Log each incremented bin
+        binsIncremented.forEach(binId => {
+          logger.info(
+            { binId, participant: participantWallet },
+            `[BIN UPDATE BACKEND] ✅ Bin ${binId} count incremented for participant`
+          );
+        });
       } else {
         logger.error(
           { error: result.error, studyAddress, participantWallet },
-          "Failed to record participation on blockchain"
+          "[BIN UPDATE BACKEND] ❌ Failed to record participation on blockchain"
         );
       }
 
@@ -1194,22 +1243,36 @@ export class StudyService {
           studyAddress,
           binCount: bins.length,
         },
-        "Configuring bins on study contract"
+        "[BIN CONFIG BACKEND] Starting bin configuration on study contract"
       );
 
-      const binsWithBigInt = bins.map(bin => ({
-        binId: bin.binId,
-        criteriaField: bin.criteriaField,
-        binType: bin.binType,
-        label: bin.label,
-        minValue: BigInt(bin.minValue),
-        maxValue: BigInt(bin.maxValue),
-        includeMin: bin.includeMin,
-        includeMax: bin.includeMax,
-        categoriesBitmap: BigInt(bin.categoriesBitmap),
-      }));
+      const binsWithBigInt = bins.map((bin, index) => {
+        const converted = {
+          binId: bin.binId,
+          criteriaField: bin.criteriaField,
+          binType: bin.binType,
+          label: bin.label,
+          minValue: BigInt(bin.minValue),
+          maxValue: BigInt(bin.maxValue),
+          includeMin: bin.includeMin,
+          includeMax: bin.includeMax,
+          categoriesBitmap: BigInt(bin.categoriesBitmap),
+        };
+        logger.info(
+          {
+            index,
+            binId: converted.binId,
+            field: converted.criteriaField,
+            type: converted.binType === 0 ? 'RANGE' : 'CATEGORICAL',
+            label: converted.label,
+            range: `[${converted.minValue}, ${converted.maxValue}]`,
+          },
+          `[BIN CONFIG BACKEND] Preparing bin ${index}`
+        );
+        return converted;
+      });
 
-      logger.info({ bins: binsWithBigInt }, "Bins prepared for configuration");
+      logger.info({ bins: binsWithBigInt }, "[BIN CONFIG BACKEND] All bins prepared for configuration");
       logger.info(
         { walletAddress: this.walletClient.account.address },
         "Wallet client account address"
@@ -1237,15 +1300,29 @@ export class StudyService {
             studyAddress,
             binCount: bins.length,
           },
-          "Bins configured successfully"
+          "[BIN CONFIG BACKEND] ✅ Bins configured successfully on blockchain"
         );
+        
+        // Log each configured bin for verification
+        bins.forEach((bin, index) => {
+          logger.info(
+            {
+              index,
+              binId: bin.binId,
+              field: bin.criteriaField,
+              label: bin.label,
+            },
+            `[BIN CONFIG BACKEND] ✅ Bin ${index} now active on blockchain`
+          );
+        });
       } else {
         logger.error(
           {
             error: result.error,
             studyAddress,
+            binCount: bins.length,
           },
-          "Failed to configure bins"
+          "[BIN CONFIG BACKEND] ❌ Failed to configure bins"
         );
       }
 

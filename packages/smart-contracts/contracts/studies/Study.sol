@@ -99,6 +99,12 @@ contract Study {
     event BinCountUpdated(uint256 indexed binId, uint256 newCount);
     event BinsConfigured(uint256 binCount);
     
+    // Detailed logging events for bin operations
+    event BinConfigurationStarted(address indexed caller, uint256 binCount);
+    event BinConfigured(uint256 indexed index, uint256 binId, string criteriaField, string label, uint8 binType);
+    event BinUpdateStarted(address indexed participant, uint256 binCount, bool increment);
+    event BinCountChanged(uint256 indexed binId, uint256 oldCount, uint256 newCount, address indexed participant);
+    
     constructor(
         string memory _title,
         uint256 _maxParticipants,
@@ -117,8 +123,11 @@ contract Study {
         require(bins.length == 0, "Bins already configured");
         require(currentParticipants == 0, "Cannot configure bins after participants join");
         
+        emit BinConfigurationStarted(caller, _bins.length);
+        
         for (uint256 i = 0; i < _bins.length; i++) {
             bins.push(_bins[i]);
+            emit BinConfigured(i, _bins[i].binId, _bins[i].criteriaField, _bins[i].label, _bins[i].binType);
         }
         
         emit BinsConfigured(_bins.length);
@@ -212,16 +221,21 @@ contract Study {
         uint256[] memory binIds,
         bool increment
     ) private {
+        emit BinUpdateStarted(participant, binIds.length, increment);
+        
         for (uint256 i = 0; i < binIds.length; i++) {
             uint256 binId = binIds[i];
+            uint256 oldCount = binCounts[binId];
             
             if (increment) {
                 binCounts[binId]++;
                 participantBins[participant].push(binId);
+                emit BinCountChanged(binId, oldCount, binCounts[binId], participant);
                 emit BinCountUpdated(binId, binCounts[binId]);
             } else {
                 if (binCounts[binId] > 0) {
                     binCounts[binId]--;
+                    emit BinCountChanged(binId, oldCount, binCounts[binId], participant);
                     emit BinCountUpdated(binId, binCounts[binId]);
                 }
             }

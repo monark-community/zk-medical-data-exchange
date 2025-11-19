@@ -20,6 +20,7 @@ export function generateBinsFromCriteria(
 ): BinConfiguration {
   const fullConfig: BinGenerationConfig = { ...DEFAULT_BIN_CONFIG, ...config };
   const bins: DataBin[] = [];
+  let globalBinIndex = 0; // Sequential counter for numeric IDs
 
   Object.values(BinnableField).forEach((field) => {
     const metadata = BINNABLE_FIELDS[field];
@@ -27,10 +28,12 @@ export function generateBinsFromCriteria(
 
     if (criteria[enableFlag] === 1) {
       if (metadata.type === BinType.RANGE) {
-        const rangeBins = generateRangeBins(field, criteria, metadata, fullConfig);
+        const rangeBins = generateRangeBins(field, criteria, metadata, fullConfig, globalBinIndex);
+        globalBinIndex += rangeBins.length;
         bins.push(...rangeBins);
       } else if (metadata.type === BinType.CATEGORICAL) {
-        const categoricalBins = generateCategoricalBins(field, criteria, metadata);
+        const categoricalBins = generateCategoricalBins(field, criteria, metadata, globalBinIndex);
+        globalBinIndex += categoricalBins.length;
         bins.push(...categoricalBins);
       }
     }
@@ -45,7 +48,8 @@ function generateRangeBins(
   field: BinnableField,
   criteria: StudyCriteria,
   metadata: BinnableFieldMetadata,
-  config: BinGenerationConfig
+  config: BinGenerationConfig,
+  startingNumericId: number
 ): DataBin[] {
   const bins: DataBin[] = [];
 
@@ -87,6 +91,7 @@ function generateRangeBins(
 
     bins.push({
       id: binId,
+      numericId: startingNumericId + i,
       criteriaField: field,
       type: BinType.RANGE,
       label,
@@ -150,9 +155,11 @@ function roundToDecimalPlaces(value: number, decimalPlaces: number): number {
 function generateCategoricalBins(
   field: BinnableField,
   criteria: StudyCriteria,
-  metadata: BinnableFieldMetadata
+  metadata: BinnableFieldMetadata,
+  startingNumericId: number
 ): DataBin[] {
   const bins: DataBin[] = [];
+  let binIndex = 0;
 
   const categories = extractAllowedCategories(field, criteria);
 
@@ -165,32 +172,36 @@ function generateCategoricalBins(
 
   if (categories.length === 1 && categories[0] === 0) {
     const allCategories = getAllPossibleCategories(field);
-    allCategories.forEach((category, index) => {
-      const binId = `${field}_bin_${index}`;
+    allCategories.forEach((category) => {
+      const binId = `${field}_bin_${binIndex}`;
       const label = `${metadata.label}: ${labelMap[category] || category}`;
 
       bins.push({
         id: binId,
+        numericId: startingNumericId + binIndex,
         criteriaField: field,
         type: BinType.CATEGORICAL,
         label,
         categories: [category],
       });
+      binIndex++;
     });
   } else {
-    categories.forEach((category, index) => {
+    categories.forEach((category) => {
       if (category === 0) return;
 
-      const binId = `${field}_bin_${index}`;
+      const binId = `${field}_bin_${binIndex}`;
       const label = `${metadata.label}: ${labelMap[category] || category}`;
 
       bins.push({
         id: binId,
+        numericId: startingNumericId + binIndex,
         criteriaField: field,
         type: BinType.CATEGORICAL,
         label,
         categories: [category],
       });
+      binIndex++;
     });
   }
 

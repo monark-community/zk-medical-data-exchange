@@ -7,7 +7,7 @@ import logger from "@/utils/logger";
  * for calling the configureBins() function on the Study smart contract.
  */
 export interface SolidityDataBin {
-  binId: string;
+  binId: bigint; // Changed from string to bigint - uses numericId for blockchain
   criteriaField: string;
   binType: number; // 0 = Range, 1 = Categorical
   label: string;
@@ -63,7 +63,7 @@ export function convertBinsForSolidity(binConfig: BinConfiguration): SolidityDat
     }
 
     const solidityBin: SolidityDataBin = {
-      binId: bin.id,
+      binId: BigInt(bin.numericId), // Use numeric ID for blockchain
       criteriaField: bin.criteriaField,
       binType,
       label: bin.label,
@@ -74,7 +74,11 @@ export function convertBinsForSolidity(binConfig: BinConfiguration): SolidityDat
       categoriesBitmap,
     };
 
-    logger.debug({ binId: bin.id, solidityBin }, "Converted bin to Solidity format");
+    logger.debug({ 
+      stringId: bin.id, 
+      numericId: bin.numericId, 
+      solidityBin 
+    }, "Converted bin to Solidity format");
 
     return solidityBin;
   });
@@ -97,7 +101,7 @@ export function validateSolidityBins(bins: SolidityDataBin[]): {
     return { isValid: false, errors };
   }
 
-  const binIds = new Set<string>();
+  const binIds = new Set<bigint>();
   
   for (let i = 0; i < bins.length; i++) {
     const bin = bins[i];
@@ -106,7 +110,7 @@ export function validateSolidityBins(bins: SolidityDataBin[]): {
     const prefix = `Bin ${i} (${bin.binId})`;
 
     // Check required fields
-    if (!bin.binId || bin.binId.trim() === "") {
+    if (bin.binId === undefined || bin.binId === null) {
       errors.push(`${prefix}: binId is required`);
     }
 
@@ -156,8 +160,41 @@ export function validateSolidityBins(bins: SolidityDataBin[]): {
 export function formatBinsForLogging(bins: SolidityDataBin[]): any[] {
   return bins.map(bin => ({
     ...bin,
+    binId: bin.binId.toString(),
     minValue: bin.minValue.toString(),
     maxValue: bin.maxValue.toString(),
     categoriesBitmap: bin.categoriesBitmap.toString(),
   }));
+}
+
+/**
+ * Create a mapping from string bin IDs to numeric IDs
+ * Useful for converting frontend bin IDs to blockchain-compatible numeric IDs
+ * 
+ * @param binConfig - The bin configuration with both string and numeric IDs
+ * @returns Map from string ID to numeric ID
+ */
+export function createBinIdMap(binConfig: BinConfiguration): Map<string, number> {
+  const map = new Map<string, number>();
+  binConfig.bins.forEach((bin) => {
+    map.set(bin.id, bin.numericId);
+  });
+  return map;
+}
+
+/**
+ * Convert an array of string bin IDs to numeric IDs using the bin configuration
+ * 
+ * @param stringBinIds - Array of string bin IDs (e.g., ["age_bin_0", "gender_bin_1"])
+ * @param binConfig - The bin configuration with both string and numeric IDs
+ * @returns Array of numeric IDs
+ */
+export function convertStringBinIdsToNumeric(
+  stringBinIds: string[],
+  binConfig: BinConfiguration
+): number[] {
+  const map = createBinIdMap(binConfig);
+  return stringBinIds
+    .map((stringId) => map.get(stringId))
+    .filter((numericId): numericId is number => numericId !== undefined);
 }

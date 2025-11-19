@@ -1741,10 +1741,10 @@ export const getAggregatedData = async (req: Request, res: Response) => {
       return res.status(403).json({ error: "Only the study creator can access aggregated data" });
     }
 
-    // Check if study is completed
-    if (study.status !== "completed") {
-      logger.warn({ studyId: id, status: study.status }, "Study not completed");
-      return res.status(400).json({ error: "Study must be completed to view aggregated data" });
+    // Check if study is completed (or active for testing/viewing current data)
+    if (study.status !== "completed" && study.status !== "active") {
+      logger.warn({ studyId: id, status: study.status }, "Study not in viewable status");
+      return res.status(400).json({ error: "Study must be active or completed to view aggregated data" });
     }
 
     const studyData = study as unknown as { 
@@ -1764,27 +1764,59 @@ export const getAggregatedData = async (req: Request, res: Response) => {
     });
 
     // Fetch bins and bin counts from blockchain
-    const [bins, binCounts, activeParticipants] = await Promise.all([
-      publicClient.readContract({
-        address: studyData.contract_address as `0x${string}`,
-        abi: STUDY_ABI,
-        functionName: "getBins",
-      }) as Promise<any[]>,
-      publicClient.readContract({
-        address: studyData.contract_address as `0x${string}`,
-        abi: STUDY_ABI,
-        functionName: "getAllBinCounts",
-      }) as Promise<any[]>,
-      publicClient.readContract({
-        address: studyData.contract_address as `0x${string}`,
-        abi: STUDY_ABI,
-        functionName: "getParticipantCount",
-      }) as Promise<bigint>,
-    ]);
+    logger.info(
+      { studyId: id, contractAddress: studyData.contract_address },
+      "[AGGREGATED_DATA] Fetching data from blockchain..."
+    );
+
+    let bins: any[];
+    let binCounts: any[];
+    let activeParticipants: bigint;
+
+    try {
+      [bins, binCounts, activeParticipants] = await Promise.all([
+        publicClient.readContract({
+          address: studyData.contract_address as `0x${string}`,
+          abi: STUDY_ABI,
+          functionName: "getBins",
+        }) as Promise<any[]>,
+        publicClient.readContract({
+          address: studyData.contract_address as `0x${string}`,
+          abi: STUDY_ABI,
+          functionName: "getAllBinCounts",
+        }) as Promise<any[]>,
+        publicClient.readContract({
+          address: studyData.contract_address as `0x${string}`,
+          abi: STUDY_ABI,
+          functionName: "getParticipantCount",
+        }) as Promise<bigint>,
+      ]);
+    } catch (blockchainError) {
+      logger.error(
+        {
+          error: blockchainError,
+          studyId: id,
+          contractAddress: studyData.contract_address,
+          errorMessage: blockchainError instanceof Error ? blockchainError.message : String(blockchainError)
+        },
+        "[AGGREGATED_DATA] Failed to fetch data from blockchain"
+      );
+      return res.status(500).json({ 
+        error: "Failed to fetch data from blockchain", 
+        details: blockchainError instanceof Error ? blockchainError.message : "Unknown blockchain error"
+      });
+    }
 
     logger.info(
-      { studyId: id, binsCount: bins.length, activeParticipants: activeParticipants.toString() },
-      "Fetched aggregated data from blockchain"
+      { 
+        studyId: id, 
+        binsCount: bins.length, 
+        binCountsLength: binCounts.length,
+        activeParticipants: activeParticipants.toString(),
+        rawBinsPreview: bins.slice(0, 2),
+        rawBinCountsPreview: binCounts.slice(0, 2)
+      },
+      "[AGGREGATED_DATA] Fetched raw data from blockchain"
     );
 
     // Transform the data for frontend consumption
@@ -1806,6 +1838,17 @@ export const getAggregatedData = async (req: Request, res: Response) => {
       })),
       generatedAt: Date.now(),
     };
+
+    logger.info(
+      {
+        studyId: id,
+        transformedBinsCount: aggregatedData.bins.length,
+        totalParticipants: aggregatedData.totalParticipants,
+        uniqueFields: [...new Set(aggregatedData.bins.map(b => b.criteriaField))],
+        binsPreview: aggregatedData.bins.slice(0, 3)
+      },
+      "[AGGREGATED_DATA] Transformed data for frontend"
+    );
 
     res.json(aggregatedData);
   } catch (error) {

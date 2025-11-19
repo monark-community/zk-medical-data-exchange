@@ -29,7 +29,8 @@ export interface ZKProofResult {
   publicSignals: string[]; // Public outputs from the circuit
   isEligible: boolean; // Whether the patient is eligible
   binMembership?: {
-    binIds: string[];
+    binIds: string[]; // Human-readable bin IDs
+    numericBinIds: number[]; // Numeric bin IDs for blockchain
     binIndices: number[];
   };
 }
@@ -418,7 +419,7 @@ function getFieldCode(fieldName: string): number {
 function extractBinMembershipFromProof(
   publicSignals: any[],
   binConfiguration: BinConfiguration
-): { binIds: string[]; binIndices: number[] } {
+): { binIds: string[]; numericBinIds: number[]; binIndices: number[] } {
   // Public signals format:
   // [0] = dataCommitment
   // [1] = challenge
@@ -426,6 +427,7 @@ function extractBinMembershipFromProof(
   // [3..52] = binMembership[0..49]
   
   const binIds: string[] = [];
+  const numericBinIds: number[] = [];
   const binIndices: number[] = [];
   
   for (let i = 0; i < binConfiguration.bins.length; i++) {
@@ -433,11 +435,12 @@ function extractBinMembershipFromProof(
     
     if (binFlag === "1" || binFlag === 1) {
       binIds.push(binConfiguration.bins[i].id);
+      numericBinIds.push(binConfiguration.bins[i].numericId);
       binIndices.push(i);
     }
   }
   
-  return { binIds, binIndices };
+  return { binIds, numericBinIds, binIndices };
 }
 
 /**

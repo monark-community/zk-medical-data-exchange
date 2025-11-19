@@ -24,7 +24,8 @@ export interface MedicalData {
  * Result of bin membership computation
  */
 export interface BinMembershipResult {
-  binIds: string[]; // List of bin IDs the participant belongs to
+  binIds: string[]; // List of string bin IDs (e.g., "age_bin_0") for display
+  numericBinIds: number[]; // List of numeric bin IDs (e.g., 0, 1, 2) for blockchain
   binIndices: number[]; // Indices in the bins array (for circuit input)
   binCount: number; // Total number of bins matched
   fieldCoverage: Record<string, boolean>; // Which fields have bin assignments
@@ -43,6 +44,7 @@ export function computeParticipantBins(
   binConfig: BinConfiguration
 ): BinMembershipResult {
   const binIds: string[] = [];
+  const numericBinIds: number[] = [];
   const binIndices: number[] = [];
   const fieldCoverage: Record<string, boolean> = {};
 
@@ -51,6 +53,7 @@ export function computeParticipantBins(
     
     if (belongs) {
       binIds.push(bin.id);
+      numericBinIds.push(bin.numericId);
       binIndices.push(index);
       fieldCoverage[bin.criteriaField] = true;
     }
@@ -58,6 +61,7 @@ export function computeParticipantBins(
 
   return {
     binIds,
+    numericBinIds,
     binIndices,
     binCount: binIds.length,
     fieldCoverage,
