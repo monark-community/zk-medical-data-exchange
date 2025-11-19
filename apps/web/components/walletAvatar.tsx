@@ -13,15 +13,16 @@ const FACE_TONES = ["#F5E0FF", "#DCFCE7", "#E0F2FE", "#FDE2E4", "#FBD5D5", "#FFE
 const BODY_TONES = ["#132D46", "#0B1F3A", "#111827", "#0F172A"];
 
 type EarVariant = "bunny" | "cat" | "antenna" | "dog" | "mouse" | "fox" | "bear";
-type EyeVariant = "dot" | "arc" | "spark";
+type EyeVariant = "dot" | "arc" | "spark" | "star";
 type ExpressionVariant = "smile" | "laugh" | "calm" | "wow" | "grin" | "frown";
 type PetVariant = "spark" | "pill" | "shield" | "heart";
 type HeadShape = "circle" | "squircle" | "roundedSquare" | "oval";
 type BodyPattern = "plain" | "stripes" | "sash" | "signals" | "dots" | "checks";
-type CollarVariant = "round" | "v" | "tech";
-type CheekStyle = "solid" | "ring";
+type CollarVariant = "round" | "v" | "tech" | "bow" | "chain";
+type CheekStyle = "solid" | "ring" | "blush";
 type ForeheadMark = "none" | "dot" | "bar";
-type GlassesVariant = "none" | "round" | "square" | "aviator";
+type GlassesVariant = "none" | "round" | "square" | "aviator" | "cat-eye";
+type NoseVariant = "none" | "button" | "pointy";
 
 const HEAD_SHAPE_CONFIG: Record<HeadShape, CSSProperties> = {
   circle: { borderRadius: "50%" },
@@ -72,13 +73,12 @@ const WalletAvatar = ({ address, size = 40, className }: WalletAvatarProps) => {
     const earVariant = ["antenna", "bunny", "cat", "dog", "mouse", "fox", "bear"][
       hash % 7
     ] as EarVariant;
-    const accessoryVariant = ["visor", "badge", "stethoscope"][Math.abs((hash >> 2) % 3)] as
-      | "badge"
-      | "visor"
-      | "stethoscope";
-    const eyeVariant = ["spark", "dot", "arc"][Math.abs((hash >> 6) % 3)] as EyeVariant;
-    const expressionVariant = ["wow", "smile", "laugh", "calm"][
-      Math.abs((hash >> 8) % 4)
+    const accessoryVariant = ["visor", "badge", "stethoscope", "hat", "bowtie"][
+      Math.abs((hash >> 2) % 5)
+    ] as "badge" | "visor" | "stethoscope" | "hat" | "bowtie";
+    const eyeVariant = ["spark", "dot", "arc", "star"][Math.abs((hash >> 6) % 4)] as EyeVariant;
+    const expressionVariant = ["wow", "smile", "laugh", "calm", "grin", "frown"][
+      Math.abs((hash >> 8) % 6)
     ] as ExpressionVariant;
     const hasFreckles = ((hash >> 7) & 1) === 0;
     const petVariant = ["heart", "spark", "pill", "shield"][
@@ -86,22 +86,25 @@ const WalletAvatar = ({ address, size = 40, className }: WalletAvatarProps) => {
     ] as PetVariant;
     const petSide = (hash & 1) === 0 ? -1 : 1;
     const petDelay = (hash % 6) * 0.2;
-    const headShape = ["droplet", "circle", "squircle", "roundedSquare"][
+    const headShape = ["circle", "squircle", "roundedSquare", "oval"][
       Math.abs((hash >> 11) % 4)
     ] as HeadShape;
-    const bodyPattern = ["signals", "plain", "stripes", "sash"][
-      Math.abs((hash >> 12) % 4)
+    const bodyPattern = ["signals", "plain", "stripes", "sash", "dots", "checks"][
+      Math.abs((hash >> 12) % 6)
     ] as BodyPattern;
-    const collarVariant = ["tech", "round", "v"][Math.abs((hash >> 14) % 3)] as CollarVariant;
-    const cheekStyle = ["ring", "solid"][Math.abs((hash >> 16) % 2)] as CheekStyle;
+    const collarVariant = ["tech", "round", "v", "bow", "chain"][
+      Math.abs((hash >> 14) % 5)
+    ] as CollarVariant;
+    const cheekStyle = ["solid", "ring", "blush"][Math.abs((hash >> 16) % 3)] as CheekStyle;
     const foreheadMark = ["bar", "none", "dot"][Math.abs((hash >> 15) % 3)] as ForeheadMark;
     const blinkDelay = 2 + (hash % 3);
     const bobDuration = 3.5 + (hash % 35) / 10;
     const cheekTone = `${theme.accent}55`;
     const sparkleDelay = (hash % 5) * 0.4;
-    const glassesVariant = ["aviator", "square", "round", "none"][
-      Math.abs((hash >> 17) % 4)
+    const glassesVariant = ["aviator", "square", "round", "none", "cat-eye"][
+      Math.abs((hash >> 17) % 5)
     ] as GlassesVariant;
+    const noseVariant = ["none", "button", "pointy"][Math.abs((hash >> 18) % 3)] as NoseVariant;
     return {
       face,
       body,
@@ -225,6 +228,14 @@ const WalletAvatar = ({ address, size = 40, className }: WalletAvatarProps) => {
         />
       );
     }
+    if (features.cheekStyle === "blush") {
+      return (
+        <span
+          className={`absolute ${className} top-6 h-2 w-3 rounded-full`}
+          style={{ backgroundColor: "#ff9999", opacity: 0.8 }}
+        />
+      );
+    }
     return (
       <span
         className={`absolute ${className} top-6 h-1.5 w-3 rounded-full`}
@@ -293,6 +304,46 @@ const WalletAvatar = ({ address, size = 40, className }: WalletAvatarProps) => {
         </>
       );
     }
+    if (features.glassesVariant === "cat-eye") {
+      return (
+        <>
+          <span
+            className={`${baseClass} left-2 h-3 w-4`}
+            style={{ top: `${glassesTop}px`, borderRadius: "50% 10% 50% 50%" }}
+          />
+          <span
+            className={`${baseClass} right-2 h-3 w-4`}
+            style={{ top: `${glassesTop}px`, borderRadius: "10% 50% 50% 50%" }}
+          />
+          <span
+            className="absolute left-1/2 w-2 h-0.5 -translate-x-1/2 bg-slate-900/50"
+            style={{ top: `${bridgeTop}px` }}
+          />
+        </>
+      );
+    }
+  };
+
+  const renderNose = () => {
+    if (features.noseVariant === "none") return null;
+    if (features.noseVariant === "button") {
+      return (
+        <span
+          className="absolute left-1/2 top-8 h-1 w-1 -translate-x-1/2 rounded-full"
+          style={{ backgroundColor: "#000", opacity: 0.7 }}
+        />
+      );
+    }
+    return (
+      <span
+        className="absolute left-1/2 top-8 h-1.5 w-0.5 -translate-x-1/2"
+        style={{
+          backgroundColor: "#000",
+          opacity: 0.7,
+          clipPath: "polygon(50% 0%, 0% 100%, 100% 100%)",
+        }}
+      />
+    );
   };
 
   const renderBodyPattern = () => {
@@ -318,6 +369,28 @@ const WalletAvatar = ({ address, size = 40, className }: WalletAvatarProps) => {
         />
       );
     }
+    if (features.bodyPattern === "dots") {
+      return (
+        <span
+          className="absolute inset-0 opacity-50"
+          style={{
+            backgroundImage: `radial-gradient(circle, ${theme.accentMuted} 1px, transparent 1px)`,
+            backgroundSize: "6px 6px",
+          }}
+        />
+      );
+    }
+    if (features.bodyPattern === "checks") {
+      return (
+        <span
+          className="absolute inset-0 opacity-40"
+          style={{
+            backgroundImage: `linear-gradient(90deg, ${theme.accentMuted} 1px, transparent 1px), linear-gradient(${theme.accentMuted} 1px, transparent 1px)`,
+            backgroundSize: "8px 8px",
+          }}
+        />
+      );
+    }
     return (
       <span className="absolute inset-0 flex items-center justify-around text-[8px] text-white/50">
         <span>●●●</span>
@@ -339,6 +412,21 @@ const WalletAvatar = ({ address, size = 40, className }: WalletAvatarProps) => {
       return (
         <span className="absolute -top-1 flex items-center justify-center text-[10px] text-white/70">
           <span className="h-2 w-8 border-b border-white/40" />
+        </span>
+      );
+    }
+    if (features.collarVariant === "bow") {
+      return (
+        <span className="absolute -top-1 flex items-center justify-center gap-1">
+          <span className="h-2 w-3 rounded-full bg-pink-400" />
+          <span className="h-2 w-3 rounded-full bg-pink-400" />
+        </span>
+      );
+    }
+    if (features.collarVariant === "chain") {
+      return (
+        <span className="absolute -top-1 flex items-center justify-center text-[8px] text-slate-400">
+          ◇—◇—◇
         </span>
       );
     }
@@ -478,6 +566,7 @@ const WalletAvatar = ({ address, size = 40, className }: WalletAvatarProps) => {
                 {renderEye("left")}
                 {renderEye("right")}
                 {renderGlasses()}
+                {renderNose()}
                 {mouthElement}
               </div>
             </div>
@@ -514,6 +603,12 @@ const WalletAvatar = ({ address, size = 40, className }: WalletAvatarProps) => {
                   <span className="h-4 w-[2px] rounded-full bg-current" />
                   <span className="h-2 w-2 rounded-full border border-current" />
                 </span>
+              )}
+              {features.accessoryVariant === "hat" && (
+                <span className="absolute -top-2 left-1/2 h-2 w-6 -translate-x-1/2 rounded-full bg-blue-500" />
+              )}
+              {features.accessoryVariant === "bowtie" && (
+                <span className="flex items-center justify-center text-[8px] text-red-400">⋈</span>
               )}
             </div>
           </div>
