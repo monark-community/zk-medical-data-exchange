@@ -525,7 +525,7 @@ const WalletAvatar = ({ address, size = 40, className }: WalletAvatarProps) => {
               {features.earVariant === "antenna" && (
                 <>
                   <span
-                    className="absolute -top-5 left-1/2 h-5 w-1 -translate-x-[90%] rounded-full"
+                    className="absolute -top-2 left-1/2 h-2 w-1 -translate-x-[90%] rounded-full"
                     style={{ backgroundColor: earColor, opacity: 0.8 }}
                   >
                     <span
@@ -534,7 +534,7 @@ const WalletAvatar = ({ address, size = 40, className }: WalletAvatarProps) => {
                     />
                   </span>
                   <span
-                    className="absolute -top-5 left-1/2 h-5 w-1 translate-x-[10%] rounded-full"
+                    className="absolute -top-2 left-1/2 h-2 w-1 translate-x-[10%] rounded-full"
                     style={{ backgroundColor: earColor, opacity: 0.8 }}
                   >
                     <span
