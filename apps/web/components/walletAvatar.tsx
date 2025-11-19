@@ -225,57 +225,6 @@ const WalletAvatar = ({ address, size = 40, className }: WalletAvatarProps) => {
     );
   };
 
-  const renderPet = () => {
-    const baseStyle: CSSProperties = {
-      position: "absolute",
-      top: "30%",
-      ...(features.petSide === -1 ? { left: "-8%" } : { right: "-8%" }),
-      animation: `wallet-avatar-orbit ${3.2 + (features.petDelay % 2)}s ease-in-out infinite`,
-      animationDelay: `${features.petDelay}s`,
-    };
-
-    switch (features.petVariant) {
-      case "pill":
-        return (
-          <span
-            className="flex h-3 w-6 items-center justify-center rounded-full border border-white/50"
-            style={{
-              ...baseStyle,
-              background: `linear-gradient(90deg, ${theme.accentMuted}, ${theme.accent})`,
-            }}
-          >
-            <span className="h-1.5 w-1.5 rounded-full bg-white/80" />
-          </span>
-        );
-      case "shield":
-        return (
-          <span className="flex h-4 w-4 items-center justify-center" style={baseStyle}>
-            <svg viewBox="0 0 24 24" width="16" height="16" fill={theme.accent} opacity={0.85}>
-              <path d="M12 2l7 4v5c0 4.418-2.686 8.418-7 10-4.314-1.582-7-5.582-7-10V6l7-4z" />
-            </svg>
-          </span>
-        );
-      case "heart":
-        return (
-          <span
-            className="flex h-4 w-4 items-center justify-center text-[10px]"
-            style={{ ...baseStyle, color: theme.accent }}
-          >
-            ♥
-          </span>
-        );
-      default:
-        return (
-          <span className="flex h-4 w-4 items-center justify-center" style={baseStyle}>
-            <span
-              className="h-2 w-2 rotate-45 rounded-sm"
-              style={{ backgroundColor: theme.accent, boxShadow: `0 0 6px ${theme.accent}` }}
-            />
-          </span>
-        );
-    }
-  };
-
   const renderBodyPattern = () => {
     if (features.bodyPattern === "plain") return null;
     if (features.bodyPattern === "stripes") {
@@ -361,7 +310,6 @@ const WalletAvatar = ({ address, size = 40, className }: WalletAvatarProps) => {
             className="absolute inset-[15%] rounded-full bg-black/20 blur-xl"
             style={sparkleStyle}
           />
-          {renderPet()}
           <div
             className="relative flex h-full w-full flex-col items-center justify-end"
             style={characterStyle}
@@ -370,11 +318,11 @@ const WalletAvatar = ({ address, size = 40, className }: WalletAvatarProps) => {
               {features.earVariant === "bunny" && (
                 <>
                   <span
-                    className="absolute -top-7 left-1/2 h-8 w-4 -translate-x-[110%] rounded-full"
+                    className="absolute -top-5 left-1/2 h-6 w-3 -translate-x-[110%] rounded-full"
                     style={{ backgroundColor: earColor, opacity: 0.9 }}
                   />
                   <span
-                    className="absolute -top-7 left-1/2 h-8 w-4 translate-x-[10%] rounded-full"
+                    className="absolute -top-5 left-1/2 h-6 w-3 translate-x-[10%] rounded-full"
                     style={{ backgroundColor: earColor }}
                   />
                 </>
