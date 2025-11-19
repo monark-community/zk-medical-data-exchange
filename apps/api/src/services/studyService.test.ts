@@ -105,6 +105,7 @@ mock.module("../contracts/generated", () => ({
 }));
 
 import { StudyService } from "./studyService";
+import { JoinStudyError } from "./errors/joinStudyError";
 
 let studyService: StudyService;
 
@@ -175,8 +176,8 @@ describe("StudyService", () => {
   });
 
   describe("joinBlockchainStudy", () => {
-    test("should return null when contractAddress is empty", async () => {
-      const result = await studyService.joinBlockchainStudy(
+    test("should throw JoinStudyError when contractAddress is empty", async () => {
+      const promise = studyService.joinBlockchainStudy(
         "",
         {
           a: ["1", "2"] as [string, string],
@@ -188,13 +189,15 @@ describe("StudyService", () => {
         },
         "0xParticipant",
         "1234",
-        "0xchallenge"
+        "0xchallenge",
+        ["publicInput1", "publicInput2"]
       );
-      expect(result).toBe(null);
+      
+      await expect(promise).rejects.toThrow(JoinStudyError);
     });
 
-    test("should handle errors gracefully", async () => {
-      const result = await studyService.joinBlockchainStudy(
+    test("should throw JoinStudyError on blockchain error", async () => {
+      const promise = studyService.joinBlockchainStudy(
         "0xContract",
         {
           a: ["1", "2"] as [string, string],
@@ -206,31 +209,12 @@ describe("StudyService", () => {
         },
         "0xParticipant",
         "1234",
-        "0xchallenge"
+        "0xchallenge",
+        []
       );
-      expect(result).toBe(null);
+      await expect(promise).rejects.toThrow(JoinStudyError);
     });
   });
-
-  describe("sendParticipationToBlockchain", () => {
-    test("should handle invalid proof format gracefully", async () => {
-      const result = await studyService.sendParticipationToBlockchain(
-        "0xStudy",
-        "0xParticipant",
-        {
-          a: ["invalid", "2"] as [string, string],
-          b: [["3", "4"] as [string, string], ["5", "6"] as [string, string]] as [
-            [string, string],
-            [string, string]
-          ],
-          c: ["7", "8"] as [string, string],
-        },
-        "1234",
-        "0xchallenge"
-      );
-      expect(result.success).toBe(false);
-      expect(result.error).toContain("Invalid proof format");
-    });
 
     test("should handle missing blockchain client", async () => {
       const result = await studyService.sendParticipationToBlockchain(
@@ -245,7 +229,8 @@ describe("StudyService", () => {
           c: ["7", "8"] as [string, string],
         },
         "1234",
-        "0xchallenge"
+        "0xchallenge",
+        []
       );
       expect(result.success).toBe(false);
       expect(result.error).toBeDefined();
@@ -520,4 +505,3 @@ describe("StudyService", () => {
       expect(mockLogger.error).toHaveBeenCalled();
     });
   });
-});

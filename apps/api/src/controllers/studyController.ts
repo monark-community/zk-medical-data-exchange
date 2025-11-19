@@ -1126,7 +1126,7 @@ export const generateDataCommitmentChallenge = async (req: Request, res: Respons
         .delete()
         .eq(TABLES.DATA_COMMITMENTS!.columns.id!, existingCommitment.id);
 
-      logger.info({ studyId, participantWallet }, "Deleted expired commitment");
+      logger.info({ studyId, participantWallet }, "Deleted existing commitment for re-registration");
     }
 
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours from now
@@ -1361,6 +1361,15 @@ export const participateInStudy = async (req: Request, res: Response) => {
     if (existing) {
       return res.status(400).json({ error: "Already participated in this study" });
     }
+    
+    const blockchainTxHash = await studyService.joinBlockchainStudy(
+      studyData.contract_address,
+      proofJson,
+      participantWallet,
+      dataCommitment,
+      storedCommitment.challenge,
+      typeof publicInputsJson === "string" ? JSON.parse(publicInputsJson) : publicInputsJson 
+    );
 
     const participationData = {
       study_id: id,
@@ -1372,7 +1381,7 @@ export const participateInStudy = async (req: Request, res: Response) => {
       eligibility_score: eligibilityScore,
       status: proofJson ? "verified" : "pending",
       has_consented: true,
-      enrolled_at: new Date().toISOString(),
+      enrolled_at: new Date().toISOString()
     };
 
     const { data: participation, error: participationError } = await req.supabase
@@ -1412,21 +1421,6 @@ export const participateInStudy = async (req: Request, res: Response) => {
       .eq(TABLES.STUDIES!.columns.id!, id);
 
     logger.info({ studyId: id, participantWallet }, "Participant successfully enrolled in study");
-
-    const blockchainTxHash = await studyService.joinBlockchainStudy(
-      studyData.contract_address,
-      proofJson,
-      participantWallet,
-      dataCommitment,
-      storedCommitment.challenge,
-      binIds,
-      typeof publicInputsJson === "string" ? JSON.parse(publicInputsJson) : publicInputsJson
-    );
-
-    await req.supabase
-      .from(TABLES.STUDY_PARTICIPATIONS!.name)
-      .update({ blockchain_tx_hash: blockchainTxHash })
-      .eq(TABLES.STUDY_PARTICIPATIONS!.columns.id!, participation.id);
 
     await auditService.logStudyParticipation(participantWallet, String(id), true, {
       blockchainTxHash,

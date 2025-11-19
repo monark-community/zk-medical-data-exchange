@@ -192,8 +192,6 @@ contract Study {
         ));
         require(recomputedHash == storedCommitmentHash, "Commitment mismatch - data tampering detected");
         
-        // Construct public signals for ZK proof verification
-        // Format: [binMembership[0..49], dataCommitment]
         uint[51] memory pubSignals;
         for (uint i=0; i<50; i++) {
             pubSignals[i] = binMembership[i];

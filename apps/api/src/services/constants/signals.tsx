@@ -1,0 +1,2 @@
+export const MEDICAL_ELIGIBILITY_PUBSIGNALS_LENGTH = 51;
+export const BIN_COUNT = 50;
