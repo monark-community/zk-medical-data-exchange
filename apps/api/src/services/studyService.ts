@@ -764,7 +764,6 @@ export class StudyService {
         };
       }
 
-      // SUCCESS
       logger.info(
         {
           transactionHash,
