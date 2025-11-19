@@ -879,11 +879,6 @@ export class StudyService {
       return { success: false, error: validationError };
     }
 
-    logger.info(
-      { studyAddress, participantWallet, dataCommitment, proof, publicInputsJsonLength: publicInputsJson.length },
-      "Recording study participation on blockchain"
-    );
-
     let pA: [bigint, bigint];
     let pB: [[bigint, bigint], [bigint, bigint]];
     let pC: [bigint, bigint];

@@ -218,7 +218,7 @@ describe("StudyService", () => {
 
   describe("sendParticipationToBlockchain", () => {
     test("should handle invalid proof format gracefully", async () => {
-      const result = await studyService.sendParticipationToBlockchain(
+      const promise = studyService.sendParticipationToBlockchain(
         "0xStudy",
         "0xParticipant",
         {
@@ -233,8 +233,7 @@ describe("StudyService", () => {
         "0xchallenge",
         []
       );
-      expect(result.success).toBe(false);
-      expect(result.error).toContain("Invalid proof format");
+      await expect(promise).rejects.toThrow(JoinStudyError);
     });
 
     test("should handle missing blockchain client", async () => {
