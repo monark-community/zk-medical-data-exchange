@@ -326,10 +326,6 @@ export class StudyApplicationService {
         binIds: proofResult.binMembership?.binIds,
       };
 
-      if (proofResult.binMembership?.binIds) {
-        console.log(`Proof includes bin membership: ${proofResult.binMembership.binIds.length} bins`);
-      }
-
       await this.submitApplication(applicationRequest);
 
       console.log("Study application completed successfully!");

@@ -89,7 +89,6 @@ interface CircuitInput {
   allowedDiabetes: string;
   enableHeartDisease: string;
   allowedHeartDisease: string;
-
   numBins: string;
   binFieldCodes: string[];
   binTypes: string[];
@@ -135,7 +134,6 @@ export const generateZKProof = async (
     if (salt === undefined || salt === null) {
       throw new Error("salt is required but was undefined");
     }
-
     const circuitInput = prepareCircuitInput(
       medicalData, 
       studyCriteria, 
@@ -256,7 +254,6 @@ function prepareCircuitInput(
     salt: salt.toString(),
     dataCommitment: dataCommitment.toString(),
     challenge: (challenge.startsWith('0x') ? BigInt(challenge) : BigInt(`0x${challenge}`)).toString(),
-
     enableAge: studyCriteria.enableAge.toString(),
     minAge: studyCriteria.minAge.toString(),
     maxAge: studyCriteria.maxAge.toString(),
@@ -289,15 +286,18 @@ function prepareCircuitInput(
     allowedDiabetes: studyCriteria.allowedDiabetes.toString(),
     enableHeartDisease: studyCriteria.enableHeartDisease.toString(),
     allowedHeartDisease: studyCriteria.allowedHeartDisease.toString(),
-
     ...prepareBinInputs(binConfiguration),
   };
 }
 
+/**
+ * Prepare bin-related circuit inputs
+ * Returns zero-filled arrays if no bin configuration provided
+ */
 function prepareBinInputs(binConfiguration?: BinConfiguration) {
   const MAX_BINS = 50;
   const MAX_CATEGORIES_PER_BIN = 10;
-
+  
   const binFieldCodes = new Array(MAX_BINS).fill(0);
   const binTypes = new Array(MAX_BINS).fill(0);
   const binMinValues = new Array(MAX_BINS).fill(0);
@@ -308,28 +308,29 @@ function prepareBinInputs(binConfiguration?: BinConfiguration) {
     new Array(MAX_CATEGORIES_PER_BIN).fill(0)
   );
   const binCategoryCount = new Array(MAX_BINS).fill(0);
-
+  
   const numBins = binConfiguration?.bins?.length ?? 0;
-
+  
   if (binConfiguration?.bins) {
     binConfiguration.bins.forEach((bin, i) => {
       if (i >= MAX_BINS) {
         console.warn(`Warning: Bin index ${i} exceeds MAX_BINS (${MAX_BINS}), skipping`);
         return;
       }
-
+      
       binFieldCodes[i] = getFieldCode(bin.criteriaField);
       binTypes[i] = bin.type === "RANGE" ? 0 : 1;
-
+      
       if (bin.type === "RANGE") {
         binMinValues[i] = bin.minValue ?? 0;
         binMaxValues[i] = bin.maxValue ?? 0;
         binIncludeMin[i] = bin.includeMin ? 1 : 0;
         binIncludeMax[i] = bin.includeMax ? 1 : 0;
       } else {
+        // Categorical bin
         const categories = bin.categories ?? [];
         binCategoryCount[i] = Math.min(categories.length, MAX_CATEGORIES_PER_BIN);
-
+        
         categories.forEach((cat, j) => {
           if (j < MAX_CATEGORIES_PER_BIN) {
             binCategories[i][j] = cat;
@@ -338,7 +339,7 @@ function prepareBinInputs(binConfiguration?: BinConfiguration) {
       }
     });
   }
-
+  
   return {
     numBins: numBins.toString(),
     binFieldCodes: binFieldCodes.map(String),
@@ -374,13 +375,13 @@ function getFieldCode(fieldName: string): number {
     diabetesStatus: 11,
     heartDisease: 12,
   };
-
+  
   const code = fieldMap[fieldName];
   if (code === undefined) {
     console.warn(`Unknown field: ${fieldName}, defaulting to 0`);
     return 0;
   }
-
+  
   return code;
 }
 
