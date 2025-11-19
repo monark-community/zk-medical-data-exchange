@@ -8,8 +8,6 @@ import logger from "@/utils/logger";
 import { Config } from "@/config/config";
 import { AUDIT_TRAIL_ABI } from "@/contracts";
 import { UserProfile } from "@zk-medical/shared";
-
-export enum ActionType {
   USER_AUTHENTICATION,
   PROPOSAL_CREATION,
   VOTE_CAST,
@@ -282,6 +280,8 @@ class AuditService {
           ],
           account: this.account,
           chain: sepolia,
+          maxFeePerGas: 50000000000n,
+          maxPriorityFeePerGas: 10000000000n,
         });
 
         const receipt = await Promise.race([
@@ -379,6 +379,8 @@ class AuditService {
           ],
           account: this.account,
           chain: sepolia,
+          maxFeePerGas: 50000000000n,
+          maxPriorityFeePerGas: 10000000000n,
         });
 
         const receipt = await Promise.race([

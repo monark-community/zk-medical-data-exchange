@@ -4,7 +4,11 @@ import { privateKeyToAccount } from "viem/accounts";
 import type { StudyCriteria } from "@zk-medical/shared";
 import logger from "@/utils/logger";
 import { Config } from "@/config/config";
-import { STUDY_ABI, STUDY_FACTORY_ABI, MEDICAL_ELIGIBILITY_VERIFIER_ABI } from "../contracts/generated";
+import {
+  STUDY_ABI,
+  STUDY_FACTORY_ABI,
+  MEDICAL_ELIGIBILITY_VERIFIER_ABI,
+} from "../contracts/generated";
 import { BIN_COUNT, MEDICAL_ELIGIBILITY_PUBSIGNALS_LENGTH } from "@/services/constants/signals";
 import { JoinStudyError } from "@/services/errors/joinStudyError";
 
@@ -129,6 +133,8 @@ export class StudyService {
         abi: STUDY_ABI,
         functionName,
         args,
+        maxFeePerGas: 50000000000n,
+        maxPriorityFeePerGas: 10000000000n,
       });
 
       logger.info(
@@ -138,7 +144,10 @@ export class StudyService {
         `${context} simulation successful`
       );
 
-      const transactionHash = await this.walletClient.writeContract(simulationResult.request);
+      const transactionHash = await this.walletClient.writeContract(simulationResult.request, {
+        maxFeePerGas: 50000000000n,
+        maxPriorityFeePerGas: 10000000000n,
+      });
 
       logger.info({ transactionHash }, `${context} transaction submitted`);
 
@@ -445,6 +454,8 @@ export class StudyService {
             Config.ZK_VERIFIER_ADDRESS as `0x${string}`,
             contractCriteria,
           ],
+          maxFeePerGas: 50000000000n,
+          maxPriorityFeePerGas: 10000000000n,
         });
 
         request = simulationResult.request;
@@ -471,7 +482,10 @@ export class StudyService {
         );
       }
 
-      const transactionHash = await this.walletClient.writeContract(request);
+      const transactionHash = await this.walletClient.writeContract(request, {
+        maxFeePerGas: 50000000000n,
+        maxPriorityFeePerGas: 10000000000n,
+      });
 
       logger.info({ transactionHash }, "Study deployment transaction submitted");
 
@@ -649,7 +663,7 @@ export class StudyService {
    * @param challenge Random challenge from backend
    * @returns Transaction hash if successful
    */
-    async registerCommitmentOnChain(
+  async registerCommitmentOnChain(
     contractAddress: string,
     participantWallet: string,
     dataCommitment: string,
@@ -684,6 +698,8 @@ export class StudyService {
           abi: STUDY_ABI,
           functionName: "registerCommitment",
           args: [commitmentBigInt, challengeBytes32, participantWallet as `0x${string}`],
+          maxFeePerGas: 50000000000n,
+          maxPriorityFeePerGas: 10000000000n,
         });
 
         logger.info(
@@ -708,7 +724,10 @@ export class StudyService {
 
       let transactionHash;
       try {
-        transactionHash = await this.walletClient.writeContract(simulationResult.request);
+        transactionHash = await this.walletClient.writeContract(simulationResult.request, {
+          maxFeePerGas: 50000000000n,
+          maxPriorityFeePerGas: 10000000000n,
+        });
         logger.info({ transactionHash }, "Commitment registration transaction submitted");
       } catch (txErr) {
         logger.error(
@@ -753,10 +772,7 @@ export class StudyService {
       }
 
       if (receipt.status === "reverted") {
-        logger.error(
-          { transactionHash },
-          "Commitment registration transaction reverted"
-        );
+        logger.error({ transactionHash }, "Commitment registration transaction reverted");
 
         return {
           success: false,
@@ -789,10 +805,7 @@ export class StudyService {
 
       return {
         success: false,
-        error:
-          error instanceof Error
-            ? error.message
-            : "Unknown error registering commitment",
+        error: error instanceof Error ? error.message : "Unknown error registering commitment",
       };
     }
   }
@@ -833,14 +846,14 @@ export class StudyService {
             },
             "Participation recorded on blockchain successfully"
           );
-        } else
-        {
-          throw new Error(blockchainResult.error || "Unknown error recording participation on blockchain");
+        } else {
+          throw new Error(
+            blockchainResult.error || "Unknown error recording participation on blockchain"
+          );
         }
-
-        } catch (err) {
-          throw new JoinStudyError("joinBlockchainStudy failed", err);
-        }
+      } catch (err) {
+        throw new JoinStudyError("joinBlockchainStudy failed", err);
+      }
     } else {
       const msg = "Study has no blockchain address";
       logger.error(msg);
@@ -917,14 +930,14 @@ export class StudyService {
           functionName: "zkVerifier",
         });
 
-        pubSignals = publicInputsJson.map(sig => BigInt(sig));
-        
+        pubSignals = publicInputsJson.map((sig) => BigInt(sig));
+
         logger.info(
-          { 
-            zkVerifierAddress, 
+          {
+            zkVerifierAddress,
             pubSignalsLength: pubSignals.length,
             dataCommitment: pubSignals[MEDICAL_ELIGIBILITY_PUBSIGNALS_LENGTH - 1]?.toString(),
-            expectedLength: MEDICAL_ELIGIBILITY_PUBSIGNALS_LENGTH
+            expectedLength: MEDICAL_ELIGIBILITY_PUBSIGNALS_LENGTH,
           },
           "Preparing verifier preflight check"
         );
@@ -937,12 +950,18 @@ export class StudyService {
         });
 
         logger.info(
-          { zkVerifierAddress, verifierOk, dataCommitment: pubSignals[MEDICAL_ELIGIBILITY_PUBSIGNALS_LENGTH - 1]?.toString() || 'N/A' },
+          {
+            zkVerifierAddress,
+            verifierOk,
+            dataCommitment:
+              pubSignals[MEDICAL_ELIGIBILITY_PUBSIGNALS_LENGTH - 1]?.toString() || "N/A",
+          },
           "Verifier preflight check result"
         );
 
         if (!verifierOk) {
-          const msg = "Verifier preflight failed: proof/public signal mismatch (check verifier/zkey alignment and dataCommitment)";
+          const msg =
+            "Verifier preflight failed: proof/public signal mismatch (check verifier/zkey alignment and dataCommitment)";
           logger.error({ zkVerifierAddress, studyAddress, participantWallet }, msg);
 
           return { success: false, error: msg };
@@ -950,7 +969,8 @@ export class StudyService {
       } catch (preflightError) {
         logger.warn(
           {
-            error: preflightError instanceof Error ? preflightError.message : String(preflightError),
+            error:
+              preflightError instanceof Error ? preflightError.message : String(preflightError),
             studyAddress,
             participantWallet,
           },
@@ -958,10 +978,8 @@ export class StudyService {
         );
       }
 
-      const binMembershipSignals = pubSignals.length >= 51 
-        ? pubSignals.slice(0, BIN_COUNT)
-        : [];
-      
+      const binMembershipSignals = pubSignals.length >= 51 ? pubSignals.slice(0, BIN_COUNT) : [];
+
       logger.info(
         {
           participantWallet,
@@ -971,7 +989,7 @@ export class StudyService {
         },
         "Processing participant join - extracting bin membership from proof"
       );
-      
+
       const binsToIncrement: number[] = [];
       binMembershipSignals.forEach((signal, index) => {
         const signalStr = String(signal);
@@ -979,7 +997,7 @@ export class StudyService {
           binsToIncrement.push(index);
         }
       });
-      
+
       logger.info(
         {
           binsToIncrement,
@@ -988,20 +1006,28 @@ export class StudyService {
         `Participant belongs to ${binsToIncrement.length} bins - will increment these on blockchain`
       );
 
-      const binMembershipBigInt = binMembershipSignals.map(signal => BigInt(signal));
+      const binMembershipBigInt = binMembershipSignals.map((signal) => BigInt(signal));
       const challengeBytes32 = this.normalizeChallengeBytes32(challenge);
 
       const result = await this.executeContractTransaction(
         studyAddress,
         "joinStudy",
-        [pA, pB, pC, commitment, challengeBytes32, participantWallet as `0x${string}`, binMembershipBigInt],
+        [
+          pA,
+          pB,
+          pC,
+          commitment,
+          challengeBytes32,
+          participantWallet as `0x${string}`,
+          binMembershipBigInt,
+        ],
         "Participation recording"
       );
 
       if (result.success) {
         logger.info(
-          { 
-            transactionHash: result.transactionHash, 
+          {
+            transactionHash: result.transactionHash,
             participantWallet,
             studyAddress,
             binCount: binsToIncrement.length,
@@ -1009,8 +1035,8 @@ export class StudyService {
           },
           `Participation recorded! ${binsToIncrement.length} bin(s) incremented on blockchain`
         );
-        
-        binsToIncrement.forEach(binId => {
+
+        binsToIncrement.forEach((binId) => {
           logger.info(
             { binId, participant: participantWallet },
             `Bin ${binId} count incremented for participant`
@@ -1021,7 +1047,7 @@ export class StudyService {
           { error: result.error, studyAddress, participantWallet },
           "Failed to record participation on blockchain"
         );
-        return {success: false, error: result.error };
+        return { success: false, error: result.error };
       }
 
       return {
@@ -1029,19 +1055,20 @@ export class StudyService {
         transactionHash: result.transactionHash,
         error: result.error,
       };
-
     } catch (applicationError) {
       logger.error(
         { error: applicationError, proof, dataCommitment },
         "Failed to send participation to blockchain"
       );
-      throw new Error(`Failed to send participation to blockchain: ${
-        applicationError instanceof Error ? applicationError.message : "Unknown error"
-      }`);
+      throw new Error(
+        `Failed to send participation to blockchain: ${
+          applicationError instanceof Error ? applicationError.message : "Unknown error"
+        }`
+      );
     }
   }
 
-    /**
+  /**
    * Basic structural validation of public inputs (no semantics yet).
    * Returns an error message string if invalid, otherwise undefined.
    */
@@ -1068,12 +1095,11 @@ export class StudyService {
     return undefined;
   }
 
-    /**
+  /**
    * Normalize a challenge string to a valid bytes32 (`0x` + 64 hex chars).
    * If no challenge is provided, returns 0x00..00.
    */
   private normalizeChallengeBytes32(challenge?: string): `0x${string}` {
-
     if (!challenge) {
       return `0x${"0".repeat(64)}`;
     }
@@ -1094,7 +1120,7 @@ export class StudyService {
 
     const padded = hex.padStart(64, "0");
 
-    return (`0x${padded}`) as `0x${string}`;
+    return `0x${padded}` as `0x${string}`;
   }
 
   async revokeStudyConsent(
@@ -1302,7 +1328,7 @@ export class StudyService {
             index,
             binId: converted.binId,
             field: converted.criteriaField,
-            type: converted.binType === 0 ? 'RANGE' : 'CATEGORICAL',
+            type: converted.binType === 0 ? "RANGE" : "CATEGORICAL",
             label: converted.label,
             range: `[${converted.minValue}, ${converted.maxValue}]`,
           },
@@ -1316,10 +1342,7 @@ export class StudyService {
         { walletAddress: this.walletClient.account.address },
         "Wallet client account address"
       );
-      logger.info(
-        { walletAddress: this.account.address },
-        "Deployer account address"
-      );
+      logger.info({ walletAddress: this.account.address }, "Deployer account address");
       logger.info(
         { factoryAddress: Config.STUDY_FACTORY_ADDRESS },
         "Factory address (studyCreator)"
@@ -1378,6 +1401,3 @@ export class StudyService {
 }
 
 export const studyService = new StudyService();
-
-
-

@@ -27,12 +27,10 @@ export async function disperseEthEqual({
   const account = getAccount(config);
   if (!account.address) throw new Error("Wallet not connected.");
 
-  // 🔁 Ensure wallet is on Sepolia (will prompt MetaMask to switch/add)
   if (account.chainId !== sepolia.id) {
     await switchChain(config, { chainId: sepolia.id });
   }
 
-  // Validate & compute
   if (!recipients.length) throw new Error("No recipients provided.");
   recipients.forEach((a, i) => {
     if (!isAddress(a)) throw new Error(`Bad addr @${i}: ${a}`);
@@ -41,7 +39,6 @@ export async function disperseEthEqual({
   const each = parseEther(String(amountEachEth));
   const total = each * BigInt(recipients.length);
 
-  // 🧾 MetaMask popup happens here
   const hash = await writeContract(config, {
     address: contractAddress,
     abi: DISPERSE_ABI,
@@ -50,6 +47,8 @@ export async function disperseEthEqual({
     value: total,
     chainId: sepolia.id,
     account: account.address,
+    maxFeePerGas: BigInt("50000000000"),
+    maxPriorityFeePerGas: BigInt("10000000000"),
   });
 
   const receipt = await waitForTransactionReceipt(config, { hash, chainId: sepolia.id });
