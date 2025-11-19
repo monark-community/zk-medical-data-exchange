@@ -963,70 +963,65 @@ export class StudyService {
         "[BIN UPDATE BACKEND] Processing participant join - preparing bin updates"
       );
 
-      let bigintBinIds: bigint[] = [];
-      for (const binId of binIds) {
-        try {
-          const binBigInt = BigInt(binId);
-          bigintBinIds.push(binBigInt);
-        } catch (binConversionError) {
-          logger.error(
-            { binId, binConversionError },
-            "[BIN UPDATE BACKEND] ❌ Failed to convert binId to BigInt, skipping this binId"
-          );
-        }
-      }
-
-      let binIdsFromPubSignals = pubSignals.length > 1 
+      // Extract bin membership from public signals
+      // Public signals format: [binMembership[0..49], dataCommitment]
+      // binMembership[i] = 1 if participant belongs to bin i, 0 otherwise
+      const binMembershipSignals = pubSignals.length >= 51 
         ? pubSignals.slice(0, 50)
         : [];
       
-      // Log which bins will be incremented
-      const binsToIncrement = binIdsFromPubSignals
-        .map((val, idx) => ({ binId: idx, value: val }))
-        .filter(b => {
-          const valStr = String(b.value);
-          return valStr === "1" || b.value === 1n;
-        })
-        .map(b => b.binId);
+      logger.info(
+        {
+          participantWallet,
+          studyAddress,
+          totalBinSlots: binMembershipSignals.length,
+          publicSignalsLength: pubSignals.length,
+        },
+        "[BIN UPDATE BACKEND] Processing participant join - extracting bin membership from proof"
+      );
+      
+      // Find bin indices where signal value is "1" (participant belongs to that bin)
+      const binsToIncrement: number[] = [];
+      binMembershipSignals.forEach((signal, index) => {
+        const signalStr = String(signal);
+        if (signalStr === "1" || signal === 1n) {
+          binsToIncrement.push(index); // The INDEX is the numeric bin ID
+        }
+      });
       
       logger.info(
         {
-          totalBinSlots: binIdsFromPubSignals.length,
           binsToIncrement,
           binCount: binsToIncrement.length,
         },
         `[BIN UPDATE BACKEND] Participant belongs to ${binsToIncrement.length} bins - will increment these on blockchain`
       );
 
+      // Convert bin membership signals to BigInt array for contract call
+      // Contract expects the full 50-element array of 0s and 1s
+      const binMembershipBigInt = binMembershipSignals.map(signal => BigInt(signal));
+
       const result = await this.executeContractTransaction(
         studyAddress,
         "joinStudy",
-        [pA, pB, pC, commitment, challengeBytes32, participantWallet as `0x${string}`, binIdsFromPubSignals],
+        [pA, pB, pC, commitment, challengeBytes32, participantWallet as `0x${string}`, binMembershipBigInt],
         "Participation recording"
       );
 
       if (result.success) {
-        const binsIncremented = binIdsFromPubSignals
-          .map((val, idx) => ({ binId: idx, value: val }))
-          .filter(b => {
-            const valStr = String(b.value);
-            return valStr === "1" || b.value === 1n;
-          })
-          .map(b => b.binId);
-        
         logger.info(
           { 
             transactionHash: result.transactionHash, 
             participantWallet,
             studyAddress,
-            binCount: binsIncremented.length,
-            binsIncremented,
+            binCount: binsToIncrement.length,
+            binsIncremented: binsToIncrement,
           },
-          `[BIN UPDATE BACKEND] ✅ Participation recorded! ${binsIncremented.length} bin(s) incremented on blockchain`
+          `[BIN UPDATE BACKEND] ✅ Participation recorded! ${binsToIncrement.length} bin(s) incremented on blockchain`
         );
         
         // Log each incremented bin
-        binsIncremented.forEach(binId => {
+        binsToIncrement.forEach(binId => {
           logger.info(
             { binId, participant: participantWallet },
             `[BIN UPDATE BACKEND] ✅ Bin ${binId} count incremented for participant`

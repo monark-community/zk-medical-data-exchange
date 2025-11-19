@@ -1,5 +1,5 @@
 // Auto-generated contract ABIs
-// Generated on 2025-11-19T04:11:29.861Z
+// Generated on 2025-11-19T04:50:42.656Z
 
 // ABI type definitions
 interface ABIInput {
@@ -2126,7 +2126,7 @@ export const STUDY_ABI: ABI = [
       },
       {
         "internalType": "uint256[]",
-        "name": "binIds",
+        "name": "binMembership",
         "type": "uint256[]"
       }
     ],

@@ -1,7 +1,7 @@
 import { network } from "hardhat";
 
 async function main() {
-  console.log("🚀 Deploying StudyFactory to Sepolia testnet...");
+  console.log("   Deploying StudyFactory to Sepolia testnet...");
   console.log("=".repeat(60));
 
   const { viem } = await network.connect({
@@ -13,7 +13,7 @@ async function main() {
   const [deployer] = await viem.getWalletClients();
 
   // Display deployment info
-  console.log(`📋 Deployment Details:`);
+  console.log(`   Deployment Details:`);
   console.log(`   Network: Sepolia Testnet`);
   console.log(`   Chain ID: ${await publicClient.getChainId()}`);
   console.log(`   Deployer: ${deployer.account.address}`);
@@ -28,33 +28,31 @@ async function main() {
     console.log("   Get Sepolia ETH from: https://sepoliafaucet.com/");
   }
 
-  console.log("\n🔄 Step 1: Deploying MedicalEligibilityVerifier...");
+  console.log("\n  Step 1: Deploying MedicalEligibilityVerifier...");
   const verifierContract = await viem.deployContract("Groth16Verifier");
-  console.log(`   ✅ Verifier deployed: ${verifierContract.address}`);
+  console.log(`     Verifier deployed: ${verifierContract.address}`);
 
-  console.log("\n🔄 Step 2: Deploying StudyFactory...");
+  console.log("\n  Step 2: Deploying StudyFactory...");
   // Deploy with openCreation = true to allow anyone to create studies initially
   const studyFactoryContract = await viem.deployContract("StudyFactory", [true]);
-  console.log(`   ✅ StudyFactory deployed: ${studyFactoryContract.address}`);
+  console.log(`     StudyFactory deployed: ${studyFactoryContract.address}`);
 
-  console.log("\n📊 Gas Estimates for Common Operations:");
-  console.log(`   StudyFactory deployment: Contract successfully deployed`);
-  console.log(`   MedicalEligibilityVerifier deployment: Contract successfully deployed`);
-
+  console.log("\n  Step 3: Gas Estimates for Common Operations...");
+  console.log(`     StudyFactory deployment: Contract successfully deployed`);
+  console.log(`     MedicalEligibilityVerifier deployment: Contract successfully deployed`);
   // Set up initial configuration
-  console.log("\n🔧 Step 3: Initial Configuration...");
-  console.log("   StudyFactory deployed with default configuration");
-  console.log("   ✅ Ready for study creation");
-
+  console.log("\n  Step 4: Initial Configuration...");
+  console.log("     StudyFactory deployed with default configuration");
+  console.log("      Ready for study creation");
   // Display deployment summary
   console.log("\n" + "=".repeat(60));
-  console.log("🎉 DEPLOYMENT COMPLETED SUCCESSFULLY!");
+  console.log(" DEPLOYMENT COMPLETED SUCCESSFULLY!");
   console.log("");
-  console.log("📋 Contract Addresses:");
+  console.log(" Contract Addresses:");
   console.log(`   MedicalEligibilityVerifier: ${verifierContract.address}`);
   console.log(`   StudyFactory: ${studyFactoryContract.address}`);
   console.log("");
-  console.log("🔗 Verification Links:");
+  console.log("  Verification Links:");
   console.log(`   Verifier: https://sepolia.etherscan.io/address/${verifierContract.address}`);
   console.log(
     `   StudyFactory: https://sepolia.etherscan.io/address/${studyFactoryContract.address}`

@@ -21,8 +21,24 @@ import {
   Info,
   TrendingUp,
   AlertCircle,
+  Activity,
+  Target,
+  Percent,
 } from "lucide-react";
 import { BINNABLE_FIELDS, CATEGORICAL_LABELS, REGION_LABELS } from "@zk-medical/shared";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
+} from "recharts";
 
 interface AggregatedDataViewProps {
   open: boolean;
@@ -38,6 +54,31 @@ interface ProcessedBinData extends AggregatedBinData {
   displayLabel: string;
 }
 
+interface FieldStatistics {
+  mean?: number;
+  median?: number;
+  stdDev?: number;
+  q1?: number;
+  q3?: number;
+  min?: number;
+  max?: number;
+  mode?: string;
+  totalCount: number;
+}
+
+const CHART_COLORS = [
+  "#10b981", // emerald-500
+  "#3b82f6", // blue-500
+  "#a855f7", // purple-500
+  "#f59e0b", // amber-500
+  "#ef4444", // red-500
+  "#06b6d4", // cyan-500
+  "#ec4899", // pink-500
+  "#84cc16", // lime-500
+  "#8b5cf6", // violet-500
+  "#f97316", // orange-500
+];
+
 export default function AggregatedDataView({
   open,
   onOpenChange,
@@ -49,6 +90,7 @@ export default function AggregatedDataView({
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<AggregatedStudyData | null>(null);
   const [processedData, setProcessedData] = useState<Map<string, ProcessedBinData[]>>(new Map());
+  const [statistics, setStatistics] = useState<Map<string, FieldStatistics>>(new Map());
 
   useEffect(() => {
     if (open) {
@@ -76,6 +118,75 @@ export default function AggregatedDataView({
       setError(err.response?.data?.error || "Failed to load aggregated data");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const calculateStatistics = (bins: ProcessedBinData[]): FieldStatistics => {
+    const totalCount = bins.reduce((sum, bin) => sum + bin.count, 0);
+
+    // For range bins, calculate mean, median, std dev, quartiles
+    if (bins.length > 0 && bins[0].binType === "RANGE") {
+      // Use bin midpoints weighted by counts
+      const values: number[] = [];
+      bins.forEach((bin) => {
+        if (bin.minValue !== undefined && bin.maxValue !== undefined) {
+          const midpoint = (bin.minValue + bin.maxValue) / 2;
+          // Add midpoint count times (approximate distribution)
+          for (let i = 0; i < bin.count; i++) {
+            values.push(midpoint);
+          }
+        }
+      });
+
+      if (values.length === 0) {
+        return { totalCount };
+      }
+
+      // Sort for median and quartile calculations
+      values.sort((a, b) => a - b);
+
+      // Mean
+      const mean = values.reduce((sum, val) => sum + val, 0) / values.length;
+
+      // Median
+      const midIndex = Math.floor(values.length / 2);
+      const median =
+        values.length % 2 === 0
+          ? (values[midIndex - 1] + values[midIndex]) / 2
+          : values[midIndex];
+
+      // Standard deviation
+      const variance =
+        values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / values.length;
+      const stdDev = Math.sqrt(variance);
+
+      // Quartiles
+      const q1Index = Math.floor(values.length * 0.25);
+      const q3Index = Math.floor(values.length * 0.75);
+      const q1 = values[q1Index];
+      const q3 = values[q3Index];
+
+      // Min and Max from bin ranges
+      const min = bins[0].minValue;
+      const max = bins[bins.length - 1].maxValue;
+
+      return {
+        mean,
+        median,
+        stdDev,
+        q1,
+        q3,
+        min,
+        max,
+        totalCount,
+      };
+    } else {
+      // For categorical bins, find mode
+      const maxBin = bins.reduce((max, bin) => (bin.count > max.count ? bin : max), bins[0]);
+      return {
+        mode: maxBin.displayLabel,
+        totalCount,
+      };
     }
   };
 
@@ -123,6 +234,13 @@ export default function AggregatedDataView({
     });
 
     setProcessedData(grouped);
+
+    // Calculate statistics for each field
+    const stats = new Map<string, FieldStatistics>();
+    grouped.forEach((bins, field) => {
+      stats.set(field, calculateStatistics(bins));
+    });
+    setStatistics(stats);
   };
 
   const generateDisplayLabel = (bin: AggregatedBinData): string => {
@@ -208,8 +326,8 @@ export default function AggregatedDataView({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="!max-w-[80vw] !w-[80vw] max-h-[95vh] overflow-y-auto p-6">
+        <DialogHeader className="mb-4">
           <DialogTitle className="text-2xl font-bold flex items-center gap-2">
             <BarChart3 className="h-6 w-6 text-emerald-600" />
             Aggregated Study Results
@@ -288,41 +406,272 @@ export default function AggregatedDataView({
 
             {/* Visualizations by Field */}
             <div className="space-y-6">
-              {Array.from(processedData.entries()).map(([field, bins]) => (
-                <div key={field} className="border rounded-lg p-6 bg-white shadow-sm">
-                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                    {getFieldLabel(field)}
-                    <span className="text-sm font-normal text-muted-foreground">
-                      ({bins.length} bins)
-                    </span>
-                  </h3>
+              {Array.from(processedData.entries()).map(([field, bins]) => {
+                const stats = statistics.get(field);
+                const isRange = bins.length > 0 && bins[0].binType === "RANGE";
+                const fieldMeta = Object.values(BINNABLE_FIELDS).find((f) => f.field === field);
+                const unit = fieldMeta?.unit || "";
+                const decimalPlaces = fieldMeta?.decimalPlaces || 0;
 
-                  <div className="space-y-3">
-                    {bins.map((bin) => (
-                      <div key={bin.binId} className="space-y-1">
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="font-medium text-gray-700">{bin.displayLabel}</span>
-                          <span className="text-gray-600">
-                            {bin.count} ({bin.percentage.toFixed(1)}%)
-                          </span>
-                        </div>
-                        <div className="relative w-full h-8 bg-gray-100 rounded-full overflow-hidden">
-                          <div
-                            className="absolute top-0 left-0 h-full bg-gradient-to-r from-emerald-500 to-emerald-600 transition-all duration-500 ease-out flex items-center justify-end px-3"
-                            style={{ width: `${Math.max(bin.percentage, 3)}%` }}
-                          >
-                            {bin.percentage > 10 && (
-                              <span className="text-xs font-semibold text-white">
-                                {bin.count}
-                              </span>
-                            )}
+                // Prepare chart data
+                const chartData = bins.map((bin, idx) => ({
+                  name: bin.displayLabel.length > 20 
+                    ? `${bin.displayLabel.substring(0, 17)}...` 
+                    : bin.displayLabel,
+                  fullName: bin.displayLabel,
+                  count: bin.count,
+                  percentage: bin.percentage,
+                  fill: CHART_COLORS[idx % CHART_COLORS.length],
+                }));
+
+                return (
+                  <div key={field} className="border rounded-lg p-6 bg-white shadow-sm">
+                    <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                      {getFieldLabel(field)}
+                      <span className="text-sm font-normal text-muted-foreground">
+                        ({bins.length} bins, {stats?.totalCount || 0} total)
+                      </span>
+                    </h3>
+
+                    {/* Statistics Cards for Range Data */}
+                    {isRange && stats && (
+                      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 mb-6">
+                        {stats.mean !== undefined && (
+                          <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3">
+                            <div className="flex items-center gap-2 mb-1">
+                              <Activity className="h-4 w-4 text-emerald-600" />
+                              <p className="text-xs font-medium text-emerald-700">Mean</p>
+                            </div>
+                            <p className="text-lg font-bold text-emerald-900">
+                              {stats.mean.toFixed(decimalPlaces)} {unit}
+                            </p>
+                          </div>
+                        )}
+                        {stats.median !== undefined && (
+                          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                            <div className="flex items-center gap-2 mb-1">
+                              <Target className="h-4 w-4 text-blue-600" />
+                              <p className="text-xs font-medium text-blue-700">Median</p>
+                            </div>
+                            <p className="text-lg font-bold text-blue-900">
+                              {stats.median.toFixed(decimalPlaces)} {unit}
+                            </p>
+                          </div>
+                        )}
+                        {stats.stdDev !== undefined && (
+                          <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
+                            <div className="flex items-center gap-2 mb-1">
+                              <TrendingUp className="h-4 w-4 text-purple-600" />
+                              <p className="text-xs font-medium text-purple-700">Std Dev</p>
+                            </div>
+                            <p className="text-lg font-bold text-purple-900">
+                              {stats.stdDev.toFixed(decimalPlaces)} {unit}
+                            </p>
+                          </div>
+                        )}
+                        {stats.min !== undefined && (
+                          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                            <div className="flex items-center gap-2 mb-1">
+                              <TrendingUp className="h-4 w-4 text-amber-600 rotate-180" />
+                              <p className="text-xs font-medium text-amber-700">Min</p>
+                            </div>
+                            <p className="text-lg font-bold text-amber-900">
+                              {stats.min.toFixed(decimalPlaces)} {unit}
+                            </p>
+                          </div>
+                        )}
+                        {stats.max !== undefined && (
+                          <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                            <div className="flex items-center gap-2 mb-1">
+                              <TrendingUp className="h-4 w-4 text-red-600" />
+                              <p className="text-xs font-medium text-red-700">Max</p>
+                            </div>
+                            <p className="text-lg font-bold text-red-900">
+                              {stats.max.toFixed(decimalPlaces)} {unit}
+                            </p>
+                          </div>
+                        )}
+                        {stats.q1 !== undefined && (
+                          <div className="bg-cyan-50 border border-cyan-200 rounded-lg p-3">
+                            <div className="flex items-center gap-2 mb-1">
+                              <Percent className="h-4 w-4 text-cyan-600" />
+                              <p className="text-xs font-medium text-cyan-700">Q1 (25%)</p>
+                            </div>
+                            <p className="text-lg font-bold text-cyan-900">
+                              {stats.q1.toFixed(decimalPlaces)} {unit}
+                            </p>
+                          </div>
+                        )}
+                        {stats.q3 !== undefined && (
+                          <div className="bg-pink-50 border border-pink-200 rounded-lg p-3">
+                            <div className="flex items-center gap-2 mb-1">
+                              <Percent className="h-4 w-4 text-pink-600" />
+                              <p className="text-xs font-medium text-pink-700">Q3 (75%)</p>
+                            </div>
+                            <p className="text-lg font-bold text-pink-900">
+                              {stats.q3.toFixed(decimalPlaces)} {unit}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Mode for Categorical Data */}
+                    {!isRange && stats?.mode && (
+                      <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 mb-6">
+                        <div className="flex items-center gap-2">
+                          <Target className="h-5 w-5 text-emerald-600" />
+                          <div>
+                            <p className="text-sm font-medium text-emerald-700">Most Common</p>
+                            <p className="text-lg font-bold text-emerald-900">{stats.mode}</p>
                           </div>
                         </div>
                       </div>
-                    ))}
+                    )}
+
+                    {/* Charts and Data Table Grid */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      {/* Left Column: Charts */}
+                      <div className="space-y-4">
+                        {/* Bar Chart */}
+                        <div>
+                          <h4 className="text-sm font-semibold text-gray-700 mb-3">Distribution Chart</h4>
+                          <ResponsiveContainer width="100%" height={400}>
+                            <BarChart data={chartData} margin={{ top: 20, right: 10, left: 10, bottom: 80 }}>
+                              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                              <XAxis 
+                                dataKey="name" 
+                                angle={-45} 
+                                textAnchor="end" 
+                                height={90}
+                                tick={{ fontSize: 10 }}
+                              />
+                              <YAxis 
+                                label={{ value: 'Count', angle: -90, position: 'insideLeft', style: { fontSize: 12 } }}
+                                tick={{ fontSize: 11 }}
+                              />
+                              <Tooltip 
+                                content={({ active, payload }) => {
+                                  if (active && payload && payload.length) {
+                                    const data = payload[0].payload;
+                                    return (
+                                      <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-3">
+                                        <p className="font-semibold text-gray-900 mb-1">{data.fullName}</p>
+                                        <p className="text-sm text-gray-700">Count: {data.count}</p>
+                                        <p className="text-sm text-gray-700">
+                                          Percentage: {data.percentage.toFixed(1)}%
+                                        </p>
+                                      </div>
+                                    );
+                                  }
+                                  return null;
+                                }}
+                              />
+                              <Bar dataKey="count" radius={[8, 8, 0, 0]}>
+                                {chartData.map((entry, index) => (
+                                  <Cell key={`cell-${index}`} fill={entry.fill} />
+                                ))}
+                              </Bar>
+                            </BarChart>
+                          </ResponsiveContainer>
+                        </div>
+
+                        {/* Pie Chart for Categorical or Small Range Data */}
+                        {bins.length <= 8 && (
+                          <div>
+                            <h4 className="text-sm font-semibold text-gray-700 mb-3">Percentage Breakdown</h4>
+                            <ResponsiveContainer width="100%" height={350}>
+                              <PieChart>
+                                <Pie
+                                  data={chartData}
+                                  cx="50%"
+                                  cy="45%"
+                                  labelLine={false}
+                                  label={(entry: any) => `${entry.percentage.toFixed(1)}%`}
+                                  outerRadius={110}
+                                  fill="#8884d8"
+                                  dataKey="count"
+                                >
+                                  {chartData.map((entry, index) => (
+                                    <Cell key={`cell-${index}`} fill={entry.fill} />
+                                  ))}
+                                </Pie>
+                                <Tooltip 
+                                  content={({ active, payload }) => {
+                                    if (active && payload && payload.length) {
+                                      const data = payload[0].payload;
+                                      return (
+                                        <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-3">
+                                          <p className="font-semibold text-gray-900 mb-1">{data.fullName}</p>
+                                          <p className="text-sm text-gray-700">Count: {data.count}</p>
+                                          <p className="text-sm text-gray-700">
+                                            Percentage: {data.percentage.toFixed(1)}%
+                                          </p>
+                                        </div>
+                                      );
+                                    }
+                                    return null;
+                                  }}
+                                />
+                                <Legend 
+                                  verticalAlign="bottom" 
+                                  height={60}
+                                  wrapperStyle={{ fontSize: '12px' }}
+                                  formatter={(value, entry: any) => {
+                                    const label = entry.payload.fullName;
+                                    return label.length > 25 ? `${label.substring(0, 22)}...` : label;
+                                  }}
+                                />
+                              </PieChart>
+                            </ResponsiveContainer>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Right Column: Data Table */}
+                      <div>
+                        <h4 className="text-sm font-semibold text-gray-700 mb-3">Detailed Breakdown</h4>
+                        <div className="border rounded-lg overflow-hidden">
+                          <div className="max-h-[500px] overflow-y-auto">
+                            <table className="w-full">
+                              <thead className="bg-gray-50 sticky top-0">
+                                <tr>
+                                  <th className="text-left text-xs font-semibold text-gray-700 px-4 py-3 border-b">Bin</th>
+                                  <th className="text-right text-xs font-semibold text-gray-700 px-4 py-3 border-b">Count</th>
+                                  <th className="text-right text-xs font-semibold text-gray-700 px-4 py-3 border-b">%</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {bins.map((bin, idx) => (
+                                  <tr key={bin.binId} className="hover:bg-gray-50 transition-colors">
+                                    <td className="px-4 py-3 border-b border-gray-100">
+                                      <div className="flex items-center gap-2">
+                                        <div 
+                                          className="w-3 h-3 rounded-full flex-shrink-0" 
+                                          style={{ backgroundColor: CHART_COLORS[idx % CHART_COLORS.length] }}
+                                        />
+                                        <span className="text-sm text-gray-700">{bin.displayLabel}</span>
+                                      </div>
+                                    </td>
+                                    <td className="px-4 py-3 text-right text-sm text-gray-700 border-b border-gray-100 font-medium">
+                                      {bin.count}
+                                    </td>
+                                    <td className="px-4 py-3 text-right border-b border-gray-100">
+                                      <span className="text-sm font-semibold text-emerald-600">
+                                        {bin.percentage.toFixed(1)}%
+                                      </span>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             {/* Actions */}

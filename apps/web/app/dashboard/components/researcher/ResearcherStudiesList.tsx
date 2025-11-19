@@ -66,14 +66,6 @@ export default function ResearcherStudiesList({
 
   const handleShowResults = (study: StudySummary) => {
     console.log("study:", study);
-    setAggregatedDataStudy({
-      id: study.id,
-      title: study.title,
-    });
-    setAggregatedDataDialogOpen(true);
-  };
-
-  const handleViewCompletionSummary = (study: StudySummary) => {
     setSummaryStudy({
       id: study.id,
       title: study.title,
@@ -197,6 +189,14 @@ export default function ResearcherStudiesList({
           transactionHash={summaryStudy.transactionHash}
           currentParticipants={summaryStudy.currentParticipants}
           durationDays={summaryStudy.durationDays}
+          creatorWallet={creatorWallet}
+          onAccessData={() => {
+            setAggregatedDataStudy({
+              id: summaryStudy.id,
+              title: summaryStudy.title,
+            });
+            setAggregatedDataDialogOpen(true);
+          }}
         />
       )}
 

@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, Users, Database, CheckCircle } from "lucide-react";
-import { endStudy, getParticipants } from "@/services/api/studyService";
+import { endStudy, getParticipants, getAggregatedData } from "@/services/api/studyService";
 import { disperseEthEqual } from "@/utils/disperseEth";
 import { sepolia } from "viem/chains";
 import { http } from "viem";
@@ -40,6 +40,7 @@ export default function EndStudyDialog({
   const [isEnding, setIsEnding] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [enrolledUsers, setEnrolledUsers] = useState(0);
+  const [dataAccessCount, setDataAccessCount] = useState(0);
 
   const handleCancel = () => {
     if (!isEnding) {
@@ -50,6 +51,19 @@ export default function EndStudyDialog({
   (async function fetchParticipants() {
     const { participants } = await getParticipants(studyId);
     setEnrolledUsers(participants.length);
+  })();
+
+  // Fetch real data points count
+  (async function fetchDataPoints() {
+    try {
+      const aggregatedData = await getAggregatedData(studyId, "");
+      const uniqueFields = new Set(aggregatedData.bins.map(bin => bin.criteriaField));
+      const dataPoints = aggregatedData.totalParticipants * uniqueFields.size;
+      setDataAccessCount(dataPoints);
+    } catch (error) {
+      console.error("Failed to fetch data points:", error);
+      setDataAccessCount(0);
+    }
   })();
 
   const handleProceed = async () => {
@@ -114,8 +128,6 @@ export default function EndStudyDialog({
       return;
     }
   };
-  // Placeholder values - will be replaced with actual data later
-  const dataAccessCount = 156;
 
   return (
     <Dialog open={open} onOpenChange={handleCancel}>

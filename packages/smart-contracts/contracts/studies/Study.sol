@@ -168,7 +168,7 @@ contract Study {
      * @param _pC Groth16 proof point C (G1)
      * @param dataCommitment Poseidon hash of the patient's private medical data
      * @param challenge Challenge that was issued during commitment registration
-     * @param binIds Array of bin IDs this participant belongs to
+     * @param binMembership Array of 50 values (0 or 1) indicating bin membership
      */
     function joinStudy(
         uint[2] calldata _pA,
@@ -177,10 +177,11 @@ contract Study {
         uint256 dataCommitment,
         bytes32 challenge,
         address participant,
-        uint256[] memory binIds
+        uint256[] memory binMembership
     ) external {
         require(currentParticipants < maxParticipants, "Study is full");
         require(!participants[participant], "Already participating");
+        require(binMembership.length == 50, "Invalid bin membership array length");
         
         bytes32 storedCommitmentHash = registeredCommitments[participant];
         require(storedCommitmentHash != bytes32(0), "No commitment registered");
@@ -192,8 +193,12 @@ contract Study {
         ));
         require(recomputedHash == storedCommitmentHash, "Commitment mismatch - data tampering detected");
         
+        // Construct public signals for ZK proof verification
+        // Format: [binMembership[0..49], dataCommitment]
         uint[51] memory pubSignals;
-        for (uint i=0; i<50; i++) pubSignals[i] = binIds[i];
+        for (uint i=0; i<50; i++) {
+            pubSignals[i] = binMembership[i];
+        }
         pubSignals[50] = dataCommitment;
 
         bool isEligible = zkVerifier.verifyProof(_pA,_pB,_pC,pubSignals);
@@ -208,7 +213,23 @@ contract Study {
         currentParticipants++;
         activeParticipants++;
         
-        _updateBinCounts(participant, binIds, true);
+        // Extract bin IDs where membership is 1
+        uint256[] memory participantBinIds = new uint256[](50); // Max size
+        uint256 count = 0;
+        for (uint256 i = 0; i < 50; i++) {
+            if (binMembership[i] == 1) {
+                participantBinIds[count] = i; // Store the bin INDEX (which is the bin ID)
+                count++;
+            }
+        }
+        
+        // Create correctly sized array with only the bins participant belongs to
+        uint256[] memory actualBinIds = new uint256[](count);
+        for (uint256 i = 0; i < count; i++) {
+            actualBinIds[i] = participantBinIds[i];
+        }
+        
+        _updateBinCounts(participant, actualBinIds, true);
         
         delete registeredCommitments[participant];
         
