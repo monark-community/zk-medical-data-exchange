@@ -1,10 +1,10 @@
 {
   "network": "sepolia",
   "chainId": 11155111,
-  "deployedAt": "2025-11-11T21:53:28.638Z",
+  "deployedAt": "2025-11-19T20:30:17.602Z",
   "deployer": "0x737d45bf7de1de52e782c000b4f7b77ab05f18a2",
   "contracts": {
-    "Disperse": "0xea5ce107f75b8f50554f141983ae152323a38e6c"
+    "Disperse": "0x534a5bd7e5ad02a03a874700341c4c2b111ee06a"
   },
   "notes": {
     "description": "Batch sender for ETH and ERC20. For tokens, caller must approve total amount to this contract."
