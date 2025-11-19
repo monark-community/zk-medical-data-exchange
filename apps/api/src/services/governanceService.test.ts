@@ -746,15 +746,15 @@ describe("GovernanceService", () => {
       const expectedActiveProposals = 2;
       const expectedTotalVotes = 30;
       const expectedUniqueVoters = 10;
-
       const expectedAvgParticipation = (expectedTotalVotes / expectedTotalProposals) / expectedUniqueVoters * 100;
+      const expectedProposalsPassed = 2;
 
       expect(stats.totalProposals).toBe(expectedTotalProposals);
       expect(stats.activeProposals).toBe(expectedActiveProposals);
       expect(stats.totalVotes).toBe(expectedTotalVotes);
       expect(stats.uniqueVoters).toBe(expectedUniqueVoters);
       expect(stats.avgParticipation).toBe(expectedAvgParticipation);
-      expect(stats.votingPower).toBe(expectedTotalVotes);
+      expect(stats.proposalsPassed).toBe(expectedProposalsPassed);
     });
   });
 });

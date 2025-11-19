@@ -213,10 +213,8 @@ describe("GovernanceService - createProposal", () => {
     });
   });
 
-  it("should handle unknown error gracefully", async () => {
-    mockApiClient.post.mockRejectedValueOnce({
-      // Error with no message or response
-    });
+  it("should handle unknown error", async () => {
+  mockApiClient.post.mockRejectedValueOnce({} as any);
 
     const result = await createProposal(validProposalParams);
 
@@ -346,7 +344,7 @@ describe("GovernanceService - vote", () => {
     });
   });
 
-  it("should handle network error gracefully", async () => {
+  it("should handle network error", async () => {
     const errorMessage = "Request timeout";
     
     mockApiClient.post.mockRejectedValueOnce(new Error(errorMessage));
@@ -359,10 +357,9 @@ describe("GovernanceService - vote", () => {
     });
   });
 
-  it("should handle unknown error gracefully", async () => {
-    mockApiClient.post.mockRejectedValueOnce({
-      // Error with no message or response
-    });
+
+  it("should handle unknown error", async () => {
+  mockApiClient.post.mockRejectedValueOnce({} as any);
 
     const result = await vote(VoteChoice.For, proposalId, walletAddress);
 
