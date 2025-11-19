@@ -1,21 +1,6 @@
 import type { BinConfiguration, DataBin } from "@zk-medical/shared";
 import { BinType as BinTypeEnum } from "@zk-medical/shared";
-
-export interface MedicalData {
-  age: number;
-  gender: number;
-  region?: number;
-  cholesterol?: number;
-  bmi?: number; // BMI * 10 (e.g., 25.4 = 254)
-  systolicBP?: number;
-  diastolicBP?: number;
-  bloodType?: number;
-  hba1c?: number; // HbA1c * 10 (e.g., 6.5% = 65)
-  smokingStatus?: number;
-  activityLevel?: number;
-  diabetesStatus?: number;
-  heartDiseaseHistory?: number;
-}
+import type { ExtractedMedicalData } from "@/services/fhir/types/extractedMedicalData";
 
 export interface BinMembershipResult {
   binIds: string[]; // List of string bin IDs (e.g., "age_bin_0") for display
@@ -26,7 +11,7 @@ export interface BinMembershipResult {
 }
 
 export function computeParticipantBins(
-  userData: MedicalData,
+  userData: ExtractedMedicalData,
   binConfig: BinConfiguration
 ): BinMembershipResult {
   const binIds: string[] = [];
@@ -54,7 +39,7 @@ export function computeParticipantBins(
   };
 }
 
-export function checkBinMembership(userData: MedicalData, bin: DataBin): boolean {
+export function checkBinMembership(userData: ExtractedMedicalData, bin: DataBin): boolean {
   const fieldValue = getFieldValue(userData, bin.criteriaField);
   
   if (fieldValue === undefined || fieldValue === null) {
@@ -92,11 +77,10 @@ function checkCategoricalBin(value: number, bin: DataBin): boolean {
   return bin.categories.includes(value);
 }
 
-function getFieldValue(userData: MedicalData, fieldName: string): number | undefined {
-  const fieldMap: Record<string, keyof MedicalData> = {
+function getFieldValue(userData: ExtractedMedicalData, fieldName: string): number | undefined {
+  const fieldMap: Record<string, keyof ExtractedMedicalData> = {
     age: "age",
     gender: "gender",
-    region: "region",
     cholesterol: "cholesterol",
     bmi: "bmi",
     systolicBP: "systolicBP",
@@ -106,11 +90,18 @@ function getFieldValue(userData: MedicalData, fieldName: string): number | undef
     smokingStatus: "smokingStatus",
     activityLevel: "activityLevel",
     diabetesStatus: "diabetesStatus",
-    heartDisease: "heartDiseaseHistory",
+    heartDisease: "heartDiseaseStatus",
   };
 
   const key = fieldMap[fieldName];
-  return key ? userData[key] : undefined;
+  if (!key) return undefined;
+
+  if (key === "regions") {
+    const regions = userData[key];
+    return regions && regions.length > 0 ? regions[0] : undefined;
+  }
+
+  return userData[key];
 }
 
 export function validateBinMembership(

@@ -90,7 +90,6 @@ interface CircuitInput {
   enableHeartDisease: string;
   allowedHeartDisease: string;
 
-  // Bin configuration (optional - set numBins = 0 if no bins)
   numBins: string;
   binFieldCodes: string[];
   binTypes: string[];
@@ -147,13 +146,6 @@ export const generateZKProof = async (
     );
     console.log("Circuit input prepared with commitment verification");
 
-    // Log bin info if present
-    if (binConfiguration?.bins && binConfiguration.bins.length > 0) {
-      console.log(`✅ Study has ${binConfiguration.bins.length} bins configured`);
-    } else {
-      console.log("ℹ️ Study has no bins configured (numBins = 0)");
-    }
-
     console.log("Loading circuit files...");
     const circuitWasm = await loadCircuitWasm();
     const provingKey = await loadProvingKey();
@@ -170,22 +162,11 @@ export const generateZKProof = async (
     console.log("├─ circuitWasm type:", typeof circuitWasm);
     console.log("└─ provingKey type:", typeof provingKey);
 
-    // Debug: Verify commitment calculation matches
-    console.log("\n🔍 PRE-PROOF VERIFICATION:");
-    console.log("├─ Expected dataCommitment:", circuitInput.dataCommitment);
-    console.log("├─ Salt:", circuitInput.salt);
-    console.log("├─ Challenge:", circuitInput.challenge);
-    console.log("└─ These should match circuit logs below...\n");
-
     const { proof, publicSignals } = await snarkjs.groth16.fullProve(
       circuitInput,
       circuitWasm,
       provingKey
     );
-
-    console.log("Raw proof from snarkjs:", proof);
-    console.log("Proof types - a[0]:", typeof proof.pi_a[0], "a[1]:", typeof proof.pi_a[1]);
-    console.log("When running full prove, publicSignals are:", publicSignals);
 
     const formattedProof: ZKProof = {
       a: [
@@ -211,12 +192,9 @@ export const generateZKProof = async (
     console.log("ZK proof generated successfully!");
     console.log("Public signals:", publicSignals);
 
-    // Extract bin membership if study has bins
     let binMembershipInfo;
     if (binConfiguration?.bins && binConfiguration.bins.length > 0) {
       binMembershipInfo = extractBinMembershipFromProof(publicSignals, binConfiguration);
-      console.log(`✅ Extracted bin membership: ${binMembershipInfo.binIds.length} bins`);
-      console.log("Bin IDs:", binMembershipInfo.binIds);
     }
 
     return {
@@ -312,20 +290,14 @@ function prepareCircuitInput(
     enableHeartDisease: studyCriteria.enableHeartDisease.toString(),
     allowedHeartDisease: studyCriteria.allowedHeartDisease.toString(),
 
-    // Bin configuration
     ...prepareBinInputs(binConfiguration),
   };
 }
 
-/**
- * Prepare bin-related circuit inputs
- * Returns zero-filled arrays if no bin configuration provided
- */
 function prepareBinInputs(binConfiguration?: BinConfiguration) {
   const MAX_BINS = 50;
   const MAX_CATEGORIES_PER_BIN = 10;
 
-  // Initialize with zeros
   const binFieldCodes = new Array(MAX_BINS).fill(0);
   const binTypes = new Array(MAX_BINS).fill(0);
   const binMinValues = new Array(MAX_BINS).fill(0);
@@ -355,7 +327,6 @@ function prepareBinInputs(binConfiguration?: BinConfiguration) {
         binIncludeMin[i] = bin.includeMin ? 1 : 0;
         binIncludeMax[i] = bin.includeMax ? 1 : 0;
       } else {
-        // Categorical bin
         const categories = bin.categories ?? [];
         binCategoryCount[i] = Math.min(categories.length, MAX_CATEGORIES_PER_BIN);
 
@@ -420,18 +391,12 @@ function extractBinMembershipFromProof(
   publicSignals: any[],
   binConfiguration: BinConfiguration
 ): { binIds: string[]; numericBinIds: number[]; binIndices: number[] } {
-  // Public signals format:
-  // [0] = dataCommitment
-  // [1] = challenge
-  // [2] = eligible
-  // [3..52] = binMembership[0..49]
-
   const binIds: string[] = [];
   const numericBinIds: number[] = [];
   const binIndices: number[] = [];
 
   for (let i = 0; i < binConfiguration.bins.length; i++) {
-    const binFlag = publicSignals[3 + i]; // offset by 3
+    const binFlag = publicSignals[3 + i];
 
     if (binFlag === "1" || binFlag === 1) {
       binIds.push(binConfiguration.bins[i].id);

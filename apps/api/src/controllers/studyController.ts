@@ -18,6 +18,7 @@ import { createPublicClient, http } from "viem";
 import { sepolia } from "viem/chains";
 import { Config } from "@/config/config";
 import { STUDY_ABI } from "@/contracts/generated";
+import { convertBinsForSolidity, validateSolidityBins, formatBinsForLogging } from "@/utils/binConversion";
 
 const getAuditMetadata = (req: Request) => ({
   startTime: Date.now(),
@@ -771,8 +772,6 @@ export const deployStudy = async (req: Request, res: Response) => {
 
     if (study.bin_configuration && deploymentResult.studyAddress) {
       try {
-        const { convertBinsForSolidity, validateSolidityBins, formatBinsForLogging } = await import("@/utils/binConversion");
-        
         const solidityBins = convertBinsForSolidity(study.bin_configuration);
         const validation = validateSolidityBins(solidityBins);
         
@@ -1222,7 +1221,7 @@ export const participateInStudy = async (req: Request, res: Response) => {
       dataCommitment,
       matchedCriteria,
       eligibilityScore,
-      binIds, // Bin IDs from ZK proof
+      binIds,
     } = req.body;
 
     if (!participantWallet) {
@@ -1706,7 +1705,7 @@ export const getAggregatedData = async (req: Request, res: Response) => {
       return res.status(400).json({ error: "Study must be active or completed to view aggregated data" });
     }
 
-    const studyData = study as unknown as { 
+    const studyData = study as { 
       contract_address: string | null; 
       bin_configuration: any;
       title: string;

@@ -1,4 +1,4 @@
-import { createWalletClient, createPublicClient, http, decodeEventLog, keccak256, encodePacked } from "viem";
+import { createWalletClient, createPublicClient, http, decodeEventLog } from "viem";
 import { sepolia } from "viem/chains";
 import { privateKeyToAccount } from "viem/accounts";
 import type { StudyCriteria } from "@zk-medical/shared";
@@ -655,29 +655,11 @@ export class StudyService {
 
       const commitmentBigInt = BigInt(dataCommitment);
 
-      const expectedHash = keccak256(
-        encodePacked(
-          ["address", "uint256", "bytes32"],
-          [participantWallet as `0x${string}`, commitmentBigInt, challengeBytes32 as `0x${string}`]
-        )
-      );
-
-      logger.info(
-        {
-          participant: participantWallet,
-          commitment: commitmentBigInt.toString(),
-          challenge: challengeBytes32,
-          expectedHash,
-        },
-        "registerCommitment - values being sent to contract"
-      );
-
       const simulationResult = await this.publicClient.simulateContract({
         account: this.account,
         address: contractAddress as `0x${string}`,
         abi: STUDY_ABI,
         functionName: "registerCommitment",
-        // Include participant wallet as third arg per updated contract signature
         args: [commitmentBigInt, challengeBytes32, participantWallet as `0x${string}`],
       });
 
@@ -927,24 +909,6 @@ export class StudyService {
       let challengeBytes32 = challenge 
         ? (challenge.startsWith('0x') ? challenge : `0x${challenge}`)
         : `0x${'0'.repeat(64)}`; 
-
-      const expectedHash = keccak256(
-        encodePacked(
-          ["address", "uint256", "bytes32"],
-          [participantWallet as `0x${string}`, commitment, challengeBytes32 as `0x${string}`]
-        )
-      );
-
-      logger.info(
-        {
-          participant: participantWallet,
-          commitment: commitment.toString(),
-          challenge: challengeBytes32,
-          expectedHash,
-          note: "This hash should match what was stored during registerCommitment"
-        },
-        "joinStudy - values being sent to contract"
-      );
 
       logger.info(
         {
