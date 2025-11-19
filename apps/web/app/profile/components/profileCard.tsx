@@ -228,16 +228,29 @@ const ProfileCard = () => {
         <Card className="h-full">
           <CardHeader>
             <h3 className="text-lg font-semibold">Profile Controls</h3>
-            <p className="text-sm text-muted-foreground">Update your public profile.</p>
+            <p className="text-sm text-muted-foreground">
+              Manage your identity and account settings.
+            </p>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50/80 p-4 text-sm text-gray-600">
-              <p className="font-semibold text-gray-800">Wallet Status</p>
-              <p className="text-xs text-gray-500">
-                Connected as {formatWalletAddress(profileCardInfo.walletAddress || "")}
-              </p>
+          <CardContent className="space-y-6">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-4 rounded-2xl bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100">
+                <div className="flex items-center gap-3">
+                  <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">Wallet Connected</p>
+                    <p className="text-xs text-gray-500 font-mono">
+                      {formatWalletAddress(profileCardInfo.walletAddress || "")}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <h4 className="text-sm font-semibold text-gray-900">Identity Settings</h4>
+                <EditProfileDialog onProfileUpdate={refetchUser} isProcessing={isVisible} />
+              </div>
             </div>
-            <EditProfileDialog onProfileUpdate={refetchUser} isProcessing={isVisible} />
           </CardContent>
         </Card>
 
