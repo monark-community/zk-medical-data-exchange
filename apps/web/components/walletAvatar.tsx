@@ -9,8 +9,110 @@ interface WalletAvatarProps {
   className?: string;
 }
 
-const FACE_TONES = ["#F5E0FF", "#DCFCE7", "#E0F2FE", "#FDE2E4", "#FBD5D5", "#FFE0CC"];
-const BODY_TONES = ["#132D46", "#0B1F3A", "#111827", "#0F172A"];
+const FACE_TONES = [
+  "#F5E0FF",
+  "#DCFCE7",
+  "#E0F2FE",
+  "#FDE2E4",
+  "#FBD5D5",
+  "#FFE0CC",
+  "#FCE4EC",
+  "#F3E5F5",
+  "#E8EAF6",
+  "#E3F2FD",
+  "#E8F5E8",
+  "#FFF3E0",
+  "#FBE9E7",
+  "#FCE4EC",
+  "#F3E5F5",
+  "#E1F5FE",
+  "#F1F8E9",
+  "#FFF8E1",
+  "#FFEBEE",
+  "#FCE4EC",
+  "#F3E5F5",
+  "#E0F2FE",
+  "#E8F5E8",
+  "#FFFDE7",
+];
+const BODY_TONES = [
+  "#132D46",
+  "#0B1F3A",
+  "#111827",
+  "#0F172A",
+  "#1E3A5F",
+  "#2D3748",
+  "#4A5568",
+  "#718096",
+  "#E53E3E",
+  "#3182CE",
+  "#38A169",
+  "#D69E2E",
+  "#805AD5",
+  "#D53F8C",
+  "#DD6B20",
+  "#38B2AC",
+  "#4299E1",
+  "#48BB78",
+  "#ED8936",
+  "#9F7AEA",
+  "#F56565",
+  "#63B3ED",
+  "#68D391",
+  "#F6AD55",
+];
+
+const FACE_TONE_GROUPS = {
+  warm: [0, 3, 4, 5, 6, 12, 18, 19], // pinks, peaches, warm tones
+  cool: [1, 2, 8, 9, 10, 15, 20, 21, 22, 23], // greens, blues, cool tones
+  neutral: [7, 11, 13, 14, 16, 17], // purples, creams, neutral tones
+};
+
+const BODY_TONE_GROUPS = {
+  warm: [8, 11, 13, 14, 18, 20, 23], // reds, oranges, yellows, warm colors
+  cool: [1, 2, 3, 4, 5, 6, 7, 9, 10, 15, 16, 17, 21, 22], // blues, greens, cool colors
+  neutral: [0, 12, 19], // purples, dark neutrals
+};
+
+const getColorTemperature = (accentColor: string): "warm" | "cool" | "neutral" => {
+  // Simple hue-based classification (accent is likely a hex color)
+  const hex = accentColor.replace("#", "");
+  const r = parseInt(hex.substr(0, 2), 16) / 255;
+  const g = parseInt(hex.substr(2, 2), 16) / 255;
+  const b = parseInt(hex.substr(4, 2), 16) / 255;
+
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const delta = max - min;
+
+  let hue = 0;
+  if (delta !== 0) {
+    if (max === r) hue = ((g - b) / delta) % 6;
+    else if (max === g) hue = (b - r) / delta + 2;
+    else hue = (r - g) / delta + 4;
+    hue *= 60;
+    if (hue < 0) hue += 360;
+  }
+
+  if ((hue >= 0 && hue < 60) || (hue >= 300 && hue < 360)) return "warm";
+  if (hue >= 60 && hue < 180) return "cool";
+  return "neutral";
+};
+
+const selectCoordinatedColors = (hash: number, accentColor: string) => {
+  const temperature = getColorTemperature(accentColor);
+  const getIndex = (shift: number, mod: number) => Math.abs((hash >> shift) % mod);
+
+  const faceGroup = FACE_TONE_GROUPS[temperature];
+  const faceIndex = faceGroup[getIndex(0, faceGroup.length)];
+  const face = FACE_TONES[faceIndex];
+
+  const bodyGroup = BODY_TONE_GROUPS[temperature];
+  const bodyIndex = bodyGroup[getIndex(1, bodyGroup.length)];
+  const body = BODY_TONES[bodyIndex];
+
+  return { face, body };
+};
 
 const HEAD_SHAPE_CONFIG = {
   circle: { borderRadius: "50%" },
@@ -81,8 +183,7 @@ if (typeof document !== "undefined" && !document.getElementById(styleId)) {
 const generateFeatures = (hash: number, accent: string): AvatarFeatures => {
   const getIndex = (shift: number, mod: number) => Math.abs((hash >> shift) % mod);
 
-  const face = FACE_TONES[hash % FACE_TONES.length];
-  const body = BODY_TONES[hash % BODY_TONES.length];
+  const { face, body } = selectCoordinatedColors(hash, accent);
   const earVariant: EarVariant = (
     ["dog", "cat", "fox", "bunny", "antenna", "bear", "mouse"] as const
   )[getIndex(0, 7)];
