@@ -116,15 +116,15 @@ const WalletAvatar = ({ address, size = 40, className }: WalletAvatarProps) => {
     ] as GlassesVariant;
     const noseVariant = ["pointy", "none", "button"][Math.abs((hash >> 18) % 3)] as NoseVariant;
     const hairVariant = [
-      "short",
-      "long",
-      "curly",
-      "straight",
+      "afro",
+      "messy",
       "ponytail",
       "bun",
-      "afro",
+      "long",
+      "curly",
       "spiky",
-      "messy",
+      "straight",
+      "short",
       "none",
     ][Math.abs((hash >> 19) % 10)] as HairVariant;
     return {
@@ -372,125 +372,409 @@ const WalletAvatar = ({ address, size = 40, className }: WalletAvatarProps) => {
 
   const renderHair = () => {
     if (features.hairVariant === "none") return null;
-    const hairColor = "#8B4513"; // Brown hair color
+    const baseHairColor = "#8B4513"; // Brown base
+    const highlightColor = "#D2691E"; // Lighter brown highlights
+    const darkStrandColor = "#654321"; // Darker brown strands
 
     if (features.hairVariant === "short") {
       return (
-        <span
-          className="absolute left-1/2 -top-1 h-3 w-8 -translate-x-1/2 rounded-t-full"
-          style={{ backgroundColor: hairColor, opacity: 0.9 }}
-        />
+        <div className="absolute left-1/2 -top-1 -translate-x-1/2">
+          {/* Base layer */}
+          <span
+            className="absolute h-3 w-8 rounded-t-full"
+            style={{
+              background: `linear-gradient(135deg, ${baseHairColor} 0%, ${highlightColor} 50%, ${baseHairColor} 100%)`,
+              opacity: 0.9,
+            }}
+          />
+          {/* Strands */}
+          <span
+            className="absolute h-2 w-1 rounded-full -left-1 top-0"
+            style={{
+              backgroundColor: darkStrandColor,
+              opacity: 0.7,
+              transform: "rotate(-15deg)",
+            }}
+          />
+          <span
+            className="absolute h-2 w-1 rounded-full right-1 top-0"
+            style={{
+              backgroundColor: highlightColor,
+              opacity: 0.8,
+              transform: "rotate(20deg)",
+            }}
+          />
+          <span
+            className="absolute h-1.5 w-0.5 rounded-full left-2 top-1"
+            style={{
+              backgroundColor: darkStrandColor,
+              opacity: 0.6,
+              transform: "rotate(-10deg)",
+            }}
+          />
+        </div>
       );
     }
     if (features.hairVariant === "long") {
       return (
-        <>
+        <div className="absolute left-1/2 -top-2 -translate-x-1/2">
+          {/* Main hair mass */}
           <span
-            className="absolute left-1/2 -top-2 h-6 w-10 -translate-x-1/2 rounded-t-full"
-            style={{ backgroundColor: hairColor, opacity: 0.9 }}
+            className="absolute h-6 w-10 rounded-t-full"
+            style={{
+              background: `linear-gradient(180deg, ${baseHairColor} 0%, ${highlightColor} 30%, ${baseHairColor} 70%, ${darkStrandColor} 100%)`,
+              opacity: 0.9,
+            }}
+          />
+          {/* Flowing strands */}
+          <span
+            className="absolute h-4 w-8 rounded-b-full top-2"
+            style={{
+              background: `linear-gradient(45deg, ${highlightColor} 0%, ${baseHairColor} 50%, ${darkStrandColor} 100%)`,
+              opacity: 0.8,
+              transform: "scaleX(0.8)",
+            }}
+          />
+          {/* Individual strands */}
+          <span
+            className="absolute h-5 w-0.5 rounded-full -left-1 top-1"
+            style={{
+              backgroundColor: darkStrandColor,
+              opacity: 0.7,
+              transform: "rotate(-25deg)",
+            }}
           />
           <span
-            className="absolute left-1/2 top-2 h-4 w-8 -translate-x-1/2 rounded-b-full"
-            style={{ backgroundColor: hairColor, opacity: 0.8 }}
+            className="absolute h-4 w-0.5 rounded-full right-1 top-2"
+            style={{
+              backgroundColor: highlightColor,
+              opacity: 0.8,
+              transform: "rotate(15deg)",
+            }}
           />
-        </>
+          <span
+            className="absolute h-3 w-0.5 rounded-full left-3 top-3"
+            style={{
+              backgroundColor: darkStrandColor,
+              opacity: 0.6,
+              transform: "rotate(-5deg)",
+            }}
+          />
+        </div>
       );
     }
     if (features.hairVariant === "curly") {
       return (
-        <span
-          className="absolute left-1/2 -top-1 h-4 w-9 -translate-x-1/2"
-          style={{
-            backgroundColor: hairColor,
-            opacity: 0.9,
-            borderRadius: "50% 50% 50% 50% / 60% 60% 40% 40%",
-            clipPath: "ellipse(45% 60% at 50% 40%)",
-          }}
-        />
+        <div className="absolute left-1/2 -top-1 -translate-x-1/2">
+          {/* Base curly shape */}
+          <span
+            className="absolute h-4 w-9"
+            style={{
+              background: `radial-gradient(ellipse 60% 40% at 30% 30%, ${highlightColor} 0%, ${baseHairColor} 50%, ${darkStrandColor} 100%)`,
+              opacity: 0.9,
+              borderRadius: "50% 50% 50% 50% / 60% 60% 40% 40%",
+              clipPath: "ellipse(45% 60% at 50% 40%)",
+            }}
+          />
+          {/* Curly strands */}
+          <span
+            className="absolute h-2 w-2 rounded-full -left-1 top-1"
+            style={{
+              backgroundColor: darkStrandColor,
+              opacity: 0.7,
+              transform: "rotate(-30deg) scale(0.8)",
+            }}
+          />
+          <span
+            className="absolute h-2 w-2 rounded-full right-1 top-0"
+            style={{
+              backgroundColor: highlightColor,
+              opacity: 0.8,
+              transform: "rotate(25deg) scale(0.9)",
+            }}
+          />
+          <span
+            className="absolute h-1.5 w-1.5 rounded-full left-2 top-2"
+            style={{
+              backgroundColor: baseHairColor,
+              opacity: 0.6,
+              transform: "rotate(10deg)",
+            }}
+          />
+        </div>
       );
     }
     if (features.hairVariant === "straight") {
       return (
-        <span
-          className="absolute left-1/2 -top-1 h-4 w-10 -translate-x-1/2 rounded-t-full"
-          style={{ backgroundColor: hairColor, opacity: 0.9 }}
-        />
+        <div className="absolute left-1/2 -top-1 -translate-x-1/2">
+          {/* Base straight hair */}
+          <span
+            className="absolute h-4 w-10 rounded-t-full"
+            style={{
+              background: `linear-gradient(90deg, ${darkStrandColor} 0%, ${baseHairColor} 20%, ${highlightColor} 50%, ${baseHairColor} 80%, ${darkStrandColor} 100%)`,
+              opacity: 0.9,
+            }}
+          />
+          {/* Flowing strands */}
+          <span
+            className="absolute h-3 w-0.5 rounded-full -left-1 top-0"
+            style={{
+              backgroundColor: darkStrandColor,
+              opacity: 0.7,
+              transform: "rotate(-20deg)",
+            }}
+          />
+          <span
+            className="absolute h-3 w-0.5 rounded-full right-1 top-0"
+            style={{
+              backgroundColor: highlightColor,
+              opacity: 0.8,
+              transform: "rotate(15deg)",
+            }}
+          />
+          <span
+            className="absolute h-2 w-0.5 rounded-full left-3 top-1"
+            style={{
+              backgroundColor: baseHairColor,
+              opacity: 0.6,
+              transform: "rotate(-5deg)",
+            }}
+          />
+        </div>
       );
     }
     if (features.hairVariant === "ponytail") {
       return (
-        <>
+        <div className="absolute left-1/2 -top-1 -translate-x-1/2">
+          {/* Top hair */}
           <span
-            className="absolute left-1/2 -top-1 h-3 w-6 -translate-x-1/2 rounded-t-full"
-            style={{ backgroundColor: hairColor, opacity: 0.9 }}
+            className="absolute h-3 w-6 rounded-t-full"
+            style={{
+              background: `linear-gradient(135deg, ${baseHairColor} 0%, ${highlightColor} 100%)`,
+              opacity: 0.9,
+            }}
+          />
+          {/* Ponytail */}
+          <span
+            className="absolute h-5 w-1 rounded-full top-1"
+            style={{
+              background: `linear-gradient(180deg, ${highlightColor} 0%, ${baseHairColor} 50%, ${darkStrandColor} 100%)`,
+              opacity: 0.8,
+            }}
+          />
+          {/* Strands */}
+          <span
+            className="absolute h-2 w-0.5 rounded-full -left-1 top-0"
+            style={{
+              backgroundColor: darkStrandColor,
+              opacity: 0.7,
+              transform: "rotate(-25deg)",
+            }}
           />
           <span
-            className="absolute left-1/2 top-1 h-5 w-1 -translate-x-1/2 rounded-full"
-            style={{ backgroundColor: hairColor, opacity: 0.8 }}
+            className="absolute h-1.5 w-0.5 rounded-full right-1 top-1"
+            style={{
+              backgroundColor: highlightColor,
+              opacity: 0.8,
+              transform: "rotate(20deg)",
+            }}
           />
-        </>
+        </div>
       );
     }
     if (features.hairVariant === "bun") {
       return (
-        <>
+        <div className="absolute left-1/2 -top-1 -translate-x-1/2">
+          {/* Top hair */}
           <span
-            className="absolute left-1/2 -top-1 h-2 w-6 -translate-x-1/2 rounded-t-full"
-            style={{ backgroundColor: hairColor, opacity: 0.9 }}
+            className="absolute h-2 w-6 rounded-t-full"
+            style={{
+              background: `linear-gradient(135deg, ${baseHairColor} 0%, ${highlightColor} 100%)`,
+              opacity: 0.9,
+            }}
+          />
+          {/* Bun */}
+          <span
+            className="absolute h-3 w-3 rounded-full top-0"
+            style={{
+              background: `radial-gradient(circle, ${highlightColor} 0%, ${baseHairColor} 70%, ${darkStrandColor} 100%)`,
+              opacity: 0.8,
+            }}
+          />
+          {/* Strands */}
+          <span
+            className="absolute h-1.5 w-0.5 rounded-full -left-1 top-0"
+            style={{
+              backgroundColor: darkStrandColor,
+              opacity: 0.7,
+              transform: "rotate(-30deg)",
+            }}
           />
           <span
-            className="absolute left-1/2 top-0 h-3 w-3 -translate-x-1/2 rounded-full"
-            style={{ backgroundColor: hairColor, opacity: 0.8 }}
+            className="absolute h-1 w-0.5 rounded-full right-1 top-1"
+            style={{
+              backgroundColor: highlightColor,
+              opacity: 0.8,
+              transform: "rotate(25deg)",
+            }}
           />
-        </>
+        </div>
       );
     }
     if (features.hairVariant === "afro") {
       return (
-        <span
-          className="absolute left-1/2 -top-2 h-5 w-9 -translate-x-1/2 rounded-full"
-          style={{ backgroundColor: hairColor, opacity: 0.9 }}
-        />
+        <div className="absolute left-1/2 -top-2 -translate-x-1/2">
+          {/* Main afro shape */}
+          <span
+            className="absolute h-5 w-9 rounded-full"
+            style={{
+              background: `radial-gradient(circle, ${highlightColor} 0%, ${baseHairColor} 40%, ${darkStrandColor} 80%, ${baseHairColor} 100%)`,
+              opacity: 0.9,
+            }}
+          />
+          {/* Textured strands */}
+          <span
+            className="absolute h-2 w-1 rounded-full -left-1 top-1"
+            style={{
+              backgroundColor: darkStrandColor,
+              opacity: 0.7,
+              transform: "rotate(-20deg)",
+            }}
+          />
+          <span
+            className="absolute h-2 w-1 rounded-full right-1 top-0"
+            style={{
+              backgroundColor: highlightColor,
+              opacity: 0.8,
+              transform: "rotate(15deg)",
+            }}
+          />
+          <span
+            className="absolute h-1.5 w-1 rounded-full left-2 top-2"
+            style={{
+              backgroundColor: baseHairColor,
+              opacity: 0.6,
+              transform: "rotate(10deg)",
+            }}
+          />
+          <span
+            className="absolute h-1 w-0.5 rounded-full -left-2 top-0"
+            style={{
+              backgroundColor: darkStrandColor,
+              opacity: 0.5,
+              transform: "rotate(-35deg)",
+            }}
+          />
+        </div>
       );
     }
     if (features.hairVariant === "spiky") {
       return (
-        <>
+        <div className="absolute left-1/2 -top-2 -translate-x-1/2">
+          {/* Spiky strands */}
           <span
-            className="absolute left-1/2 -top-2 h-2 w-1 -translate-x-1/2 rotate-12"
-            style={{ backgroundColor: hairColor, opacity: 0.9, transformOrigin: "bottom" }}
+            className="absolute h-2 w-1 rotate-12"
+            style={{
+              background: `linear-gradient(180deg, ${highlightColor} 0%, ${baseHairColor} 100%)`,
+              opacity: 0.9,
+              transformOrigin: "bottom",
+              transform: "rotate(12deg)",
+            }}
           />
           <span
-            className="absolute left-1/2 -top-2 h-2 w-1 -translate-x-1/2 -rotate-12"
-            style={{ backgroundColor: hairColor, opacity: 0.9, transformOrigin: "bottom" }}
+            className="absolute h-2 w-1 -rotate-12"
+            style={{
+              background: `linear-gradient(180deg, ${baseHairColor} 0%, ${darkStrandColor} 100%)`,
+              opacity: 0.9,
+              transformOrigin: "bottom",
+              transform: "rotate(-12deg)",
+            }}
           />
           <span
-            className="absolute left-1/2 -top-2 h-2 w-1 -translate-x-1/2 rotate-45"
-            style={{ backgroundColor: hairColor, opacity: 0.9, transformOrigin: "bottom" }}
+            className="absolute h-2 w-1 rotate-45"
+            style={{
+              background: `linear-gradient(180deg, ${highlightColor} 0%, ${baseHairColor} 100%)`,
+              opacity: 0.9,
+              transformOrigin: "bottom",
+              transform: "rotate(45deg)",
+            }}
           />
           <span
-            className="absolute left-1/2 -top-2 h-2 w-1 -translate-x-1/2 -rotate-45"
-            style={{ backgroundColor: hairColor, opacity: 0.9, transformOrigin: "bottom" }}
+            className="absolute h-2 w-1 -rotate-45"
+            style={{
+              background: `linear-gradient(180deg, ${darkStrandColor} 0%, ${baseHairColor} 100%)`,
+              opacity: 0.9,
+              transformOrigin: "bottom",
+              transform: "rotate(-45deg)",
+            }}
           />
-        </>
+          {/* Additional small strands */}
+          <span
+            className="absolute h-1.5 w-0.5 rotate-30"
+            style={{
+              backgroundColor: highlightColor,
+              opacity: 0.7,
+              transformOrigin: "bottom",
+              transform: "rotate(30deg)",
+            }}
+          />
+          <span
+            className="absolute h-1.5 w-0.5 -rotate-30"
+            style={{
+              backgroundColor: darkStrandColor,
+              opacity: 0.7,
+              transformOrigin: "bottom",
+              transform: "rotate(-30deg)",
+            }}
+          />
+        </div>
       );
     }
     if (features.hairVariant === "messy") {
       return (
-        <>
+        <div className="absolute left-1/2 -top-1 -translate-x-1/2">
+          {/* Base messy hair */}
           <span
-            className="absolute left-1/2 -top-1 h-3 w-8 -translate-x-1/2 rounded-t-full"
-            style={{ backgroundColor: hairColor, opacity: 0.9 }}
+            className="absolute h-3 w-8 rounded-t-full"
+            style={{
+              background: `linear-gradient(135deg, ${baseHairColor} 0%, ${highlightColor} 50%, ${darkStrandColor} 100%)`,
+              opacity: 0.9,
+            }}
+          />
+          {/* Messy strands */}
+          <span
+            className="absolute h-2 w-2 -left-3 top-0 rotate-12 rounded-full"
+            style={{
+              backgroundColor: darkStrandColor,
+              opacity: 0.8,
+              transform: "rotate(12deg) scale(0.8)",
+            }}
           />
           <span
-            className="absolute left-1/2 -top-1 h-2 w-2 -translate-x-[200%] rotate-12 rounded-full"
-            style={{ backgroundColor: hairColor, opacity: 0.8 }}
+            className="absolute h-2 w-2 right-2 top-0 -rotate-12 rounded-full"
+            style={{
+              backgroundColor: highlightColor,
+              opacity: 0.8,
+              transform: "rotate(-12deg) scale(0.9)",
+            }}
           />
           <span
-            className="absolute left-1/2 -top-1 h-2 w-2 translate-x-[100%] -rotate-12 rounded-full"
-            style={{ backgroundColor: hairColor, opacity: 0.8 }}
+            className="absolute h-1.5 w-1.5 left-1 top-1 rotate-25 rounded-full"
+            style={{
+              backgroundColor: baseHairColor,
+              opacity: 0.7,
+              transform: "rotate(25deg)",
+            }}
           />
-        </>
+          <span
+            className="absolute h-1 w-1 right-3 top-1 -rotate-20 rounded-full"
+            style={{
+              backgroundColor: darkStrandColor,
+              opacity: 0.6,
+              transform: "rotate(-20deg)",
+            }}
+          />
+        </div>
       );
     }
   };
