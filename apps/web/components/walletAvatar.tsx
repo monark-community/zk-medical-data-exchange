@@ -12,7 +12,7 @@ interface WalletAvatarProps {
 const FACE_TONES = ["#F5E0FF", "#DCFCE7", "#E0F2FE", "#FDE2E4", "#FBD5D5", "#FFE0CC"];
 const BODY_TONES = ["#132D46", "#0B1F3A", "#111827", "#0F172A"];
 
-type EarVariant = "bunny" | "cat" | "antenna" | "dog" | "mouse";
+type EarVariant = "bunny" | "cat" | "antenna" | "dog" | "mouse" | "fox" | "bear";
 type EyeVariant = "dot" | "arc" | "spark";
 type ExpressionVariant = "smile" | "laugh" | "calm" | "wow" | "grin" | "frown";
 type PetVariant = "spark" | "pill" | "shield" | "heart";
@@ -27,6 +27,7 @@ const HEAD_SHAPE_CONFIG: Record<HeadShape, CSSProperties> = {
   circle: { borderRadius: "50%" },
   squircle: { borderRadius: "45% / 50%" },
   roundedSquare: { borderRadius: "35%" },
+  oval: { borderRadius: "40% / 60%" },
 };
 
 const styleId = "wallet-avatar-animations";
@@ -68,7 +69,9 @@ const WalletAvatar = ({ address, size = 40, className }: WalletAvatarProps) => {
     const hash = theme.hash;
     const face = FACE_TONES[hash % FACE_TONES.length];
     const body = BODY_TONES[hash % BODY_TONES.length];
-    const earVariant = ["antenna", "bunny", "cat"][hash % 3] as EarVariant;
+    const earVariant = ["antenna", "bunny", "cat", "dog", "mouse", "fox", "bear"][
+      hash % 7
+    ] as EarVariant;
     const accessoryVariant = ["visor", "badge", "stethoscope"][Math.abs((hash >> 2) % 3)] as
       | "badge"
       | "visor"
@@ -382,14 +385,38 @@ const WalletAvatar = ({ address, size = 40, className }: WalletAvatarProps) => {
             style={characterStyle}
           >
             <div className="relative">
-              {features.earVariant === "bunny" && (
+              {features.earVariant === "mouse" && (
                 <>
                   <span
-                    className="absolute -top-5 left-1/2 h-6 w-3 -translate-x-[110%] rounded-full"
+                    className="absolute -top-3 left-1/2 h-4 w-4 -translate-x-[120%] rounded-full"
                     style={{ backgroundColor: earColor, opacity: 0.9 }}
                   />
                   <span
-                    className="absolute -top-5 left-1/2 h-6 w-3 translate-x-[10%] rounded-full"
+                    className="absolute -top-3 left-1/2 h-4 w-4 translate-x-[20%] rounded-full"
+                    style={{ backgroundColor: earColor }}
+                  />
+                </>
+              )}
+              {features.earVariant === "fox" && (
+                <>
+                  <span
+                    className="absolute -top-1 left-1/2 h-4 w-5 -translate-x-[110%] rotate-[-15deg] rounded-tl-[90%] rounded-tr-[5%]"
+                    style={{ backgroundColor: earColor }}
+                  />
+                  <span
+                    className="absolute -top-1 left-1/2 h-4 w-5 translate-x-[10%] rotate-[15deg] rounded-tr-[90%] rounded-tl-[5%]"
+                    style={{ backgroundColor: earColor }}
+                  />
+                </>
+              )}
+              {features.earVariant === "bear" && (
+                <>
+                  <span
+                    className="absolute -top-2 left-1/2 h-3 w-4 -translate-x-[110%] rounded-full"
+                    style={{ backgroundColor: earColor, opacity: 0.9 }}
+                  />
+                  <span
+                    className="absolute -top-2 left-1/2 h-3 w-4 translate-x-[10%] rounded-full"
                     style={{ backgroundColor: earColor }}
                   />
                 </>
