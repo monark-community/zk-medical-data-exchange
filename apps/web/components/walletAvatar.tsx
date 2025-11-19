@@ -22,7 +22,17 @@ type CollarVariant = "round" | "v" | "tech" | "bow" | "chain";
 type CheekStyle = "solid" | "ring" | "blush";
 type ForeheadMark = "none" | "dot" | "bar";
 type GlassesVariant = "none" | "round" | "square" | "aviator" | "cat-eye";
-type NoseVariant = "none" | "button" | "pointy";
+type HairVariant =
+  | "none"
+  | "short"
+  | "long"
+  | "curly"
+  | "straight"
+  | "ponytail"
+  | "bun"
+  | "afro"
+  | "spiky"
+  | "messy";
 
 const HEAD_SHAPE_CONFIG: Record<HeadShape, CSSProperties> = {
   circle: { borderRadius: "50%" },
@@ -105,6 +115,18 @@ const WalletAvatar = ({ address, size = 40, className }: WalletAvatarProps) => {
       Math.abs((hash >> 17) % 5)
     ] as GlassesVariant;
     const noseVariant = ["pointy", "none", "button"][Math.abs((hash >> 18) % 3)] as NoseVariant;
+    const hairVariant = [
+      "short",
+      "long",
+      "curly",
+      "straight",
+      "ponytail",
+      "bun",
+      "afro",
+      "spiky",
+      "messy",
+      "none",
+    ][Math.abs((hash >> 19) % 10)] as HairVariant;
     return {
       face,
       body,
@@ -127,6 +149,7 @@ const WalletAvatar = ({ address, size = 40, className }: WalletAvatarProps) => {
       sparkleDelay,
       glassesVariant,
       noseVariant,
+      hairVariant,
     };
   }, [theme.hash, theme.accent]);
 
@@ -347,6 +370,131 @@ const WalletAvatar = ({ address, size = 40, className }: WalletAvatarProps) => {
     );
   };
 
+  const renderHair = () => {
+    if (features.hairVariant === "none") return null;
+    const hairColor = "#8B4513"; // Brown hair color
+
+    if (features.hairVariant === "short") {
+      return (
+        <span
+          className="absolute left-1/2 -top-1 h-3 w-8 -translate-x-1/2 rounded-t-full"
+          style={{ backgroundColor: hairColor, opacity: 0.9 }}
+        />
+      );
+    }
+    if (features.hairVariant === "long") {
+      return (
+        <>
+          <span
+            className="absolute left-1/2 -top-2 h-6 w-10 -translate-x-1/2 rounded-t-full"
+            style={{ backgroundColor: hairColor, opacity: 0.9 }}
+          />
+          <span
+            className="absolute left-1/2 top-2 h-4 w-8 -translate-x-1/2 rounded-b-full"
+            style={{ backgroundColor: hairColor, opacity: 0.8 }}
+          />
+        </>
+      );
+    }
+    if (features.hairVariant === "curly") {
+      return (
+        <span
+          className="absolute left-1/2 -top-1 h-4 w-9 -translate-x-1/2"
+          style={{
+            backgroundColor: hairColor,
+            opacity: 0.9,
+            borderRadius: "50% 50% 50% 50% / 60% 60% 40% 40%",
+            clipPath: "ellipse(45% 60% at 50% 40%)",
+          }}
+        />
+      );
+    }
+    if (features.hairVariant === "straight") {
+      return (
+        <span
+          className="absolute left-1/2 -top-1 h-4 w-10 -translate-x-1/2 rounded-t-full"
+          style={{ backgroundColor: hairColor, opacity: 0.9 }}
+        />
+      );
+    }
+    if (features.hairVariant === "ponytail") {
+      return (
+        <>
+          <span
+            className="absolute left-1/2 -top-1 h-3 w-6 -translate-x-1/2 rounded-t-full"
+            style={{ backgroundColor: hairColor, opacity: 0.9 }}
+          />
+          <span
+            className="absolute left-1/2 top-1 h-5 w-1 -translate-x-1/2 rounded-full"
+            style={{ backgroundColor: hairColor, opacity: 0.8 }}
+          />
+        </>
+      );
+    }
+    if (features.hairVariant === "bun") {
+      return (
+        <>
+          <span
+            className="absolute left-1/2 -top-1 h-2 w-6 -translate-x-1/2 rounded-t-full"
+            style={{ backgroundColor: hairColor, opacity: 0.9 }}
+          />
+          <span
+            className="absolute left-1/2 top-0 h-3 w-3 -translate-x-1/2 rounded-full"
+            style={{ backgroundColor: hairColor, opacity: 0.8 }}
+          />
+        </>
+      );
+    }
+    if (features.hairVariant === "afro") {
+      return (
+        <span
+          className="absolute left-1/2 -top-2 h-5 w-9 -translate-x-1/2 rounded-full"
+          style={{ backgroundColor: hairColor, opacity: 0.9 }}
+        />
+      );
+    }
+    if (features.hairVariant === "spiky") {
+      return (
+        <>
+          <span
+            className="absolute left-1/2 -top-2 h-2 w-1 -translate-x-1/2 rotate-12"
+            style={{ backgroundColor: hairColor, opacity: 0.9, transformOrigin: "bottom" }}
+          />
+          <span
+            className="absolute left-1/2 -top-2 h-2 w-1 -translate-x-1/2 -rotate-12"
+            style={{ backgroundColor: hairColor, opacity: 0.9, transformOrigin: "bottom" }}
+          />
+          <span
+            className="absolute left-1/2 -top-2 h-2 w-1 -translate-x-1/2 rotate-45"
+            style={{ backgroundColor: hairColor, opacity: 0.9, transformOrigin: "bottom" }}
+          />
+          <span
+            className="absolute left-1/2 -top-2 h-2 w-1 -translate-x-1/2 -rotate-45"
+            style={{ backgroundColor: hairColor, opacity: 0.9, transformOrigin: "bottom" }}
+          />
+        </>
+      );
+    }
+    if (features.hairVariant === "messy") {
+      return (
+        <>
+          <span
+            className="absolute left-1/2 -top-1 h-3 w-8 -translate-x-1/2 rounded-t-full"
+            style={{ backgroundColor: hairColor, opacity: 0.9 }}
+          />
+          <span
+            className="absolute left-1/2 -top-1 h-2 w-2 -translate-x-[200%] rotate-12 rounded-full"
+            style={{ backgroundColor: hairColor, opacity: 0.8 }}
+          />
+          <span
+            className="absolute left-1/2 -top-1 h-2 w-2 translate-x-[100%] -rotate-12 rounded-full"
+            style={{ backgroundColor: hairColor, opacity: 0.8 }}
+          />
+        </>
+      );
+    }
+  };
+
   const renderBodyPattern = () => {
     if (features.bodyPattern === "plain") return null;
     if (features.bodyPattern === "stripes") {
@@ -474,6 +622,7 @@ const WalletAvatar = ({ address, size = 40, className }: WalletAvatarProps) => {
             style={characterStyle}
           >
             <div className="relative">
+              {renderHair()}
               {features.earVariant === "mouse" && (
                 <>
                   <span
