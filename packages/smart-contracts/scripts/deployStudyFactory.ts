@@ -24,7 +24,7 @@ async function main() {
   console.log(`   Balance: ${balanceEth.toFixed(4)} ETH`);
 
   if (balanceEth < 0.01) {
-    console.log("WARNING: Low balance! You may need more ETH for deployment.");
+    console.log("  WARNING: Low balance! You may need more ETH for deployment.");
     console.log("   Get Sepolia ETH from: https://sepoliafaucet.com/");
   }
 
@@ -93,6 +93,6 @@ async function main() {
 main()
   .then(() => process.exit(0))
   .catch((error) => {
-    console.error("Deployment failed:", error);
+    console.error(" Deployment failed:", error);
     process.exit(1);
   });
