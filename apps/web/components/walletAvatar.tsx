@@ -12,15 +12,16 @@ interface WalletAvatarProps {
 const FACE_TONES = ["#F5E0FF", "#DCFCE7", "#E0F2FE", "#FDE2E4", "#FBD5D5", "#FFE0CC"];
 const BODY_TONES = ["#132D46", "#0B1F3A", "#111827", "#0F172A"];
 
-type EarVariant = "bunny" | "cat" | "antenna";
+type EarVariant = "bunny" | "cat" | "antenna" | "dog" | "mouse";
 type EyeVariant = "dot" | "arc" | "spark";
-type ExpressionVariant = "smile" | "laugh" | "calm" | "wow";
+type ExpressionVariant = "smile" | "laugh" | "calm" | "wow" | "grin" | "frown";
 type PetVariant = "spark" | "pill" | "shield" | "heart";
-type HeadShape = "circle" | "squircle" | "roundedSquare";
-type BodyPattern = "plain" | "stripes" | "sash" | "signals";
+type HeadShape = "circle" | "squircle" | "roundedSquare" | "oval";
+type BodyPattern = "plain" | "stripes" | "sash" | "signals" | "dots" | "checks";
 type CollarVariant = "round" | "v" | "tech";
 type CheekStyle = "solid" | "ring";
 type ForeheadMark = "none" | "dot" | "bar";
+type GlassesVariant = "none" | "round" | "square" | "aviator";
 
 const HEAD_SHAPE_CONFIG: Record<HeadShape, CSSProperties> = {
   circle: { borderRadius: "50%" },
@@ -95,6 +96,9 @@ const WalletAvatar = ({ address, size = 40, className }: WalletAvatarProps) => {
     const bobDuration = 3.5 + (hash % 35) / 10;
     const cheekTone = `${theme.accent}55`;
     const sparkleDelay = (hash % 5) * 0.4;
+    const glassesVariant = ["aviator", "square", "round", "none"][
+      Math.abs((hash >> 17) % 4)
+    ] as GlassesVariant;
     return {
       face,
       body,
@@ -115,6 +119,7 @@ const WalletAvatar = ({ address, size = 40, className }: WalletAvatarProps) => {
       bobDuration,
       cheekTone,
       sparkleDelay,
+      glassesVariant,
     };
   }, [theme.hash, theme.accent]);
 
@@ -223,6 +228,44 @@ const WalletAvatar = ({ address, size = 40, className }: WalletAvatarProps) => {
         style={{ backgroundColor: features.cheekTone }}
       />
     );
+  };
+
+  const renderGlasses = () => {
+    if (features.glassesVariant === "none") return null;
+    const baseClass = "absolute border border-slate-900/50";
+    if (features.glassesVariant === "round") {
+      return (
+        <>
+          <span className={`${baseClass} left-2 top-4 h-3 w-3 rounded-full`} />
+          <span className={`${baseClass} right-2 top-4 h-3 w-3 rounded-full`} />
+          <span className="absolute left-1/2 top-5 w-2 h-0.5 -translate-x-1/2 bg-slate-900/50" />
+        </>
+      );
+    }
+    if (features.glassesVariant === "square") {
+      return (
+        <>
+          <span className={`${baseClass} left-2 top-4 h-3 w-3 rounded`} />
+          <span className={`${baseClass} right-2 top-4 h-3 w-3 rounded`} />
+          <span className="absolute left-1/2 top-5 w-2 h-0.5 -translate-x-1/2 bg-slate-900/50" />
+        </>
+      );
+    }
+    if (features.glassesVariant === "aviator") {
+      return (
+        <>
+          <span
+            className={`${baseClass} left-1.5 top-4 h-3 w-4 rounded-full`}
+            style={{ borderRadius: "50% 50% 50% 20%" }}
+          />
+          <span
+            className={`${baseClass} right-1.5 top-4 h-3 w-4 rounded-full`}
+            style={{ borderRadius: "50% 50% 20% 50%" }}
+          />
+          <span className="absolute left-1/2 top-5 w-3 h-0.5 -translate-x-1/2 bg-slate-900/50" />
+        </>
+      );
+    }
   };
 
   const renderBodyPattern = () => {
@@ -371,17 +414,6 @@ const WalletAvatar = ({ address, size = 40, className }: WalletAvatarProps) => {
                   ...HEAD_SHAPE_CONFIG[features.headShape],
                 }}
               >
-                {features.foreheadMark !== "none" && (
-                  <span
-                    className="absolute left-1/2 top-2 -translate-x-1/2 rounded-full"
-                    style={{
-                      width: features.foreheadMark === "dot" ? 6 : 12,
-                      height: features.foreheadMark === "dot" ? 6 : 2,
-                      backgroundColor: theme.accentMuted,
-                      boxShadow: `0 0 6px ${theme.accent}`,
-                    }}
-                  />
-                )}
                 {renderCheek("left")}
                 {renderCheek("right")}
                 {features.hasFreckles && (
@@ -394,6 +426,7 @@ const WalletAvatar = ({ address, size = 40, className }: WalletAvatarProps) => {
                 )}
                 {renderEye("left")}
                 {renderEye("right")}
+                {renderGlasses()}
                 {mouthElement}
               </div>
             </div>
