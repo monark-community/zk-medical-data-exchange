@@ -80,7 +80,7 @@ export async function updateUser(req: Request, res: Response) {
       logger?.error({ walletAddress }, "User update returned null");
 
       if (newUsername) {
-        await auditService
+        auditService
           .logUsernameChange(walletAddress, oldUsername, newUsername, false, {
             reason: "update_returned_null",
             userAgent,
@@ -96,7 +96,7 @@ export async function updateUser(req: Request, res: Response) {
     }
 
     if (newUsername && newUsername !== oldUsername) {
-      await auditService
+      auditService
         .logUsernameChange(walletAddress, oldUsername, newUsername, true, {
           userAgent,
           ipAddress,
@@ -114,7 +114,7 @@ export async function updateUser(req: Request, res: Response) {
 
     if (updateData?.username && typeof updateData.username === "string") {
       const newUsername = updateData.username;
-      await auditService
+      auditService
         .logUsernameChange(walletAddress!, "", newUsername, false, {
           error: err.message || "Unknown error",
           userAgent,
