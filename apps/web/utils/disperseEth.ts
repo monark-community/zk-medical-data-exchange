@@ -47,8 +47,8 @@ export async function disperseEthEqual({
     value: total,
     chainId: sepolia.id,
     account: account.address,
-    maxFeePerGas: BigInt("50000000000"),
-    maxPriorityFeePerGas: BigInt("10000000000"),
+    maxFeePerGas: BigInt(1_000_000_000),
+    maxPriorityFeePerGas: BigInt(2_000_000_000),
   });
 
   const receipt = await waitForTransactionReceipt(config, { hash, chainId: sepolia.id });
