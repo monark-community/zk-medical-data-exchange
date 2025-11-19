@@ -233,21 +233,42 @@ const WalletAvatar = ({ address, size = 40, className }: WalletAvatarProps) => {
   const renderGlasses = () => {
     if (features.glassesVariant === "none") return null;
     const baseClass = "absolute border border-slate-900/50";
+    const eyeTop = features.eyeVariant === "arc" ? 22 : 20;
+    const glassesTop = eyeTop - 4; // 4px above eyes
+    const bridgeTop = glassesTop + 4; // 4px below glasses
     if (features.glassesVariant === "round") {
       return (
         <>
-          <span className={`${baseClass} left-2 top-4 h-3 w-3 rounded-full`} />
-          <span className={`${baseClass} right-2 top-4 h-3 w-3 rounded-full`} />
-          <span className="absolute left-1/2 top-5 w-2 h-0.5 -translate-x-1/2 bg-slate-900/50" />
+          <span
+            className={`${baseClass} left-2 h-3 w-3 rounded-full`}
+            style={{ top: `${glassesTop}px` }}
+          />
+          <span
+            className={`${baseClass} right-2 h-3 w-3 rounded-full`}
+            style={{ top: `${glassesTop}px` }}
+          />
+          <span
+            className="absolute left-1/2 w-2 h-0.5 -translate-x-1/2 bg-slate-900/50"
+            style={{ top: `${bridgeTop}px` }}
+          />
         </>
       );
     }
     if (features.glassesVariant === "square") {
       return (
         <>
-          <span className={`${baseClass} left-2 top-4 h-3 w-3 rounded`} />
-          <span className={`${baseClass} right-2 top-4 h-3 w-3 rounded`} />
-          <span className="absolute left-1/2 top-5 w-2 h-0.5 -translate-x-1/2 bg-slate-900/50" />
+          <span
+            className={`${baseClass} left-2 h-3 w-3 rounded`}
+            style={{ top: `${glassesTop}px` }}
+          />
+          <span
+            className={`${baseClass} right-2 h-3 w-3 rounded`}
+            style={{ top: `${glassesTop}px` }}
+          />
+          <span
+            className="absolute left-1/2 w-2 h-0.5 -translate-x-1/2 bg-slate-900/50"
+            style={{ top: `${bridgeTop}px` }}
+          />
         </>
       );
     }
@@ -255,14 +276,17 @@ const WalletAvatar = ({ address, size = 40, className }: WalletAvatarProps) => {
       return (
         <>
           <span
-            className={`${baseClass} left-1.5 top-4 h-3 w-4 rounded-full`}
-            style={{ borderRadius: "50% 50% 50% 20%" }}
+            className={`${baseClass} left-1.5 h-3 w-4 rounded-full`}
+            style={{ top: `${glassesTop}px`, borderRadius: "50% 50% 50% 20%" }}
           />
           <span
-            className={`${baseClass} right-1.5 top-4 h-3 w-4 rounded-full`}
-            style={{ borderRadius: "50% 50% 20% 50%" }}
+            className={`${baseClass} right-1.5 h-3 w-4 rounded-full`}
+            style={{ top: `${glassesTop}px`, borderRadius: "50% 50% 20% 50%" }}
           />
-          <span className="absolute left-1/2 top-5 w-3 h-0.5 -translate-x-1/2 bg-slate-900/50" />
+          <span
+            className="absolute left-1/2 w-3 h-0.5 -translate-x-1/2 bg-slate-900/50"
+            style={{ top: `${bridgeTop}px` }}
+          />
         </>
       );
     }
