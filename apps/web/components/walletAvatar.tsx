@@ -98,12 +98,12 @@ const WalletAvatar = ({ address, size = 40, className }: WalletAvatarProps) => {
       <div className={`absolute inset-0 rounded-full bg-gradient-to-br ${theme.gradient}`} />
       <div className="relative flex h-full w-full items-center justify-center overflow-visible">
         <div
-          className="relative flex h-full w-full flex-col items-center justify-end"
+          className="absolute left-1/2 top-1/2"
           style={{
             width: BASE_SIZE,
             height: BASE_SIZE,
-            transform: `scale(${scale})`,
-            transformOrigin: "center bottom",
+            transform: `translate(-50%, -50%) scale(${scale})`,
+            transformOrigin: "center",
           }}
         >
           <div
