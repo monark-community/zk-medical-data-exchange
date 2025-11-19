@@ -5,6 +5,7 @@ import type { StudyCriteria } from "@zk-medical/shared";
 import logger from "@/utils/logger";
 import { Config } from "@/config/config";
 import { STUDY_ABI, STUDY_FACTORY_ABI, MEDICAL_ELIGIBILITY_VERIFIER_ABI } from "../contracts/generated";
+import { BIN_COUNT, MEDICAL_ELIGIBILITY_PUBSIGNALS_LENGTH } from "@/services/constants/signals";
 
 export interface StudyDeploymentParams {
   title: string;
@@ -83,6 +84,25 @@ export class StudyService {
       },
       "Study service initialized"
     );
+  }
+
+  private normalizeChallenge(challenge?: string): string {
+    if (!challenge) {
+      return `0x${"0".repeat(64)}`;
+    }
+
+    const hexWithoutPrefix = challenge.startsWith("0x") ? challenge.slice(2) : challenge;
+
+    if (!/^[0-9a-fA-F]*$/.test(hexWithoutPrefix)) {
+      throw new Error("Challenge must be a hex string");
+    }
+
+    if (hexWithoutPrefix.length > 64) {
+      throw new Error("Challenge must be at most 32 bytes");
+    }
+
+    const padded = hexWithoutPrefix.padStart(64, "0").toLowerCase();
+    return `0x${padded}`;
   }
 
   private async executeContractTransaction(
@@ -628,7 +648,7 @@ export class StudyService {
    * @param challenge Random challenge from backend
    * @returns Transaction hash if successful
    */
-  async registerCommitmentOnChain(
+    async registerCommitmentOnChain(
     contractAddress: string,
     participantWallet: string,
     dataCommitment: string,
@@ -645,13 +665,13 @@ export class StudyService {
         {
           contractAddress,
           participantWallet,
-          dataCommitment: dataCommitment.substring(0, 20) + "...",
-          challenge: challenge.substring(0, 20) + "...",
+          dataCommitment: dataCommitment.slice(0, 20) + "...",
+          challenge: challenge.slice(0, 20) + "...",
         },
         "Registering commitment on blockchain"
       );
 
-      const challengeBytes32 = challenge.startsWith("0x") ? challenge : `0x${challenge}`;
+      const challengeBytes32 = this.normalizeChallenge(challenge);
 
       const commitmentBigInt = BigInt(dataCommitment);
 
@@ -672,34 +692,95 @@ export class StudyService {
         "registerCommitment - values being sent to contract"
       );
 
-      const simulationResult = await this.publicClient.simulateContract({
-        account: this.account,
-        address: contractAddress as `0x${string}`,
-        abi: STUDY_ABI,
-        functionName: "registerCommitment",
-        args: [commitmentBigInt, challengeBytes32, participantWallet as `0x${string}`],
-      });
+      let simulationResult;
+      try {
+        simulationResult = await this.publicClient.simulateContract({
+          account: this.account,
+          address: contractAddress as `0x${string}`,
+          abi: STUDY_ABI,
+          functionName: "registerCommitment",
+          args: [commitmentBigInt, challengeBytes32, participantWallet as `0x${string}`],
+        });
 
-      logger.info(
-        {
-          gasEstimate: simulationResult.request.gas?.toString(),
-        },
-        "Commitment registration simulation successful"
-      );
+        logger.info(
+          { gasEstimate: simulationResult.request.gas?.toString() },
+          "Commitment registration simulation successful"
+        );
+      } catch (simErr) {
+        logger.error(
+          {
+            error: simErr instanceof Error ? simErr.message : simErr,
+            participantWallet,
+            contractAddress,
+          },
+          "Simulation failed for registerCommitment()"
+        );
 
-      const transactionHash = await this.walletClient.writeContract(simulationResult.request);
-
-      logger.info({ transactionHash }, "Commitment registration transaction submitted");
-
-      const receipt = await this.publicClient.waitForTransactionReceipt({
-        hash: transactionHash,
-      });
-
-      if (receipt.status === "reverted") {
-        logger.error({ transactionHash }, "Commitment registration transaction reverted");
-        throw new Error("Transaction reverted - commitment may already exist");
+        return {
+          success: false,
+          error: "Simulation failed — commitment likely already registered",
+        };
       }
 
+      let transactionHash;
+      try {
+        transactionHash = await this.walletClient.writeContract(simulationResult.request);
+        logger.info({ transactionHash }, "Commitment registration transaction submitted");
+      } catch (txErr) {
+        logger.error(
+          {
+            error: txErr instanceof Error ? txErr.message : txErr,
+            participantWallet,
+            contractAddress,
+          },
+          "Failed to submit commitment transaction"
+        );
+
+        return {
+          success: false,
+          error: "Transaction submission failed — check gas or duplicate commitment",
+        };
+      }
+
+      let receipt;
+      try {
+        receipt = await this.publicClient.waitForTransactionReceipt({
+          hash: transactionHash,
+        });
+      } catch (waitErr) {
+        const msg =
+          waitErr instanceof Error && waitErr.message.includes("timeout")
+            ? "Transaction timeout — network slow or stuck"
+            : "Failed to confirm transaction";
+
+        logger.error(
+          {
+            error: waitErr instanceof Error ? waitErr.message : waitErr,
+            transactionHash,
+            participantWallet,
+          },
+          "Timeout or failure waiting for transaction receipt"
+        );
+
+        return {
+          success: false,
+          error: msg,
+        };
+      }
+
+      if (receipt.status === "reverted") {
+        logger.error(
+          { transactionHash },
+          "Commitment registration transaction reverted"
+        );
+
+        return {
+          success: false,
+          error: "Transaction reverted — commitment may already exist",
+        };
+      }
+
+      // SUCCESS
       logger.info(
         {
           transactionHash,
@@ -715,15 +796,24 @@ export class StudyService {
       };
     } catch (error) {
       logger.error(
-        { error, contractAddress, participantWallet },
-        "Failed to register commitment on blockchain"
+        {
+          error,
+          contractAddress,
+          participantWallet,
+        },
+        "Unhandled error in registerCommitmentOnChain"
       );
+
       return {
         success: false,
-        error: error instanceof Error ? error.message : "Unknown error registering commitment",
+        error:
+          error instanceof Error
+            ? error.message
+            : "Unknown error registering commitment",
       };
     }
   }
+
 
   async joinBlockchainStudy(
     contractAddress: string,
@@ -736,13 +826,12 @@ export class StudyService {
     dataCommitment: string,
     challenge: string,
     binIds?: string[],
-    publicInputsJson?: string[]
+    publicInputsJson: string[]
   ) {
     await this.initialize();
 
     let blockchainTxHash = null;
     if (contractAddress) {
-      try {
         const blockchainResult = await this.sendParticipationToBlockchain(
           contractAddress,
           participantWallet,
@@ -753,38 +842,22 @@ export class StudyService {
           publicInputsJson
         );
 
-        if (blockchainResult.success) {
-          blockchainTxHash = blockchainResult.transactionHash;
-          logger.info(
-            {
-              participantWallet,
-              txHash: blockchainTxHash,
-              binCount: binIds?.length || 0,
-            },
-            "Participation recorded on blockchain successfully"
-          );
-        } else {
-          logger.error(
-            {
-              error: blockchainResult.error,
-              participantWallet,
-            },
-            "Failed to record participation on blockchain - continuing anyway"
-          );
-        }
-      } catch (blockchainError) {
-        logger.error(
+      if (blockchainResult.success) {
+        blockchainTxHash = blockchainResult.transactionHash;
+        logger.info(
           {
-            error: blockchainError,
             participantWallet,
+            txHash: blockchainTxHash,
+            publicInputsJsonLength: publicInputsJson.length,
           },
-          "Error during blockchain participation recording"
+          "Participation recorded on blockchain successfully"
         );
+      } else {
+        throw new Error(blockchainResult.error || "Unknown error recording participation on blockchain");
       }
     } else {
       logger.info("Study has no blockchain address - skipping blockchain recording");
     }
-
     return blockchainTxHash;
   }
 
@@ -795,12 +868,32 @@ export class StudyService {
     dataCommitment: string,
     challenge: string,
     binIds: string[] = [],
-    publicInputsJson?: string[]
+    publicInputsJson: string[]
   ): Promise<{ success: boolean; transactionHash?: string; error?: string }> {
     await this.initialize();
 
+    if (!this.publicClient || !this.walletClient) {
+      logger.error("Blockchain client not initialized");
+      return { success: false, error: "Blockchain client not initialized" };
+    }
+
+    const validationError = this.validatePublicInputs(publicInputsJson);
+
+    if (validationError) {
+      logger.error(
+        {
+          studyAddress,
+          participantWallet,
+          publicInputsJsonLength: publicInputsJson?.length ?? 0,
+          error: validationError,
+        },
+        "Invalid public inputs passed to sendParticipationToBlockchain"
+      );
+      return { success: false, error: validationError };
+    }
+
     logger.info(
-      { studyAddress, participantWallet, dataCommitment, proof, binIds },
+      { studyAddress, participantWallet, dataCommitment, proof, publicInputsJsonLength: publicInputsJson.length },
       "Recording study participation on blockchain"
     );
 
@@ -835,106 +928,53 @@ export class StudyService {
         );
       }
 
-      logger.info({ pA, pB, pC, commitment }, "Proof converted to BigInt format");
-
       try {
-        const r = BigInt("21888242871839275222246405745257275088548364400416034343698204186575808495617");
-        const withinField = commitment < r;
+        const zkVerifierAddress = await this.publicClient.readContract({
+          address: studyAddress as `0x${string}`,
+          abi: STUDY_ABI,
+          functionName: "zkVerifier",
+        });
+
+        pubSignals = publicInputsJson.map(sig => BigInt(sig));
+        
         logger.info(
-          { commitment: commitment.toString(), withinField },
-          "Public signal field bound check (commitment < r)"
+          { 
+            zkVerifierAddress, 
+            pubSignalsLength: pubSignals.length,
+            dataCommitment: pubSignals[MEDICAL_ELIGIBILITY_PUBSIGNALS_LENGTH - 1]?.toString(),
+            expectedLength: MEDICAL_ELIGIBILITY_PUBSIGNALS_LENGTH
+          },
+          "Preparing verifier preflight check"
         );
-      } catch (e) {
-        logger.warn(
-          { error: e instanceof Error ? e.message : String(e) },
-          "Failed field bound check logging"
+
+        const verifierOk = await this.publicClient.readContract({
+          address: zkVerifierAddress as `0x${string}`,
+          abi: MEDICAL_ELIGIBILITY_VERIFIER_ABI,
+          functionName: "verifyProof",
+          args: [pA, pB, pC, pubSignals],
+        });
+
+        logger.info(
+          { zkVerifierAddress, verifierOk, dataCommitment: pubSignals[MEDICAL_ELIGIBILITY_PUBSIGNALS_LENGTH - 1]?.toString() || 'N/A' },
+          "Verifier preflight check result"
         );
-      }
 
+        if (!verifierOk) {
+          const msg = "Verifier preflight failed: proof/public signal mismatch (check verifier/zkey alignment and dataCommitment)";
+          logger.error({ zkVerifierAddress, studyAddress, participantWallet }, msg);
 
-      // Preflight: verify against the Study's zkVerifier directly to isolate issues
-      if (publicInputsJson && publicInputsJson.length > 0) {
-        try {
-          const zkVerifierAddress = await this.publicClient.readContract({
-            address: studyAddress as `0x${string}`,
-            abi: STUDY_ABI,
-            functionName: "zkVerifier",
-          });
-
-          pubSignals = publicInputsJson.map(sig => BigInt(sig));
-          
-          logger.info(
-            { 
-              zkVerifierAddress, 
-              pubSignalsLength: pubSignals.length,
-              dataCommitment: pubSignals[0]?.toString(),
-              expectedLength: 51
-            },
-            "Preparing verifier preflight check"
-          );
-
-          if (pubSignals.length !== 51) {
-            logger.warn(
-              { 
-                actualLength: pubSignals.length, 
-                expectedLength: 51,
-                publicInputsJson 
-              },
-              "Public signals length mismatch - expected 51 elements"
-            );
-          } else {
-            const verifierOk = await this.publicClient.readContract({
-              address: zkVerifierAddress as `0x${string}`,
-              abi: MEDICAL_ELIGIBILITY_VERIFIER_ABI,
-              functionName: "verifyProof",
-              args: [pA, pB, pC, pubSignals],
-            });
-
-            logger.info(
-              { zkVerifierAddress, verifierOk, dataCommitment: pubSignals[0]?.toString() || 'N/A' },
-              "Verifier preflight check result"
-            );
-
-            if (!verifierOk) {
-              const msg = "Verifier preflight failed: proof/public signal mismatch (check verifier/zkey alignment and dataCommitment)";
-              logger.error({ zkVerifierAddress, studyAddress, participantWallet }, msg);
-              return { success: false, error: msg };
-            }
-          }
-        } catch (preflightError) {
-          logger.warn(
-            {
-              error: preflightError instanceof Error ? preflightError.message : String(preflightError),
-              studyAddress,
-              participantWallet,
-            },
-            "Verifier preflight check encountered an error; continuing to simulateContract"
-          );
+          return { success: false, error: msg };
         }
-      } else {
+      } catch (preflightError) {
         logger.warn(
-          { studyAddress, participantWallet },
-          "No publicInputsJson provided - skipping verifier preflight check"
+          {
+            error: preflightError instanceof Error ? preflightError.message : String(preflightError),
+            studyAddress,
+            participantWallet,
+          },
+          "Verifier preflight check encountered an error; continuing to simulateContract"
         );
       }
-
-      // In test mode or when clients are not initialized, return failure
-      if (!this.publicClient || !this.walletClient) {
-        return { success: false, error: "Blockchain client not initialized" };
-      }
-
-      let challengeBytes32 = challenge 
-        ? (challenge.startsWith('0x') ? challenge : `0x${challenge}`)
-        : `0x${'0'.repeat(64)}`; 
-
-      logger.info(
-        {
-          participantWallet,
-          studyAddress,
-          binIdsReceived: binIds.length,
-        },
-        "Processing participant join - preparing bin updates"
-      );
 
       const binMembershipSignals = pubSignals.length >= 51 
         ? pubSignals.slice(0, 50)
@@ -967,6 +1007,7 @@ export class StudyService {
       );
 
       const binMembershipBigInt = binMembershipSignals.map(signal => BigInt(signal));
+      const challengeBytes32 = this.normalizeChallengeBytes32(challenge);
 
       const result = await this.executeContractTransaction(
         studyAddress,
@@ -998,6 +1039,7 @@ export class StudyService {
           { error: result.error, studyAddress, participantWallet },
           "Failed to record participation on blockchain"
         );
+        return {success: false, error: result.error };
       }
 
       return {
@@ -1005,18 +1047,72 @@ export class StudyService {
         transactionHash: result.transactionHash,
         error: result.error,
       };
-    } catch (conversionError) {
+
+    } catch (applicationError) {
       logger.error(
-        { error: conversionError, proof, dataCommitment },
-        "Failed to convert proof to BigInt"
+        { error: applicationError, proof, dataCommitment },
+        "Failed to send participation to blockchain"
       );
-      return {
-        success: false,
-        error: `Invalid proof format: ${
-          conversionError instanceof Error ? conversionError.message : "Unknown error"
-        }`,
-      };
+      throw new Error(`Failed to send participation to blockchain: ${
+        applicationError instanceof Error ? applicationError.message : "Unknown error"
+      }`);
     }
+  }
+
+    /**
+   * Basic structural validation of public inputs (no semantics yet).
+   * Returns an error message string if invalid, otherwise undefined.
+   */
+  private validatePublicInputs(publicInputsJson?: string[]): string | undefined {
+    if (!publicInputsJson || !Array.isArray(publicInputsJson)) {
+      return "No public inputs provided for verifier";
+    }
+
+    if (publicInputsJson.length !== MEDICAL_ELIGIBILITY_PUBSIGNALS_LENGTH) {
+      return `Invalid public inputs length: expected ${MEDICAL_ELIGIBILITY_PUBSIGNALS_LENGTH}, got ${publicInputsJson.length}`;
+    }
+
+    for (let i = 0; i < publicInputsJson.length; i++) {
+      const raw = publicInputsJson[i];
+      if (typeof raw !== "string") {
+        return `Public input at index ${i} is not a string`;
+      }
+      const trimmed = raw.trim();
+      if (!/^[0-9]+$/.test(trimmed)) {
+        return `Public input at index ${i} must be a base-10 integer string`;
+      }
+    }
+
+    return undefined;
+  }
+
+    /**
+   * Normalize a challenge string to a valid bytes32 (`0x` + 64 hex chars).
+   * If no challenge is provided, returns 0x00..00.
+   */
+  private normalizeChallengeBytes32(challenge?: string): `0x${string}` {
+
+    if (!challenge) {
+      return `0x${"0".repeat(64)}`;
+    }
+
+    let hex = challenge.trim();
+
+    if (hex.startsWith("0x") || hex.startsWith("0X")) {
+      hex = hex.slice(2);
+    }
+
+    if (!/^[0-9a-fA-F]+$/.test(hex)) {
+      throw new Error("Invalid challenge: must be hex");
+    }
+
+    if (hex.length > 64) {
+      throw new Error("Invalid challenge: hex string too long for bytes32");
+    }
+
+    const padded = hex.padStart(64, "0");
+
+    return (`0x${padded}`) as `0x${string}`;
   }
 
   async revokeStudyConsent(
@@ -1300,3 +1396,6 @@ export class StudyService {
 }
 
 export const studyService = new StudyService();
+
+
+

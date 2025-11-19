@@ -1146,7 +1146,7 @@ export const generateDataCommitmentChallenge = async (req: Request, res: Respons
         challengeFull: challenge,
         expiresAt: expiresAt.toISOString()
       },
-      "[CHALLENGE_REQUEST] Storing initial commitment (without challenge) to database"
+      "[CHALLENGE_REQUEST] Storing initial commitment to database"
     );
 
     const { error: commitmentError } = await req.supabase
