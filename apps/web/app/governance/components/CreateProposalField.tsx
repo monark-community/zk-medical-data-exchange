@@ -24,7 +24,7 @@ interface CreateProposalFieldProps {
 
 const CreateProposalField = ({ onSuccess }: CreateProposalFieldProps) => {
   const { address: walletAddress } = useAccount();
-  const { show, showError, hide } = useTxStatusState();
+  const { show, showError } = useTxStatusState();
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [pendingProposal, setPendingProposal] = React.useState<CreateProposalParams | null>(null);
   const [category, setCategory] = React.useState<string>("");
@@ -53,9 +53,7 @@ const CreateProposalField = ({ onSuccess }: CreateProposalFieldProps) => {
 
       if (result.success) {
         show("Proposal created successfully! ✓");
-        setTimeout(() => {
-          hide();
-        }, 3000);
+
         emitter.emit("proposalUpdated");
       } else {
         showError(result.error || "Failed to create proposal");

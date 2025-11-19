@@ -95,9 +95,6 @@ export default function VoteConfirmationDialog({
       if (result.success) {
         emitter.emit("proposalUpdated");
         show("Vote submitted successfully! ✓");
-        setTimeout(() => {
-          hide();
-        }, 3000);
       } else {
         showError(normalizeVoteError(result.error) || "Failed to submit vote");
       }
@@ -198,7 +195,4 @@ export default function VoteConfirmationDialog({
       </DialogContent>
     </Dialog>
   );
-}
-function hide() {
-  throw new Error("Function not implemented.");
 }
