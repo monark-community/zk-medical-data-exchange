@@ -483,8 +483,8 @@ export class StudyService {
       }
 
       const transactionHash = await this.walletClient.writeContract(request, {
-        maxFeePerGas: BigInt(1_000_000_000),
-        maxPriorityFeePerGas: BigInt(2_000_000_000),
+        maxFeePerGas: BigInt("100000000000"),
+        maxPriorityFeePerGas: BigInt("10000000000"),
       });
 
       logger.info({ transactionHash }, "Study deployment transaction submitted");
@@ -698,8 +698,8 @@ export class StudyService {
           abi: STUDY_ABI,
           functionName: "registerCommitment",
           args: [commitmentBigInt, challengeBytes32, participantWallet as `0x${string}`],
-          maxFeePerGas: BigInt(1_000_000_000),
-          maxPriorityFeePerGas: BigInt(2_000_000_000),
+          maxFeePerGas: BigInt("100000000000"),
+          maxPriorityFeePerGas: BigInt("10000000000"),
         });
 
         logger.info(
@@ -725,8 +725,8 @@ export class StudyService {
       let transactionHash;
       try {
         transactionHash = await this.walletClient.writeContract(simulationResult.request, {
-          maxFeePerGas: BigInt(1_000_000_000),
-          maxPriorityFeePerGas: BigInt(2_000_000_000),
+          maxFeePerGas: BigInt("100000000000"),
+          maxPriorityFeePerGas: BigInt("10000000000"),
         });
         logger.info({ transactionHash }, "Commitment registration transaction submitted");
       } catch (txErr) {
