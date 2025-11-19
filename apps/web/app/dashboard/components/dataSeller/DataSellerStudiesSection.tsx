@@ -81,6 +81,16 @@ export default function DataSellerStudiesSection() {
     }
   }, [walletAddress]);
 
+  useEffect(() => {
+    eventBus.on("studyCreated", refetch);
+    eventBus.on("studyDeleted", refetch);
+
+    return () => {
+      eventBus.off("studyCreated", refetch);
+      eventBus.off("studyDeleted", refetch);
+    };
+  }, [refetch]);
+
   const handleApplyToStudy = async (studyId: number) => {
     if (!walletAddress) {
       showError("Wallet not connected");
