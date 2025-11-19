@@ -271,7 +271,7 @@ const ProfileCard = () => {
                 <div>
                   <p className="font-semibold text-gray-900">Transaction Ledger</p>
                   <p className="text-sm text-gray-500">
-                    Detailed on-chain history for audits or reimbursements.
+                    Detailed on-chain history for studies compensations.
                   </p>
                 </div>
                 <Button
