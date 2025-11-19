@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   createCriteria,
@@ -338,8 +337,6 @@ const StudyCreationForm = ({ onSuccess, isModal = false }: StudyCreationFormProp
 
   const { address: walletAddress, isConnected } = useAccount();
 
-  const router = useRouter();
-
   const { createStudy: createStudyApi } = useCreateStudy();
   const resetForm = () => {
     setStudyInfo(DEFAULT_STUDY_INFO);
@@ -372,7 +369,7 @@ const StudyCreationForm = ({ onSuccess, isModal = false }: StudyCreationFormProp
 
   useEffect(() => {
     try {
-      const generatedBins = generateBinsFromCriteria(criteria, 0);
+      const generatedBins = generateBinsFromCriteria(criteria);
       setBinConfig(generatedBins);
     } catch (error) {
       console.error("Error generating bins:", error);
