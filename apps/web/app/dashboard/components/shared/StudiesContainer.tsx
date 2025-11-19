@@ -24,13 +24,15 @@ export default function StudiesContainer({
   children,
 }: StudiesContainerProps) {
   return (
-    <div className="px-6 pb-6">
-      <div className="max-h-[360px] overflow-y-auto border rounded-lg bg-gray-50/50">
+    <div className="px-4 sm:px-6 pb-4 sm:pb-6">
+      <div className="max-h-[500px] sm:max-h-[360px] overflow-y-auto border rounded-lg bg-gray-50/50">
         {error ? (
-          <div className="p-12 text-center">
-            <AlertTriangle className="h-12 w-12 text-red-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-red-900 mb-2">Error loading studies</h3>
-            <p className="text-red-600 mb-6">{error}</p>
+          <div className="p-8 sm:p-12 text-center">
+            <AlertTriangle className="h-10 w-10 sm:h-12 sm:w-12 text-red-400 mx-auto mb-4" />
+            <h3 className="text-base sm:text-lg font-medium text-red-900 mb-2">
+              Error loading studies
+            </h3>
+            <p className="text-sm sm:text-base text-red-600 mb-4 sm:mb-6">{error}</p>
             <Button
               onClick={onRetry}
               variant="outline"
@@ -40,18 +42,20 @@ export default function StudiesContainer({
             </Button>
           </div>
         ) : isLoading ? (
-          <div className="p-12 text-center">
-            <Spinner className="size-12 text-blue-600 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Loading studies...</h3>
-            <p className="text-gray-600">Fetching medical research studies</p>
+          <div className="p-8 sm:p-12 text-center">
+            <Spinner className="size-10 sm:size-12 text-blue-600 mx-auto mb-4" />
+            <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">
+              Loading studies...
+            </h3>
+            <p className="text-sm sm:text-base text-gray-600">Fetching medical research studies</p>
           </div>
         ) : studies.length === 0 ? (
-          <div className="p-12 text-center">
-            <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
+          <div className="p-8 sm:p-12 text-center">
+            <BookOpen className="h-10 w-10 sm:h-12 sm:w-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">
               {emptyState?.title || "No studies available"}
             </h3>
-            <p className="text-gray-600 mb-6">
+            <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6">
               {emptyState?.description || "There are no studies to display."}
             </p>
             {emptyState?.action}

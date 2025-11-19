@@ -2,8 +2,10 @@ import { Proposal, ProposalCategory } from "@/interfaces/proposal";
 import { CircleCheck, CircleMinus, CircleX, Hourglass } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAccount } from "wagmi";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import VoteConfirmationDialog from "@/app/governance/components/VoteConfirmationDialog";
+import { useTxStatusState } from "@/hooks/useTxStatus";
+import { getPlatformUserCount } from "@/services/api/userService";
 
 interface ProposalCardProps {
   proposalInfo: Proposal;
@@ -92,6 +94,16 @@ export default function ProposalCard({
   const { address: walletAddress } = useAccount();
   const [voteDialogOpen, setVoteDialogOpen] = useState(false);
   const [selectedVote, setSelectedVote] = useState<number>(1);
+  const { isVisible: isTxProcessing } = useTxStatusState();
+  const [platformUserCount, setPlatformUserCount] = useState<number>(0);
+
+  useEffect(() => {
+    const fetchUserCount = async () => {
+      const count = await getPlatformUserCount();
+      setPlatformUserCount(count);
+    };
+    fetchUserCount();
+  }, []);
 
   const handleVoteClick = (voteChoice: number) => {
     setSelectedVote(voteChoice);
@@ -101,26 +113,29 @@ export default function ProposalCard({
   const isProposalEnded = timeRemaining === "Ended";
   return (
     <div
-      className={` bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow ${
-        isLast ? "mb-3" : ""
+      className={`bg-white rounded-lg border border-gray-200 p-3 sm:p-4 hover:shadow-md transition-shadow ${
+        isLast ? "mb-2 sm:mb-3" : ""
       }`}
     >
-      <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between">
-        <div className="left-section flex-1 mb-4 lg:mb-0">
+      <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-3 lg:gap-4">
+        <div className="left-section flex-1">
           {/* Title and Description */}
-          <div className="mb-4">
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">{proposalInfo.title}</h3>
+          <div className="mb-2 sm:mb-3">
+            <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-1">
+              {proposalInfo.title}
+            </h3>
             <p className="text-sm text-gray-600 leading-relaxed">
               {proposalInfo.description.length > descriptionMaxLength
                 ? `${proposalInfo.description.substring(0, descriptionMaxLength)}...`
                 : proposalInfo.description}
             </p>
           </div>
+
           {/* Header with badges and proposer */}
-          <div className="flex items-start justify-start mb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0 mb-2 sm:mb-3">
             <div className="flex items-center gap-2">
               <span
-                className={`px-2.5 py-1 rounded-md text-xs font-medium ${getCategoryColor(
+                className={`px-2 py-1 sm:px-2.5 sm:py-1 rounded-md text-xs font-medium ${getCategoryColor(
                   proposalInfo.category
                 )}`}
               >
@@ -129,24 +144,19 @@ export default function ProposalCard({
               {statusBadge}
             </div>
             {/* Proposer */}
-            <div className="mb-3 pl-3">
-              <span className="text-xs text-gray-500">
-                by {shortenAddress(proposalInfo.proposer)}
+            <div className="text-xs text-gray-500">by {shortenAddress(proposalInfo.proposer)}</div>
+          </div>
+
+          {/* Voting Progress */}
+          <div className="mb-2 sm:mb-3">
+            <div className="flex items-center justify-between mb-2">
+              <span className="font-medium text-gray-700 text-sm sm:text-base">
+                Voting Progress
               </span>
             </div>
-          </div>
-          {/* Voting Progress */}
-          <div className="mb-4">
-            <div className="flex items-center justify-between mb-2 text-m">
-              <span className="font-medium text-gray-700">Voting Progress</span>
-            </div>
 
-            {/* Progress Bar  ADD if Quorum implement*/}
-
-            {/* <Progress value={voteForPercentage}  /> */}
-
-            {/* Vote Counts */}
-            <div className="flex items-center justify-between text-s">
+            {/* Vote Counts - Responsive layout */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4 text-xs sm:text-sm">
               <div className="flex items-center gap-1">
                 <div className="w-2 h-2 rounded-full bg-green-500" />
                 <span className="text-gray-700">For: {proposalInfo.votesFor.toLocaleString()}</span>
@@ -158,11 +168,11 @@ export default function ProposalCard({
                 </span>
               </div>
               <div className="flex items-center gap-1">
-                <div className="w-2 h-2 rounded-full bg-grey-500" />
+                <div className="w-2 h-2 rounded-full bg-gray-500" />
                 <span className="text-gray-700">
                   Abstain:{" "}
                   {(
-                    proposalInfo.totalVoters -
+                    platformUserCount -
                     (proposalInfo.votesAgainst + proposalInfo.votesFor)
                   ).toLocaleString()}
                 </span>
@@ -170,22 +180,27 @@ export default function ProposalCard({
             </div>
           </div>
         </div>
+
         <div className="right-section lg:ml-6 lg:flex-shrink-0 lg:w-48 w-full">
           {/* Action Buttons */}
-
-          <div className="flex flex-col w-full items-center justify-between pt-4  border-gray-100">
-            <div className="bg-gray-50 w-full rounded-lg p-4 mb-4">
-              <div className="flex items-center space-x-2 mb-2">
+          <div className="flex flex-col w-full items-center gap-2 sm:gap-3">
+            {/* Time Remaining */}
+            <div className="bg-gray-50 w-full rounded-lg p-2 sm:p-3">
+              <div className="flex items-center justify-center space-x-2 mb-1">
                 <Hourglass className="w-4 h-4" />
-                Time Left
+                <span className="text-sm font-medium">Time Left</span>
               </div>
-              <div className="text-2xl font-bold ">{formatTimeRemaining(proposalInfo.endTime)}</div>
+              <div className="text-lg sm:text-xl font-bold text-center">
+                {formatTimeRemaining(proposalInfo.endTime)}
+              </div>
             </div>
+
+            {/* Voting Section */}
             {proposalInfo.hasVoted || isProposalEnded ? (
-              <div className="flex flex-col w-full items-center gap-3">
+              <div className="flex flex-col w-full items-center gap-2">
                 {proposalInfo.userVote && [1, 2, 3].includes(proposalInfo.userVote) ? (
                   <div
-                    className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium ${
+                    className={`inline-flex items-center gap-2 px-3 py-2 rounded-full text-sm font-medium ${
                       proposalInfo.userVote === 1
                         ? "bg-green-100 text-green-800"
                         : proposalInfo.userVote === 2
@@ -201,20 +216,21 @@ export default function ProposalCard({
                     <span>You voted {getVoteLabel(proposalInfo.userVote)}</span>
                   </div>
                 ) : (
-                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md text-sm font-medium bg-gray-100 text-gray-800">
+                  <div className="inline-flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium bg-gray-100 text-gray-800">
                     <span>You didn't vote for this proposal</span>
                   </div>
                 )}
               </div>
             ) : (
-              <div className="flex flex-col w-full items-center gap-2">
+              <div className="flex flex-col w-full items-center gap-1">
                 <Button
                   onClick={() => handleVoteClick(1)}
                   variant="default"
                   size="sm"
                   className="w-full bg-green-600 hover:bg-green-700 text-white"
+                  disabled={isTxProcessing}
                 >
-                  <CircleCheck />
+                  <CircleCheck className="w-4 h-4 mr-2" />
                   Vote For
                 </Button>
                 <Button
@@ -222,25 +238,26 @@ export default function ProposalCard({
                   variant="outline"
                   size="sm"
                   className="w-full border-red-600 text-red-600 hover:bg-red-50"
+                  disabled={isTxProcessing}
                 >
-                  <CircleX />
+                  <CircleX className="w-4 h-4 mr-2" />
                   Vote Against
                 </Button>
               </div>
             )}
-
-            {/* Vote Confirmation Dialog */}
-            {walletAddress && (
-              <VoteConfirmationDialog
-                open={voteDialogOpen}
-                onOpenChange={setVoteDialogOpen}
-                voteChoice={selectedVote}
-                proposalId={proposalInfo.id}
-                proposalTitle={proposalInfo.title}
-                walletAddress={walletAddress}
-              />
-            )}
           </div>
+
+          {/* Vote Confirmation Dialog */}
+          {walletAddress && (
+            <VoteConfirmationDialog
+              open={voteDialogOpen}
+              onOpenChange={setVoteDialogOpen}
+              voteChoice={selectedVote}
+              proposalId={proposalInfo.id}
+              proposalTitle={proposalInfo.title}
+              walletAddress={walletAddress}
+            />
+          )}
         </div>
       </div>
     </div>

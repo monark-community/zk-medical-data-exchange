@@ -73,3 +73,12 @@ export const getUserStats = async (
     throw error;
   }
 };
+export const getPlatformUserCount = async (): Promise<number> => {
+  try {
+    const response = await apiClient.get("/user/count");
+    return response.data.count;
+  } catch (error: any) {
+    console.error("Error in getPlatformUserCount:", error?.response?.data || error.message);
+    throw error;
+  }
+};

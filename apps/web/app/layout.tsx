@@ -3,6 +3,7 @@ import { Metadata } from "next";
 import { cookieToWeb3AuthState } from "@web3auth/modal";
 import { headers } from "next/headers";
 import "./globals.css";
+import TxStatusOverlay from "@/components/TxStatusOverlay";
 
 export const metadata: Metadata = {
   title: "Cura",
@@ -16,6 +17,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang="en">
       <body>
         <Provider web3authInitialState={web3authInitialState}>{children}</Provider>
+        <TxStatusOverlay />
       </body>
     </html>
   );

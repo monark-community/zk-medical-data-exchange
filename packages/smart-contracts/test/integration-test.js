@@ -11,7 +11,7 @@ import { network } from "hardhat";
 
 async function generateFreshProof() {
   return new Promise((resolve, reject) => {
-    console.log("🔄 Generating fresh proof...");
+  console.log("Generating fresh proof...");
 
     const circuitsDir = path.join(process.cwd(), "circuits");
     const testScript = spawn("node", ["test_proof.js"], {
@@ -53,7 +53,7 @@ async function generateFreshProof() {
               publicSignals: JSON.parse(`[${publicStr}]`).map((x) => BigInt(x)),
             };
 
-            console.log("   ✅ Proof generated successfully");
+            console.log("   Proof generated successfully");
             resolve(proof);
           } catch (parseError) {
             console.log("Raw output:", output);
@@ -76,7 +76,7 @@ async function generateFreshProof() {
 }
 
 async function runIntegrationTest() {
-  console.log("🔗 ZK Medical Eligibility - Integration Test");
+  console.log("ZK Medical Eligibility - Integration Test");
   console.log("=".repeat(60));
 
   try {
@@ -84,13 +84,13 @@ async function runIntegrationTest() {
     const freshProof = await generateFreshProof();
 
     // Step 2: Deploy the verifier contract
-    console.log("\n🚀 Deploying verifier contract...");
+  console.log("\nDeploying verifier contract...");
     const { viem } = await network.connect();
     const verifier = await viem.deployContract("Groth16Verifier");
-    console.log(`   ✅ Deployed at: ${verifier.address}`);
+  console.log(`   Deployed at: ${verifier.address}`);
 
     // Step 3: Test the fresh proof
-    console.log("\n🔍 Testing fresh proof...");
+  console.log("\nTesting fresh proof...");
     console.log(`   Public signal: ${freshProof.publicSignals[0]}`);
 
     const result = await verifier.read.verifyProof([
@@ -103,14 +103,14 @@ async function runIntegrationTest() {
     console.log(`   Verification result: ${result}`);
 
     if (result === true) {
-      console.log("   ✅ PASS: Fresh proof verified successfully!");
+      console.log("   PASS: Fresh proof verified successfully!");
     } else {
-      console.log("   ❌ FAIL: Fresh proof verification failed");
+      console.log("   FAIL: Fresh proof verification failed");
       return;
     }
 
     // Step 4: Test gas consumption with fresh proof
-    console.log("\n⛽ Measuring gas consumption...");
+  console.log("\nMeasuring gas consumption...");
     const publicClient = await viem.getPublicClient();
     const gasEstimate = await publicClient.estimateContractGas({
       address: verifier.address,
@@ -127,20 +127,20 @@ async function runIntegrationTest() {
     );
 
     console.log("\n" + "=".repeat(60));
-    console.log("🎉 INTEGRATION TEST PASSED!");
-    console.log("\n📋 Test Results:");
-    console.log("✅ Fresh proof generated from circuit");
-    console.log("✅ Verifier contract deployed");
-    console.log("✅ Fresh proof verified on-chain");
+    console.log("INTEGRATION TEST PASSED!");
+    console.log("\nTest Results:");
+    console.log("Fresh proof generated from circuit");
+    console.log("Verifier contract deployed");
+    console.log("Fresh proof verified on-chain");
     console.log(
-      `✅ Gas consumption: ${gasEstimate} (${((Number(gasEstimate) / 1000000) * 100).toFixed(
+      `Gas consumption: ${gasEstimate} (${((Number(gasEstimate) / 1000000) * 100).toFixed(
         2
       )}% of block limit)`
     );
-    console.log("\n🔒 Privacy preserved: Only eligibility result is public");
-    console.log("🚀 Ready for production deployment");
+    console.log("\nPrivacy preserved: Only eligibility result is public");
+    console.log("Ready for production deployment");
   } catch (error) {
-    console.error("\n❌ Integration test failed:", error.message);
+    console.error("\nIntegration test failed:", error.message);
     console.error(error);
     process.exit(1);
   }

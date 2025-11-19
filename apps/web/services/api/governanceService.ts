@@ -8,6 +8,7 @@ export const getProposals = async (walletAddress?: string): Promise<Proposal[]> 
 
   return data.data;
 };
+
 export const getProposalsByWalletAddress = async (walletAddress: string): Promise<Proposal[]> => {
   const { data } = await apiClient.get(`/governance/users/${walletAddress}/proposals`);
 
@@ -46,4 +47,19 @@ export const vote = async (
     const errorMessage = error.response?.data?.error || error.message || "Network error";
     return { success: false, error: errorMessage };
   }
+};
+
+export interface GovernanceStats {
+  totalProposals: number;
+  activeProposals: number;
+  avgParticipation: number;
+  uniqueVoters: number;
+  votingPower: number;
+  totalVotes: number;
+}
+
+export const getStats = async (): Promise<GovernanceStats> => {
+  const { data } = await apiClient.get(`/governance/stats`);
+  console.log("Governance stats response data:", data);
+  return data.data;
 };

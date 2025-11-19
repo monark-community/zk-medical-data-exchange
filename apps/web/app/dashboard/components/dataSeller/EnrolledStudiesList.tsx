@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import StudiesList from "@/app/dashboard/components/shared/StudiesList";
 import { Spinner } from "@/components/ui/spinner";
 import { modifyStudiesForCompletion } from "@/utils/studyUtils";
+import { useState } from "react";
+import { CustomConfirmAlert } from "@/components/alert/CustomConfirmAlert";
 
 interface EnrolledStudiesListProps {
   studies: StudySummary[];
@@ -14,6 +16,7 @@ interface EnrolledStudiesListProps {
   revokingStudyId: number | null;
   grantingStudyId: number | null;
   walletAddress?: string;
+  isTxProcessing?: boolean;
 }
 
 export default function EnrolledStudiesList({
@@ -23,7 +26,11 @@ export default function EnrolledStudiesList({
   revokingStudyId,
   grantingStudyId,
   walletAddress,
+  isTxProcessing = false,
 }: EnrolledStudiesListProps) {
+  const [revokeStudyId, setRevokeStudyId] = useState<number | null>(null);
+  const [grantStudyId, setGrantStudyId] = useState<number | null>(null);
+
   const modifiedStudies = modifyStudiesForCompletion(studies);
 
   const renderActionButtons = (study: StudySummary) => {
@@ -38,7 +45,7 @@ export default function EnrolledStudiesList({
     const isCompleted = (endDate ? new Date() > endDate : false) || study.status === "completed";
 
     return (
-      <div className="flex items-center gap-2">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-2">
         {/* Consent Status Indicator */}
         <div className="flex items-center gap-1.5 text-xs">
           {hasConsent ? (
@@ -54,104 +61,130 @@ export default function EnrolledStudiesList({
           )}
         </div>
 
-        {/* Revoke Button - Only show if consent is active and study is not completed */}
-        {hasConsent && !isCompleted && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={(e) => {
-              e.stopPropagation();
-              if (
-                window.confirm(
-                  "Are you sure you want to revoke consent? This will prevent researchers from accessing your data for this study."
-                )
-              ) {
-                onRevokeConsent(study.id);
+        {/* Action Buttons */}
+        <div className="flex flex-col sm:flex-row gap-2">
+          {/* Revoke Button - Only show if consent is active and study is not completed */}
+          {hasConsent && !isCompleted && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                setRevokeStudyId(study.id);
+              }}
+              disabled={!walletAddress || isRevoking || isTxProcessing}
+              className="h-7 px-3 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+              title={
+                walletAddress
+                  ? isTxProcessing
+                    ? "Transaction in progress..."
+                    : "Revoke consent for this study"
+                  : "Connect wallet to revoke consent"
               }
-            }}
-            disabled={!walletAddress || isRevoking}
-            className="h-7 px-3 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
-            title={
-              walletAddress ? "Revoke consent for this study" : "Connect wallet to revoke consent"
-            }
-          >
-            {isRevoking ? (
-              <>
-                <Spinner className="size-3 text-blue-600" />
-                Revoking...
-              </>
-            ) : (
-              <>
-                <UserMinus className="h-3 w-3 mr-1" />
-                Revoke Consent
-              </>
-            )}
-          </Button>
-        )}
+            >
+              {isRevoking ? (
+                <>
+                  <Spinner className="size-3 text-blue-600" />
+                  Revoking...
+                </>
+              ) : (
+                <>
+                  <UserMinus className="h-3 w-3 mr-1" />
+                  Revoke Consent
+                </>
+              )}
+            </Button>
+          )}
 
-        {/* Grant Button - Only show if consent is revoked and study is not completed */}
-        {!hasConsent && !isCompleted && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={(e) => {
-              e.stopPropagation();
-              if (isStudyFull) {
-                alert(
-                  "Cannot grant consent: This study is now full. The maximum number of active participants has been reached."
-                );
-                return;
+          {/* Grant Button - Only show if consent is revoked and study is not completed */}
+          {!hasConsent && !isCompleted && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (isStudyFull) {
+                  return;
+                }
+                setGrantStudyId(study.id);
+              }}
+              disabled={!walletAddress || isGranting || isStudyFull || isTxProcessing}
+              className={`h-7 px-3 ${
+                isStudyFull
+                  ? "text-gray-400 bg-gray-50 border-gray-200 cursor-not-allowed"
+                  : "text-green-600 hover:text-green-700 hover:bg-green-50 border-green-200"
+              }`}
+              title={
+                isStudyFull
+                  ? "Study is full - cannot grant consent"
+                  : isTxProcessing
+                  ? "Transaction in progress..."
+                  : walletAddress
+                  ? "Grant consent for this study"
+                  : "Connect wallet to grant consent"
               }
-              if (
-                window.confirm(
-                  "Grant consent to allow researchers to access your data for this study again?"
-                )
-              ) {
-                onGrantConsent(study.id);
-              }
-            }}
-            disabled={!walletAddress || isGranting || isStudyFull}
-            className={`h-7 px-3 ${
-              isStudyFull
-                ? "text-gray-400 bg-gray-50 border-gray-200 cursor-not-allowed"
-                : "text-green-600 hover:text-green-700 hover:bg-green-50 border-green-200"
-            }`}
-            title={
-              isStudyFull
-                ? "Study is full - cannot grant consent"
-                : walletAddress
-                ? "Grant consent for this study"
-                : "Connect wallet to grant consent"
-            }
-          >
-            {isGranting ? (
-              <>
-                <Spinner className="size-3 text-blue-600" />
-                Granting...
-              </>
-            ) : isStudyFull ? (
-              <>
-                <XCircle className="h-3 w-3 mr-1" />
-                Study Full
-              </>
-            ) : (
-              <>
-                <UserPlus className="h-3 w-3 mr-1" />
-                Grant Consent
-              </>
-            )}
-          </Button>
-        )}
+            >
+              {isGranting ? (
+                <>
+                  <Spinner className="size-3 text-blue-600" />
+                  Granting...
+                </>
+              ) : isStudyFull ? (
+                <>
+                  <XCircle className="h-3 w-3 mr-1" />
+                  Study Full
+                </>
+              ) : (
+                <>
+                  <UserPlus className="h-3 w-3 mr-1" />
+                  Grant Consent
+                </>
+              )}
+            </Button>
+          )}
+        </div>
       </div>
     );
   };
 
   return (
-    <StudiesList
-      studies={modifiedStudies}
-      renderActionButtons={renderActionButtons}
-      descriptionMaxLength={100}
-      showCriteriaLabel={true}
-    />
+    <>
+      <StudiesList
+        studies={modifiedStudies}
+        renderActionButtons={renderActionButtons}
+        descriptionMaxLength={100}
+        showCriteriaLabel={true}
+      />
+      <CustomConfirmAlert
+        open={revokeStudyId !== null}
+        onOpenChange={(open) => {
+          if (!open) setRevokeStudyId(null);
+        }}
+        description="Are you sure you want to revoke consent? This will prevent researchers from accessing your data for this study."
+        alertTitle="Revoke Consent"
+        onConfirm={() => {
+          if (revokeStudyId) {
+            onRevokeConsent(revokeStudyId);
+            setRevokeStudyId(null);
+          }
+        }}
+        onCancel={() => setRevokeStudyId(null)}
+      />
+      <CustomConfirmAlert
+        open={grantStudyId !== null}
+        onOpenChange={(open) => {
+          if (!open) setGrantStudyId(null);
+        }}
+        description="Grant consent to allow researchers to access your data for this study again?"
+        alertTitle="Grant Consent"
+        onConfirm={() => {
+          if (grantStudyId) {
+            onGrantConsent(grantStudyId);
+            setGrantStudyId(null);
+          }
+        }}
+        onCancel={() => setGrantStudyId(null)}
+      />
+    </>
   );
 }

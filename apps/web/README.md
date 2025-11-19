@@ -2,7 +2,7 @@
 
 Next.js frontend application for the privacy-preserving medical research platform.
 
-## 🚀 Quick Start
+## Quick Start
 
 ```bash
 # Install dependencies
@@ -14,7 +14,7 @@ bun run dev
 # Open http://localhost:3000
 ```
 
-## 🏗️ Architecture
+## Architecture
 
 ### Key Features
 
@@ -40,13 +40,13 @@ services/
 
 ### Recent Improvements
 
-- ✅ Consolidated service architecture (StudyService.ts)
-- ✅ RESTful API design
-- ✅ TypeScript type safety
-- ✅ Modern UI with loading states
-- ✅ Template selection feedback
+- Consolidated service architecture (StudyService.ts)
+- RESTful API design
+- TypeScript type safety
+- Modern UI with loading states
+- Template selection feedback
 
-## 🛠️ Development
+## Development
 
 ```bash
 # Development server
@@ -59,14 +59,14 @@ npx tsc --noEmit
 bun run lint
 ```
 
-## 📚 Key Components
+## Key Components
 
 - **StudyCreationForm** - Main study creation interface
 - **StudyCreationModal** - Inline study creation
 - **TemplateSelector** - Study template selection
 - **RangeInput** - Medical criteria input fields
 
-## 🔗 Integration
+## Integration
 
 - **Backend API** - http://localhost:3001
 - **Smart Contracts** - Ethereum/Sepolia integration

@@ -19,6 +19,7 @@ import { createConfig } from "wagmi";
 import { Config } from "@/config/config";
 import { verifyTransaction } from "@/services/api/transactionService";
 import eventBus from "@/lib/eventBus";
+import { useTxStatusState } from "@/hooks/useTxStatus";
 
 interface EndStudyDialogProps {
   open: boolean;
@@ -38,12 +39,18 @@ export default function EndStudyDialog({
 }: EndStudyDialogProps) {
   const [isEnding, setIsEnding] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [enrolledUsers, setEnrolledUsers] = useState(0);
 
   const handleCancel = () => {
     if (!isEnding) {
       onOpenChange(false);
     }
   };
+
+  (async function fetchParticipants() {
+    const { participants } = await getParticipants(studyId);
+    setEnrolledUsers(participants.length);
+  })();
 
   const handleProceed = async () => {
     setIsEnding(true);
@@ -80,7 +87,7 @@ export default function EndStudyDialog({
     } catch (error) {
       console.error("Failed to disperse ETH to participants:", error);
       setIsEnding(false);
-      alert("Failed to disperse ETH. Please try again.");
+      useTxStatusState.getState().showError("Failed to disperse ETH. Please try again.");
       return;
     }
 
@@ -103,12 +110,11 @@ export default function EndStudyDialog({
     } catch (error) {
       console.error("Transaction verification failed:", error);
       setIsEnding(false);
-      alert("Failed to verify transaction. Please try again.");
+      useTxStatusState.getState().showError("Failed to verify transaction. Please try again.");
       return;
     }
   };
   // Placeholder values - will be replaced with actual data later
-  const enrolledUsers = 42;
   const dataAccessCount = 156;
 
   return (

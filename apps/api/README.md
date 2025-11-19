@@ -2,7 +2,7 @@
 
 Node.js/Express backend API for the privacy-preserving medical research platform.
 
-## 🚀 Quick Start
+## Quick Start
 
 ```bash
 # Install dependencies
@@ -14,7 +14,7 @@ bun run dev
 # API available at http://localhost:3001
 ```
 
-## 🏗️ Architecture
+## Architecture
 
 ### Core Features
 
@@ -53,7 +53,7 @@ src/
     └── ...                    # Utility functions
 ```
 
-## 🛠️ Development
+## Development
 
 ```bash
 # Start with database
@@ -67,7 +67,7 @@ bun run test                   # Run API tests
 npx tsc --noEmit
 ```
 
-## 🔗 Dependencies
+## Dependencies
 
 - **Express.js** - Web framework
 - **PostgreSQL** - Primary database
@@ -75,9 +75,9 @@ npx tsc --noEmit
 - **Ethers.js** - Blockchain integration
 - **TypeScript** - Type safety
 
-## 📚 Recent Updates
+## Recent Updates
 
-- ✅ RESTful endpoint design
-- ✅ Improved error handling
-- ✅ TypeScript type safety
-- ✅ Consolidated service architecture
+- RESTful endpoint design
+- Improved error handling
+- TypeScript type safety
+- Consolidated service architecture

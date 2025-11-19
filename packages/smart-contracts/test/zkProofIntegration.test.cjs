@@ -5,10 +5,10 @@
 // const { sepolia } = require("viem/chains");
 // const { privateKeyToAccount } = require("viem/accounts");
 // const { createCriteria, STUDY_TEMPLATES } = require("../../shared/studyCriteria.ts");
-
+//
 // // Load environment variables from current directory
 // require("dotenv").config({ path: "./.env" });
-
+//
 // // Study contract ABI (minimal for testing)
 // const STUDY_ABI = [
 //   {
@@ -47,13 +47,13 @@
 //     type: "event",
 //   },
 // ];
-
+//
 // const DEPLOYED_STUDY_ADDRESS = "0x3502abEBB4F9EaC246Fc32De6aEa134E29BFCd95";
-
+//
 // async function testEligiblePatient() {
-//   console.log("🧪 Test Case 1: ELIGIBLE Patient (Diabetes Research)");
+//   console.log("Test Case 1: ELIGIBLE Patient (Diabetes Research)");
 //   console.log("====================================================\n");
-
+//
 //   // Example patient data - ELIGIBLE for diabetes research
 //   const patientData = {
 //     age: 45,
@@ -72,21 +72,21 @@
 //     region: 1,
 //     activityLevel: 2,
 //   };
-
+//
 //   // Use DIABETES_RESEARCH template from shared library
 //   const studyCriteria = STUDY_TEMPLATES.DIABETES_RESEARCH;
-
+//
 //   const isEligible = 1; // We expect this patient to be eligible
-
+//
 //   console.log("Patient eligibility check:");
 //   console.log(
 //     `Age: ${patientData.age} (${studyCriteria.minAge}-${studyCriteria.maxAge}) ${
-//       patientData.age >= studyCriteria.minAge && patientData.age <= studyCriteria.maxAge ? "✓" : "✗"
+//       patientData.age >= studyCriteria.minAge && patientData.age <= studyCriteria.maxAge
 //     }`
 //   );
 //   console.log(
 //     `BMI: ${patientData.bmi / 10} (${studyCriteria.minBMI / 10}-${studyCriteria.maxBMI / 10}) ${
-//       patientData.bmi >= studyCriteria.minBMI && patientData.bmi <= studyCriteria.maxBMI ? "✓" : "✗"
+//       patientData.bmi >= studyCriteria.minBMI && patientData.bmi <= studyCriteria.maxBMI
 //     }`
 //   );
 //   console.log(
@@ -94,19 +94,17 @@
 //       studyCriteria.maxHbA1c / 10
 //     }%) ${
 //       patientData.hba1c >= studyCriteria.minHbA1c && patientData.hba1c <= studyCriteria.maxHbA1c
-//         ? "✓"
-//         : "✗"
 //     }`
 //   );
-//   console.log(`Has Diabetes: ${patientData.hasDiabetes ? "Yes" : "No"} ✓`);
-
+//   console.log(`Has Diabetes: ${patientData.hasDiabetes ? "Yes" : "No"}`);
+//
 //   return await runProofTest(patientData, studyCriteria, isEligible);
 // }
-
+//
 // async function testIneligiblePatient() {
-//   console.log("\n🧪 Test Case 2: INELIGIBLE Patient (Cardiac Research)");
+//   console.log("\n Test Case 2: INELIGIBLE Patient (Cardiac Research)");
 //   console.log("===================================================\n");
-
+//
 //   // Example patient data - INELIGIBLE for cardiac research (too young + wrong BP range)
 //   const patientData = {
 //     age: 25, // TOO YOUNG (min 40 for cardiac research)
@@ -125,16 +123,16 @@
 //     region: 1,
 //     activityLevel: 3,
 //   };
-
+//
 //   // Use CARDIAC_RESEARCH template from shared library
 //   const studyCriteria = STUDY_TEMPLATES.CARDIAC_RESEARCH;
-
+//
 //   const isEligible = 0; // We expect this patient to be INELIGIBLE
-
+//
 //   console.log("Patient eligibility check:");
 //   console.log(
 //     `Age: ${patientData.age} (${studyCriteria.minAge}-${studyCriteria.maxAge}) ${
-//       patientData.age >= studyCriteria.minAge && patientData.age <= studyCriteria.maxAge ? "✓" : "✗"
+//       patientData.age >= studyCriteria.minAge && patientData.age <= studyCriteria.maxAge
 //     }`
 //   );
 //   console.log(
@@ -143,8 +141,8 @@
 //     }) ${
 //       patientData.systolicBP >= studyCriteria.minSystolic &&
 //       patientData.systolicBP <= studyCriteria.maxSystolic
-//         ? "✓"
-//         : "✗"
+//         ? ""
+//         : ""
 //     }`
 //   );
 //   console.log(
@@ -153,25 +151,25 @@
 //     }) ${
 //       patientData.diastolicBP >= studyCriteria.minDiastolic &&
 //       patientData.diastolicBP <= studyCriteria.maxDiastolic
-//         ? "✓"
-//         : "✗"
+//         ? ""
+//         : ""
 //     }`
 //   );
-//   console.log(`Heart Disease History: Required for cardiac research ✗`);
-
+//   console.log(`Heart Disease History: Required for cardiac research`);
+//
 //   return await runProofTest(patientData, studyCriteria, isEligible);
 // }
-
+//
 // async function testDeployedStudy() {
-//   console.log("\n🧪 Test Case 3: DEPLOYED Study - Adult Women");
+//   console.log("\n Test Case 3: DEPLOYED Study - Adult Women");
 //   console.log("==============================================");
-//   console.log("📋 Study Info:");
+//   console.log("Study Info:");
 //   console.log("  • Title: 'adult women'");
 //   console.log("  • Contract: 0x3502abEBB4F9EaC246Fc32De6aEa134E29BFCd95");
 //   console.log("  • Criteria: Women aged 18-55");
 //   console.log("  • Max Participants: 1000");
 //   console.log("  • Status: Active\n");
-
+//
 //   // Example patient data - ELIGIBLE for deployed study (adult woman)
 //   const patientData = {
 //     age: 35, // Within range 18-55
@@ -190,49 +188,49 @@
 //     region: 1,
 //     activityLevel: 2,
 //   };
-
+//
 //   // Use WOMEN_18_TO_55 template from shared library (matches deployed study)
 //   const studyCriteria = STUDY_TEMPLATES.WOMEN_18_TO_55;
-
+//
 //   const isEligible = 1; // We expect this patient to be eligible
-
+//
 //   console.log("Patient eligibility check:");
 //   console.log(
 //     `Age: ${patientData.age} (${studyCriteria.minAge}-${studyCriteria.maxAge}) ${
-//       patientData.age >= studyCriteria.minAge && patientData.age <= studyCriteria.maxAge ? "✓" : "✗"
+//       patientData.age >= studyCriteria.minAge && patientData.age <= studyCriteria.maxAge
 //     }`
 //   );
 //   console.log(
 //     `Gender: ${patientData.gender === 2 ? "Female" : "Male"} ${
-//       patientData.gender === studyCriteria.allowedGender ? "✓" : "✗"
+//       patientData.gender === studyCriteria.allowedGender
 //     }`
 //   );
-//   console.log(`Other criteria: All disabled for this study ✓`);
-
+//   console.log(`Other criteria: All disabled for this study`);
+//
 //   const result = await runProofTest(patientData, studyCriteria, isEligible);
-
+//
 //   if (result.success) {
-//     console.log("\n🎯 DEPLOYED STUDY VERIFICATION:");
+//     console.log("\n DEPLOYED STUDY VERIFICATION:");
 //     console.log("  • ZK proof validates against deployed contract criteria");
 //     console.log("  • Patient would be eligible to join this study");
 //     console.log(
 //       "  • Proof can be submitted to contract: 0x3502abEBB4F9EaC246Fc32De6aEa134E29BFCd95"
 //     );
 //   }
-
+//
 //   return result;
 // }
-
+//
 // async function testDeployedStudyIneligible() {
-//   console.log("\n🧪 Test Case 4: DEPLOYED Study - INELIGIBLE Patient");
+//   console.log("\n Test Case 4: DEPLOYED Study - INELIGIBLE Patient");
 //   console.log("===================================================");
-//   console.log("📋 Study Info:");
+//   console.log("Study Info:");
 //   console.log("  • Title: 'adult women'");
 //   console.log("  • Contract: 0x3502abEBB4F9EaC246Fc32De6aEa134E29BFCd95");
 //   console.log("  • Criteria: Women aged 18-55");
 //   console.log("  • Max Participants: 1000");
 //   console.log("  • Status: Active\n");
-
+//
 //   // Example patient data - INELIGIBLE for deployed study (too old male)
 //   const patientData = {
 //     age: 60, // TOO OLD (max 55 for study)
@@ -251,54 +249,54 @@
 //     region: 1,
 //     activityLevel: 2,
 //   };
-
+//
 //   // Use WOMEN_18_TO_55 template from shared library (matches deployed study)
 //   const studyCriteria = STUDY_TEMPLATES.WOMEN_18_TO_55;
-
+//
 //   const isEligible = 0; // We expect this patient to be INELIGIBLE
-
+//
 //   console.log("Patient eligibility check:");
 //   console.log(
 //     `Age: ${patientData.age} (${studyCriteria.minAge}-${studyCriteria.maxAge}) ${
-//       patientData.age >= studyCriteria.minAge && patientData.age <= studyCriteria.maxAge ? "✓" : "✗"
+//       patientData.age >= studyCriteria.minAge && patientData.age <= studyCriteria.maxAge
 //     }`
 //   );
 //   console.log(
 //     `Gender: ${patientData.gender === 2 ? "Female" : "Male"} ${
-//       patientData.gender === studyCriteria.allowedGender ? "✓" : "✗"
+//       patientData.gender === studyCriteria.allowedGender
 //     }`
 //   );
-//   console.log("Other criteria: All disabled for this study ✓");
-
+//   console.log("Other criteria: All disabled for this study");
+//
 //   const result = await runProofTest(patientData, studyCriteria, isEligible);
-
+//
 //   if (result.success) {
-//     console.log("\n🎯 DEPLOYED STUDY VERIFICATION:");
+//     console.log("\n DEPLOYED STUDY VERIFICATION:");
 //     console.log("  • ZK proof correctly shows patient is INELIGIBLE");
 //     console.log("  • Patient does not meet study criteria (age + gender)");
-//     console.log("  • Zero-knowledge privacy preserved despite rejection");
+//     console.log("  • Zero-knowledge proof preserved despite rejection");
 //   }
-
+//
 //   return result;
 // }
-
+//
 // async function testDeployedStudyBlockchain() {
-//   console.log("\n🧪 Test Case 5: BLOCKCHAIN Integration - Deploy to Real Contract");
+//   console.log("\n Test Case 5: BLOCKCHAIN Integration - Deploy to Real Contract");
 //   console.log("===============================================================");
-//   console.log("📋 Study Info:");
+//   console.log("Study Info:");
 //   console.log("  • Title: 'adult women'");
 //   console.log("  • Contract: 0x3502abEBB4F9EaC246Fc32De6aEa134E29BFCd95");
 //   console.log("  • Network: Sepolia Testnet");
 //   console.log("  • Action: Generate proof + Submit to contract\n");
-
+//
 //   try {
 //     // Check if we have environment variables for blockchain interaction
 //     if (!process.env.SEPOLIA_RPC_URL || !process.env.SEPOLIA_PRIVATE_KEY) {
-//       console.log("⚠️  Skipping blockchain test - missing environment variables");
+//       console.log("Skipping blockchain test - missing environment variables");
 //       console.log("   Set SEPOLIA_RPC_URL and SEPOLIA_PRIVATE_KEY to test on-chain");
 //       return { success: true, skipped: true, reason: "No blockchain config" };
 //     }
-
+//
 //     // Example patient data - ELIGIBLE for deployed study (adult woman)
 //     const patientData = {
 //       age: 28, // Within range 18-55
@@ -317,47 +315,47 @@
 //       region: 1,
 //       activityLevel: 3,
 //     };
-
+//
 //     // Use WOMEN_18_TO_55 template from shared library (matches deployed study)
 //     const studyCriteria = STUDY_TEMPLATES.WOMEN_18_TO_55;
-
+//
 //     console.log("Patient eligibility check:");
-//     console.log(`Age: ${patientData.age} (${studyCriteria.minAge}-${studyCriteria.maxAge}) ✓`);
-//     console.log(`Gender: Female ✓`);
-
+//     console.log(`Age: ${patientData.age} (${studyCriteria.minAge}-${studyCriteria.maxAge}) `);
+//     console.log(`Gender: Female `);
+//
 //     // Generate ZK proof for this patient
 //     const proofResult = await runProofTest(patientData, studyCriteria, 1);
-
+//
 //     if (!proofResult.success) {
 //       return { success: false, error: "Proof generation failed" };
 //     }
-
-//     console.log("\n🔗 BLOCKCHAIN INTERACTION:");
+//
+//     console.log("\n BLOCKCHAIN INTERACTION:");
 //     console.log("  • ZK proof generated successfully");
 //     console.log("  • Connecting to Sepolia network...");
-
+//
 //     // Set up blockchain clients
 //     const publicClient = createPublicClient({
 //       chain: sepolia,
 //       transport: http(process.env.SEPOLIA_RPC_URL),
 //     });
-
+//
 //     const account = privateKeyToAccount(`0x${process.env.SEPOLIA_PRIVATE_KEY}`);
 //     const walletClient = createWalletClient({
 //       account,
 //       chain: sepolia,
 //       transport: http(process.env.SEPOLIA_RPC_URL),
 //     });
-
+//
 //     console.log(`  • Connected as: ${account.address}`);
-
+//
 //     // Get contract instance
 //     const studyContract = getContract({
 //       address: DEPLOYED_STUDY_ADDRESS,
 //       abi: STUDY_ABI,
 //       client: { public: publicClient, wallet: walletClient },
 //     });
-
+//
 //     // Check current participant count before joining
 //     console.log("  • Reading current study state...");
 //     const participantsBefore = await publicClient.readContract({
@@ -365,9 +363,9 @@
 //       abi: STUDY_ABI,
 //       functionName: "currentParticipants",
 //     });
-
+//
 //     console.log(`  • Current participants: ${participantsBefore}`);
-
+//
 //     // Check if this address is already a participant
 //     const isAlreadyParticipant = await publicClient.readContract({
 //       address: DEPLOYED_STUDY_ADDRESS,
@@ -375,14 +373,14 @@
 //       functionName: "participants",
 //       args: [account.address],
 //     });
-
+//
 //     if (isAlreadyParticipant) {
-//       console.log("  ⚠️  This address is already a participant in the study");
+//       console.log("  This address is already a participant in the study");
 //       return { success: true, onChainReady: true, alreadyParticipant: true };
 //     }
-
+//
 //     console.log("  • Submitting ZK proof to contract...");
-
+//
 //     // Format proof for contract call
 //     const formattedProof = {
 //       a: [BigInt(proofResult.solidityProof.a[0]), BigInt(proofResult.solidityProof.a[1])],
@@ -392,7 +390,7 @@
 //       ],
 //       c: [BigInt(proofResult.solidityProof.c[0]), BigInt(proofResult.solidityProof.c[1])],
 //     };
-
+//
 //     // Submit to blockchain!
 //     const txHash = await walletClient.writeContract({
 //       address: DEPLOYED_STUDY_ADDRESS,
@@ -405,29 +403,29 @@
 //         BigInt(proofResult.dataCommitment),
 //       ],
 //     });
-
-//     console.log(`  ✅ Transaction submitted! Hash: ${txHash}`);
+//
+//     console.log(`  Transaction submitted! Hash: ${txHash}`);
 //     console.log("  • Waiting for confirmation...");
-
+//
 //     // Wait for transaction confirmation
 //     const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
-
+//
 //     if (receipt.status === "success") {
-//       console.log("  🎉 SUCCESS! Patient joined the study on-chain!");
+//       console.log("  SUCCESS! Patient joined the study on-chain!");
 //       console.log(`  • Block: ${receipt.blockNumber}`);
 //       console.log(`  • Gas used: ${receipt.gasUsed}`);
-
+//
 //       // Check participant count after joining
 //       const participantsAfter = await publicClient.readContract({
 //         address: DEPLOYED_STUDY_ADDRESS,
 //         abi: STUDY_ABI,
 //         functionName: "currentParticipants",
 //       });
-
+//
 //       console.log(
 //         `  • Participants after: ${participantsAfter} (+${participantsAfter - participantsBefore})`
 //       );
-
+//
 //       return {
 //         success: true,
 //         onChainSuccess: true,
@@ -437,33 +435,33 @@
 //         participantsAfter: participantsAfter.toString(),
 //       };
 //     } else {
-//       console.log("  ❌ Transaction failed");
+//       console.log("  Transaction failed");
 //       return { success: false, error: "Transaction failed" };
 //     }
 //   } catch (error) {
-//     console.error("❌ Blockchain test error:", error.message);
-
+//     console.error("Blockchain test error:", error.message);
+//
 //     // If it's a contract-specific error, still show what we would have done
 //     if (proofResult.success) {
-//       console.log("\n📝 Contract Call Preview (proof was valid but call failed):");
+//       console.log("\nContract Call Preview (proof was valid but call failed):");
 //       console.log("  Function: joinStudy(proof.a, proof.b, proof.c, dataCommitment)");
 //       console.log("  • proof.a:", proofResult.solidityProof?.a || "Generated");
 //       console.log("  • proof.b:", proofResult.solidityProof?.b || "Generated");
 //       console.log("  • proof.c:", proofResult.solidityProof?.c || "Generated");
 //       console.log("  • dataCommitment:", proofResult.dataCommitment || "Patient data hash");
-
+//
 //       return { success: true, onChainReady: true, contractError: error.message };
 //     }
-
+//
 //     return { success: false, error: error.message };
 //   }
 // }
-
+//
 // async function runProofTest(patientData, studyCriteria, expectedResult) {
 //   try {
 //     // Use fixed salt for consistent results (like original test)
 //     const salt = 12345;
-
+//
 //     // Calculate patient data commitment the EXACT same way the circuit does
 //     const commitment1 = poseidon7([
 //       patientData.age, // 45
@@ -474,7 +472,7 @@
 //       patientData.bloodType || 1, // bloodType
 //       salt, // 12345
 //     ]);
-
+//
 //     const commitment2 = poseidon7([
 //       patientData.systolicBP, // systolic BP
 //       patientData.diastolicBP, // diastolic BP
@@ -484,10 +482,10 @@
 //       patientData.hasDiabetes, // diabetes status
 //       patientData.hasHeartDisease, // heart disease history
 //     ]);
-
+//
 //     const finalCommitment = poseidon3([commitment1, commitment2, salt]);
 //     console.log("Calculated commitment:", finalCommitment.toString());
-
+//
 //     // Prepare circuit inputs - using real StudyCriteria structure
 //     const input = {
 //       // Patient's medical data (private inputs)
@@ -505,7 +503,7 @@
 //       diabetesStatus: patientData.hasDiabetes,
 //       heartDiseaseHistory: patientData.hasHeartDisease,
 //       salt: salt,
-
+//
 //       // Study eligibility criteria - using real StudyCriteria structure
 //       enableAge: studyCriteria.enableAge,
 //       minAge: studyCriteria.minAge,
@@ -539,44 +537,44 @@
 //       allowedDiabetes: studyCriteria.allowedDiabetes,
 //       enableHeartDisease: studyCriteria.enableHeartDisease,
 //       allowedHeartDisease: studyCriteria.allowedHeartDisease,
-
+//
 //       // Data commitment - calculated to match what the circuit will compute
 //       dataCommitment: finalCommitment.toString(),
 //     };
-
-//     console.log("\n🔄 Generating ZK proof...");
+//
+//     console.log("\nGenerating ZK proof...");
 //     const startTime = Date.now();
-
+//
 //     // Generate the proof
 //     const { proof, publicSignals } = await snarkjs.groth16.fullProve(
 //       input,
 //       "circuits/build/medical_eligibility_js/medical_eligibility.wasm",
 //       "circuits/build/medical_eligibility_0001.zkey"
 //     );
-
+//
 //     const endTime = Date.now();
-//     console.log(`✅ Proof generated in ${endTime - startTime}ms`);
-
-//     console.log("\n📊 Proof Results:");
+//     console.log(`Proof generated in ${endTime - startTime}ms`);
+//
+//     console.log("\nProof Results:");
 //     console.log(`Public signals: [${publicSignals.join(", ")}]`);
 //     console.log(`Expected eligible result: ${expectedResult}`);
 //     console.log(`Actual result: ${publicSignals[0]}`);
-//     console.log(`Match: ${publicSignals[0] == expectedResult ? "✅" : "❌"}`);
-
+//     console.log(`Match: ${publicSignals[0] == expectedResult}`);
+//
 //     // Verify the proof
-//     console.log("\n🔍 Verifying proof...");
+//     console.log("\nVerifying proof...");
 //     const vKey = JSON.parse(fs.readFileSync("circuits/build/verification_key.json"));
-
+//
 //     const res = await snarkjs.groth16.verify(vKey, publicSignals, proof);
-//     console.log(`Verification result: ${res ? "✅ Valid" : "❌ Invalid"}`);
-
+//     console.log(`Verification result: ${res ? "Valid" : "Invalid"}`);
+//
 //     if (res) {
-//       console.log("\n🎉 SUCCESS! ZK proof system is working correctly:");
+//       console.log("\nSUCCESS! ZK proof system is working correctly:");
 //       console.log("• Patient data and study criteria kept private");
 //       console.log("• Only eligibility result (1 or 0) is public");
 //       console.log("• Zero-knowledge proof verified successfully");
 //       console.log(`• Proof size: ${JSON.stringify(proof).length} characters`);
-
+//
 //       // Format for smart contract
 //       const solidityProof = {
 //         a: [proof.pi_a[0], proof.pi_a[1]],
@@ -587,14 +585,14 @@
 //         c: [proof.pi_c[0], proof.pi_c[1]],
 //         publicSignals: publicSignals,
 //       };
-
-//       console.log("\n📝 Formatted for Solidity:");
+//
+//       console.log("\nFormatted for Solidity:");
 //       console.log("a:", solidityProof.a);
 //       console.log("b:", solidityProof.b);
 //       console.log("c:", solidityProof.c);
 //       console.log("publicSignals:", solidityProof.publicSignals);
 //     }
-
+//
 //     return {
 //       success: res,
 //       eligible: publicSignals[0] == expectedResult,
@@ -612,64 +610,64 @@
 //       dataCommitment: finalCommitment.toString(),
 //     };
 //   } catch (error) {
-//     console.error("❌ Error generating proof:", error.message);
+//     console.error("Error generating proof:", error.message);
 //     console.error(error);
 //     return { success: false, error: error.message };
 //   }
 // }
-
+//
 // // Main test runner
 // async function runAllTests() {
-//   console.log("🧬 ZK Medical Eligibility Proof Tests");
+//   console.log("ZK Medical Eligibility Proof Tests");
 //   console.log("=====================================\n");
-
+//
 //   try {
 //     // Test Case 1: Eligible Patient (Template Study)
 //     const result1 = await testEligiblePatient();
-
+//
 //     // Test Case 2: Ineligible Patient (Template Study)
 //     const result2 = await testIneligiblePatient();
-
+//
 //     // Test Case 3: Deployed Study - Adult Women
 //     const result3 = await testDeployedStudy();
-
+//
 //     // Test Case 4: Deployed Study - Ineligible Patient
 //     const result4 = await testDeployedStudyIneligible();
-
+//
 //     // Test Case 5: Blockchain Integration Test
 //     const result5 = await testDeployedStudyBlockchain();
-
-//     console.log("\n🏁 Test Summary:");
+//
+//     console.log("\n Test Summary:");
 //     console.log("================");
-//     console.log(`✅ Eligible Patient Test: ${result1.success ? "PASSED" : "FAILED"}`);
-//     console.log(`❌ Ineligible Patient Test: ${result2.success ? "PASSED" : "FAILED"}`);
-//     console.log(`👩 Deployed Study Test: ${result3.success ? "PASSED" : "FAILED"}`);
-//     console.log(`🚫 Deployed Study Ineligible Test: ${result4.success ? "PASSED" : "FAILED"}`);
+//     console.log(`Eligible Patient Test: ${result1.success ? "PASSED" : "FAILED"}`);
+//     console.log(`Ineligible Patient Test: ${result2.success ? "PASSED" : "FAILED"}`);
+//     console.log(`Deployed Study Test: ${result3.success ? "PASSED" : "FAILED"}`);
+//     console.log(`Deployed Study Ineligible Test: ${result4.success ? "PASSED" : "FAILED"}`);
 //     console.log(
-//       `🔗 Blockchain Integration: ${
+//       `Blockchain Integration: ${
 //         result5.success ? (result5.skipped ? "SKIPPED" : "READY") : "FAILED"
 //       }`
 //     );
-
+//
 //     const allPassed =
 //       result1.success && result2.success && result3.success && result4.success && result5.success;
-
+//
 //     if (allPassed) {
-//       console.log("\n🎉 All tests passed! ZK proof system works with:");
+//       console.log("\nAll tests passed! ZK proof system works with:");
 //       console.log("  • Template-based studies (diabetes, cardiac research)");
 //       console.log("  • Real deployed studies (adult women study)");
 //       console.log("  • Both eligible and ineligible patient scenarios");
 //       console.log("  • Deployed study eligibility validation");
 //       if (result5.onChainReady) {
-//         console.log("  • Ready for on-chain deployment to real contracts! 🚀");
+//         console.log("  • Ready for on-chain deployment to real contracts!");
 //       } else if (result5.skipped) {
 //         console.log("  • Blockchain integration ready (set env vars to test on-chain)");
 //       }
 //     }
 //   } catch (error) {
-//     console.error("❌ Test suite failed:", error);
+//     console.error("Test suite failed:", error);
 //   }
 // }
-
+//
 // // Run all tests
 // runAllTests().catch(console.error);

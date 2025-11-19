@@ -11,6 +11,7 @@ import eventBus from "@/lib/eventBus";
 import { ipfsUpload } from "@/services/api/ipfsService";
 import { uploadMedicalData } from "@/services/api";
 import { Spinner } from "@/components/ui/spinner";
+import { useTxStatusState } from "@/hooks/useTxStatus";
 
 export default function UploadSection({
   account,
@@ -35,7 +36,6 @@ export default function UploadSection({
       if (!aesKey) return;
       const input = document.createElement("input");
       input.type = "file";
-      // TODO: Change this when we have more supported types
       input.accept = ".json";
       input.click();
 
@@ -67,14 +67,16 @@ export default function UploadSection({
         console.log("Uploading file:", file.name);
       } catch (error) {
         console.error("Failed to upload medical data:", error);
-        alert("Failed to upload medical data.");
+        useTxStatusState.getState().showError("Failed to upload medical data.");
       }
     }
   };
 
   const onRecordTypeChange = (value: FhirResourceTypes) => {
     if (compliance?.resourceType !== value) {
-      alert("Selected record type does not match file compliance. Please re-upload.");
+      useTxStatusState
+        .getState()
+        .showError("Selected record type does not match file compliance. Please re-upload.");
       return;
     }
     setRecordType(value);
@@ -190,7 +192,7 @@ export default function UploadSection({
 
                       if (result) {
                         eventBus.emit("medicalDataUploaded");
-                        alert("Medical data uploaded successfully.");
+                        useTxStatusState.getState().show("Medical data uploaded successfully.");
                       }
 
                       setUploadedFileName(null);
@@ -199,7 +201,9 @@ export default function UploadSection({
                       setReadyToSend(false);
                     } catch (error) {
                       console.error("Upload failed:", error);
-                      alert("Failed to upload medical data. Please try again.");
+                      useTxStatusState
+                        .getState()
+                        .showError("Failed to upload medical data. Please try again.");
                     } finally {
                       setUploading(false);
                     }

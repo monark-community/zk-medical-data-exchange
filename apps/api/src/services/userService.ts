@@ -267,3 +267,15 @@ export async function getUserStatsForResearcher(
     totalSpent: totalSpent ?? 0,
   };
 }
+export async function getNumberOfUsersOnPlatform(supabase: SupabaseClient): Promise<number> {
+  const { count, error } = await supabase
+    .from(USERS!.name!)
+    .select("*", { count: "exact", head: true });
+
+  if (error) {
+    logger.error({ error }, "Failed to get number of users on platform");
+    throw new Error(`Failed to get number of users: ${error.message}`);
+  }
+
+  return count ?? 0;
+}
