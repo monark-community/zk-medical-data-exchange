@@ -77,9 +77,13 @@ const WalletAvatar = ({ address, size = 40, className }: WalletAvatarProps) => {
       Math.abs((hash >> 2) % 5)
     ] as "badge" | "visor" | "stethoscope" | "hat" | "bowtie";
     const eyeVariant = ["dot", "star", "spark", "arc"][Math.abs((hash >> 6) % 4)] as EyeVariant;
-    const expressionVariant = ["frown", "wow", "calm", "grin", "laugh", "smile"][
-      Math.abs((hash >> 8) % 6)
-    ] as ExpressionVariant;
+    const expressionVariant = (() => {
+      const happyExpressions = ["smile", "grin", "laugh"];
+      const neutralExpressions = ["calm", "wow", "frown"];
+      return Math.abs(hash >> 8) % 10 < 7
+        ? happyExpressions[Math.abs(hash >> 8) % happyExpressions.length]
+        : neutralExpressions[Math.abs(hash >> 8) % neutralExpressions.length];
+    })() as ExpressionVariant;
     const hasFreckles = ((hash >> 7) & 1) === 0;
     const petVariant = ["pill", "spark", "heart", "shield"][
       Math.abs((hash >> 9) % 4)
@@ -95,7 +99,9 @@ const WalletAvatar = ({ address, size = 40, className }: WalletAvatarProps) => {
     const collarVariant = ["tech", "round", "chain", "bow", "v"][
       Math.abs((hash >> 14) % 5)
     ] as CollarVariant;
-    const cheekStyle = ["ring", "blush", "solid"][Math.abs((hash >> 16) % 3)] as CheekStyle;
+    const cheekStyle = (() => {
+      return Math.abs(hash >> 16) % 10 < 6 ? "blush" : ["ring", "solid"][Math.abs(hash >> 16) % 2];
+    })() as CheekStyle;
     const foreheadMark = ["none", "bar", "dot"][Math.abs((hash >> 15) % 3)] as ForeheadMark;
     const blinkDelay = 2 + (hash % 3);
     const bobDuration = 3.5 + (hash % 35) / 10;
@@ -136,11 +142,29 @@ const WalletAvatar = ({ address, size = 40, className }: WalletAvatarProps) => {
 
   const characterStyle = {
     animation: `wallet-avatar-bob ${features.bobDuration}s ease-in-out infinite`,
+    transform:
+      features.expressionVariant === "smile" ||
+      features.expressionVariant === "grin" ||
+      features.expressionVariant === "laugh"
+        ? "scale(1.02)"
+        : "scale(1)",
   } as const;
 
   const sparkleStyle = {
-    animation: `wallet-avatar-hover ${3.2 + features.sparkleDelay / 2}s ease-in-out infinite`,
+    animation: `wallet-avatar-hover ${
+      features.expressionVariant === "smile" ||
+      features.expressionVariant === "grin" ||
+      features.expressionVariant === "laugh"
+        ? 2.5
+        : 3.2
+    }s ease-in-out infinite`,
     animationDelay: `${features.sparkleDelay}s`,
+    opacity:
+      features.expressionVariant === "smile" ||
+      features.expressionVariant === "grin" ||
+      features.expressionVariant === "laugh"
+        ? 0.8
+        : 0.6,
   } as const;
 
   const blinkStyleLeft = { animationDelay: `${features.blinkDelay}s` };
@@ -190,9 +214,22 @@ const WalletAvatar = ({ address, size = 40, className }: WalletAvatarProps) => {
         return (
           <span
             className="absolute left-1/2 top-8 flex h-3 w-5 -translate-x-1/2 items-center justify-center rounded-b-full border-b-2 border-slate-900 bg-white/70"
-            style={{ color: theme.accent }}
+            style={{
+              color: theme.accent,
+              boxShadow: `0 0 8px ${theme.accent}80`,
+              animation: "wallet-avatar-hover 2s ease-in-out infinite",
+            }}
           >
             <span className="h-2 w-4 rounded-b-full bg-slate-900/20" />
+            {/* Sparkle effects for extra joy */}
+            <span
+              className="absolute -top-1 -right-1 h-1 w-1 rounded-full bg-yellow-300"
+              style={{ boxShadow: `0 0 4px ${theme.accent}` }}
+            />
+            <span
+              className="absolute -top-1 -left-1 h-0.5 w-0.5 rounded-full bg-yellow-300"
+              style={{ boxShadow: `0 0 3px ${theme.accent}` }}
+            />
           </span>
         );
       case "calm":
@@ -212,8 +249,12 @@ const WalletAvatar = ({ address, size = 40, className }: WalletAvatarProps) => {
       default:
         return (
           <span
-            className="absolute left-1/2 top-8 h-1 w-5 -translate-x-1/2 rounded-full bg-slate-900"
-            style={{ boxShadow: `0 0 4px ${theme.accent}40` }}
+            className="absolute left-1/2 top-8 h-1.5 w-6 -translate-x-1/2 rounded-full bg-slate-900"
+            style={{
+              boxShadow: `0 0 6px ${theme.accent}60`,
+              borderRadius: "50% 50% 80% 80%",
+              transform: "rotate(2deg)",
+            }}
           />
         );
     }
