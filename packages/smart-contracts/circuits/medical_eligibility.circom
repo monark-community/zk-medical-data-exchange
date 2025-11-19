@@ -159,10 +159,6 @@ template MedicalEligibility() {
     finalCommitment.inputs[2] <== salt;
     finalCommitment.inputs[3] <== challenge;
     
-    log("commitment1.out =", commitment1.out);
-    log("commitment2.out =", commitment2.out);
-    log("finalCommitment.out =", finalCommitment.out);
-    log("dataCommitment input =", dataCommitment);
     // ========================================
     // ELIGIBILITY CRITERIA CHECKING
     // ========================================
@@ -246,37 +242,26 @@ template MedicalEligibility() {
     // FINAL ELIGIBILITY CALCULATION
     // ========================================
     
-    // ========================================
-    // FINAL ELIGIBILITY CALCULATION (Quadratic Constraints Only)
-    // ========================================
     
-    // Break down all multiplications to be quadratic (max 2 multiplications per constraint)
-    
-    // Step 1: Combine basic health checks (age, cholesterol, BMI)
     signal ageAndCholesterol;
     signal basicHealthChecks;
     ageAndCholesterol <== ageCheck.valid * cholesterolCheck.valid;
     basicHealthChecks <== ageAndCholesterol * bmiCheck.valid;
     
-    // Step 2: Combine demographic checks (bloodType, gender, region)
     signal bloodTypeAndGender;
     signal demographicChecks;
     bloodTypeAndGender <== bloodTypeCheck.valid * genderCheck.valid;
     demographicChecks <== bloodTypeAndGender * regionCheck.valid;
     
-    // Step 3: Combine advanced health checks (bloodPressure, hbA1c)
     signal advancedHealthChecks;
     advancedHealthChecks <== bloodPressureCheck.valid * hba1cCheck.valid;
     
-    // Step 4: Combine lifestyle checks (smoking, activity)
     signal lifestyleChecks;
     lifestyleChecks <== smokingCheck.valid * activityCheck.valid;
     
-    // Step 5: Combine medical history checks (diabetes, heartDisease)
     signal medicalHistoryChecks;
     medicalHistoryChecks <== diabetesCheck.valid * heartDiseaseCheck.valid;
     
-    // Step 6: Combine all groups step by step (quadratic constraints only)
     signal basicAndDemographic;
     signal advancedAndLifestyle;
     signal allButMedical;
@@ -285,7 +270,6 @@ template MedicalEligibility() {
     advancedAndLifestyle <== advancedHealthChecks * lifestyleChecks;
     allButMedical <== basicAndDemographic * advancedAndLifestyle;
     
-    // Final result: ALL criteria must be satisfied
     eligible <== allButMedical * medicalHistoryChecks;
     dataCommitment === finalCommitment.out;
     
@@ -371,12 +355,10 @@ template BinMembershipCheck(MAX_CATEGORIES) {
     
     signal output belongs;                    // 1 if participant belongs to this bin, 0 otherwise
     
-    // Check if this bin is active (binIndex < numBins)
     component isActive = LessThan(8);
     isActive.in[0] <== binIndex;
     isActive.in[1] <== numBins;
     
-    // Select the appropriate field value based on fieldCode
     component fieldSelector = FieldSelector();
     fieldSelector.fieldCode <== fieldCode;
     fieldSelector.age <== age;
@@ -395,25 +377,21 @@ template BinMembershipCheck(MAX_CATEGORIES) {
     
     signal fieldValue <== fieldSelector.value;
     
-    // Check bin membership based on type
     component rangeBinCheck = RangeBinCheck(16);
     component categoricalBinCheck = CategoricalBinCheck(MAX_CATEGORIES);
     
-    // Range bin check
     rangeBinCheck.value <== fieldValue;
     rangeBinCheck.minValue <== minValue;
     rangeBinCheck.maxValue <== maxValue;
     rangeBinCheck.includeMin <== includeMin;
     rangeBinCheck.includeMax <== includeMax;
     
-    // Categorical bin check
     categoricalBinCheck.value <== fieldValue;
     categoricalBinCheck.categoryCount <== categoryCount;
     for (var i = 0; i < MAX_CATEGORIES; i++) {
         categoricalBinCheck.categories[i] <== categories[i];
     }
     
-    // Select result based on bin type (0=range, 1=categorical)
     component isRange = IsZero();
     isRange.in <== binType;
     
@@ -421,7 +399,6 @@ template BinMembershipCheck(MAX_CATEGORIES) {
     signal categoricalResult <== (1 - isRange.out) * categoricalBinCheck.belongs;
     signal typeBasedResult <== rangeResult + categoricalResult;
     
-    // Final result: bin is active AND participant matches criteria
     belongs <== isActive.out * typeBasedResult;
 }
 
@@ -451,7 +428,6 @@ template FieldSelector() {
     
     signal output value;
     
-    // Create equality checkers for each field code
     component isAge = IsEqual();
     component isGender = IsEqual();
     component isRegion = IsEqual();
@@ -505,7 +481,6 @@ template FieldSelector() {
     isHeartDisease.in[0] <== fieldCode;
     isHeartDisease.in[1] <== 12;
     
-    // Multiply each field by its selector (quadratic constraints)
     signal selectedValues[13];
     selectedValues[0] <== isAge.out * age;
     selectedValues[1] <== isGender.out * gender;
@@ -521,7 +496,6 @@ template FieldSelector() {
     selectedValues[11] <== isDiabetes.out * diabetesStatus;
     selectedValues[12] <== isHeartDisease.out * heartDiseaseHistory;
     
-    // Sum all selected values (linear constraint - allowed)
     value <== selectedValues[0] + selectedValues[1] + selectedValues[2] + 
               selectedValues[3] + selectedValues[4] + selectedValues[5] + 
               selectedValues[6] + selectedValues[7] + selectedValues[8] + 
@@ -551,12 +525,10 @@ template RangeBinCheck(n) {
     gt.in[0] <== value;
     gt.in[1] <== minValue;
     
-    // Select >= or > based on includeMin (quadratic constraints)
     signal minOption1 <== includeMin * geq.out;
     signal minOption2 <== (1 - includeMin) * gt.out;
     signal minCheck <== minOption1 + minOption2;
     
-    // Check max boundary
     component leq = LessEqThan(n);
     component lt = LessThan(n);
     
@@ -566,12 +538,10 @@ template RangeBinCheck(n) {
     lt.in[0] <== value;
     lt.in[1] <== maxValue;
     
-    // Select <= or < based on includeMax (quadratic constraints)
     signal maxOption1 <== includeMax * leq.out;
     signal maxOption2 <== (1 - includeMax) * lt.out;
     signal maxCheck <== maxOption1 + maxOption2;
     
-    // Both conditions must be true
     belongs <== minCheck * maxCheck;
 }
 
@@ -585,28 +555,23 @@ template CategoricalBinCheck(MAX_CATEGORIES) {
     signal input categoryCount;
     signal output belongs;
     
-    // Check if value matches any category
     component checkers[MAX_CATEGORIES];
     component isValidCategory[MAX_CATEGORIES];
     
     signal partialMatches[MAX_CATEGORIES];
     
     for (var i = 0; i < MAX_CATEGORIES; i++) {
-        // Check if this category index is valid (i < categoryCount)
         isValidCategory[i] = LessThan(8);
         isValidCategory[i].in[0] <== i;
         isValidCategory[i].in[1] <== categoryCount;
         
-        // Check if value equals this category
         checkers[i] = IsEqual();
         checkers[i].in[0] <== value;
         checkers[i].in[1] <== categories[i];
         
-        // Match only if category is valid AND value matches
         partialMatches[i] <== isValidCategory[i].out * checkers[i].out;
     }
     
-    // Sum all partial matches (if any match, result will be >= 1)
     signal sum[MAX_CATEGORIES];
     sum[0] <== partialMatches[0];
     
@@ -614,7 +579,6 @@ template CategoricalBinCheck(MAX_CATEGORIES) {
         sum[i] <== sum[i-1] + partialMatches[i];
     }
     
-    // Convert to boolean (any match = 1)
     component hasMatch = IsZero();
     hasMatch.in <== sum[MAX_CATEGORIES - 1];
     
@@ -643,7 +607,6 @@ template RangeCheck(n) {
     valid <== geq.out * leq.out;
 }
 
-// Conditional range check template
 template ConditionalRangeCheck(n) {
     signal input enabled;        // 0=disabled, 1=enabled
     signal input value;          // Patient's value
@@ -658,15 +621,12 @@ template ConditionalRangeCheck(n) {
     rangeCheck.min <== min;
     rangeCheck.max <== max;
     
-    // Check if criteria is disabled
     isDisabled.in[0] <== enabled;
     isDisabled.in[1] <== 0;
     
-    // If disabled, always valid (1). If enabled, check range
     valid <== isDisabled.out + (enabled * rangeCheck.valid);
 }
 
-// Conditional single value check (e.g., gender, smoking status)
 template ConditionalSingleValueCheck() {
     signal input enabled;        // 0=disabled, 1=enabled
     signal input patientValue;   // Patient's actual value
@@ -677,26 +637,21 @@ template ConditionalSingleValueCheck() {
     component isAny = IsEqual();
     component isDisabled = IsEqual();
     
-    // Check if patient's value matches allowed value
     isEqual.in[0] <== patientValue;
     isEqual.in[1] <== allowedValue;
     
-    // Check if "any" is allowed (usually code 3 or higher means "any value")
     isAny.in[0] <== allowedValue;
     isAny.in[1] <== 3;
     
-    // Check if criteria is disabled
     isDisabled.in[0] <== enabled;
     isDisabled.in[1] <== 0;
     
-    // Patient passes if: disabled OR (enabled AND (matches OR any-allowed))
     signal matchOrAny;
     matchOrAny <== isEqual.out + isAny.out;
     
     valid <== isDisabled.out + (enabled * matchOrAny);
 }
 
-// Conditional array check (e.g., allowed blood types, regions)  
 template ConditionalArrayCheck() {
     signal input enabled;           // 0=disabled, 1=enabled
     signal input patientValue;      // Patient's value
@@ -709,7 +664,6 @@ template ConditionalArrayCheck() {
     component eq4 = IsEqual();
     component isDisabled = IsEqual();
     
-    // Check if patient's value matches any allowed value
     eq1.in[0] <== patientValue;
     eq1.in[1] <== allowedValues[0];
     
@@ -722,19 +676,15 @@ template ConditionalArrayCheck() {
     eq4.in[0] <== patientValue;
     eq4.in[1] <== allowedValues[3];
     
-    // Patient passes if matches any allowed value
     signal matchAny;
     matchAny <== eq1.out + eq2.out + eq3.out + eq4.out;
     
-    // Check if criteria is disabled
     isDisabled.in[0] <== enabled;
     isDisabled.in[1] <== 0;
     
-    // Patient passes if: disabled OR (enabled AND matches-any)
     valid <== isDisabled.out + (enabled * matchAny);
 }
 
-// Conditional dual range check (specifically for blood pressure)
 template ConditionalDualRangeCheck(n) {
     signal input enabled;           // 0=disabled, 1=enabled
     signal input systolicValue;     // Patient's systolic BP
@@ -749,25 +699,20 @@ template ConditionalDualRangeCheck(n) {
     component diastolicCheck = RangeCheck(n);
     component isDisabled = IsEqual();
     
-    // Check systolic range
     systolicCheck.value <== systolicValue;
     systolicCheck.min <== minSystolic;
     systolicCheck.max <== maxSystolic;
     
-    // Check diastolic range
     diastolicCheck.value <== diastolicValue;
     diastolicCheck.min <== minDiastolic;
     diastolicCheck.max <== maxDiastolic;
     
-    // Both systolic AND diastolic must be in range
     signal bothValid;
     bothValid <== systolicCheck.valid * diastolicCheck.valid;
     
-    // Check if criteria is disabled
     isDisabled.in[0] <== enabled;
     isDisabled.in[1] <== 0;
     
-    // Patient passes if: disabled OR (enabled AND both-ranges-valid)
     valid <== isDisabled.out + (enabled * bothValid);
 }
 
