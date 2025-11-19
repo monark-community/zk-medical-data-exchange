@@ -1,6 +1,5 @@
 import { describe, test, expect, beforeEach, mock } from "bun:test";
 import type { StudyCriteria } from "@zk-medical/shared";
-import { JoinStudyError } from "@/services/errors/joinStudyError";
 
 // Set test environment before imports
 process.env.NODE_ENV = "test";
