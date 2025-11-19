@@ -742,14 +742,19 @@ describe("GovernanceService", () => {
 
       const stats = await service.getPlatformStats();
 
-      expect(stats.totalProposals).toBe(5);
-      expect(stats.activeProposals).toBe(2);
-      expect(stats.totalVotes).toBe(30);
-      expect(stats.uniqueVoters).toBe(10);
-      // avgVotesPerProposal = 30 / 5 = 6
-      // avgParticipation = (6 / 10) * 100 = 60
-      expect(stats.avgParticipation).toBe(60);
-      expect(stats.votingPower).toBe(30);
+      const expectedTotalProposals = 5;
+      const expectedActiveProposals = 2;
+      const expectedTotalVotes = 30;
+      const expectedUniqueVoters = 10;
+
+      const expectedAvgParticipation = (expectedTotalVotes / expectedTotalProposals) / expectedUniqueVoters * 100;
+
+      expect(stats.totalProposals).toBe(expectedTotalProposals);
+      expect(stats.activeProposals).toBe(expectedActiveProposals);
+      expect(stats.totalVotes).toBe(expectedTotalVotes);
+      expect(stats.uniqueVoters).toBe(expectedUniqueVoters);
+      expect(stats.avgParticipation).toBe(expectedAvgParticipation);
+      expect(stats.votingPower).toBe(expectedTotalVotes);
     });
   });
 });
