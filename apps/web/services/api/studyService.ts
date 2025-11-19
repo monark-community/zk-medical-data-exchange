@@ -325,8 +325,6 @@ export class StudyApplicationService {
 
       const verifiedCommitment = proofResult.publicSignals[proofResult.publicSignals.length - 1];
 
-      const verifiedCommitment = proofResult.publicSignals[proofResult.publicSignals.length - 1];
-
       const applicationRequest: StudyApplicationRequest = {
         studyId,
         participantWallet: walletAddress,
