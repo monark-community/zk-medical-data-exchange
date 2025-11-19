@@ -66,6 +66,14 @@ export default function ResearcherStudiesList({
 
   const handleShowResults = (study: StudySummary) => {
     console.log("study:", study);
+    setAggregatedDataStudy({
+      id: study.id,
+      title: study.title,
+    });
+    setAggregatedDataDialogOpen(true);
+  };
+
+  const handleViewCompletionSummary = (study: StudySummary) => {
     setSummaryStudy({
       id: study.id,
       title: study.title,
@@ -197,6 +205,16 @@ export default function ResearcherStudiesList({
             });
             setAggregatedDataDialogOpen(true);
           }}
+        />
+      )}
+
+      {aggregatedDataStudy && (
+        <AggregatedDataView
+          open={aggregatedDataDialogOpen}
+          onOpenChange={setAggregatedDataDialogOpen}
+          studyId={aggregatedDataStudy.id}
+          studyTitle={aggregatedDataStudy.title}
+          creatorWallet={creatorWallet}
         />
       )}
 
