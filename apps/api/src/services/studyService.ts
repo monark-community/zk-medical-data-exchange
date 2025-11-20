@@ -7,7 +7,12 @@ import { Config } from "@/config/config";
 import { STUDY_ABI, STUDY_FACTORY_ABI, MEDICAL_ELIGIBILITY_VERIFIER_ABI } from "../contracts/generated";
 import { BIN_COUNT, MEDICAL_ELIGIBILITY_PUBSIGNALS_LENGTH } from "@/services/constants/signals";
 import { JoinStudyError } from "@/services/errors/joinStudyError";
-import { buildPriorityFeeOverrides, waitForReceiptWithTimeout } from "@/utils/fastTx";
+import {
+  buildPriorityFeeOverrides,
+  waitForReceiptWithTimeout,
+  FAST_TX_TIMEOUT_MS,
+  FAST_TX_POLL_INTERVAL_MS,
+} from "@/utils/fastTx";
 
 export interface StudyDeploymentParams {
   title: string;
@@ -140,6 +145,7 @@ export class StudyService {
       );
 
       const feeOverrides = await buildPriorityFeeOverrides(this.publicClient);
+      const submittedAt = Date.now();
       const transactionHash = await this.walletClient.writeContract({
         ...simulationResult.request,
         ...feeOverrides,
@@ -150,7 +156,15 @@ export class StudyService {
       const receipt = await waitForReceiptWithTimeout(
         this.publicClient,
         transactionHash,
-        `${context} transaction`
+        `${context} transaction`,
+        FAST_TX_TIMEOUT_MS,
+        FAST_TX_POLL_INTERVAL_MS,
+        {
+          submittedAt,
+          priorityFee: feeOverrides.maxPriorityFeePerGas,
+          maxFee: feeOverrides.maxFeePerGas,
+          context: `${context} transaction`,
+        }
       );
 
       if (receipt.status === "reverted") {
@@ -479,6 +493,7 @@ export class StudyService {
       }
 
       const feeOverrides = await buildPriorityFeeOverrides(this.publicClient);
+      const submittedAt = Date.now();
       const transactionHash = await this.walletClient.writeContract({
         ...request,
         ...feeOverrides,
@@ -489,7 +504,15 @@ export class StudyService {
       const receipt = await waitForReceiptWithTimeout(
         this.publicClient,
         transactionHash,
-        "Study deployment"
+        "Study deployment",
+        FAST_TX_TIMEOUT_MS,
+        FAST_TX_POLL_INTERVAL_MS,
+        {
+          submittedAt,
+          priorityFee: feeOverrides.maxPriorityFeePerGas,
+          maxFee: feeOverrides.maxFeePerGas,
+          context: "Study deployment",
+        }
       );
 
       logger.info(
@@ -720,8 +743,13 @@ export class StudyService {
       }
 
       let transactionHash;
+      let feeOverrides:
+        | Awaited<ReturnType<typeof buildPriorityFeeOverrides>>
+        | undefined;
+      let submittedAt: number | undefined;
       try {
-        const feeOverrides = await buildPriorityFeeOverrides(this.publicClient);
+        feeOverrides = await buildPriorityFeeOverrides(this.publicClient);
+        submittedAt = Date.now();
         transactionHash = await this.walletClient.writeContract({
           ...simulationResult.request,
           ...feeOverrides,
@@ -748,7 +776,15 @@ export class StudyService {
         receipt = await waitForReceiptWithTimeout(
           this.publicClient,
           transactionHash,
-          "Commitment registration"
+          "Commitment registration",
+          FAST_TX_TIMEOUT_MS,
+          FAST_TX_POLL_INTERVAL_MS,
+          {
+            submittedAt: submittedAt ?? Date.now(),
+            priorityFee: feeOverrides?.maxPriorityFeePerGas,
+            maxFee: feeOverrides?.maxFeePerGas,
+            context: "Commitment registration",
+          }
         );
       } catch (waitErr) {
         const msg =

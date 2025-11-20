@@ -12,7 +12,12 @@ import { Config } from "@/config/config";
 import { GOVERNANCE_FACTORY_ABI, PROPOSAL_ABI } from "@/contracts/generated";
 import { TABLES } from "@/constants/db";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { buildPriorityFeeOverrides, waitForReceiptWithTimeout } from "@/utils/fastTx";
+import {
+  buildPriorityFeeOverrides,
+  waitForReceiptWithTimeout,
+  FAST_TX_POLL_INTERVAL_MS,
+  FAST_TX_TIMEOUT_MS,
+} from "@/utils/fastTx";
 
 const { USERS, PROPOSALS, PROPOSAL_VOTES } = TABLES;
 
@@ -222,6 +227,7 @@ class GovernanceService {
       }
 
       const feeOverrides = await buildPriorityFeeOverrides(this.publicClient);
+      const submittedAt = Date.now();
       const hash = await this.walletClient.writeContract({
         address: this.factoryAddress as `0x${string}`,
         abi: GOVERNANCE_FACTORY_ABI,
@@ -233,6 +239,7 @@ class GovernanceService {
           BigInt(params.duration),
           params.walletAddress,
         ],
+        ...feeOverrides,
       });
 
       logger.info({ hash }, "Proposal creation transaction sent");
@@ -240,7 +247,15 @@ class GovernanceService {
       const receipt = await waitForReceiptWithTimeout(
         this.publicClient,
         hash,
-        "Proposal creation"
+        "Proposal creation",
+        FAST_TX_TIMEOUT_MS,
+        FAST_TX_POLL_INTERVAL_MS,
+        {
+          submittedAt,
+          priorityFee: feeOverrides.maxPriorityFeePerGas,
+          maxFee: feeOverrides.maxFeePerGas,
+          context: "Proposal creation",
+        }
       );
 
       logger.info({ receipt }, "Proposal created on blockchain successfully");
@@ -353,11 +368,13 @@ class GovernanceService {
 
       // Submit vote to blockchain
       const feeOverrides = await buildPriorityFeeOverrides(this.publicClient);
+      const submittedAt = Date.now();
       const hash = await this.walletClient.writeContract({
         address: proposalContract as `0x${string}`,
         abi: PROPOSAL_ABI,
         functionName: "vote",
         args: [params.choice, params.walletAddress],
+        ...feeOverrides,
       });
 
       logger.info({ hash }, "Vote transaction sent");
@@ -365,7 +382,15 @@ class GovernanceService {
       const receipt = await waitForReceiptWithTimeout(
         this.publicClient,
         hash,
-        "Cast vote"
+        "Cast vote",
+        FAST_TX_TIMEOUT_MS,
+        FAST_TX_POLL_INTERVAL_MS,
+        {
+          submittedAt,
+          priorityFee: feeOverrides.maxPriorityFeePerGas,
+          maxFee: feeOverrides.maxFeePerGas,
+          context: "Cast vote",
+        }
       );
 
       logger.info({ receipt }, "Vote cast on blockchain successfully");
@@ -469,11 +494,13 @@ class GovernanceService {
 
         try {
           const feeOverrides = await buildPriorityFeeOverrides(this.publicClient);
+          const submittedAt = Date.now();
           const hash = await this.walletClient.writeContract({
             address: proposalContract as `0x${string}`,
             abi: PROPOSAL_ABI,
             functionName: "finalize",
             args: [],
+            ...feeOverrides,
           });
 
           logger.info({ proposalId, hash }, "Proposal finalized on blockchain");
@@ -481,7 +508,15 @@ class GovernanceService {
           await waitForReceiptWithTimeout(
             this.publicClient,
             hash,
-            "Proposal finalization"
+            "Proposal finalization",
+            FAST_TX_TIMEOUT_MS,
+            FAST_TX_POLL_INTERVAL_MS,
+            {
+              submittedAt,
+              priorityFee: feeOverrides.maxPriorityFeePerGas,
+              maxFee: feeOverrides.maxFeePerGas,
+              context: "Proposal finalization",
+            }
           );
 
           // Get the final state from blockchain
@@ -678,11 +713,13 @@ class GovernanceService {
             const { proposalContract } = await this.getProposalRegistryEntry(dbProposal.id);
             try {
               const feeOverrides = await buildPriorityFeeOverrides(this.publicClient);
+              const submittedAt = Date.now();
               const hash = await this.walletClient.writeContract({
                 address: proposalContract as `0x${string}`,
                 abi: PROPOSAL_ABI,
                 functionName: "finalize",
                 args: [],
+                ...feeOverrides,
               });
               logger.info(
                 { proposalId: dbProposal.id, hash },
@@ -691,7 +728,15 @@ class GovernanceService {
               await waitForReceiptWithTimeout(
                 this.publicClient,
                 hash,
-                "Proposal finalization"
+                "Proposal finalization",
+                FAST_TX_TIMEOUT_MS,
+                FAST_TX_POLL_INTERVAL_MS,
+                {
+                  submittedAt,
+                  priorityFee: feeOverrides.maxPriorityFeePerGas,
+                  maxFee: feeOverrides.maxFeePerGas,
+                  context: "Proposal finalization",
+                }
               );
             } catch (finalizeError) {
               logger.error(
