@@ -4,9 +4,9 @@ import logger from "@/utils/logger";
 const GWEI = 1_000_000_000n;
 const DEFAULT_MAX_FEE = 40n * GWEI;
 
-export const FAST_TX_TIMEOUT_MS = 60_000; // Reduced from 120s to 60s for faster failures
-export const FAST_TX_POLL_INTERVAL_MS = 500; // Reduced from 1s to 500ms for faster detection
-export const FAST_TX_MAX_RETRIES = 5; // Increased from 3 to 5 retries
+export const FAST_TX_TIMEOUT_MS = 60_000;
+export const FAST_TX_POLL_INTERVAL_MS = 500;
+export const FAST_TX_MAX_RETRIES = 5;
 
 export interface PriorityFeeOptions {
   bumpPercent?: number;
@@ -17,7 +17,6 @@ export async function buildPriorityFeeOverrides(
   client: PublicClient,
   options: PriorityFeeOptions = {}
 ): Promise<{ maxFeePerGas: bigint; maxPriorityFeePerGas: bigint }> {
-  // Aggressive defaults for speed - 50% bump and 5 gwei minimum priority
   const bumpPercent = Math.max(options.bumpPercent ?? 50, 0);
   const multiplier = 100n + BigInt(bumpPercent);
   const minPriority = BigInt(options.minPriorityFeeGwei ?? 5) * GWEI;
@@ -38,8 +37,6 @@ export async function buildPriorityFeeOverrides(
   const maxPriorityFeePerGas = (basePriority * multiplier) / 100n;
   let maxFeePerGas = (baseMaxFee * multiplier) / 100n;
 
-  // Ensure maxFeePerGas is sufficiently higher than maxPriorityFeePerGas for fast inclusion
-  // Use a more aggressive buffer for speed
   const baseFee = isEIP1559FeeData(feeData) ? feeData.baseFeePerGas : GWEI;
   const minBuffer = baseFee * 2n; // At least 2x base fee as buffer
   if (maxFeePerGas <= maxPriorityFeePerGas + minBuffer) {
@@ -61,10 +58,9 @@ function isEIP1559FeeData(
 export async function buildUltraFastFeeOverrides(
   client: PublicClient
 ): Promise<{ maxFeePerGas: bigint; maxPriorityFeePerGas: bigint }> {
-  // Ultra-aggressive settings for critical transactions
   return buildPriorityFeeOverrides(client, {
-    bumpPercent: 100, // Double the estimated fees
-    minPriorityFeeGwei: 10, // Minimum 10 gwei priority fee
+    bumpPercent: 100,
+    minPriorityFeeGwei: 10,
   });
 }
 
@@ -82,7 +78,6 @@ export async function retryFastTransaction<T>(
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
 
-      // Don't retry on certain errors
       if (
         lastError.message.includes("insufficient funds") ||
         lastError.message.includes("gas required exceeds allowance") ||
