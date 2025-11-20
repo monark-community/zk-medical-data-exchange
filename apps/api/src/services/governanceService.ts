@@ -12,6 +12,7 @@ import { Config } from "@/config/config";
 import { GOVERNANCE_FACTORY_ABI, PROPOSAL_ABI } from "@/contracts/generated";
 import { TABLES } from "@/constants/db";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { buildPriorityFeeOverrides, waitForReceiptWithTimeout } from "@/utils/fastTx";
 
 const { USERS, PROPOSALS, PROPOSAL_VOTES } = TABLES;
 
@@ -220,6 +221,7 @@ class GovernanceService {
         return { success: false, error: "Description cannot be empty" };
       }
 
+      const feeOverrides = await buildPriorityFeeOverrides(this.publicClient);
       const hash = await this.walletClient.writeContract({
         address: this.factoryAddress as `0x${string}`,
         abi: GOVERNANCE_FACTORY_ABI,
@@ -235,7 +237,11 @@ class GovernanceService {
 
       logger.info({ hash }, "Proposal creation transaction sent");
 
-      const receipt = await this.publicClient.waitForTransactionReceipt({ hash });
+      const receipt = await waitForReceiptWithTimeout(
+        this.publicClient,
+        hash,
+        "Proposal creation"
+      );
 
       logger.info({ receipt }, "Proposal created on blockchain successfully");
 
@@ -346,6 +352,7 @@ class GovernanceService {
       const { proposalContract } = await this.getProposalRegistryEntry(params.proposalId);
 
       // Submit vote to blockchain
+      const feeOverrides = await buildPriorityFeeOverrides(this.publicClient);
       const hash = await this.walletClient.writeContract({
         address: proposalContract as `0x${string}`,
         abi: PROPOSAL_ABI,
@@ -355,7 +362,11 @@ class GovernanceService {
 
       logger.info({ hash }, "Vote transaction sent");
 
-      const receipt = await this.publicClient.waitForTransactionReceipt({ hash });
+      const receipt = await waitForReceiptWithTimeout(
+        this.publicClient,
+        hash,
+        "Cast vote"
+      );
 
       logger.info({ receipt }, "Vote cast on blockchain successfully");
 
@@ -457,6 +468,7 @@ class GovernanceService {
         const { proposalContract } = await this.getProposalRegistryEntry(proposalId);
 
         try {
+          const feeOverrides = await buildPriorityFeeOverrides(this.publicClient);
           const hash = await this.walletClient.writeContract({
             address: proposalContract as `0x${string}`,
             abi: PROPOSAL_ABI,
@@ -465,6 +477,12 @@ class GovernanceService {
           });
 
           logger.info({ proposalId, hash }, "Proposal finalized on blockchain");
+
+          await waitForReceiptWithTimeout(
+            this.publicClient,
+            hash,
+            "Proposal finalization"
+          );
 
           // Get the final state from blockchain
           const [finalState] = await this.publicClient.readContract({
@@ -659,6 +677,7 @@ class GovernanceService {
             // update blockchain state too for consistency
             const { proposalContract } = await this.getProposalRegistryEntry(dbProposal.id);
             try {
+              const feeOverrides = await buildPriorityFeeOverrides(this.publicClient);
               const hash = await this.walletClient.writeContract({
                 address: proposalContract as `0x${string}`,
                 abi: PROPOSAL_ABI,
@@ -668,6 +687,11 @@ class GovernanceService {
               logger.info(
                 { proposalId: dbProposal.id, hash },
                 "Proposal finalize transaction sent to blockchain"
+              );
+              await waitForReceiptWithTimeout(
+                this.publicClient,
+                hash,
+                "Proposal finalization"
               );
             } catch (finalizeError) {
               logger.error(

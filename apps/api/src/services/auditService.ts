@@ -8,6 +8,7 @@ import logger from "@/utils/logger";
 import { Config } from "@/config/config";
 import { AUDIT_TRAIL_ABI } from "@/contracts";
 import { UserProfile } from "@zk-medical/shared";
+import { buildPriorityFeeOverrides, waitForReceiptWithTimeout } from "@/utils/fastTx";
 
 export enum ActionType {
   USER_AUTHENTICATION,
@@ -266,6 +267,7 @@ class AuditService {
           "Attempting blockchain transaction"
         );
 
+        const feeOverrides = await buildPriorityFeeOverrides(this.publicClient);
         const txHash = await this.walletClient.writeContract({
           address: auditTrailAddress as `0x${string}`,
           abi: AUDIT_TRAIL_ABI,
@@ -284,15 +286,11 @@ class AuditService {
           chain: sepolia,
         });
 
-        const receipt = await Promise.race([
-          this.publicClient.waitForTransactionReceipt({
-            hash: txHash,
-            timeout: 60000,
-          }),
-          new Promise((_, reject) =>
-            setTimeout(() => reject(new Error("Transaction confirmation timeout")), 60000)
-          ),
-        ]);
+        const receipt = await waitForReceiptWithTimeout(
+          this.publicClient,
+          txHash,
+          "Audit trail log"
+        );
 
         logger.info(
           {
@@ -363,6 +361,7 @@ class AuditService {
           "Attempting blockchain transaction for participants"
         );
 
+        const feeOverrides = await buildPriorityFeeOverrides(this.publicClient);
         const txHash = await this.walletClient.writeContract({
           address: auditTrailAddress as `0x${string}`,
           abi: AUDIT_TRAIL_ABI,
@@ -381,15 +380,11 @@ class AuditService {
           chain: sepolia,
         });
 
-        const receipt = await Promise.race([
-          this.publicClient.waitForTransactionReceipt({
-            hash: txHash,
-            timeout: 60000,
-          }),
-          new Promise((_, reject) =>
-            setTimeout(() => reject(new Error("Transaction confirmation timeout")), 60000)
-          ),
-        ]);
+        const receipt = await waitForReceiptWithTimeout(
+          this.publicClient,
+          txHash,
+          "Audit trail participant log"
+        );
 
         logger.info(
           {
