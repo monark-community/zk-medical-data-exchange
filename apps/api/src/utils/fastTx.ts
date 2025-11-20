@@ -1,4 +1,5 @@
 import type { Hash, PublicClient } from "viem";
+import { randomBytes } from "crypto";
 import logger from "@/utils/logger";
 
 const GWEI = 1_000_000_000n;
@@ -89,7 +90,7 @@ export async function retryFastTransaction<T>(
       if (attempt < maxRetries) {
         // Exponential backoff with jitter: 500ms, 1s, 2s, 4s
         const baseDelay = 500 * Math.pow(2, attempt - 1);
-        const jitter = Math.random() * 200; // Add up to 200ms jitter
+        const jitter = (randomBytes(4).readUInt32LE(0) / 0xffffffff) * 200; // Crypto-safe random jitter up to 200ms
         const delay = Math.min(baseDelay + jitter, 5000); // Cap at 5 seconds
 
         logger.warn(
