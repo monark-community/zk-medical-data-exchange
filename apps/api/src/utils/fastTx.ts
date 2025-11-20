@@ -38,7 +38,7 @@ export async function buildPriorityFeeOverrides(
   let maxFeePerGas = (baseMaxFee * multiplier) / 100n;
 
   const baseFee = isEIP1559FeeData(feeData) ? feeData.baseFeePerGas : GWEI;
-  const minBuffer = baseFee * 2n; // At least 2x base fee as buffer
+  const minBuffer = baseFee * 2n;
   if (maxFeePerGas <= maxPriorityFeePerGas + minBuffer) {
     maxFeePerGas = maxPriorityFeePerGas + minBuffer;
   }
