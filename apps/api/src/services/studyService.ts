@@ -7,6 +7,7 @@ import { Config } from "@/config/config";
 import { STUDY_ABI, STUDY_FACTORY_ABI, MEDICAL_ELIGIBILITY_VERIFIER_ABI } from "../contracts/generated";
 import { BIN_COUNT, MEDICAL_ELIGIBILITY_PUBSIGNALS_LENGTH } from "@/services/constants/signals";
 import { JoinStudyError } from "@/services/errors/joinStudyError";
+import { buildPriorityFeeOverrides, waitForReceiptWithTimeout } from "@/utils/fastTx";
 
 export interface StudyDeploymentParams {
   title: string;
@@ -138,13 +139,19 @@ export class StudyService {
         `${context} simulation successful`
       );
 
-      const transactionHash = await this.walletClient.writeContract(simulationResult.request);
+      const feeOverrides = await buildPriorityFeeOverrides(this.publicClient);
+      const transactionHash = await this.walletClient.writeContract({
+        ...simulationResult.request,
+        ...feeOverrides,
+      });
 
       logger.info({ transactionHash }, `${context} transaction submitted`);
 
-      const receipt = await this.publicClient.waitForTransactionReceipt({
-        hash: transactionHash,
-      });
+      const receipt = await waitForReceiptWithTimeout(
+        this.publicClient,
+        transactionHash,
+        `${context} transaction`
+      );
 
       if (receipt.status === "reverted") {
         logger.error({ transactionHash }, `${context} transaction reverted`);
@@ -471,13 +478,19 @@ export class StudyService {
         );
       }
 
-      const transactionHash = await this.walletClient.writeContract(request);
+      const feeOverrides = await buildPriorityFeeOverrides(this.publicClient);
+      const transactionHash = await this.walletClient.writeContract({
+        ...request,
+        ...feeOverrides,
+      });
 
       logger.info({ transactionHash }, "Study deployment transaction submitted");
 
-      const receipt = await this.publicClient.waitForTransactionReceipt({
-        hash: transactionHash,
-      });
+      const receipt = await waitForReceiptWithTimeout(
+        this.publicClient,
+        transactionHash,
+        "Study deployment"
+      );
 
       logger.info(
         {
@@ -708,7 +721,11 @@ export class StudyService {
 
       let transactionHash;
       try {
-        transactionHash = await this.walletClient.writeContract(simulationResult.request);
+        const feeOverrides = await buildPriorityFeeOverrides(this.publicClient);
+        transactionHash = await this.walletClient.writeContract({
+          ...simulationResult.request,
+          ...feeOverrides,
+        });
         logger.info({ transactionHash }, "Commitment registration transaction submitted");
       } catch (txErr) {
         logger.error(
@@ -728,13 +745,15 @@ export class StudyService {
 
       let receipt;
       try {
-        receipt = await this.publicClient.waitForTransactionReceipt({
-          hash: transactionHash,
-        });
+        receipt = await waitForReceiptWithTimeout(
+          this.publicClient,
+          transactionHash,
+          "Commitment registration"
+        );
       } catch (waitErr) {
         const msg =
-          waitErr instanceof Error && waitErr.message.includes("timeout")
-            ? "Transaction timeout — network slow or stuck"
+          waitErr instanceof Error && waitErr.message
+            ? waitErr.message
             : "Failed to confirm transaction";
 
         logger.error(
@@ -1378,6 +1397,3 @@ export class StudyService {
 }
 
 export const studyService = new StudyService();
-
-
-

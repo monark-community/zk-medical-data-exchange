@@ -8,6 +8,14 @@ process.env.NODE_ENV = "test";
 const mockPublicClient = {
   readContract: mock(() => Promise.resolve([])),
   waitForTransactionReceipt: mock(() => Promise.resolve({ status: "success" })),
+  estimateFeesPerGas: mock(() =>
+    Promise.resolve({
+      maxFeePerGas: 25n * 10n ** 9n,
+      maxPriorityFeePerGas: 2n * 10n ** 9n,
+      baseFeePerGas: 15n * 10n ** 9n,
+    })
+  ),
+  getTransactionReceipt: mock(() => Promise.resolve({ status: "success" })),
 };
 
 const mockWalletClient = {
@@ -63,6 +71,9 @@ describe("AuditService", () => {
   beforeEach(() => {
     // Reset all mocks
     mockPublicClient.readContract.mockClear();
+    mockPublicClient.waitForTransactionReceipt.mockClear();
+    mockPublicClient.estimateFeesPerGas.mockClear();
+    mockPublicClient.getTransactionReceipt.mockClear();
     mockWalletClient.writeContract.mockClear();
     mockLogger.info.mockClear();
     mockLogger.error.mockClear();

@@ -37,7 +37,20 @@ type GetProposalVotingSnapshotFn = (
 
 const mockPublicClient: any = {
   readContract: mock<() => Promise<any>>(() => Promise.resolve(BigInt(0))),
+  estimateFeesPerGas: mock<() => Promise<any>>(() =>
+    Promise.resolve({
+      maxFeePerGas: 30n * 10n ** 9n,
+      maxPriorityFeePerGas: 2n * 10n ** 9n,
+      baseFeePerGas: 15n * 10n ** 9n,
+    })
+  ),
   waitForTransactionReceipt: mock<() => Promise<any>>(() =>
+    Promise.resolve({
+      logs: [],
+      status: "success",
+    })
+  ),
+  getTransactionReceipt: mock<() => Promise<any>>(() =>
     Promise.resolve({
       logs: [],
       status: "success",
@@ -178,7 +191,21 @@ describe("GovernanceService", () => {
     mockPublicClient.readContract = mock<() => Promise<any>>(
       () => Promise.resolve(BigInt(0))
     );
+    mockPublicClient.estimateFeesPerGas = mock<() => Promise<any>>(() =>
+      Promise.resolve({
+        maxFeePerGas: 30n * 10n ** 9n,
+        maxPriorityFeePerGas: 2n * 10n ** 9n,
+        baseFeePerGas: 15n * 10n ** 9n,
+      })
+    );
     mockPublicClient.waitForTransactionReceipt = mock<() => Promise<any>>(
+      () =>
+        Promise.resolve({
+          logs: [],
+          status: "success",
+        })
+    );
+    mockPublicClient.getTransactionReceipt = mock<() => Promise<any>>(
       () =>
         Promise.resolve({
           logs: [],
