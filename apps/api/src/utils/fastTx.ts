@@ -4,10 +4,155 @@ import logger from "@/utils/logger";
 
 const GWEI = 1_000_000_000n;
 const DEFAULT_MAX_FEE = 40n * GWEI;
+const MAX_MEMORY_SAMPLES = 10;
+const SLOW_CONFIRMATION_MS = 60_000;
+const VERY_SLOW_CONFIRMATION_MS = 90_000;
+const GAS_STATS_LOG_INTERVAL_MS = 30_000;
 
 export const FAST_TX_TIMEOUT_MS = 60_000;
 export const FAST_TX_POLL_INTERVAL_MS = 500;
 export const FAST_TX_MAX_RETRIES = 5;
+
+interface GasSample {
+  priorityFee?: bigint;
+  maxFee?: bigint;
+  confirmationMs: number;
+  timestamp: number;
+  context?: string;
+}
+
+interface GasMemoryStats {
+  medianPriorityFee?: bigint;
+  medianMaxFee?: bigint;
+  medianConfirmationMs?: number;
+}
+
+class GasMemory {
+  private samples: GasSample[] = [];
+
+  add(sample: GasSample) {
+    this.samples.push(sample);
+    if (this.samples.length > MAX_MEMORY_SAMPLES) {
+      this.samples.shift();
+    }
+  }
+
+  getStats(): GasMemoryStats {
+    if (this.samples.length === 0) {
+      return {};
+    }
+
+    const priorityValues = this.samples
+      .map((s) => s.priorityFee)
+      .filter((v): v is bigint => typeof v === "bigint");
+    const maxFeeValues = this.samples
+      .map((s) => s.maxFee)
+      .filter((v): v is bigint => typeof v === "bigint");
+    const confirmationValues = this.samples.map((s) => s.confirmationMs).filter((v) => v > 0);
+
+    return {
+      medianPriorityFee: this.medianBigInt(priorityValues),
+      medianMaxFee: this.medianBigInt(maxFeeValues),
+      medianConfirmationMs: this.medianNumber(confirmationValues),
+    };
+  }
+
+  reset() {
+    this.samples = [];
+  }
+
+  getSampleCount() {
+    return this.samples.length;
+  }
+
+  private medianBigInt(values: bigint[]): bigint | undefined {
+    if (!values.length) return undefined;
+    const sorted = [...values].sort((a, b) => (a < b ? -1 : 1));
+    const mid = Math.floor(sorted.length / 2);
+    if (sorted.length % 2 === 0) {
+      return (sorted[mid - 1]! + sorted[mid]!) / 2n;
+    }
+    return sorted[mid];
+  }
+
+  private medianNumber(values: number[]): number | undefined {
+    if (!values.length) return undefined;
+    const sorted = [...values].sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    if (sorted.length % 2 === 0) {
+      return (sorted[mid - 1]! + sorted[mid]!) / 2;
+    }
+    return sorted[mid]!;
+  }
+}
+
+const gasMemory = new GasMemory();
+let lastStatsLog = 0;
+
+export function recordGasObservation(sample: GasSample) {
+  gasMemory.add(sample);
+  logSlowSample(sample);
+  maybeLogGasStats(sample.context);
+}
+
+export function getGasMemoryStats() {
+  return gasMemory.getStats();
+}
+
+function logSlowSample(sample: GasSample) {
+  if (sample.confirmationMs >= VERY_SLOW_CONFIRMATION_MS) {
+    logger.warn(
+      {
+        context: sample.context,
+        confirmationMs: sample.confirmationMs,
+        priorityFeeGwei: convertToGwei(sample.priorityFee),
+        maxFeeGwei: convertToGwei(sample.maxFee),
+      },
+      "Transaction confirmation exceeded 90s threshold"
+    );
+  } else if (sample.confirmationMs >= SLOW_CONFIRMATION_MS) {
+    logger.info(
+      {
+        context: sample.context,
+        confirmationMs: sample.confirmationMs,
+        priorityFeeGwei: convertToGwei(sample.priorityFee),
+        maxFeeGwei: convertToGwei(sample.maxFee),
+      },
+      "Transaction confirmation exceeded 60s threshold"
+    );
+  }
+}
+
+function maybeLogGasStats(context?: string) {
+  const now = Date.now();
+  if (now - lastStatsLog < GAS_STATS_LOG_INTERVAL_MS) {
+    return;
+  }
+
+  const stats = gasMemory.getStats();
+  if (!stats.medianConfirmationMs && !stats.medianPriorityFee && !stats.medianMaxFee) {
+    return;
+  }
+
+  lastStatsLog = now;
+  logger.info(
+    {
+      triggerContext: context,
+      medianConfirmationMs: stats.medianConfirmationMs,
+      medianPriorityGwei: convertToGwei(stats.medianPriorityFee),
+      medianMaxFeeGwei: convertToGwei(stats.medianMaxFee),
+      sampleCount: gasMemory.getSampleCount(),
+    },
+    "Sepolia gas memory snapshot updated"
+  );
+}
+
+function convertToGwei(value?: bigint) {
+  if (typeof value !== "bigint") {
+    return undefined;
+  }
+  return Number(value) / Number(GWEI);
+}
 
 export interface PriorityFeeOptions {
   bumpPercent?: number;
@@ -18,9 +163,18 @@ export async function buildPriorityFeeOverrides(
   client: PublicClient,
   options: PriorityFeeOptions = {}
 ): Promise<{ maxFeePerGas: bigint; maxPriorityFeePerGas: bigint }> {
+  const memoryStats = getGasMemoryStats();
   const bumpPercent = Math.max(options.bumpPercent ?? 50, 0);
-  const multiplier = 100n + BigInt(bumpPercent);
+  let multiplier = 100n + BigInt(bumpPercent);
   const minPriority = BigInt(options.minPriorityFeeGwei ?? 5) * GWEI;
+
+  if (memoryStats.medianConfirmationMs) {
+    if (memoryStats.medianConfirmationMs > VERY_SLOW_CONFIRMATION_MS) {
+      multiplier += 30n;
+    } else if (memoryStats.medianConfirmationMs > SLOW_CONFIRMATION_MS) {
+      multiplier += 15n;
+    }
+  }
 
   let feeData: Awaited<ReturnType<PublicClient["estimateFeesPerGas"]>> | undefined;
   try {
@@ -32,8 +186,15 @@ export async function buildPriorityFeeOverrides(
     );
   }
 
-  const basePriority = feeData?.maxPriorityFeePerGas ?? minPriority;
-  const baseMaxFee = feeData?.maxFeePerGas ?? DEFAULT_MAX_FEE;
+  let basePriority = feeData?.maxPriorityFeePerGas ?? minPriority;
+  if (memoryStats.medianPriorityFee && memoryStats.medianPriorityFee > basePriority) {
+    basePriority = memoryStats.medianPriorityFee;
+  }
+
+  let baseMaxFee = feeData?.maxFeePerGas ?? DEFAULT_MAX_FEE;
+  if (memoryStats.medianMaxFee && memoryStats.medianMaxFee > baseMaxFee) {
+    baseMaxFee = memoryStats.medianMaxFee;
+  }
 
   const maxPriorityFeePerGas = (basePriority * multiplier) / 100n;
   let maxFeePerGas = (baseMaxFee * multiplier) / 100n;
@@ -112,19 +273,41 @@ export async function retryFastTransaction<T>(
   throw new Error(`${context} failed after ${maxRetries} attempts: ${lastError.message}`);
 }
 
+export interface ReceiptMetrics {
+  submittedAt: number;
+  priorityFee?: bigint;
+  maxFee?: bigint;
+  context?: string;
+}
+
 export async function waitForReceiptWithTimeout(
   client: PublicClient,
   hash: Hash,
   context: string,
   timeoutMs: number = FAST_TX_TIMEOUT_MS,
-  pollingIntervalMs: number = FAST_TX_POLL_INTERVAL_MS
+  pollingIntervalMs: number = FAST_TX_POLL_INTERVAL_MS,
+  metrics?: ReceiptMetrics
 ) {
+  const recordSample = (receipt: any) => {
+    if (metrics?.submittedAt) {
+      recordGasObservation({
+        priorityFee: metrics.priorityFee,
+        maxFee: metrics.maxFee,
+        confirmationMs: Math.max(0, Date.now() - metrics.submittedAt),
+        timestamp: Date.now(),
+        context: metrics.context ?? context,
+      });
+    }
+    return receipt;
+  };
+
   try {
-    return await client.waitForTransactionReceipt({
+    const receipt = await client.waitForTransactionReceipt({
       hash,
       timeout: timeoutMs,
       pollingInterval: pollingIntervalMs,
     });
+    return recordSample(receipt);
   } catch (error) {
     const fallbackReceipt = await client
       .getTransactionReceipt({ hash })
@@ -142,7 +325,7 @@ export async function waitForReceiptWithTimeout(
       });
 
     if (fallbackReceipt) {
-      return fallbackReceipt;
+      return recordSample(fallbackReceipt);
     }
 
     const message =

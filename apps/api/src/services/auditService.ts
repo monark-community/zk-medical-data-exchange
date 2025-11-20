@@ -13,6 +13,8 @@ import {
   waitForReceiptWithTimeout,
   retryFastTransaction,
   FAST_TX_MAX_RETRIES,
+  FAST_TX_TIMEOUT_MS,
+  FAST_TX_POLL_INTERVAL_MS,
 } from "@/utils/fastTx";
 
 export enum ActionType {
@@ -261,6 +263,7 @@ class AuditService {
     return retryFastTransaction(
       async () => {
         const feeOverrides = await buildPriorityFeeOverrides(this.publicClient);
+        const submittedAt = Date.now();
         const txHash = await this.walletClient.writeContract({
           address: auditTrailAddress as `0x${string}`,
           abi: AUDIT_TRAIL_ABI,
@@ -283,7 +286,15 @@ class AuditService {
         const receipt = await waitForReceiptWithTimeout(
           this.publicClient,
           txHash,
-          "Audit trail log"
+          "Audit trail log",
+          FAST_TX_TIMEOUT_MS,
+          FAST_TX_POLL_INTERVAL_MS,
+          {
+            submittedAt,
+            priorityFee: feeOverrides.maxPriorityFeePerGas,
+            maxFee: feeOverrides.maxFeePerGas,
+            context: "Audit trail log",
+          }
         );
 
         logger.info(
@@ -317,6 +328,7 @@ class AuditService {
     return retryFastTransaction(
       async () => {
         const feeOverrides = await buildPriorityFeeOverrides(this.publicClient);
+        const submittedAt = Date.now();
         const txHash = await this.walletClient.writeContract({
           address: auditTrailAddress as `0x${string}`,
           abi: AUDIT_TRAIL_ABI,
@@ -339,7 +351,15 @@ class AuditService {
         const receipt = await waitForReceiptWithTimeout(
           this.publicClient,
           txHash,
-          "Audit trail participant log"
+          "Audit trail participant log",
+          FAST_TX_TIMEOUT_MS,
+          FAST_TX_POLL_INTERVAL_MS,
+          {
+            submittedAt,
+            priorityFee: feeOverrides.maxPriorityFeePerGas,
+            maxFee: feeOverrides.maxFeePerGas,
+            context: "Audit trail participant log",
+          }
         );
 
         logger.info(
