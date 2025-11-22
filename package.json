@@ -5,7 +5,6 @@
   "scripts": {
     "dev:web": "bun run --cwd apps/web dev",
     "dev:api": "bun run --cwd apps/api dev",
-    "infra": "docker compose -f infra/docker-compose.yaml up -d",
     "deploy:contracts:local": "bun run --cwd packages/smart-contracts deploy:local",
     "deploy:contracts:sepolia": "bun run --cwd packages/smart-contracts deploy:sepolia",
     "generate:abis": "bun run --cwd apps/api generate-abis",
