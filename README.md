@@ -1,47 +1,56 @@
 # CURA
 
-A privacy-preserving Web3 platform that enables secure medical research through Zero-Knowledge proofs, allowing patients to participate in studies without revealing sensitive medical data.
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![GitHub Issues](https://img.shields.io/github/issues/monark-community/zk-medical-data-exchange)](https://github.com/monark-community/zk-medical-data-exchange/issues)
+[![GitHub Pull Requests](https://img.shields.io/github/issues-pr/monark-community/zk-medical-data-exchange)](https://github.com/monark-community/zk-medical-data-exchange/pulls)
+[![GitHub Stars](https://img.shields.io/github/stars/monark-community/zk-medical-data-exchange)](https://github.com/monark-community/zk-medical-data-exchange/stargazers)
+[![GitHub Forks](https://img.shields.io/github/forks/monark-community/zk-medical-data-exchange)](https://github.com/monark-community/zk-medical-data-exchange/forks)
 
----
+CURA is a privacy-first Web3 platform for medical research. It lets patients control their medical data while proving study eligibility with zero-knowledge cryptography and recording study actions on-chain.
 
 ## Overview
 
-This platform combines blockchain technology with Zero-Knowledge cryptography to solve the privacy dilemma in medical research:
+- End-to-end flow for privacy-preserving medical studies: data upload, compliance checks, ZK proof generation, and on-chain verification.
+- Next.js frontend for patients and researchers, Node.js API for orchestration, and Solidity smart contracts for transparent governance.
+- Uses FHIR standards, AES encryption at rest, IPFS for storage, Supabase for managed persistence, and Groth16 proofs for eligibility verification.
 
-- **Patient Privacy** - Medical data never leaves the patient's control
-- **Research Enablement** - Researchers can verify eligibility without accessing raw data
-- **Zero-Knowledge Proofs** - Cryptographic proofs of eligibility without data disclosure
-- **Blockchain Verification** - Decentralized, transparent, and tamper-proof enrollment
+## Key Features
 
-## Architecture
+- Patient-controlled data sharing with AES-GCM encryption and wallet-derived keys
+- Zero-knowledge proof-based study eligibility without revealing raw data
+- Study lifecycle tooling: creation, governance, payouts, and audit trail logging
+- Multi-environment support (local, Sepolia) with managed Supabase backend
+
+## Project Structure
 
 ```
-┌─────────────────┬─────────────────┬─────────────────┐
-│   Frontend      │   Backend API   │ Smart Contracts │
-│   (Next.js)     │   (Node.js)     │   (Solidity)    │
-├─────────────────┼─────────────────┼─────────────────┤
-│ Study Creation  │ FHIR Integration│ StudyFactory    │
-│ Patient Portal  │ Database Layer  │ Study Contract  │
-│ ZK Proof UI     │ Blockchain APIs │ ZK Verifier     │
-└─────────────────┴─────────────────┴─────────────────┘
-                           │
-                  ┌─────────────────┐
-                  │  ZK Circuits    │
-                  │  (Circom)       │
-                  │ Medical Proofs  │
-                  └─────────────────┘
+CURA/
+├── apps/
+│   ├── api/                      # Backend API (Node.js + Supabase)
+│   │   ├── src/controllers/      # API endpoints
+│   │   ├── src/middleware/       # Auth, validation
+│   │   └── src/services/         # Business logic and integrations
+│   └── web/                      # Frontend (Next.js + React)
+│       ├── app/                  # App router pages
+│       ├── components/           # UI components
+│       └── services/             # API clients, blockchain, storage
+├── packages/
+│   ├── shared/                   # Shared types and utilities
+│   └── smart-contracts/          # Solidity contracts + Circom ZK circuits
+│       ├── contracts/            # Smart contracts
+│       ├── circuits/             # Circom ZK circuits
+│       └── test/                 # Contract and proof tests
 ```
 
-## Quick Start
+## Getting Started
 
-### Prerequisites
+Prerequisites:
 
-- **Node.js v22.7.1+**
-- **[Bun](https://bun.sh/)** (recommended package manager)
-- **Docker** (for local infrastructure)
-- **Sepolia testnet ETH** (for deployment)
+- Node.js v22.7.1+ and Bun
+- Supabase project (SUPABASE_URL, SUPABASE_ANON_KEY)
+- Sepolia testnet ETH and RPC URL (for network deployments)
 
-### Installation
+Setup:
 
 ```bash
 git clone https://github.com/monark-community/zk-medical-data-exchange.git
@@ -49,123 +58,56 @@ cd zk-medical-data-exchange
 bun install
 ```
 
-### Local Development
+Run locally:
 
 ```bash
-# 1. Start backend API (requires DB connection)
+# Start backend API (ensure Supabase env vars are set)
 bun run dev:api
 
-# 2. Start frontend (in new terminal)
+# Start frontend (in another terminal)
 bun run dev:web
-
-# 3. Open http://localhost:3000
 ```
 
 ## Available Scripts
 
-### Development & Testing
+Root scripts:
 
 ```bash
-# Frontend & Backend
-bun run dev:web                    # Start Next.js frontend (port 3000)
-bun run dev:api                    # Start backend API (port 3001)
-bun run infra                      # Start local infrastructure (DB, ClickHouse)
-
-# Smart Contracts & ZK Circuits
-bun run deploy:contracts:local     # Deploy to local Hardhat network
-bun run deploy:contracts:sepolia   # Deploy to Sepolia testnet
-
-# Contract ABI Generation (API)
-bun run build:contracts            # Generate TypeScript ABIs from compiled contracts
-
-# Testing
-bun run test:contracts             # All smart contract tests
-bun run test:contracts:solidity    # Solidity unit tests
-bun run test:contracts:nodejs      # TypeScript integration tests
-bun run test:web                   # Frontend tests
-bun run test:api                   # Backend API tests
-
-# Code Quality
-bun run lint                       # Lint entire monorepo
-bun run lint:web                   # Lint frontend only
-bun run lint:api                   # Lint backend only
+bun run dev:web                # Next.js frontend (apps/web)
+bun run dev:api                # Backend API (apps/api)
+bun run deploy:contracts:local # Deploy smart contracts to local Hardhat
+bun run deploy:contracts:sepolia # Deploy smart contracts to Sepolia
+bun run generate:abis          # Generate ABIs for the API
+bun run lint                   # Lint all workspaces
+bun run test:web               # Frontend tests
+bun run test:api               # Backend tests
+bun run test:contracts         # Contract test suite
+bun run test:contracts:zk-proof # ZK proof workflow test
+bun run coverage               # Monorepo coverage (bun test --coverage)
 ```
 
-### ZK Circuit Testing
-
-```bash
-# From repository root
-bun run test:contracts:zk-proof      # Complete ZK proof workflow test
-
-# Or from smart-contracts directory
-cd packages/smart-contracts
-bun run test:zk-proof               # Same test, run locally
-```
-
-## Project Structure
-
-```
-zk-medical-data-exchange/
-├── apps/
-│   ├── api/                      # Backend API (Node.js + PostgreSQL)
-│   │   ├── src/controllers/      # API endpoints
-│   │   ├── src/services/         # Business logic
-│   │   └── src/middleware/       # Auth, validation
-│   └── web/                      # Frontend (Next.js + React)
-│       ├── app/                  # App router pages
-│       ├── components/           # UI components
-│       └── services/             # API clients, blockchain
-├── packages/
-│   ├── shared/                   # Shared types and utilities
-│   ├── smart-contracts/          # Solidity contracts + ZK circuits
-│   │   ├── contracts/            # Smart contracts
-│   │   ├── circuits/             # Circom ZK circuits
-│   │   └── test/                 # Contract tests
-│   └── subgraph/                 # The Graph indexing
-└── infra/
-    └── docker-compose.yaml       # Local development infrastructure
-```
-
-## Zero-Knowledge Workflow
-
-1. **Study Creation** - Researchers define eligibility criteria
-2. **Patient Data** - Patients input medical data locally
-3. **Proof Generation** - ZK circuit creates eligibility proof
-4. **On-Chain Verification** - Smart contract verifies proof
-5. **Study Enrollment** - Eligible patients join without data disclosure
-
-## Key Features
-
-### For Researchers
-
-- **Study Management** - Create studies with custom eligibility criteria
-- **Privacy-Preserving Recruitment** - Verify eligibility without accessing patient data
-- **Blockchain Transparency** - Immutable record of enrollments and study parameters
-
-### For Patients
-
-- **Data Sovereignty** - Medical data never leaves your control
-- **Privacy-First Participation** - Prove eligibility without disclosure
-- **Informed Consent** - Clear understanding of study requirements
-
-### Technical Features
-
-- **Groth16 ZK-SNARKs** - Efficient zero-knowledge proof system
-- **FHIR Integration** - Standard medical data formats
-- **Smart Contract Automation** - Decentralized study management
-- **Scalable Architecture** - Modular monorepo design
+See workspace package.json files for additional commands in `apps/api`, `apps/web`, and `packages/smart-contracts`.
 
 ## Deployment
 
-### Local Testing
+- Local: configure Supabase environment variables, then run `bun run dev:api` and `bun run dev:web`. Use `bun run deploy:contracts:local` for local Hardhat deployments.
+- Sepolia: configure RPC URL and keys in environment variables, then run `bun run deploy:contracts:sepolia`. Frontend and API consume generated ABIs from `bun run generate:abis`.
 
-```bash
-bun run deploy:contracts:local     # Deploy contracts locally
-```
+## Documentation
 
-### Sepolia Testnet
+- Frontend details: [apps/web/README.md](apps/web/README.md)
+- Backend details: [apps/api/README.md](apps/api/README.md)
+- Shared types and utilities: [packages/shared/README.md](packages/shared/README.md)
+- Smart contracts and circuits: [packages/smart-contracts/README.md](packages/smart-contracts/README.md)
 
-```bash
-bun run deploy:contracts:sepolia   # Deploy to Sepolia
-# See packages/smart-contracts/SEPOLIA_DEPLOYMENT.md for details
-```
+## Contribution
+
+Contribution guidelines will be published soon. Until then, please open an issue or pull request with a clear description and reproduction steps where applicable.
+
+## Code of Conduct
+
+A formal code of conduct will be added. Please follow standard open-source etiquette and treat all contributors with respect.
+
+## License
+
+See the [LICENSE](./LICENSE) file for licensing details (Apache-2.0).
