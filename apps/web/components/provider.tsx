@@ -8,17 +8,11 @@ import React from "react";
 import { Config } from "@/config/config";
 import { ProfileProvider } from "@/contexts/ProfileContext";
 
-<<<<<<< HEAD
-const clientId = process.env.NEXT_PUBLIC_WEB3AUTH_CLIENT_ID ?? (() => {
-  throw new Error("NEXT_PUBLIC_WEB3AUTH_CLIENT_ID is not set in the environment variables.");
-})();
-=======
 const clientId =
   Config.WEB3AUTH_CLIENT_ID ??
   (() => {
     throw new Error("NEXT_PUBLIC_WEB3AUTH_CLIENT_ID is not set in the environment variables.");
   })();
->>>>>>> 933068f8a3c783ff01afb7216e947456bac9aa27
 
 const queryClient = new QueryClient();
 
@@ -38,17 +32,6 @@ const web3AuthContextConfig: Web3AuthContextConfig = {
   },
 };
 
-<<<<<<< HEAD
-const web3AuthContextConfig: Web3AuthContextConfig = {
-  web3AuthOptions: {
-    clientId,
-    web3AuthNetwork: WEB3AUTH_NETWORK.SAPPHIRE_DEVNET,
-    ssr: true,
-  },
-};
-
-=======
->>>>>>> 933068f8a3c783ff01afb7216e947456bac9aa27
 export default function Provider({
   children,
   web3authInitialState,
