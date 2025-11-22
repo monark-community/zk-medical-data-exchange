@@ -51,14 +51,14 @@ const ConfirmCreateProposalDialog = ({
           </DialogDescription>
         </DialogHeader>
         <DialogFooter className="sm:justify-end">
-          <Button className="bg-blue-600 hover:bg-blue-700" onClick={handleConfirm}>
-            Confirm
-          </Button>
           <DialogClose asChild>
             <Button className="bg-red-600 hover:bg-red-700" onClick={handleCancel}>
               Cancel
             </Button>
           </DialogClose>
+          <Button className="bg-blue-600 hover:bg-blue-700" onClick={handleConfirm}>
+            Confirm
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

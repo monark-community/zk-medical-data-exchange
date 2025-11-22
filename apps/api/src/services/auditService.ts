@@ -8,6 +8,14 @@ import logger from "@/utils/logger";
 import { Config } from "@/config/config";
 import { AUDIT_TRAIL_ABI } from "@/contracts";
 import { UserProfile } from "@zk-medical/shared";
+import {
+  buildPriorityFeeOverrides,
+  waitForReceiptWithTimeout,
+  retryFastTransaction,
+  FAST_TX_MAX_RETRIES,
+  FAST_TX_TIMEOUT_MS,
+  FAST_TX_POLL_INTERVAL_MS,
+} from "@/utils/fastTx";
 
 export enum ActionType {
   USER_AUTHENTICATION,
@@ -251,21 +259,11 @@ class AuditService {
     }
 
     const auditTrailAddress = Config.AUDIT_TRAIL_ADDRESS;
-    const maxRetries = 3;
-    let lastError: any;
 
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        logger.debug(
-          {
-            user,
-            action,
-            attempt,
-            maxRetries,
-          },
-          "Attempting blockchain transaction"
-        );
-
+    return retryFastTransaction(
+      async () => {
+        const feeOverrides = await buildPriorityFeeOverrides(this.publicClient);
+        const submittedAt = Date.now();
         const txHash = await this.walletClient.writeContract({
           address: auditTrailAddress as `0x${string}`,
           abi: AUDIT_TRAIL_ABI,
@@ -282,58 +280,36 @@ class AuditService {
           ],
           account: this.account,
           chain: sepolia,
+          ...feeOverrides,
         });
 
-        const receipt = await Promise.race([
-          this.publicClient.waitForTransactionReceipt({
-            hash: txHash,
-            timeout: 60000,
-          }),
-          new Promise((_, reject) =>
-            setTimeout(() => reject(new Error("Transaction confirmation timeout")), 60000)
-          ),
-        ]);
+        const receipt = await waitForReceiptWithTimeout(
+          this.publicClient,
+          txHash,
+          "Audit trail log",
+          FAST_TX_TIMEOUT_MS,
+          FAST_TX_POLL_INTERVAL_MS,
+          {
+            submittedAt,
+            priorityFee: feeOverrides.maxPriorityFeePerGas,
+            maxFee: feeOverrides.maxFeePerGas,
+            context: "Audit trail log",
+          }
+        );
 
         logger.info(
           {
             user,
             action,
             txHash,
-            attempt,
           },
           "Blockchain transaction confirmed"
         );
 
         return txHash;
-      } catch (error: any) {
-        lastError = error;
-        logger.warn(
-          {
-            error: error.message,
-            user,
-            action,
-            attempt,
-            maxRetries,
-          },
-          `Blockchain transaction attempt ${attempt} failed`
-        );
-
-        if (
-          error.message?.includes("insufficient funds") ||
-          error.message?.includes("gas required exceeds allowance")
-        ) {
-          throw error;
-        }
-
-        if (attempt < maxRetries) {
-          const delay = Math.pow(2, attempt) * 1000; // 2s, 4s, 8s
-          await new Promise((resolve) => setTimeout(resolve, delay));
-        }
-      }
-    }
-
-    throw new Error(
-      `Blockchain transaction failed after ${maxRetries} attempts: ${lastError.message}`
+      },
+      "Audit trail logging",
+      FAST_TX_MAX_RETRIES
     );
   }
 
@@ -348,21 +324,11 @@ class AuditService {
     metadata: string
   ): Promise<string> {
     const auditTrailAddress = Config.AUDIT_TRAIL_ADDRESS;
-    const maxRetries = 3;
-    let lastError: any;
 
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        logger.debug(
-          {
-            participants,
-            action,
-            attempt,
-            maxRetries,
-          },
-          "Attempting blockchain transaction for participants"
-        );
-
+    return retryFastTransaction(
+      async () => {
+        const feeOverrides = await buildPriorityFeeOverrides(this.publicClient);
+        const submittedAt = Date.now();
         const txHash = await this.walletClient.writeContract({
           address: auditTrailAddress as `0x${string}`,
           abi: AUDIT_TRAIL_ABI,
@@ -379,58 +345,36 @@ class AuditService {
           ],
           account: this.account,
           chain: sepolia,
+          ...feeOverrides,
         });
 
-        const receipt = await Promise.race([
-          this.publicClient.waitForTransactionReceipt({
-            hash: txHash,
-            timeout: 60000,
-          }),
-          new Promise((_, reject) =>
-            setTimeout(() => reject(new Error("Transaction confirmation timeout")), 60000)
-          ),
-        ]);
+        const receipt = await waitForReceiptWithTimeout(
+          this.publicClient,
+          txHash,
+          "Audit trail participant log",
+          FAST_TX_TIMEOUT_MS,
+          FAST_TX_POLL_INTERVAL_MS,
+          {
+            submittedAt,
+            priorityFee: feeOverrides.maxPriorityFeePerGas,
+            maxFee: feeOverrides.maxFeePerGas,
+            context: "Audit trail participant log",
+          }
+        );
 
         logger.info(
           {
             participants,
             action,
             txHash,
-            attempt,
           },
           "Blockchain transaction confirmed for participants"
         );
 
         return txHash;
-      } catch (error: any) {
-        lastError = error;
-        logger.warn(
-          {
-            error: error.message,
-            participants,
-            action,
-            attempt,
-            maxRetries,
-          },
-          `Blockchain transaction attempt ${attempt} failed for participants`
-        );
-
-        if (
-          error.message?.includes("insufficient funds") ||
-          error.message?.includes("gas required exceeds allowance")
-        ) {
-          throw error;
-        }
-
-        if (attempt < maxRetries) {
-          const delay = Math.pow(2, attempt) * 1000; // 2s, 4s, 8s
-          await new Promise((resolve) => setTimeout(resolve, delay));
-        }
-      }
-    }
-
-    throw new Error(
-      `Blockchain transaction failed after ${maxRetries} attempts: ${lastError.message}`
+      },
+      "Audit trail participant logging",
+      FAST_TX_MAX_RETRIES
     );
   }
 

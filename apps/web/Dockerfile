@@ -21,6 +21,7 @@ COPY ./packages/shared ./packages/shared
 COPY ./packages/smart-contracts ./packages/smart-contracts
 COPY ./apps/web/package.json ./apps/web/package.json
 COPY ./apps/api/package.json ./apps/api/package.json
+COPY ./apps/api/src/contracts ./apps/api/src/contracts
 
 WORKDIR /workspace
 RUN bun install
