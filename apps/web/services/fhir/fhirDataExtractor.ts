@@ -1,12 +1,12 @@
 import { FHIRDatatype } from "@/services/fhir/types/fhirDatatype";
 import { FhirResourceType } from "@/constants/fhirResourceTypes";
-import { ExtractedMedicalData } from "@/services/fhir/types/extractedMedicalData";
 import { AggregatedMedicalData } from "@/services/fhir/types/aggregatedMedicalData";
 import { FHIRPatient } from "@/services/fhir/types/fhirPatient";
 import { FHIRObservation } from "@/services/fhir/types/fhirObservation";
 import { FHIRCondition } from "@/services/fhir/types/fhirCondition";
 import { CodedValue } from "@/services/fhir/types/codedValue";
 import { DIABETES_VALUES, HEART_DISEASE_VALUES } from "@/constants/medicalDataConstants";
+import { ExtractedMedicalData } from "@zk-medical/shared";
 
 export interface FHIRDataBundle {
   resources: any[];
@@ -298,6 +298,7 @@ export const processCondition = (
         codeSystem,
         source: "issuer",
         effectiveDate,
+        description: display,
       };
       break;
 
@@ -312,6 +313,7 @@ export const processCondition = (
         codeSystem,
         source: "issuer",
         effectiveDate,
+        description: display,
       };
       break;
 
@@ -326,6 +328,7 @@ export const processCondition = (
         codeSystem,
         source: "patient",
         effectiveDate,
+        description: display,
       };
       break;
 

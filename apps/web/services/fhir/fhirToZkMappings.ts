@@ -14,9 +14,10 @@ import {
   DIABETES_VALUES,
   HEART_DISEASE_VALUES,
   FHIR_ACTIVITY_LEVEL_SNOMED,
+  GENDER_VALUES,
 } from "@/constants/medicalDataConstants";
 import { AggregatedMedicalData } from "./types/aggregatedMedicalData";
-import { ExtractedMedicalData } from "./types/extractedMedicalData";
+import { ExtractedMedicalData } from "@zk-medical/shared";
 
 // ========================================
 // GENDER MAPPINGS (FHIR Patient.gender)
@@ -26,8 +27,8 @@ import { ExtractedMedicalData } from "./types/extractedMedicalData";
  * Maps FHIR gender codes to ZK circuit values
  * FHIR: http://hl7.org/fhir/administrative-gender
  */
-export const fhirGenderToZK = (fhirGender: string): number => {
-  return FHIR_GENDER_CODES[fhirGender.toLowerCase() as keyof typeof FHIR_GENDER_CODES] || 0;
+export const fhirGenderToZK = (fhirGender?: string): number => {
+  return FHIR_GENDER_CODES[fhirGender?.toLowerCase() as keyof typeof FHIR_GENDER_CODES] || GENDER_VALUES.UNKNOWN;
 };
 
 // ========================================
@@ -38,31 +39,27 @@ export const fhirGenderToZK = (fhirGender: string): number => {
  * Maps FHIR blood type codes to ZK circuit values
  * FHIR uses SNOMED CT codes for blood types
  */
-export const fhirBloodTypeToZK = (fhirBloodType: string): number => {
-  console.log("Mapping FHIR blood type:", fhirBloodType);
-
-  // Check SNOMED CT codes first
+export const fhirBloodTypeToZK = (fhirBloodType?: string): number => {
+  if (!fhirBloodType) return -1;
+  
   if (FHIR_BLOOD_TYPE_SNOMED[fhirBloodType as keyof typeof FHIR_BLOOD_TYPE_SNOMED]) {
     return FHIR_BLOOD_TYPE_SNOMED[fhirBloodType as keyof typeof FHIR_BLOOD_TYPE_SNOMED];
   }
 
-  // Check text representations
   if (FHIR_BLOOD_TYPE_TEXT[fhirBloodType as keyof typeof FHIR_BLOOD_TYPE_TEXT]) {
     return FHIR_BLOOD_TYPE_TEXT[fhirBloodType as keyof typeof FHIR_BLOOD_TYPE_TEXT];
   }
 
-  return -1; // Unknown blood type
+  return -1; 
 };
-
-// ========================================
-// SMOKING STATUS MAPPINGS (FHIR Observation)
-// ========================================
 
 /**
  * Maps FHIR smoking status codes to ZK circuit values
  * FHIR uses SNOMED CT codes for smoking status
  */
-export const fhirSmokingStatusToZK = (smokingCode: string): number => {
+export const fhirSmokingStatusToZK = (smokingCode?: string): number => {
+  if (!smokingCode) return SMOKING_VALUES.ANY;
+
   if (FHIR_SMOKING_SNOMED[smokingCode as keyof typeof FHIR_SMOKING_SNOMED]) {
     return FHIR_SMOKING_SNOMED[smokingCode as keyof typeof FHIR_SMOKING_SNOMED];
   }
@@ -90,26 +87,19 @@ export const fhirSmokingStatusTextToZK = (smokingText: string): number => {
   return SMOKING_VALUES.ANY;
 };
 
-// ========================================
-// DIABETES MAPPINGS (FHIR Condition)
-// ========================================
-
 /**
  * Maps FHIR diabetes condition codes to ZK circuit values
  * FHIR uses ICD-10 or SNOMED CT codes for diabetes
  */
 export const fhirDiabetesToZK = (diabetesCode: string, conditionText?: string): number => {
-  // Check ICD-10 codes first
   if (FHIR_DIABETES_ICD10[diabetesCode as keyof typeof FHIR_DIABETES_ICD10]) {
     return FHIR_DIABETES_ICD10[diabetesCode as keyof typeof FHIR_DIABETES_ICD10];
   }
 
-  // Check SNOMED CT codes
   if (FHIR_DIABETES_SNOMED[diabetesCode as keyof typeof FHIR_DIABETES_SNOMED]) {
     return FHIR_DIABETES_SNOMED[diabetesCode as keyof typeof FHIR_DIABETES_SNOMED];
   }
 
-  // Text-based mapping for condition descriptions
   if (conditionText) {
     const lowerText = conditionText.toLowerCase();
 
@@ -144,25 +134,18 @@ export const fhirDiabetesToZK = (diabetesCode: string, conditionText?: string): 
   return DIABETES_VALUES.NO_DIABETES;
 };
 
-// ========================================
-// HEART DISEASE MAPPINGS (FHIR Condition)
-// ========================================
-
 /**
  * Maps FHIR cardiovascular condition codes to ZK circuit values
  */
-export const fhirHeartDiseaseToZK = (heartCode: string, conditionText?: string): number => {
-  // Check ICD-10 codes first
-  if (FHIR_HEART_DISEASE_ICD10[heartCode as keyof typeof FHIR_HEART_DISEASE_ICD10]) {
+export const fhirHeartDiseaseToZK = (heartCode?: string, conditionText?: string): number => {
+  if (heartCode && FHIR_HEART_DISEASE_ICD10[heartCode as keyof typeof FHIR_HEART_DISEASE_ICD10]) {
     return FHIR_HEART_DISEASE_ICD10[heartCode as keyof typeof FHIR_HEART_DISEASE_ICD10];
   }
 
-  // Check SNOMED CT codes
-  if (FHIR_HEART_DISEASE_SNOMED[heartCode as keyof typeof FHIR_HEART_DISEASE_SNOMED]) {
+  if (heartCode && FHIR_HEART_DISEASE_SNOMED[heartCode as keyof typeof FHIR_HEART_DISEASE_SNOMED]) {
     return FHIR_HEART_DISEASE_SNOMED[heartCode as keyof typeof FHIR_HEART_DISEASE_SNOMED];
   }
 
-  // Text-based mapping for condition descriptions
   if (conditionText) {
     const lowerText = conditionText.toLowerCase();
 
@@ -199,17 +182,12 @@ export const fhirHeartDiseaseToZK = (heartCode: string, conditionText?: string):
   return HEART_DISEASE_VALUES.NO_HISTORY;
 };
 
-// ========================================
-// ACTIVITY LEVEL MAPPINGS (FHIR Observation)
-// ========================================
-
 /**
  * Maps FHIR physical activity observations to ZK circuit values
  * Based on LOINC codes for physical activity assessments
  */
 export const fhirActivityLevelToZK = (activityCode: string, value?: number): number => {
   if (activityCode === "68516-4" && value !== undefined) {
-    // Exercise minutes per week
     if (value < 30) return ACTIVITY_LEVEL_VALUES.SEDENTARY;
     if (value < 150) return ACTIVITY_LEVEL_VALUES.LIGHTLY_ACTIVE;
     if (value < 300) return ACTIVITY_LEVEL_VALUES.MODERATELY_ACTIVE;
@@ -226,7 +204,6 @@ export const fhirActivityLevelToZK = (activityCode: string, value?: number): num
     return ACTIVITY_LEVEL_VALUES.EXTREMELY_ACTIVE;
   }
 
-  // Text-based activity level mapping
   if (activityCode) {
     const lowerCode = activityCode.toLowerCase();
 
@@ -270,10 +247,10 @@ export const fhirActivityLevelToZK = (activityCode: string, value?: number): num
   return -1;
 };
 
-export const fhirSnomedActivityLevelToZK = (snomedCode: string): number | undefined => {
+export const fhirSnomedActivityLevelToZK = (snomedCode: string): number => {
   const mappedValue =
     FHIR_ACTIVITY_LEVEL_SNOMED[snomedCode as keyof typeof FHIR_ACTIVITY_LEVEL_SNOMED];
-  return mappedValue;
+  return mappedValue !== undefined ? mappedValue : -1;
 };
 
 export const fhirObservationToActivityZK = (
@@ -294,10 +271,6 @@ export const fhirObservationToActivityZK = (
   return -1;
 };
 
-// ========================================
-// REGION/LOCATION MAPPINGS
-// ========================================
-
 /**
  * Maps FHIR country code to ZK circuit region value
  * Uses ISO country codes and regional groupings
@@ -305,32 +278,29 @@ export const fhirObservationToActivityZK = (
  * @returns Array containing the region value, or empty array if country not found
  */
 export const fhirCountryToZK = (country?: string): number[] => {
-  if (!country) return [];
+  if (!country) return [-1];
 
   const region = COUNTRY_TO_REGION[country.toUpperCase() as keyof typeof COUNTRY_TO_REGION];
-  return region ? [region] : [];
+  return region ? [region] : [-1];
 };
 
 /**
  * Main function to extract ZK-compatible values from FHIR resources
  */
 export const convertToZkReady = (medicalData: AggregatedMedicalData): ExtractedMedicalData => {
-  const values: ExtractedMedicalData = {};
 
-  values.age = medicalData.age?.value;
-  values.gender = medicalData.sexAtBirth ? fhirGenderToZK(medicalData.sexAtBirth) : undefined;
-  values.bmi = medicalData.bmi?.value;
-  values.cholesterol = medicalData.cholesterol?.value;
-  values.systolicBP = medicalData.systolicBP?.value;
-  values.diastolicBP = medicalData.diastolicBP?.value;
-  values.hba1c = medicalData.hba1c?.value;
-  values.bloodType = medicalData.bloodType?.code
-    ? fhirBloodTypeToZK(medicalData.bloodType.code)
-    : undefined;
-  values.smokingStatus = medicalData.smokingStatus?.code
-    ? fhirSmokingStatusToZK(medicalData.smokingStatus.code)
-    : undefined;
-  values.regions = medicalData.country ? fhirCountryToZK(medicalData.country) : undefined;
+  const values: ExtractedMedicalData = {} as ExtractedMedicalData;
+
+  values.age = medicalData.age?.value || -1;
+  values.gender = fhirGenderToZK(medicalData.sexAtBirth);
+  values.bmi = medicalData.bmi?.value || -1;
+  values.cholesterol = medicalData.cholesterol?.value || -1;
+  values.systolicBP = medicalData.systolicBP?.value || -1;
+  values.diastolicBP = medicalData.diastolicBP?.value || -1;
+  values.hba1c = medicalData.hba1c?.value || -1;
+  values.bloodType = fhirBloodTypeToZK(medicalData.bloodType?.code);
+  values.smokingStatus = fhirSmokingStatusToZK(medicalData.smokingStatus?.code);
+  values.regions = fhirCountryToZK(medicalData.country);
 
   if (medicalData.activityLevel?.code) {
     switch (medicalData.activityLevel.codeSystem) {
@@ -350,12 +320,12 @@ export const convertToZkReady = (medicalData: AggregatedMedicalData): ExtractedM
         break;
       }
       default:
-        values.activityLevel = undefined;
+        values.activityLevel = -1;
     }
   }
 
-  values.diabetesStatus = medicalData.diabetesStatus?.value;
-  values.heartDiseaseStatus = fhirHeartDiseaseToZK(medicalData.heartDiseaseStatus?.code || "");
+  values.diabetesStatus = medicalData.diabetesStatus ? medicalData.diabetesStatus.value : DIABETES_VALUES.NO_DIABETES;
+  values.heartDiseaseStatus = fhirHeartDiseaseToZK(medicalData.heartDiseaseStatus?.code, medicalData.heartDiseaseStatus?.description);
 
   return values;
 };

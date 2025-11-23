@@ -1,13 +1,11 @@
-import { StudyCriteria, BinConfiguration } from "@zk-medical/shared";
+import { StudyCriteria, BinConfiguration, ExtractedMedicalData, getScaleFactorForMedicalDataField } from "@zk-medical/shared";
 
 // Import snarkjs for proof generation
 // @ts-ignore - snarkjs doesn't have proper TypeScript definitions
 import * as snarkjs from "snarkjs";
-import { ExtractedMedicalData } from "@/services/fhir/types/extractedMedicalData";
 import {
   generateDataCommitment,
   generateSecureSalt,
-  normalizeMedicalDataForCircuit,
 } from "@/services/zk/commitmentGenerator";
 
 export { generateDataCommitment, generateSecureSalt };
@@ -233,23 +231,20 @@ function prepareCircuitInput(
     console.log("├─ challenge:", challenge);
     console.log("└─ studyCriteria:", studyCriteria);
 
-  const normalized = normalizeMedicalDataForCircuit(medicalData);
-  console.log("├─ medicalData (normalized):", normalized);
-
   return {
-    age: normalized.age.toString(),
-    gender: normalized.gender.toString(),
-    bmi: normalized.bmi.toString(),
-    smokingStatus: normalized.smokingStatus.toString(),
-    region: normalized.region.toString(),
-    cholesterol: normalized.cholesterol.toString(),
-    systolicBP: normalized.systolicBP.toString(),
-    diastolicBP: normalized.diastolicBP.toString(),
-    bloodType: normalized.bloodType.toString(),
-    hba1c: normalized.hba1c.toString(),
-    activityLevel: normalized.activityLevel.toString(),
-    diabetesStatus: normalized.diabetesStatus.toString(),
-    heartDiseaseHistory: normalized.heartDiseaseHistory.toString(),
+    age: medicalData.age.toString(),
+    gender: medicalData.gender.toString(),
+    bmi: medicalData.bmi.toString(),
+    smokingStatus: medicalData.smokingStatus.toString(),
+    region: medicalData.regions[0].toString(),
+    cholesterol: medicalData.cholesterol.toString(),
+    systolicBP: medicalData.systolicBP.toString(),
+    diastolicBP: medicalData.diastolicBP.toString(),
+    bloodType: medicalData.bloodType.toString(),
+    hba1c: medicalData.hba1c.toString(),
+    activityLevel: medicalData.activityLevel.toString(),
+    diabetesStatus: medicalData.diabetesStatus.toString(),
+    heartDiseaseHistory: medicalData.heartDiseaseStatus.toString(),
 
     salt: salt.toString(),
     dataCommitment: dataCommitment.toString(),
@@ -261,8 +256,8 @@ function prepareCircuitInput(
     minCholesterol: studyCriteria.minCholesterol.toString(),
     maxCholesterol: studyCriteria.maxCholesterol.toString(),
     enableBMI: studyCriteria.enableBMI.toString(),
-    minBMI: Math.round(studyCriteria.minBMI * 10).toString(),
-    maxBMI: Math.round(studyCriteria.maxBMI * 10).toString(),
+    minBMI: studyCriteria.minBMI.toString(),
+    maxBMI: studyCriteria.maxBMI.toString(),
     enableBloodType: studyCriteria.enableBloodType.toString(),
     allowedBloodTypes: studyCriteria.allowedBloodTypes.map((v) => v.toString()),
     enableGender: studyCriteria.enableGender.toString(),
@@ -275,8 +270,8 @@ function prepareCircuitInput(
     minDiastolic: studyCriteria.minDiastolic.toString(),
     maxDiastolic: studyCriteria.maxDiastolic.toString(),
     enableHbA1c: studyCriteria.enableHbA1c.toString(),
-    minHbA1c: Math.round(studyCriteria.minHbA1c * 10).toString(),
-    maxHbA1c: Math.round(studyCriteria.maxHbA1c * 10).toString(),
+    minHbA1c: studyCriteria.minHbA1c.toString(),
+    maxHbA1c: studyCriteria.maxHbA1c.toString(),
     enableSmoking: studyCriteria.enableSmoking.toString(),
     allowedSmoking: studyCriteria.allowedSmoking.toString(),
     enableActivity: studyCriteria.enableActivity.toString(),
@@ -318,16 +313,17 @@ function prepareBinInputs(binConfiguration?: BinConfiguration) {
         return;
       }
       
-      binFieldCodes[i] = getFieldCode(bin.criteriaField);
+      const fieldCode = getFieldCode(bin.criteriaField);
+      binFieldCodes[i] = fieldCode;
       binTypes[i] = bin.type === "RANGE" ? 0 : 1;
       
       if (bin.type === "RANGE") {
-        binMinValues[i] = bin.minValue ?? 0;
-        binMaxValues[i] = bin.maxValue ?? 0;
+        const scaleFactor = getScaleFactorForFieldCode(fieldCode);
+        binMinValues[i] = Math.round((bin.minValue ?? 0) * scaleFactor);
+        binMaxValues[i] = Math.round((bin.maxValue ?? 0) * scaleFactor);
         binIncludeMin[i] = bin.includeMin ? 1 : 0;
         binIncludeMax[i] = bin.includeMax ? 1 : 0;
       } else {
-        // Categorical bin
         const categories = bin.categories ?? [];
         binCategoryCount[i] = Math.min(categories.length, MAX_CATEGORIES_PER_BIN);
         
@@ -383,6 +379,28 @@ function getFieldCode(fieldName: string): number {
   }
   
   return code;
+}
+
+/**
+ * Get scale factor for a field code
+ * Returns the factor to scale bin boundaries for comparison with scaled medical data
+ */
+function getScaleFactorForFieldCode(fieldCode: number): number {
+  const fieldCodeToName: Record<number, string> = {
+    0: 'age',
+    3: 'cholesterol', 
+    4: 'bmi',
+    5: 'systolicBP',
+    6: 'diastolicBP',
+    8: 'hba1c',
+  };
+  
+  const fieldName = fieldCodeToName[fieldCode];
+  if (!fieldName) {
+    return 1; 
+  }
+  
+  return getScaleFactorForMedicalDataField(fieldName);
 }
 
 /**
@@ -534,9 +552,9 @@ export function checkEligibility(
   medicalData: ExtractedMedicalData,
   studyCriteria: StudyCriteria
 ): boolean {
-  const scaledHbA1c =
-    medicalData.hba1c !== undefined ? Math.round(medicalData.hba1c * 10) : undefined;
-  const scaledBMI = medicalData.bmi !== undefined ? Math.round(medicalData.bmi * 10) : undefined;
+  // Medical data is already scaled when passed from studyService, so no need to scale again
+  const scaledHbA1c = medicalData.hba1c;
+  const scaledBMI = medicalData.bmi;
 
   const validations: Array<{ enabled: boolean; check: () => ValidationResult }> = [
     {

@@ -69,7 +69,7 @@ import {
   endStudy,
 } from "./studyService";
 import { StudyCriteria } from "@zk-medical/shared";
-import { ExtractedMedicalData } from "@/services/fhir/types/extractedMedicalData";
+import { ExtractedMedicalData } from "@zk-medical/shared";
 
 /**
  * Test suite for Frontend Study Service
