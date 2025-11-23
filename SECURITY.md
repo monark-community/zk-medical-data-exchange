@@ -10,7 +10,7 @@ Report security bugs in third-party modules to the person or team maintaining th
 
 ## Escalation
 
-If you do not receive an acknowledgement of your report within 6 business days, or if you cannot find a private security contact for the project, you may escalate to the Monark Community team at `security@monark.io`.
+If you do not receive an acknowledgement of your report within 6 business days, or if you cannot find a private security contact for the project, you may escalate to the Monark Community team at (support@monark.io)[mailto:support@monark.io].
 
 If the project acknowledges your report but does not provide any further response or engagement within 14 days, escalation is also appropriate.
 
