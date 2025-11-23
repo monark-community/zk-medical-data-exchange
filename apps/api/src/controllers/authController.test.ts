@@ -1,10 +1,7 @@
 import { describe, test, expect, beforeEach, mock } from "bun:test";
 import type { Request, Response } from "express";
 
-// Mock dependencies BEFORE importing the controller
-// This is crucial because modules import logger at the top level
-
-// Mock logger methods (these need to be defined for test assertions)
+// Mock logger methods
 const mockLoggerInfo = mock(() => {});
 const mockLoggerDebug = mock(() => {});
 const mockLoggerError = mock(() => {});
