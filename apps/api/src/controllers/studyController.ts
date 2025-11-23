@@ -6,6 +6,7 @@ import {
   countEnabledCriteria,
   getStudyComplexity,
   type StudyCriteria,
+  scaleStudyCriteria,
 } from "@zk-medical/shared";
 import logger from "@/utils/logger";
 import crypto from "crypto";
@@ -566,29 +567,34 @@ export const createStudy = async (req: Request, res: Response) => {
 
     const enabledCount = countEnabledCriteria(eligibilityCriteria);
     const complexity = getStudyComplexity(eligibilityCriteria);
+
+    const scaledCriteria = scaleStudyCriteria(eligibilityCriteria);
+
     const criteriaHash = crypto
       .createHash("sha256")
-      .update(JSON.stringify(eligibilityCriteria))
+      .update(JSON.stringify(scaledCriteria))
       .digest("hex");
 
-    const requiresAge = eligibilityCriteria.enableAge === 1;
-    const requiresGender = eligibilityCriteria.enableGender === 1;
-    const requiresDiabetes = eligibilityCriteria.enableDiabetes === 1;
+    logger.info("scaled criterias" +  JSON.stringify(scaledCriteria));
+
+    const requiresAge = scaledCriteria.enableAge === 1;
+    const requiresGender = scaledCriteria.enableGender === 1;
+    const requiresDiabetes = scaledCriteria.enableDiabetes === 1;
 
     const insertData = {
       title,
       description,
       max_participants: maxParticipants,
       duration_days: durationDays,
-      criteria_json: eligibilityCriteria,
+      criteria_json: scaledCriteria,
       criteria_hash: criteriaHash,
       requires_age: requiresAge,
-      min_age: requiresAge ? eligibilityCriteria.minAge : null,
-      max_age: requiresAge ? eligibilityCriteria.maxAge : null,
+      min_age: requiresAge ? scaledCriteria.minAge : null,
+      max_age: requiresAge ? scaledCriteria.maxAge : null,
       requires_gender: requiresGender,
-      allowed_gender: requiresGender ? eligibilityCriteria.allowedGender : null,
+      allowed_gender: requiresGender ? scaledCriteria.allowedGender : null,
       requires_diabetes: requiresDiabetes,
-      allowed_diabetes: requiresDiabetes ? eligibilityCriteria.allowedDiabetes : null,
+      allowed_diabetes: requiresDiabetes ? scaledCriteria.allowedDiabetes : null,
       status: "draft",
       current_participants: 0,
       created_by: creatorAddress,
@@ -705,13 +711,6 @@ export const deployStudy = async (req: Request, res: Response) => {
       return res.status(400).json({ error: "Study already deployed" });
     }
 
-    await req.supabase
-      .from(TABLES.STUDIES!.name)
-      .update({ status: "deploying" })
-      .eq(TABLES.STUDIES!.columns.id!, studyId);
-
-    logger.info({ studyId, title: study.title }, "Starting blockchain deployment");
-
     let parsedCriteria = study.criteria_json;
     if (typeof study.criteria_json === "string") {
       try {
@@ -725,29 +724,42 @@ export const deployStudy = async (req: Request, res: Response) => {
       }
     }
 
-    logger.info({ studyId, parsedCriteria }, "Parsed criteria for deployment");
-
-    let studyService;
-    try {
-      const imported = await import("@/services/studyService");
-      studyService = imported.studyService;
-      logger.info("Study service imported successfully");
-    } catch (importError) {
-      logger.error(
-        {
-          importError,
-          message: importError instanceof Error ? importError.message : "Unknown error",
-          stack: importError instanceof Error ? importError.stack : undefined,
-        },
-        "Failed to import study service"
-      );
-      return res.status(500).json({
-        error: "Failed to load study service",
-        details: importError instanceof Error ? importError.message : String(importError),
-      });
+    let validatedBins: any[] | null = null;
+    if (study.bin_configuration) {
+      try {
+        const solidityBins = convertBinsForSolidity(study.bin_configuration);
+        const validation = validateSolidityBins(solidityBins);
+        
+        if (!validation.isValid) {
+          logger.error(
+            { errors: validation.errors, studyId },
+            "Bin validation failed - will skip bin configuration"
+          );
+        } else {
+          validatedBins = solidityBins.map(bin => ({
+            ...bin,
+            binId: bin.binId.toString()
+          }));
+          logger.info(
+            { studyId, binCount: validatedBins.length },
+            "Bins validated and prepared for configuration"
+          );
+        }
+      } catch (binError) {
+        logger.warn(
+          { error: binError, studyId },
+          "Error preparing bins - will skip bin configuration"
+        );
+      }
     }
 
-    logger.info("Calling deployStudy method");
+    await req.supabase
+      .from(TABLES.STUDIES!.name)
+      .update({ status: "deploying" })
+      .eq(TABLES.STUDIES!.columns.id!, studyId);
+
+    logger.info({ studyId, title: study.title, parsedCriteria }, "Starting blockchain deployment");
+
     const deploymentResult = await studyService.deployStudy({
       title: study.title,
       description: study.description || "",
@@ -770,52 +782,37 @@ export const deployStudy = async (req: Request, res: Response) => {
       });
     }
 
-    if (study.bin_configuration && deploymentResult.studyAddress) {
+    if (validatedBins && deploymentResult.studyAddress) {
       try {
-        const solidityBins = convertBinsForSolidity(study.bin_configuration);
-        const validation = validateSolidityBins(solidityBins);
+        logger.info(
+          { 
+            studyId, 
+            contractAddress: deploymentResult.studyAddress,
+            binCount: validatedBins.length,
+            bins: formatBinsForLogging(validatedBins)
+          },
+          "Configuring bins on deployed contract"
+        );
+
+        const binConfigResult = await studyService.configureBins(
+          deploymentResult.studyAddress,
+          validatedBins
+        );
         
-        if (!validation.isValid) {
-          logger.error(
-            { errors: validation.errors, studyId },
-            "Bin validation failed, skipping configureBins"
-          );
-        } else {
+        if (binConfigResult.success) {
           logger.info(
             { 
-              studyId, 
-              contractAddress: deploymentResult.studyAddress,
-              binCount: solidityBins.length,
-              bins: formatBinsForLogging(solidityBins)
+              studyId,
+              transactionHash: binConfigResult.transactionHash,
+              binCount: validatedBins.length
             },
-            "Configuring bins on deployed contract"
+            "Bins configured successfully on blockchain"
           );
-
-          const binsForContract = solidityBins.map(bin => ({
-            ...bin,
-            binId: bin.binId.toString()
-          }));
-
-          const binConfigResult = await studyService.configureBins(
-            deploymentResult.studyAddress,
-            binsForContract
+        } else {
+          logger.error(
+            { error: binConfigResult.error, studyId },
+            "Failed to configure bins on blockchain (study deployed but bins not configured)"
           );
-          
-          if (binConfigResult.success) {
-            logger.info(
-              { 
-                studyId,
-                transactionHash: binConfigResult.transactionHash,
-                binCount: solidityBins.length
-              },
-              "Bins configured successfully on blockchain"
-            );
-          } else {
-            logger.error(
-              { error: binConfigResult.error, studyId },
-              "Failed to configure bins on blockchain (study deployed but bins not configured)"
-            );
-          }
         }
       } catch (binError) {
         logger.error(
