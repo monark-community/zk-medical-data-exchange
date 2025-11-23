@@ -16,7 +16,9 @@ import {
   getEnrolledStudies,
   revokeStudyConsent,
   grantStudyConsent,
+  getStudyDetails,
 } from "@/services/api/studyService";
+import { checkEligibility } from "@/services/zk/zkProofGenerator";
 import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
@@ -52,6 +54,7 @@ const statusOptions = [
 
 import eventBus from "@/lib/eventBus";
 import { useTxStatusState } from "@/hooks/useTxStatus";
+import { scaleMedicalData } from "@zk-medical/shared";
 
 type ViewMode = "enrolled" | "available";
 
@@ -93,7 +96,7 @@ export default function DataSellerStudiesSection() {
 
   const handleApplyToStudy = async (studyId: number) => {
     if (!walletAddress) {
-      showError("Wallet not connected");
+      showError("Please connect your wallet to apply to studies");
       return;
     }
 
@@ -104,33 +107,47 @@ export default function DataSellerStudiesSection() {
     setApplyingStudyId(studyId);
 
     try {
-      show("Starting study application process...");
-      console.log("Starting secure study application process...");
+      show("Step 1/5: Starting study application process...");
 
-      show("Retrieving your medical data...");
+      show("Step 2/5: Retrieving your encrypted medical data from IPFS...");
       const data = await getAggregatedMedicalData(walletAddress);
 
       console.log("Aggregated medical data retrieved for study application:", data);
 
       if (!data || Object.keys(data).length === 0) {
-        throw new Error("No medical data available for study application.");
+        throw new Error("No medical data found. Please upload your medical records first.");
       }
 
-      show("Preparing data for eligibility check...");
+      show("Step 3/5: Preparing zero-knowledge proof inputs...");
       const zkReadyMedicalData = convertToZkReady(data);
-      if (!zkReadyMedicalData) {
-        throw new Error("No valid medical data available for study application.");
+
+      const scaledData = scaleMedicalData(zkReadyMedicalData);
+
+      console.log("Converted medical data to scaled ZK-ready format:", scaledData);
+      if (!scaledData) {
+        throw new Error("Invalid medical data format. Please check your uploaded records.");
       }
 
-      show("Verifying eligibility and generating proof...");
+      show("Checking your eligibility for this study...");
+      const studyDetails = await getStudyDetails(studyId);
+      const isEligible = checkEligibility(scaledData, studyDetails.eligibilityCriteria);
+
+      if (!isEligible) {
+        throw new Error(
+          "Not Eligible\n\n" +
+          "Your medical data doesn't meet this study's requirements.\n\n"
+        );
+      }
+
+      show("Step 4/5: Generating ZK proof and cryptographic commitment (this may take 30-60s)...");
       const result = await StudyApplicationService.applyToStudy(
         studyId,
-        zkReadyMedicalData,
+        scaledData,
         walletAddress
       );
 
       if (result.success) {
-        show("✓ " + result.message);
+        show(`Step 5/5: Success! ${result.message}\n\nYou can now view this study in your "Enrolled Studies" tab.`);
 
         refetch();
         if (walletAddress) {
@@ -143,7 +160,15 @@ export default function DataSellerStudiesSection() {
       }
     } catch (error: any) {
       console.error("Error during study application:", error);
-      showError(`Application failed: ${error.message || error}`);
+      
+      const errorMessage = error.message || error.toString();
+      const enhancedError = errorMessage.includes("not eligible") 
+        ? `Not Eligible\n\nYour medical data doesn't meet this study's requirements.\n\nError: ${errorMessage}`
+        : errorMessage.includes("No medical data")
+        ? `No Medical Data\n\nPlease upload your medical records before applying to studies.\n\n💡 Tip: Go to Profile → Upload Medical Data`
+        : `Application Failed\n\n${errorMessage}\n\n`;
+      
+      showError(enhancedError);
     } finally {
       setApplyingStudyId(null);
     }
@@ -151,7 +176,7 @@ export default function DataSellerStudiesSection() {
 
   const handleRevokeConsent = async (studyId: number) => {
     if (!walletAddress) {
-      showError("Wallet not connected");
+      showError("Please connect your wallet to revoke consent");
       return;
     }
 
@@ -162,7 +187,7 @@ export default function DataSellerStudiesSection() {
     setRevokingStudyId(studyId);
 
     try {
-      show("Revoking consent...");
+      show("Step 1/3: Revoking consent on blockchain...");
       console.log("Revoking consent for study:", studyId);
 
       const result = await revokeStudyConsent(studyId, walletAddress);
@@ -172,18 +197,23 @@ export default function DataSellerStudiesSection() {
         if (result.blockchainTxHash) {
           console.log("Blockchain transaction:", result.blockchainTxHash);
         }
+        
+        show("Step 2/3: Updating database records...");
         eventBus.emit("consentChanged");
         setEnrolledLoading(true);
         const updatedStudies = await getEnrolledStudies(walletAddress);
         setEnrolledStudies(updatedStudies);
         setEnrolledLoading(false);
 
-        show("✓ Consent revoked successfully!");
+        show(
+          "Step 3/3: Consent Revoked!\n\n" +
+          (result.blockchainTxHash ? `\n Tx: ${result.blockchainTxHash.slice(0, 10)}...` : "")
+        );
       }
     } catch (error) {
       console.error("Failed to revoke consent:", error);
       showError(
-        `Failed to revoke consent: ${error instanceof Error ? error.message : "Unknown error"}`
+        `Consent Revocation Failed\n\n${error instanceof Error ? error.message : "Unknown error"}\n\nTip: Check your wallet and try again`
       );
     } finally {
       setRevokingStudyId(null);
@@ -192,7 +222,7 @@ export default function DataSellerStudiesSection() {
 
   const handleGrantConsent = async (studyId: number) => {
     if (!walletAddress) {
-      showError("Wallet not connected");
+      showError("Please connect your wallet to grant consent");
       return;
     }
 
@@ -203,7 +233,7 @@ export default function DataSellerStudiesSection() {
     setGrantingStudyId(studyId);
 
     try {
-      show("Granting consent...");
+      show("Step 1/3: Granting consent on blockchain...");
       console.log("Granting consent for study:", studyId);
 
       const result = await grantStudyConsent(studyId, walletAddress);
@@ -213,6 +243,8 @@ export default function DataSellerStudiesSection() {
         if (result.blockchainTxHash) {
           console.log("Blockchain transaction:", result.blockchainTxHash);
         }
+        
+        show("Step 2/3: Updating your study records...");
         eventBus.emit("consentChanged");
         setEnrolledLoading(true);
         const updatedStudies = await getEnrolledStudies(walletAddress);
@@ -227,10 +259,18 @@ export default function DataSellerStudiesSection() {
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
       if (errorMessage.includes("full") || errorMessage.includes("Full")) {
         showError(
-          "Cannot grant consent: This study is now full. The maximum number of active participants has been reached."
+          "Study Full\n\n" +
+          "This study has reached its maximum number of active participants.\n\n"
+        );
+      } else if (errorMessage.includes("already active") || errorMessage.includes("already granted")) {
+        showError(
+          "Already Active\n\n" +
+          "You have already granted consent for this study."
         );
       } else {
-        showError(`Failed to grant consent: ${errorMessage}`);
+        showError(
+          `Consent Failed\n\n${errorMessage}\n\nTip: Check your wallet connection and try again`
+        );
       }
     } finally {
       setGrantingStudyId(null);
