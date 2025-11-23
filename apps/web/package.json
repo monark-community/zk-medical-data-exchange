@@ -27,7 +27,7 @@
     "@radix-ui/react-tabs": "^1.1.13",
     "@supabase/ssr": "^0.7.0",
     "@tanstack/react-table": "^8.21.3",
-    "@web3auth/modal": "^10.3.0",
+    "@web3auth/modal": "10.3.0",
     "@zk-medical/shared": "workspace:*",
     "axios": "^1.12.2",
     "class-variance-authority": "^0.7.1",
