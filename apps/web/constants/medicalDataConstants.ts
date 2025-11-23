@@ -104,7 +104,7 @@ export const DIABETES_VALUES = {
   TYPE_2: 2,
   UNSPECIFIED: 3,
   PRE_DIABETES: 4,
-  ANY_TYPE: 5, // For study criteria only
+  ANY_TYPE: 5, 
 } as const;
 
 /**
