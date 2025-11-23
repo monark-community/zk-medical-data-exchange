@@ -102,12 +102,12 @@ See workspace package.json files for additional commands in `apps/api`, `apps/we
 
 ## Contribution
 
-Contribution guidelines will be published soon. Until then, please open an issue or pull request with a clear description and reproduction steps where applicable.
+See [CONTRIBUTION.md](./CONTRIBUTION.md) to learn about contributions guidelines.
 
 ## Code of Conduct
 
-A formal code of conduct will be added. Please follow standard open-source etiquette and treat all contributors with respect.
+See [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md) to learn about the code of conduct.
 
 ## License
 
-See the [LICENSE](./LICENSE) file for licensing details (Apache-2.0).
+See the [LICENSE](./LICENSE) file to learn more about this project's licensing.
