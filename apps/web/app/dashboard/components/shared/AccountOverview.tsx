@@ -112,10 +112,6 @@ const AccountOverview: React.FC<AccountOverviewProps> = ({ walletAddress }) => {
                 React.createElement(require("lucide-react")[ui[uiKey].icon1], {
                   className: `w-8 h-8 ${ui[uiKey].icon1Color}`,
                 })}
-              {ui[uiKey].icon2 &&
-                React.createElement(require("lucide-react")[ui[uiKey].icon2], {
-                  className: `w-5 h-5 ${ui[uiKey].icon2Color}`,
-                })}
             </CardHeader>
             <CardContent>
               <p className="text-2xl font-bold text-gray-900">{value}</p>
