@@ -12,6 +12,8 @@
     "lint:web": "bun run --cwd apps/web lint",
     "lint:api": "bun run --cwd apps/api lint",
     "coverage": "bun test --coverage || true",
+    "coverage_report": "bun test --coverage --coverage-reporter=lcov || true",
+    "coverage:per-test": "bun scripts/runCoveragePerTest.ts",
     "test:web": "bun run --cwd apps/web test",
     "test:api": "bun run --cwd apps/api test",
     "test:contracts": "bun run --cwd packages/smart-contracts test",

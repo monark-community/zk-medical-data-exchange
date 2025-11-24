@@ -142,162 +142,162 @@ describe("userService", () => {
     };
   });
 
-  // describe("checkIfUserExists", () => {
-  //   test("returns true when user exists", async () => {
-  //     const walletAddress = "0x1234567890abcdef";
-  //     const mockUserData = {
-  //       id: walletAddress,
-  //       username: "testuser",
-  //       created_at: "2024-01-01T00:00:00Z",
-  //     };
+  describe("checkIfUserExists", () => {
+    test("returns true when user exists", async () => {
+      const walletAddress = "0x1234567890abcdef";
+      const mockUserData = {
+        id: walletAddress,
+        username: "testuser",
+        created_at: "2024-01-01T00:00:00Z",
+      };
 
-  //     mockSupabase.from = mock(() => ({
-  //       select: mock(() => ({
-  //         eq: mock(() => ({
-  //           limit: mock(() => ({
-  //             single: mock(() => Promise.resolve({ data: mockUserData, error: null })),
-  //           })),
-  //         })),
-  //       })),
-  //     }));
+      mockSupabase.from = mock(() => ({
+        select: mock(() => ({
+          eq: mock(() => ({
+            limit: mock(() => ({
+              single: mock(() => Promise.resolve({ data: mockUserData, error: null })),
+            })),
+          })),
+        })),
+      }));
 
-  //     mockReq.supabase = mockSupabase as any;
+      mockReq.supabase = mockSupabase as any;
 
-  //     const result = await checkIfUserExists(
-  //       mockReq as Request,
-  //       mockRes as Response,
-  //       walletAddress
-  //     );
+      const result = await checkIfUserExists(
+        mockReq as Request,
+        mockRes as Response,
+        walletAddress
+      );
 
-  //     expect(result).toBe(true);
-  //     expect(mockLogger.info).toHaveBeenCalled();
-  //   });
+      expect(result).toBe(true);
+      expect(mockLogger.info).toHaveBeenCalled();
+    });
 
-  //   test("returns false when user does not exist", async () => {
-  //     const walletAddress = "0x1234567890abcdef";
+    test("returns false when user does not exist", async () => {
+      const walletAddress = "0x1234567890abcdef";
 
-  //     mockSupabase.from = mock(() => ({
-  //       select: mock(() => ({
-  //         eq: mock(() => ({
-  //           limit: mock(() => ({
-  //             single: mock(() => Promise.resolve({ data: null, error: null })),
-  //           })),
-  //         })),
-  //       })),
-  //     }));
+      mockSupabase.from = mock(() => ({
+        select: mock(() => ({
+          eq: mock(() => ({
+            limit: mock(() => ({
+              single: mock(() => Promise.resolve({ data: null, error: null })),
+            })),
+          })),
+        })),
+      }));
 
-  //     mockReq.supabase = mockSupabase as any;
+      mockReq.supabase = mockSupabase as any;
 
-  //     const result = await checkIfUserExists(
-  //       mockReq as Request,
-  //       mockRes as Response,
-  //       walletAddress
-  //     );
+      const result = await checkIfUserExists(
+        mockReq as Request,
+        mockRes as Response,
+        walletAddress
+      );
 
-  //     expect(result).toBe(false);
-  //   });
+      expect(result).toBe(false);
+    });
 
-  //   test("handles database query error", async () => {
-  //     const walletAddress = "0x1234567890abcdef";
-  //     const mockError = { message: "Database connection failed" };
+    test("handles database query error", async () => {
+      const walletAddress = "0x1234567890abcdef";
+      const mockError = { message: "Database connection failed" };
 
-  //     mockSupabase.from = mock(() => ({
-  //       select: mock(() => ({
-  //         eq: mock(() => ({
-  //           limit: mock(() => ({
-  //             single: mock(() => Promise.resolve({ data: null, error: mockError })),
-  //           })),
-  //         })),
-  //       })),
-  //     }));
+      mockSupabase.from = mock(() => ({
+        select: mock(() => ({
+          eq: mock(() => ({
+            limit: mock(() => ({
+              single: mock(() => Promise.resolve({ data: null, error: mockError })),
+            })),
+          })),
+        })),
+      }));
 
-  //     mockReq.supabase = mockSupabase as any;
+      mockReq.supabase = mockSupabase as any;
 
-  //     const result = await checkIfUserExists(
-  //       mockReq as Request,
-  //       mockRes as Response,
-  //       walletAddress
-  //     );
+      const result = await checkIfUserExists(
+        mockReq as Request,
+        mockRes as Response,
+        walletAddress
+      );
 
-  //     expect(result).toBe(false);
-  //     expect(mockRes.status).toHaveBeenCalledWith(500);
-  //     expect(mockRes.json).toHaveBeenCalledWith({ error: "Database query failed" });
-  //     expect(mockLogger.error).toHaveBeenCalled();
-  //   });
+      expect(result).toBe(false);
+      expect(mockRes.status).toHaveBeenCalledWith(500);
+      expect(mockRes.json).toHaveBeenCalledWith({ error: "Database query failed" });
+      expect(mockLogger.error).toHaveBeenCalled();
+    });
 
-  //   test("handles unexpected error", async () => {
-  //     const walletAddress = "0x1234567890abcdef";
+    test("handles unexpected error", async () => {
+      const walletAddress = "0x1234567890abcdef";
 
-  //     mockSupabase.from = mock(() => {
-  //       throw new Error("Unexpected error");
-  //     });
+      mockSupabase.from = mock(() => {
+        throw new Error("Unexpected error");
+      });
 
-  //     mockReq.supabase = mockSupabase as any;
+      mockReq.supabase = mockSupabase as any;
 
-  //     const result = await checkIfUserExists(
-  //       mockReq as Request,
-  //       mockRes as Response,
-  //       walletAddress
-  //     );
+      const result = await checkIfUserExists(
+        mockReq as Request,
+        mockRes as Response,
+        walletAddress
+      );
 
-  //     expect(result).toBe(false);
-  //     expect(mockRes.status).toHaveBeenCalledWith(500);
-  //     expect(mockRes.json).toHaveBeenCalledWith({ error: "Internal server error" });
-  //     expect(mockLogger.error).toHaveBeenCalled();
-  //   });
-  // });
+      expect(result).toBe(false);
+      expect(mockRes.status).toHaveBeenCalledWith(500);
+      expect(mockRes.json).toHaveBeenCalledWith({ error: "Internal server error" });
+      expect(mockLogger.error).toHaveBeenCalled();
+    });
+  });
 
-  // describe("createUser", () => {
-  //   test("creates user successfully", async () => {
-  //     const walletAddress = "0x1234567890abcdef";
+  describe("createUser", () => {
+    test("creates user successfully", async () => {
+      const walletAddress = "0x1234567890abcdef";
 
-  //     mockSupabase.from = mock(() => ({
-  //       insert: mock(() => Promise.resolve({ error: null })),
-  //     }));
+      mockSupabase.from = mock(() => ({
+        insert: mock(() => Promise.resolve({ error: null })),
+      }));
 
-  //     mockReq.supabase = mockSupabase as any;
+      mockReq.supabase = mockSupabase as any;
 
-  //     const result = await createUser(mockReq as Request, mockRes as Response, walletAddress);
+      const result = await createUser(mockReq as Request, mockRes as Response, walletAddress);
 
-  //     expect(result).toBe(true);
-  //     expect(mockLogger.info).toHaveBeenCalled();
-  //   });
+      expect(result).toBe(true);
+      expect(mockLogger.info).toHaveBeenCalled();
+    });
 
-  //   test("handles database insert error", async () => {
-  //     const walletAddress = "0x1234567890abcdef";
-  //     const mockError = { message: "Insert failed" };
+    test("handles database insert error", async () => {
+      const walletAddress = "0x1234567890abcdef";
+      const mockError = { message: "Insert failed" };
 
-  //     mockSupabase.from = mock(() => ({
-  //       insert: mock(() => Promise.resolve({ error: mockError })),
-  //     }));
+      mockSupabase.from = mock(() => ({
+        insert: mock(() => Promise.resolve({ error: mockError })),
+      }));
 
-  //     mockReq.supabase = mockSupabase as any;
+      mockReq.supabase = mockSupabase as any;
 
-  //     const result = await createUser(mockReq as Request, mockRes as Response, walletAddress);
+      const result = await createUser(mockReq as Request, mockRes as Response, walletAddress);
 
-  //     expect(result).toBe(false);
-  //     expect(mockRes.status).toHaveBeenCalledWith(500);
-  //     expect(mockRes.json).toHaveBeenCalledWith({ error: "Failed to create user" });
-  //     expect(mockLogger.error).toHaveBeenCalled();
-  //   });
+      expect(result).toBe(false);
+      expect(mockRes.status).toHaveBeenCalledWith(500);
+      expect(mockRes.json).toHaveBeenCalledWith({ error: "Failed to create user" });
+      expect(mockLogger.error).toHaveBeenCalled();
+    });
 
-  //   test("handles unexpected error", async () => {
-  //     const walletAddress = "0x1234567890abcdef";
+    test("handles unexpected error", async () => {
+      const walletAddress = "0x1234567890abcdef";
 
-  //     mockSupabase.from = mock(() => {
-  //       throw new Error("Unexpected error");
-  //     });
+      mockSupabase.from = mock(() => {
+        throw new Error("Unexpected error");
+      });
 
-  //     mockReq.supabase = mockSupabase as any;
+      mockReq.supabase = mockSupabase as any;
 
-  //     const result = await createUser(mockReq as Request, mockRes as Response, walletAddress);
+      const result = await createUser(mockReq as Request, mockRes as Response, walletAddress);
 
-  //     expect(result).toBe(false);
-  //     expect(mockRes.status).toHaveBeenCalledWith(500);
-  //     expect(mockRes.json).toHaveBeenCalledWith({ error: "Internal server error" });
-  //     expect(mockLogger.error).toHaveBeenCalled();
-  //   });
-  // });
+      expect(result).toBe(false);
+      expect(mockRes.status).toHaveBeenCalledWith(500);
+      expect(mockRes.json).toHaveBeenCalledWith({ error: "Internal server error" });
+      expect(mockLogger.error).toHaveBeenCalled();
+    });
+  });
 
   describe("getUserByWalletAddress", () => {
     test("returns user when found", async () => {
