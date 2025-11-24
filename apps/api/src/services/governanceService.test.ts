@@ -1,8 +1,13 @@
 import { describe, it, expect, mock, beforeEach, afterEach, beforeAll } from "bun:test";
 
 import type * as GovernanceModule from "./governanceService";
+import { before } from "node:test";
 
 (process.env as any).NODE_ENV = "test";
+
+afterEach(() => {
+  mock.restore();
+});
 
 type GovernanceServiceInstance = typeof GovernanceModule.governanceService;
 type VoteChoiceEnum = typeof GovernanceModule.VoteChoice;
@@ -14,9 +19,7 @@ type GetProposalFromBlockchainFn = (
   userAddress?: string
 ) => Promise<GovernanceModule.Proposal | null>;
 
-type GetProposalRegistryEntryFn = (
-  proposalId: number
-) => Promise<{
+type GetProposalRegistryEntryFn = (proposalId: number) => Promise<{
   proposalContract: string;
   title: string;
   category: GovernanceModule.ProposalCategory;
@@ -59,9 +62,7 @@ const mockPublicClient: any = {
 };
 
 const mockWalletClient: any = {
-  writeContract: mock<() => Promise<string>>(() =>
-    Promise.resolve("0x" + "a".repeat(64))
-  ),
+  writeContract: mock<() => Promise<string>>(() => Promise.resolve("0x" + "a".repeat(64))),
 };
 
 const mockDecodeEventLog = mock<() => any>(() => {
@@ -107,10 +108,6 @@ const mockSupabase = {
   from: mock((_table: string) => mockSupabaseQuery),
 };
 
-mock.module("@supabase/supabase-js", () => ({
-  createClient: mock(() => mockSupabase),
-}));
-
 const mockConfig = {
   SEPOLIA_PRIVATE_KEY: "0x" + "1".repeat(64),
   SEPOLIA_RPC_URL: "https://sepolia.infura.io/v3/test",
@@ -118,42 +115,83 @@ const mockConfig = {
   SUPABASE_URL: "https://supabase.test",
   SUPABASE_KEY: "supabase-key",
 };
-mock.module("@/config/config", () => ({
-  Config: mockConfig,
-}));
+beforeAll(() => {
+  mock.module("@supabase/supabase-js", () => ({
+    createClient: mock(() => mockSupabase),
+  }));
 
-mock.module("@/contracts/generated", () => ({
-  GOVERNANCE_FACTORY_ABI: [] as any[],
-  PROPOSAL_ABI: [] as any[],
-}));
+  mock.module("@/config/config", () => ({
+    Config: mockConfig,
+  }));
 
-mock.module("@/constants/db", () => ({
-  TABLES: {
-    USERS: {
-      name: "users",
-      columns: {},
-    },
-    PROPOSALS: {
-      name: "proposals",
-      columns: {
-        id: "id",
-        createdAt: "created_at",
-        proposer: "proposer",
-        state: "state",
-        voterAddress: "voter_address",
-        proposalId: "proposal_id",
+  mock.module("@/contracts/generated", () => ({
+    GOVERNANCE_FACTORY_ABI: [] as any[],
+    PROPOSAL_ABI: [] as any[],
+  }));
+
+  mock.module("@/constants/db", () => ({
+    TABLES: {
+      USERS: {
+        name: "users",
+        columns: {
+          id: "id",
+          username: "username",
+          createdAt: "created_at",
+        },
+      },
+      STUDY_PARTICIPATIONS: {
+        name: "study_participations",
+        columns: {
+          participantWallet: "participant_wallet",
+          hasConsented: "has_consented",
+        },
+      },
+      DATA_VAULT: {
+        name: "data_vault",
+        columns: {
+          walletAddress: "wallet_address",
+          encryptedCid: "encrypted_cid",
+          resourceType: "resource_type",
+          createdAt: "created_at",
+          fileId: "file_id",
+          id: "id",
+        },
+      },
+      STUDIES: {
+        name: "studies",
+        columns: {
+          createdBy: "created_by",
+        },
+      },
+      TRANSACTIONS: {
+        name: "transactions",
+        columns: {
+          valueUSD: "value_usd",
+          toWallet: "to_wallet",
+          fromWallet: "from_wallet",
+        },
+      },
+      PROPOSALS: {
+        name: "proposals",
+        columns: {
+          id: "id",
+          createdAt: "created_at",
+          proposer: "proposer",
+          state: "state",
+          voterAddress: "voter_address",
+          proposalId: "proposal_id",
+        },
+      },
+      PROPOSAL_VOTES: {
+        name: "proposal_votes",
+        columns: {
+          proposalId: "proposal_id",
+          voterAddress: "voter_address",
+        },
       },
     },
-    PROPOSAL_VOTES: {
-      name: "proposal_votes",
-      columns: {
-        proposalId: "proposal_id",
-        voterAddress: "voter_address",
-      },
-    },
-  },
-}));
-
+  }));
+});
 let service: GovernanceServiceInstance;
 let VoteChoice: VoteChoiceEnum;
 let ProposalState: ProposalStateEnum;
@@ -184,13 +222,10 @@ describe("GovernanceService", () => {
     // restore original internal helpers
     (service as any).getProposalFromBlockchain = originalGetProposalFromBlockchain;
     (service as any).getProposalRegistryEntry = originalGetProposalRegistryEntry;
-    (service as any).getProposalVotingSnapshot =
-      originalGetProposalVotingSnapshot;
+    (service as any).getProposalVotingSnapshot = originalGetProposalVotingSnapshot;
 
     // re-init viem mocks
-    mockPublicClient.readContract = mock<() => Promise<any>>(
-      () => Promise.resolve(BigInt(0))
-    );
+    mockPublicClient.readContract = mock<() => Promise<any>>(() => Promise.resolve(BigInt(0)));
     mockPublicClient.estimateFeesPerGas = mock<() => Promise<any>>(() =>
       Promise.resolve({
         maxFeePerGas: 30n * 10n ** 9n,
@@ -198,22 +233,20 @@ describe("GovernanceService", () => {
         baseFeePerGas: 15n * 10n ** 9n,
       })
     );
-    mockPublicClient.waitForTransactionReceipt = mock<() => Promise<any>>(
-      () =>
-        Promise.resolve({
-          logs: [],
-          status: "success",
-        })
+    mockPublicClient.waitForTransactionReceipt = mock<() => Promise<any>>(() =>
+      Promise.resolve({
+        logs: [],
+        status: "success",
+      })
     );
-    mockPublicClient.getTransactionReceipt = mock<() => Promise<any>>(
-      () =>
-        Promise.resolve({
-          logs: [],
-          status: "success",
-        })
+    mockPublicClient.getTransactionReceipt = mock<() => Promise<any>>(() =>
+      Promise.resolve({
+        logs: [],
+        status: "success",
+      })
     );
-    mockWalletClient.writeContract = mock<() => Promise<string>>(
-      () => Promise.resolve("0x" + "a".repeat(64))
+    mockWalletClient.writeContract = mock<() => Promise<string>>(() =>
+      Promise.resolve("0x" + "a".repeat(64))
     );
     mockDecodeEventLog.mockClear();
 
@@ -287,9 +320,7 @@ describe("GovernanceService", () => {
       });
 
       expect(res.success).toBe(false);
-      expect(res.error).toBe(
-        "Proposal created on blockchain but ID extraction failed"
-      );
+      expect(res.error).toBe("Proposal created on blockchain but ID extraction failed");
       expect(mockDecodeEventLog).not.toHaveBeenCalled();
     });
 
@@ -327,9 +358,7 @@ describe("GovernanceService", () => {
       expect(res.data?.proposalId).toBe(1);
       expect(res.transactionHash).toBe(txHash);
       expect(mockWalletClient.writeContract).toHaveBeenCalledTimes(1);
-      expect(mockPublicClient.waitForTransactionReceipt).toHaveBeenCalledTimes(
-        1
-      );
+      expect(mockPublicClient.waitForTransactionReceipt).toHaveBeenCalledTimes(1);
       expect(mockSupabase.from).toHaveBeenCalledWith("proposals");
       expect(mockSupabaseQuery.insert).toHaveBeenCalledTimes(1);
     });
@@ -423,18 +452,13 @@ describe("GovernanceService", () => {
         timeRemaining: 0,
       };
 
-      (service as any).getProposalFromBlockchain = mock(
-        async () => blockchainProposal
-      );
+      (service as any).getProposalFromBlockchain = mock(async () => blockchainProposal);
 
       const proposal = await service.getProposal(1);
 
       expect(proposal).not.toBeNull();
       expect(proposal!.title).toBe("Chain Title");
-      expect((service as any).getProposalFromBlockchain).toHaveBeenCalledWith(
-        1,
-        undefined
-      );
+      expect((service as any).getProposalFromBlockchain).toHaveBeenCalledWith(1, undefined);
     });
   });
 
@@ -451,13 +475,11 @@ describe("GovernanceService", () => {
       };
 
       // Stub registry + voting snapshot helpers to avoid brittle readContract order coupling
-      (service as any).getProposalRegistryEntry = mock<
-        GetProposalRegistryEntryFn
-      >(async () => registry);
+      (service as any).getProposalRegistryEntry = mock<GetProposalRegistryEntryFn>(
+        async () => registry
+      );
 
-      (service as any).getProposalVotingSnapshot = mock<
-        GetProposalVotingSnapshotFn
-      >(async () => ({
+      (service as any).getProposalVotingSnapshot = mock<GetProposalVotingSnapshotFn>(async () => ({
         votesFor: 10,
         votesAgainst: 2,
         totalVoters: 12,
@@ -475,10 +497,7 @@ describe("GovernanceService", () => {
       const userAddress = "0x" + "5".repeat(40);
 
       // Remove custom supabase - not needed for blockchain fallback test
-      const proposal = await (service as any).getProposalFromBlockchain(
-        1,
-        userAddress
-      );
+      const proposal = await (service as any).getProposalFromBlockchain(1, userAddress);
 
       expect(proposal).not.toBeNull();
       expect(proposal!.id).toBe(1);
@@ -562,12 +581,12 @@ describe("GovernanceService", () => {
         endTime: now - 10,
       };
 
-      (service as any).getProposalRegistryEntry = mock<
-        GetProposalRegistryEntryFn
-      >(async () => registry);
+      (service as any).getProposalRegistryEntry = mock<GetProposalRegistryEntryFn>(
+        async () => registry
+      );
 
-      mockPublicClient.readContract = mock<() => Promise<any>>(
-        async () => BigInt(ProposalState.Passed)
+      mockPublicClient.readContract = mock<() => Promise<any>>(async () =>
+        BigInt(ProposalState.Passed)
       );
 
       const proposals = await service.getAllProposals();
@@ -752,10 +771,7 @@ describe("GovernanceService", () => {
                   } else {
                     payload = { count: 0 };
                   }
-                  return Promise.resolve(payload).then(
-                    onFulfilled,
-                    onRejected
-                  );
+                  return Promise.resolve(payload).then(onFulfilled, onRejected);
                 },
               };
 
@@ -773,7 +789,8 @@ describe("GovernanceService", () => {
       const expectedActiveProposals = 2;
       const expectedTotalVotes = 30;
       const expectedUniqueVoters = 10;
-      const expectedAvgParticipation = (expectedTotalVotes / expectedTotalProposals) / expectedUniqueVoters * 100;
+      const expectedAvgParticipation =
+        (expectedTotalVotes / expectedTotalProposals / expectedUniqueVoters) * 100;
       const expectedProposalsPassed = 2;
 
       expect(stats.totalProposals).toBe(expectedTotalProposals);

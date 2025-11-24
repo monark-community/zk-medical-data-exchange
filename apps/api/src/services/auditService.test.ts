@@ -4,6 +4,10 @@ import { UserProfile } from "@zk-medical/shared";
 
 process.env.NODE_ENV = "test";
 
+afterEach(() => {
+  mock.restore(); // resets ALL mocks
+});
+
 // Mock viem
 const mockPublicClient = {
   readContract: mock(() => Promise.resolve([])),
