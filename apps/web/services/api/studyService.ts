@@ -239,7 +239,7 @@ export class StudyApplicationService {
   ): Promise<{ success: boolean; message: string }> {
     try {
       const salt = generateSecureSalt();
-      const { data: challengeData } = await apiClient.post('/studies/request-challenge', {
+      const { data: challengeData } = await apiClient.post("/studies/request-challenge", {
         studyId,
         participantWallet: walletAddress,
       });
@@ -250,7 +250,11 @@ export class StudyApplicationService {
 
       console.log("Challenge received:", challengeData.challenge);
 
-      const finalDataCommitment = generateDataCommitment(medicalData, salt, challengeData.challenge);
+      const finalDataCommitment = generateDataCommitment(
+        medicalData,
+        salt,
+        challengeData.challenge
+      );
       console.log("Final data commitment (with challenge):", finalDataCommitment.toString());
 
       if (!window.ethereum) {
