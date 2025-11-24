@@ -1,12 +1,10 @@
 import jwt from "jsonwebtoken";
 import type { Web3AuthUser } from "@/middleware/web3AuthMiddleware";
 import { Config } from "@/config/config";
-import logger from "./logger";
+import logger from "@/utils/logger";
 
 const SESSION_DURATION = 7 * 24 * 60 * 60 * 1000;
 const SESSION_SECRET = Config.SESSION_SECRET;
-
-logger.debug({ sessionDuration: SESSION_DURATION }, "Session manager initialized");
 
 export interface SessionData {
   walletAddress: string;
@@ -15,6 +13,7 @@ export interface SessionData {
 }
 
 export function generateSessionToken(web3AuthUser: Web3AuthUser): string {
+  logger.debug({ sessionDuration: SESSION_DURATION }, "Session manager initialized");
   const now = Date.now();
   const walletAddress = web3AuthUser.wallets?.[0]?.address ?? "";
 
