@@ -1,4 +1,5 @@
 import { StudyCriteria, BinConfiguration, ExtractedMedicalData, getScaleFactorForMedicalDataField } from "@zk-medical/shared";
+import { GENDER_VALUES } from "@/constants/medicalDataConstants";
 
 // Import snarkjs for proof generation
 // @ts-ignore - snarkjs doesn't have proper TypeScript definitions
@@ -552,7 +553,6 @@ export function checkEligibility(
   medicalData: ExtractedMedicalData,
   studyCriteria: StudyCriteria
 ): boolean {
-  // Medical data is already scaled when passed from studyService, so no need to scale again
   const scaledHbA1c = medicalData.hba1c;
   const scaledBMI = medicalData.bmi;
 
@@ -564,7 +564,12 @@ export function checkEligibility(
     },
     {
       enabled: Boolean(studyCriteria.enableGender),
-      check: () => validateExactMatch(medicalData.gender, studyCriteria.allowedGender, "Gender"),
+      check: () => {
+        if (studyCriteria.allowedGender === GENDER_VALUES.ANY) {
+          return { isValid: true };
+        }
+        return validateExactMatch(medicalData.gender, studyCriteria.allowedGender, "Gender");
+      },
     },
     {
       enabled: Boolean(studyCriteria.enableLocation),

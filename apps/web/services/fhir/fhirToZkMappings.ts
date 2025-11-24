@@ -323,6 +323,9 @@ export const convertToZkReady = (medicalData: AggregatedMedicalData): ExtractedM
         values.activityLevel = -1;
     }
   }
+  else {
+    values.activityLevel = -1;
+  }
 
   values.diabetesStatus = medicalData.diabetesStatus ? medicalData.diabetesStatus.value : DIABETES_VALUES.NO_DIABETES;
   values.heartDiseaseStatus = fhirHeartDiseaseToZK(medicalData.heartDiseaseStatus?.code, medicalData.heartDiseaseStatus?.description);
