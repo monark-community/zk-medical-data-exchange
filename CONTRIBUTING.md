@@ -67,8 +67,8 @@ git push origin feature/my-feature
 
 ## 5. Code of Conduct
 
-We expect all contributors to follow a respectful and collaborative approach. Please see `CODE\_OF\_CONDUCT.md` for details.
+We expect all contributors to follow a respectful and collaborative approach. Please see `CODE_OF_CONDUCT.md` for details.
 
 ---
 
-Thank you for helping improve **{{PROJECT_NAME}}**! Your contributions are highly appreciated.
+Thank you for helping improve **CURA**! Your contributions are highly appreciated.
