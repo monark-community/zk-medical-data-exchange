@@ -1,4 +1,4 @@
-import type { BinConfiguration, DataBin } from "@zk-medical/shared";
+import type { BinConfiguration, DataBin, ExtractedMedicalData } from "@zk-medical/shared";
 import { BinType as BinTypeEnum } from "@zk-medical/shared";
 
 export interface BinMembershipResult {
