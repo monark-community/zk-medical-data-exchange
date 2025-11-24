@@ -11,7 +11,8 @@
     "generate-abis": "tsx scripts/generateABIs.ts",
     "start": "node dist/index.js",
     "test": "bun test || true",
-    "coverage": "bun test --coverage || true"
+    "coverage": "bun test --coverage || true",
+    "coverage:per-test": "bun ../../scripts/runCoveragePerTest.ts"
   },
   "devDependencies": {
     "@types/bun": "latest",

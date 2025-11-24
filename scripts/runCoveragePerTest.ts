@@ -14,7 +14,39 @@ import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const rootDir = path.resolve(__dirname, "..");
+
+/**
+ * Determine the working directory and root directory
+ * - If running from workspace root: use root and scan all workspaces
+ * - If running from a workspace (apps/api, apps/web): use that workspace as root
+ */
+function determineDirectories(): { rootDir: string; workspaces: string[] } {
+  const cwd = process.cwd();
+  const repoRoot = path.resolve(__dirname, "..");
+
+  // Check if we're in a specific workspace
+  const relativeFromRepo = path.relative(repoRoot, cwd);
+
+  if (relativeFromRepo.startsWith("apps/api")) {
+    return {
+      rootDir: path.join(repoRoot, "apps/api"),
+      workspaces: ["."], // Only scan current directory
+    };
+  } else if (relativeFromRepo.startsWith("apps/web")) {
+    return {
+      rootDir: path.join(repoRoot, "apps/web"),
+      workspaces: ["."], // Only scan current directory
+    };
+  } else {
+    // Running from repo root
+    return {
+      rootDir: repoRoot,
+      workspaces: ["apps/api", "apps/web", "packages/shared"],
+    };
+  }
+}
+
+const { rootDir, workspaces } = determineDirectories();
 const coverageDir = path.join(rootDir, "coverage");
 const lcovDir = path.join(coverageDir, "lcov-files");
 const testResultsDir = path.join(coverageDir, "test-results");
@@ -31,7 +63,6 @@ interface TestResult {
  */
 async function findTestFiles(): Promise<string[]> {
   const testFiles: string[] = [];
-  const workspaces = ["apps/api", "apps/web", "packages/shared"];
 
   for (const workspace of workspaces) {
     const workspacePath = path.join(rootDir, workspace);
@@ -264,6 +295,8 @@ function printSummary(results: TestResult[]): void {
  */
 async function main() {
   console.log("🚀 Starting Test Coverage Orchestrator\n");
+  console.log(`📂 Working directory: ${rootDir}`);
+  console.log(`📦 Coverage output: ${coverageDir}\n`);
 
   // Clean and prepare directories
   await cleanCoverageDir();
