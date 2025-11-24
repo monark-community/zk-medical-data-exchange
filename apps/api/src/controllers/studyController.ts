@@ -575,8 +575,6 @@ export const createStudy = async (req: Request, res: Response) => {
       .update(JSON.stringify(scaledCriteria))
       .digest("hex");
 
-    logger.info("scaled criterias" +  JSON.stringify(scaledCriteria));
-
     const requiresAge = scaledCriteria.enableAge === 1;
     const requiresGender = scaledCriteria.enableGender === 1;
     const requiresDiabetes = scaledCriteria.enableDiabetes === 1;
