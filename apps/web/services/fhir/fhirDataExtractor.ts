@@ -298,7 +298,6 @@ export const processCondition = (
         codeSystem,
         source: "issuer",
         effectiveDate,
-        description: display,
       };
       break;
 
@@ -313,7 +312,6 @@ export const processCondition = (
         codeSystem,
         source: "issuer",
         effectiveDate,
-        description: display,
       };
       break;
 
@@ -328,7 +326,6 @@ export const processCondition = (
         codeSystem,
         source: "patient",
         effectiveDate,
-        description: display,
       };
       break;
 
