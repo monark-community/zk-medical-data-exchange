@@ -1,6 +1,5 @@
 import type { BinConfiguration, DataBin } from "@zk-medical/shared";
 import { BinType as BinTypeEnum } from "@zk-medical/shared";
-import type { ExtractedMedicalData } from "@/services/fhir/types/extractedMedicalData";
 
 export interface BinMembershipResult {
   binIds: string[]; // List of string bin IDs (e.g., "age_bin_0") for display
