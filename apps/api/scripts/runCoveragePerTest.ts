@@ -10,10 +10,6 @@
 import { spawn } from "child_process";
 import { promises as fs } from "fs";
 import path from "path";
-import { fileURLToPath } from "url";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 /**
  * Determine the working directory and root directory
@@ -22,25 +18,28 @@ const __dirname = path.dirname(__filename);
  */
 function determineDirectories(): { rootDir: string; workspaces: string[] } {
   const cwd = process.cwd();
-  const repoRoot = path.resolve(__dirname, "..");
 
-  // Check if we're in a specific workspace
-  const relativeFromRepo = path.relative(repoRoot, cwd);
-
-  if (relativeFromRepo.startsWith("apps/api")) {
+  // Check if we're in a specific workspace by looking at cwd
+  if (cwd.includes("/apps/api")) {
+    // Extract the path up to and including apps/api
+    const apiIndex = cwd.indexOf("/apps/api");
+    const rootDir = cwd.substring(0, apiIndex + "/apps/api".length);
     return {
-      rootDir: path.join(repoRoot, "apps/api"),
+      rootDir,
       workspaces: ["."], // Only scan current directory
     };
-  } else if (relativeFromRepo.startsWith("apps/web")) {
+  } else if (cwd.includes("/apps/web")) {
+    // Extract the path up to and including apps/web
+    const webIndex = cwd.indexOf("/apps/web");
+    const rootDir = cwd.substring(0, webIndex + "/apps/web".length);
     return {
-      rootDir: path.join(repoRoot, "apps/web"),
+      rootDir,
       workspaces: ["."], // Only scan current directory
     };
   } else {
     // Running from repo root
     return {
-      rootDir: repoRoot,
+      rootDir: cwd,
       workspaces: ["apps/api", "apps/web", "packages/shared"],
     };
   }

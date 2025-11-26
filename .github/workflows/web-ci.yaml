@@ -33,7 +33,8 @@ jobs:
         run: bun run lint:web
 
       - name: Coverage
-        run: bun run coverage:per-test --cwd apps/web
+        working-directory: apps/web
+        run: bun run coverage:per-test
 
       - name: Build
         run: bun run --cwd apps/web build
