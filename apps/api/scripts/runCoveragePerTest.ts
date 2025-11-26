@@ -233,7 +233,7 @@ async function generateHtmlReport(): Promise<void> {
 
   return new Promise((resolve) => {
     // Check if genhtml is available (from lcov package)
-    const genhtmlPath = "/usr/bin/genhtml";
+    const genhtmlPath = "genhtml";
     const childProcess = spawn(
       genhtmlPath,
       [

@@ -221,8 +221,9 @@ async function generateHtmlReport(): Promise<void> {
 
   return new Promise((resolve) => {
     // Check if genhtml is available (from lcov package)
+    const genhtmlPath = "genhtml";
     const childProcess = spawn(
-      "genhtml",
+      genhtmlPath,
       [
         path.join(coverageDir, "lcov.info"),
         "-o",
