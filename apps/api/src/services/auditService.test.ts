@@ -69,6 +69,24 @@ mock.module("@/contracts", () => ({
   AUDIT_TRAIL_ABI: mockAuditTrailAbi,
 }));
 
+// Mock fastTx utilities
+mock.module("@/utils/fastTx", () => ({
+  buildPriorityFeeOverrides: mock(() =>
+    Promise.resolve({
+      maxFeePerGas: 25n * 10n ** 9n,
+      maxPriorityFeePerGas: 2n * 10n ** 9n,
+    })
+  ),
+  waitForReceiptWithTimeout: mock(() => Promise.resolve({ status: "success" })),
+  retryFastTransaction: mock(async (fn: () => Promise<string>) => {
+    // In test mode, just return mock hash
+    return "0x" + "0".repeat(64);
+  }),
+  FAST_TX_MAX_RETRIES: 3,
+  FAST_TX_TIMEOUT_MS: 30000,
+  FAST_TX_POLL_INTERVAL_MS: 1000,
+}));
+
 describe("AuditService", () => {
   let auditService: AuditService;
 
@@ -462,7 +480,6 @@ describe("AuditService", () => {
       const result = await auditService.logActionWithProfileDetection(entry);
 
       expect(result.success).toBe(true);
-      // The profile should be COMMON for USER_AUTHENTICATION, not ADMIN
     });
   });
 
@@ -506,6 +523,275 @@ describe("AuditService", () => {
 
       // The method should still work in test mode even with invalid data
       const result = await auditService.logAction(invalidEntry as any);
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("logActionForParticipants", () => {
+    it("should successfully log action for participants", async () => {
+      const participants = [
+        "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0",
+        "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb1",
+      ];
+      const entry = {
+        userProfile: UserProfile.DATA_SELLER,
+        actionType: ActionType.STUDY_STATUS_CHANGE,
+        resource: "study_123",
+        action: "study_completed",
+        success: true,
+        metadata: { studyId: "123" },
+      };
+
+      const result = await auditService.logActionForParticipants(participants, entry);
+
+      expect(result.success).toBe(true);
+      expect(result.txHash).toBe("0x" + "0".repeat(64));
+    });
+
+    it("should return error when no participants provided", async () => {
+      const entry = {
+        userProfile: UserProfile.DATA_SELLER,
+        actionType: ActionType.STUDY_STATUS_CHANGE,
+        resource: "study_123",
+        action: "study_completed",
+        success: true,
+      };
+
+      const result = await auditService.logActionForParticipants([], entry);
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe("No participants provided");
+    });
+
+    it("should return error when too many participants provided", async () => {
+      const participants = Array.from(
+        { length: 101 },
+        (_, i) => `0x${i.toString().padStart(40, "0")}`
+      );
+      const entry = {
+        userProfile: UserProfile.DATA_SELLER,
+        actionType: ActionType.STUDY_STATUS_CHANGE,
+        resource: "study_123",
+        action: "study_completed",
+        success: true,
+      };
+
+      const result = await auditService.logActionForParticipants(participants, entry);
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe("Too many participants, maximum 100 allowed");
+    });
+  });
+
+  describe("Study Completion and Compensation", () => {
+    it("should log study completion for creator and participants", async () => {
+      const creatorAddress = "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0";
+      const participantsAddresses = [
+        "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb1",
+        "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb2",
+      ];
+      const result = await auditService.logStudyCompletion(
+        creatorAddress,
+        participantsAddresses,
+        "study-123",
+        true,
+        { title: "Test Study" }
+      );
+      expect(result.creatorLog.success).toBe(true);
+      expect(result.participantsLog.success).toBe(true);
+    });
+    it("should log compensation sent for creator and participants", async () => {
+      const creatorAddress = "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0";
+      const participantsAddresses = [
+        "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb1",
+        "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb2",
+      ];
+      const result = await auditService.logCompensationSent(
+        creatorAddress,
+        participantsAddresses,
+        "study-123",
+        true,
+        1000,
+        { currency: "ETH" }
+      );
+      expect(result.creatorLog.success).toBe(true);
+      expect(result.participantsLog.success).toBe(true);
+    });
+    it("should log study data access for creator and participants", async () => {
+      const creatorAddress = "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0";
+      const participantsAddresses = [
+        "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb1",
+        "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb2",
+      ];
+      const result = await auditService.logStudyDataAccess(
+        creatorAddress,
+        participantsAddresses,
+        "study-123",
+        true,
+        { dataType: "aggregated" }
+      );
+      expect(result.creatorLog.success).toBe(true);
+      expect(result.participantsLog.success).toBe(true);
+    });
+  });
+
+  describe("Governance Logging Methods", () => {
+    it("should log proposal creation", async () => {
+      const result = await auditService.logProposalCreation(
+        "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0",
+        "proposal-123",
+        "vote",
+        true,
+        { description: "Test Proposal" }
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.txHash).toBe("0x" + "0".repeat(64));
+    });
+
+    it("should log vote cast with yes vote", async () => {
+      const result = await auditService.logVoteCast(
+        "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0",
+        "proposal-123",
+        "yes",
+        true,
+        { votingPower: 100 }
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.txHash).toBe("0x" + "0".repeat(64));
+    });
+
+    it("should log vote cast with no vote", async () => {
+      const result = await auditService.logVoteCast(
+        "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0",
+        "proposal-123",
+        "no",
+        true
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.txHash).toBe("0x" + "0".repeat(64));
+    });
+
+    it("should log vote cast with abstain vote", async () => {
+      const result = await auditService.logVoteCast(
+        "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0",
+        "proposal-123",
+        "abstain",
+        true
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.txHash).toBe("0x" + "0".repeat(64));
+    });
+
+    it("should log proposal removal", async () => {
+      const result = await auditService.logProposalRemoval(
+        "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0",
+        "proposal-123",
+        "spam",
+        true,
+        { removedBy: "admin" }
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.txHash).toBe("0x" + "0".repeat(64));
+    });
+  });
+
+  describe("Static Methods", () => {
+    it("should return COMMON profile for USER_AUTHENTICATION", () => {
+      const profile = AuditService.getProfileForActionType(
+        ActionType.USER_AUTHENTICATION,
+        UserProfile.ADMIN
+      );
+      expect(profile).toBe(UserProfile.COMMON);
+    });
+
+    it("should return COMMON profile for PROPOSAL_CREATION", () => {
+      const profile = AuditService.getProfileForActionType(
+        ActionType.PROPOSAL_CREATION,
+        UserProfile.RESEARCHER
+      );
+      expect(profile).toBe(UserProfile.COMMON);
+    });
+
+    it("should return COMMON profile for VOTE_CAST", () => {
+      const profile = AuditService.getProfileForActionType(
+        ActionType.VOTE_CAST,
+        UserProfile.DATA_SELLER
+      );
+      expect(profile).toBe(UserProfile.COMMON);
+    });
+
+    it("should return COMMON profile for PROPOSAL_REMOVAL", () => {
+      const profile = AuditService.getProfileForActionType(
+        ActionType.PROPOSAL_REMOVAL,
+        UserProfile.ADMIN
+      );
+      expect(profile).toBe(UserProfile.COMMON);
+    });
+
+    it("should return default profile for other action types", () => {
+      const profile = AuditService.getProfileForActionType(
+        ActionType.STUDY_CREATION,
+        UserProfile.RESEARCHER
+      );
+      expect(profile).toBe(UserProfile.RESEARCHER);
+    });
+  });
+
+  describe("logActionWithProfileDetection variations", () => {
+    it("should use COMMON profile for PROPOSAL_CREATION action", async () => {
+      const result = await auditService.logActionWithProfileDetection({
+        user: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0",
+        actionType: ActionType.PROPOSAL_CREATION,
+        resource: "proposal",
+        action: "create_proposal",
+        success: true,
+        suggestedProfile: UserProfile.ADMIN,
+      });
+
+      expect(result.success).toBe(true);
+    });
+
+    it("should use COMMON profile for VOTE_CAST action", async () => {
+      const result = await auditService.logActionWithProfileDetection({
+        user: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0",
+        actionType: ActionType.VOTE_CAST,
+        resource: "proposal",
+        action: "vote",
+        success: true,
+        suggestedProfile: UserProfile.RESEARCHER,
+      });
+
+      expect(result.success).toBe(true);
+    });
+
+    it("should use COMMON profile for PROPOSAL_REMOVAL action", async () => {
+      const result = await auditService.logActionWithProfileDetection({
+        user: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0",
+        actionType: ActionType.PROPOSAL_REMOVAL,
+        resource: "proposal",
+        action: "remove",
+        success: true,
+        suggestedProfile: UserProfile.DATA_SELLER,
+      });
+
+      expect(result.success).toBe(true);
+    });
+
+    it("should use suggested profile for non-COMMON action types", async () => {
+      const result = await auditService.logActionWithProfileDetection({
+        user: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0",
+        actionType: ActionType.STUDY_CREATION,
+        resource: "study",
+        action: "create",
+        success: true,
+        suggestedProfile: UserProfile.RESEARCHER,
+      });
+
       expect(result.success).toBe(true);
     });
   });
