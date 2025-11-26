@@ -212,16 +212,45 @@ async function mergeLcovFiles(lcovFiles: string[]): Promise<void> {
 
   console.log(`✅ Merged coverage report saved to: ${finalLcov}`);
 }
+/**
+ * Find the full path to genhtml executable
+ */
+async function findGenhtml(): Promise<string | null> {
+  return new Promise((resolve) => {
+    const whichProcess = spawn("which", ["genhtml"], {
+      stdio: ["ignore", "pipe", "pipe"],
+    });
 
+    let output = "";
+    whichProcess.stdout?.on("data", (data: Buffer) => {
+      output += data.toString();
+    });
+
+    whichProcess.on("close", (code: number | null) => {
+      if (code === 0 && output.trim()) {
+        resolve(output.trim());
+      } else {
+        resolve(null);
+      }
+    });
+
+    whichProcess.on("error", () => {
+      resolve(null);
+    });
+  });
+}
 /**
  * Generate HTML coverage report
  */
 async function generateHtmlReport(): Promise<void> {
   console.log("\n📊 Generating HTML coverage report...");
+  const genhtmlPath = await findGenhtml();
 
+  if (!genhtmlPath) {
+    console.log("⚠️  genhtml not available. Install lcov to generate HTML reports.");
+    return;
+  }
   return new Promise((resolve) => {
-    // Check if genhtml is available (from lcov package)
-    const genhtmlPath = "genhtml";
     const childProcess = spawn(
       genhtmlPath,
       [
