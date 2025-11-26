@@ -115,6 +115,7 @@ async function runTestWithCoverage(testFile: string): Promise<TestResult> {
   const testOutputFile = path.join(testResultsDir, `${testName}.log`);
 
   console.log(`\n📝 Running: ${relativePath}`);
+  console.log("─".repeat(60));
 
   return new Promise((resolve) => {
     const childProcess = spawn(
@@ -134,13 +135,19 @@ async function runTestWithCoverage(testFile: string): Promise<TestResult> {
 
     childProcess.stdout?.on("data", (data: Buffer) => {
       outputChunks.push(data);
+      // Print to console in real-time
+      process.stdout.write(data);
     });
 
     childProcess.stderr?.on("data", (data: Buffer) => {
       errorChunks.push(data);
+      // Print to console in real-time
+      process.stderr.write(data);
     });
 
     childProcess.on("close", async (code: number | null) => {
+      console.log("─".repeat(60));
+
       // Save test output to file
       try {
         const outputContent = Buffer.concat(outputChunks).toString("utf-8");
@@ -161,16 +168,22 @@ async function runTestWithCoverage(testFile: string): Promise<TestResult> {
           // Move it to our lcov-files directory with unique name
           await fs.copyFile(defaultLcovPath, lcovFile);
 
-          console.log(`✅ ${relativePath} - Coverage saved to ${path.basename(lcovFile)}`);
+          if (code === 0) {
+            console.log(`✅ ${relativePath} - PASSED (Coverage saved)`);
+          } else {
+            console.log(`❌ ${relativePath} - FAILED (Exit code: ${code})`);
+          }
           resolve({
             file: relativePath,
             success: code === 0,
             lcovFile,
           });
         } catch {
-          console.log(
-            `⚠️  ${relativePath} - No coverage generated (tests may have passed but no coverage data)`
-          );
+          if (code === 0) {
+            console.log(`⚠️  ${relativePath} - PASSED (No coverage generated)`);
+          } else {
+            console.log(`❌ ${relativePath} - FAILED (Exit code: ${code}, No coverage generated)`);
+          }
           resolve({
             file: relativePath,
             success: code === 0,
@@ -178,7 +191,7 @@ async function runTestWithCoverage(testFile: string): Promise<TestResult> {
           });
         }
       } catch (error) {
-        console.log(`❌ ${relativePath} - Error: ${error}`);
+        console.log(`❌ ${relativePath} - FAILED (Error: ${error})`);
         resolve({
           file: relativePath,
           success: false,
@@ -274,15 +287,38 @@ function printSummary(results: TestResult[]): void {
   console.log("📋 TEST COVERAGE SUMMARY");
   console.log("=".repeat(60));
 
-  const successful = results.filter((r) => r.success && r.lcovFile);
-  const failed = results.filter((r) => !r.success || !r.lcovFile);
+  const successful = results.filter((r) => r.success);
+  const failed = results.filter((r) => !r.success);
+  const withCoverage = results.filter((r) => r.lcovFile);
 
-  console.log(`\n✅ Successful: ${successful.length}/${results.length}`);
+  console.log(`\n✅ Passed: ${successful.length}/${results.length}`);
+  console.log(`❌ Failed: ${failed.length}/${results.length}`);
+  console.log(`📊 With Coverage: ${withCoverage.length}/${results.length}`);
+
   if (failed.length > 0) {
-    console.log(`❌ Failed: ${failed.length}/${results.length}`);
-    console.log("\nFailed tests:");
-    failed.forEach((r) => {
-      console.log(`  - ${r.file}${r.error ? `: ${r.error}` : ""}`);
+    console.log("\n" + "=".repeat(60));
+    console.log("❌ FAILED TESTS:");
+    console.log("=".repeat(60));
+    failed.forEach((r, index) => {
+      console.log(`\n${index + 1}. ${r.file}`);
+      if (r.error) {
+        console.log(`   Error: ${r.error}`);
+      }
+      console.log(
+        `   Log: ${path.join(
+          testResultsDir,
+          r.file.replace(/[/\\]/g, "-").replace(/\.(test|spec)\.(ts|tsx|js|jsx)$/, "") + ".log"
+        )}`
+      );
+    });
+  }
+
+  if (successful.length > 0) {
+    console.log("\n" + "=".repeat(60));
+    console.log("✅ PASSED TESTS:");
+    console.log("=".repeat(60));
+    successful.forEach((r, index) => {
+      console.log(`${index + 1}. ${r.file}`);
     });
   }
 
