@@ -47,11 +47,11 @@ export default function UploadSection({
         if (!fileSelected || !input.files) return;
         const file = input.files[0];
         // Generate simplified filename: just show original name in UI, use simplified for API
+        const complianceResult = await checkCompliance(file);
         setUploadedFileName(file.name);
         setUploadedFile(file);
         setChecking(true);
 
-        const complianceResult = await checkCompliance(file);
         setCompliance(complianceResult);
         const isCompliant = complianceResult.reportType !== ReportType.NOT_SUPPORTED;
 
@@ -60,14 +60,11 @@ export default function UploadSection({
         setChecking(false);
         setReadyToSend(isCompliant);
 
-        if (!isCompliant) {
-          //TODO: Implement UI feedback
-        }
-
         console.log("Uploading file:", file.name);
       } catch (error) {
         console.error("Failed to upload medical data:", error);
-        useTxStatusState.getState().showError("Failed to upload medical data.");
+        useTxStatusState.getState().showError((error as Error).message);
+        setChecking(false);
       }
     }
   };

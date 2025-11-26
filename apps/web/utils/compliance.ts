@@ -8,9 +8,13 @@ export type ComplianceResult = {
 };
 
 export async function checkCompliance(file: File): Promise<ComplianceResult> {
-  const fhirResult = await isFhirCompliant(file);
-  if (fhirResult !== FhirResourceType.NOT_SUPPORTED) {
-    return { resourceType: fhirResult, reportType: ReportType.FHIR };
+  try {
+    const fhirResult = await isFhirCompliant(file);
+    if (fhirResult !== FhirResourceType.NOT_SUPPORTED) {
+      return { resourceType: fhirResult, reportType: ReportType.FHIR };
+    }
+  } catch (error) {
+    throw new Error("Error checking compliance: " + (error as Error).message);
   }
 
   return {
