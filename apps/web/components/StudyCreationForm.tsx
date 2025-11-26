@@ -189,40 +189,58 @@ const NumberInput = ({
     setDisplayValue(value.toString());
   }, [value]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value;
-    setDisplayValue(newValue);
+const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const newValue = e.target.value;
+  setDisplayValue(newValue);
 
-    if (newValue === "") {
-      return;
-    }
+  if (newValue === "") {
+    return;
+  }
 
-    const numValue = Number(newValue);
-    if (!Number.isNaN(numValue)) {
-      let adjustedValue = numValue;
-      if (step === 1) adjustedValue = Math.floor(numValue);
-      else if (step === 0.1) adjustedValue = Math.round(numValue * 10) / 10;
-      onChange(adjustedValue);
+  const numValue = Number(newValue);
+  if (Number.isNaN(numValue)) return;
+
+  let precision = 0;
+  if (step !== undefined && !Number.isNaN(Number(step))) {
+    const stepStr = step.toString();
+    if (stepStr.includes(".")) {
+      precision = stepStr.split(".")[1].length;
     }
-  };
+  }
+
+  const factor = Math.pow(10, precision);
+  const adjusted = Math.round(numValue * factor) / factor;
+
+  onChange(adjusted);
+};
 
   const handleBlur = () => {
     if (displayValue === "" || Number.isNaN(Number(displayValue))) {
       setDisplayValue(value.toString());
       onBlur?.(value);
-    } else {
-      const numValue = Number(displayValue);
-
-      let constrainedValue = numValue;
-      if (min !== undefined && numValue < min) constrainedValue = min;
-      if (max !== undefined && numValue > max) constrainedValue = max;
-      if (step === 1) constrainedValue = Math.floor(constrainedValue);
-      else if (step === 0.1) constrainedValue = Math.round(constrainedValue * 10) / 10;
-
-      setDisplayValue(constrainedValue.toString());
-      onChange(constrainedValue);
-      onBlur?.(constrainedValue);
+      return;
     }
+
+    let numValue = Number(displayValue);
+
+    if (min !== undefined && numValue < min) numValue = min;
+    if (max !== undefined && numValue > max) numValue = max;
+
+    let precision = 0;
+    if (step !== undefined && !Number.isNaN(Number(step))) {
+      const stepStr = step.toString();
+      if (stepStr.includes(".")) {
+        precision = stepStr.split(".")[1].length;
+      }
+    }
+
+    const factor = Math.pow(10, precision);
+    const adjustedValue = Math.round(numValue * factor) / factor;
+
+    setDisplayValue(adjustedValue.toString());
+
+    onChange(adjustedValue);
+    onBlur?.(adjustedValue);
   };
 
   return (
@@ -393,18 +411,16 @@ const StudyCreationForm = ({ onSuccess, isModal = false }: StudyCreationFormProp
       console.log("Creating study via API...");
 
       if (!isConnected || !walletAddress) {
-        showError("Please connect your wallet before creating a study.");
+        showError("Wallet not connected - Please connect your wallet to create a study");
         return;
       }
 
-      // Close the modal immediately if TxOverlay open
       if (isModal && onSuccess) {
         onSuccess();
       }
 
-      show("Creating study in database...");
+      show(`Step 1/3: Creating study "${studyInfo.title}" in database...`);
 
-      // Step 1: Call the backend API to create study in database
       const result = await createStudyApi(
         studyInfo.title,
         studyInfo.description,
@@ -418,23 +434,22 @@ const StudyCreationForm = ({ onSuccess, isModal = false }: StudyCreationFormProp
 
       console.log("Study created in database:", result);
 
-      // Step 2: Deploy to blockchain
-      console.log("Deploying study to blockchain...");
-      show("Deploying study to blockchain...");
+      show(`Step 2/3: Deploying study to blockchain (ID: ${result.study.id})...`);
 
       try {
         const deployResult = await deployStudy(result.study.id);
 
         console.log("Blockchain deployment successful:", deployResult);
 
+        show(`Step 3/3: Finalizing deployment and configuring bins...`);
+
+        await new Promise(resolve => setTimeout(resolve, 500));
+
         show(
-          `✓ Study "${result.study.title}" created and deployed successfully! ` +
-            `Complexity: ${result.study.stats.complexity}, ` +
-            `Criteria: ${result.study.stats.enabledCriteriaCount}/12, ` +
-            `Contract: ${deployResult.deployment.contractAddress.slice(
-              0,
-              6
-            )}...${deployResult.deployment.contractAddress.slice(-4)}`
+          `Success! Study "${result.study.title}" is live!\n\n` +
+            `Stats: ${result.study.stats.enabledCriteriaCount} criteria - ${result.study.stats.complexity} complexity\n` +
+            `Contract: ${deployResult.deployment.contractAddress.slice(0, 6)}...${deployResult.deployment.contractAddress.slice(-4)}\n` +
+            `View on Etherscan: sepolia.etherscan.io/tx/${deployResult.deployment.transactionHash.slice(0, 10)}...`
         );
 
         resetForm();
@@ -443,7 +458,8 @@ const StudyCreationForm = ({ onSuccess, isModal = false }: StudyCreationFormProp
       } catch (deployError) {
         console.error("Blockchain deployment failed:", deployError);
 
-        // Delete the study from database since deployment failed
+        show("Blockchain deployment failed - cleaning up database...");
+
         try {
           await deleteStudy(result.study.id, walletAddress!);
           console.log("Study deleted from database due to deployment failure");
@@ -453,16 +469,17 @@ const StudyCreationForm = ({ onSuccess, isModal = false }: StudyCreationFormProp
         }
 
         showError(
-          `Study creation failed during blockchain deployment: ${
-            deployError instanceof Error ? deployError.message : "Unknown error"
-          }`
+          `Deployment Failed\n\n` +
+            `The study was removed from the database.\n` +
+            `Error: ${deployError instanceof Error ? deployError.message : "Unknown blockchain error"}\n\n`
         );
         return;
       }
     } catch (error) {
       console.error("Failed to create study:", error);
       showError(
-        `Failed to create study: ${error instanceof Error ? error.message : "Unknown error"}`
+        `Study Creation Failed\n\n` +
+          `${error instanceof Error ? error.message : "An unexpected error occurred"}\n\n`
       );
     } finally {
       setIsSubmitting(false);
@@ -663,23 +680,27 @@ const StudyCreationForm = ({ onSuccess, isModal = false }: StudyCreationFormProp
                 enabled
                   ? {
                       enableBMI: 1,
-                      minBMI: CRITERIA_DEFAULTS.bmi.min * 10,
-                      maxBMI: CRITERIA_DEFAULTS.bmi.max * 10,
+                      minBMI: CRITERIA_DEFAULTS.bmi.min,
+                      maxBMI: CRITERIA_DEFAULTS.bmi.max,
                     }
-                  : { enableBMI: 0, minBMI: 0, maxBMI: 0 }
+                  : {
+                      enableBMI: 0,
+                      minBMI: 0,
+                      maxBMI: 0,
+                    }
               )
             }
           >
             <RangeInput
               label="BMI Range"
-              minValue={criteria.minBMI === 0 ? CRITERIA_DEFAULTS.bmi.min : criteria.minBMI / 10}
-              maxValue={criteria.maxBMI === 0 ? CRITERIA_DEFAULTS.bmi.max : criteria.maxBMI / 10}
-              onMinChange={(value) => updateCriteria({ minBMI: Math.round(value * 10) })}
-              onMaxChange={(value) => updateCriteria({ maxBMI: Math.round(value * 10) })}
+              minValue={criteria.minBMI}
+              maxValue={criteria.maxBMI}
+              onMinChange={(value) => updateCriteria({ minBMI: value })}
+              onMaxChange={(value) => updateCriteria({ maxBMI: value })}
               unit="kg/m²"
               absoluteMin={CRITERIA_DEFAULTS.bmi.min}
               absoluteMax={CRITERIA_DEFAULTS.bmi.max}
-              stepMin={CRITERIA_DEFAULTS.bmi.step}
+              stepMin={CRITERIA_DEFAULTS.bmi.step}  
               stepMax={CRITERIA_DEFAULTS.bmi.step}
             />
           </CriteriaField>
@@ -696,24 +717,20 @@ const StudyCreationForm = ({ onSuccess, isModal = false }: StudyCreationFormProp
                       minCholesterol: CRITERIA_DEFAULTS.cholesterol.min,
                       maxCholesterol: CRITERIA_DEFAULTS.cholesterol.max,
                     }
-                  : { enableCholesterol: 0, minCholesterol: 0, maxCholesterol: 0 }
+                  : {
+                      enableCholesterol: 0,
+                      minCholesterol: 0,
+                      maxCholesterol: 0,
+                    }
               )
             }
           >
             <RangeInput
               label="Cholesterol Level"
-              minValue={
-                criteria.minCholesterol === 0
-                  ? CRITERIA_DEFAULTS.cholesterol.min
-                  : criteria.minCholesterol / 10
-              }
-              maxValue={
-                criteria.maxCholesterol === 0
-                  ? CRITERIA_DEFAULTS.cholesterol.max
-                  : criteria.maxCholesterol / 10
-              }
-              onMinChange={(value) => updateCriteria({ minCholesterol: Math.round(value * 10) })}
-              onMaxChange={(value) => updateCriteria({ maxCholesterol: Math.round(value * 10) })}
+              minValue={criteria.minCholesterol}
+              maxValue={criteria.maxCholesterol}
+              onMinChange={(value) => updateCriteria({ minCholesterol: value })}
+              onMaxChange={(value) => updateCriteria({ maxCholesterol: value })}
               unit="mg/dL"
               absoluteMin={CRITERIA_DEFAULTS.cholesterol.min}
               absoluteMax={CRITERIA_DEFAULTS.cholesterol.max}
@@ -731,10 +748,10 @@ const StudyCreationForm = ({ onSuccess, isModal = false }: StudyCreationFormProp
                 enabled
                   ? {
                       enableBloodPressure: 1,
-                      minSystolic: CRITERIA_DEFAULTS.bloodPressure.systolic.min * 10,
-                      maxSystolic: CRITERIA_DEFAULTS.bloodPressure.systolic.max * 10,
-                      minDiastolic: CRITERIA_DEFAULTS.bloodPressure.diastolic.min * 10,
-                      maxDiastolic: CRITERIA_DEFAULTS.bloodPressure.diastolic.max * 10,
+                      minSystolic: CRITERIA_DEFAULTS.bloodPressure.systolic.min,
+                      maxSystolic: CRITERIA_DEFAULTS.bloodPressure.systolic.max,
+                      minDiastolic: CRITERIA_DEFAULTS.bloodPressure.diastolic.min,
+                      maxDiastolic: CRITERIA_DEFAULTS.bloodPressure.diastolic.max,
                     }
                   : {
                       enableBloodPressure: 0,
@@ -747,48 +764,38 @@ const StudyCreationForm = ({ onSuccess, isModal = false }: StudyCreationFormProp
             }
           >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              
+              {/* Systolic */}
               <RangeInput
                 label="Systolic Pressure"
-                minValue={
-                  criteria.minSystolic === 0
-                    ? CRITERIA_DEFAULTS.bloodPressure.systolic.min
-                    : criteria.minSystolic / 10
-                }
-                maxValue={
-                  criteria.maxSystolic === 0
-                    ? CRITERIA_DEFAULTS.bloodPressure.systolic.max
-                    : criteria.maxSystolic / 10
-                }
-                onMinChange={(value) => updateCriteria({ minSystolic: Math.round(value * 10) })}
-                onMaxChange={(value) => updateCriteria({ maxSystolic: Math.round(value * 10) })}
+                minValue={criteria.minSystolic}
+                maxValue={criteria.maxSystolic}
+                onMinChange={(value) => updateCriteria({ minSystolic: value })}
+                onMaxChange={(value) => updateCriteria({ maxSystolic: value })}
                 unit="mmHg"
                 absoluteMin={CRITERIA_DEFAULTS.bloodPressure.systolic.min}
                 absoluteMax={CRITERIA_DEFAULTS.bloodPressure.systolic.max}
                 stepMin={CRITERIA_DEFAULTS.bloodPressure.systolic.step}
                 stepMax={CRITERIA_DEFAULTS.bloodPressure.systolic.step}
               />
+
+              {/* Diastolic */}
               <RangeInput
                 label="Diastolic Pressure"
-                minValue={
-                  criteria.minDiastolic === 0
-                    ? CRITERIA_DEFAULTS.bloodPressure.diastolic.min
-                    : criteria.minDiastolic / 10
-                }
-                maxValue={
-                  criteria.maxDiastolic === 0
-                    ? CRITERIA_DEFAULTS.bloodPressure.diastolic.max
-                    : criteria.maxDiastolic / 10
-                }
-                onMinChange={(value) => updateCriteria({ minDiastolic: Math.round(value * 10) })}
-                onMaxChange={(value) => updateCriteria({ maxDiastolic: Math.round(value * 10) })}
+                minValue={criteria.minDiastolic}
+                maxValue={criteria.maxDiastolic}
+                onMinChange={(value) => updateCriteria({ minDiastolic: value })}
+                onMaxChange={(value) => updateCriteria({ maxDiastolic: value })}
                 unit="mmHg"
                 absoluteMin={CRITERIA_DEFAULTS.bloodPressure.diastolic.min}
                 absoluteMax={CRITERIA_DEFAULTS.bloodPressure.diastolic.max}
                 stepMin={CRITERIA_DEFAULTS.bloodPressure.diastolic.step}
                 stepMax={CRITERIA_DEFAULTS.bloodPressure.diastolic.step}
               />
+
             </div>
           </CriteriaField>
+
 
           {/* Smoking Status */}
           <CriteriaField
@@ -949,8 +956,8 @@ const StudyCreationForm = ({ onSuccess, isModal = false }: StudyCreationFormProp
                 enabled
                   ? {
                       enableHbA1c: 1,
-                      minHbA1c: CRITERIA_DEFAULTS.hbA1c.min * 10,
-                      maxHbA1c: CRITERIA_DEFAULTS.hbA1c.max * 10,
+                      minHbA1c: CRITERIA_DEFAULTS.hbA1c.min,
+                      maxHbA1c: CRITERIA_DEFAULTS.hbA1c.max,
                     }
                   : { enableHbA1c: 0, minHbA1c: 0, maxHbA1c: 0 }
               )
@@ -959,13 +966,13 @@ const StudyCreationForm = ({ onSuccess, isModal = false }: StudyCreationFormProp
             <RangeInput
               label="HbA1c Level"
               minValue={
-                criteria.minHbA1c === 0 ? CRITERIA_DEFAULTS.hbA1c.min : criteria.minHbA1c / 10
+                criteria.minHbA1c === 0 ? CRITERIA_DEFAULTS.hbA1c.min : criteria.minHbA1c
               }
               maxValue={
-                criteria.maxHbA1c === 0 ? CRITERIA_DEFAULTS.hbA1c.max : criteria.maxHbA1c / 10
+                criteria.maxHbA1c === 0 ? CRITERIA_DEFAULTS.hbA1c.max : criteria.maxHbA1c
               }
-              onMinChange={(value) => updateCriteria({ minHbA1c: Math.round(value * 10) })}
-              onMaxChange={(value) => updateCriteria({ maxHbA1c: Math.round(value * 10) })}
+              onMinChange={(value) => updateCriteria({ minHbA1c: value })}
+              onMaxChange={(value) => updateCriteria({ maxHbA1c: value })}
               unit="%"
               absoluteMin={CRITERIA_DEFAULTS.hbA1c.min}
               absoluteMax={CRITERIA_DEFAULTS.hbA1c.max}

@@ -1,28 +1,27 @@
 import { poseidon4, poseidon7 } from "poseidon-lite";
-import { ExtractedMedicalData } from "@/services/fhir/types/extractedMedicalData";
+import { ExtractedMedicalData } from "@zk-medical/shared";
 
 export const generateDataCommitment = (medicalData: ExtractedMedicalData, salt: number, challenge: string): bigint => {
-  const normalizedData = normalizeMedicalDataForCircuit(medicalData);
 
   try {
     const commitment1Inputs = [
-      normalizedData.age,
-      normalizedData.gender,
-      normalizedData.region,
-      normalizedData.cholesterol,
-      normalizedData.bmi,
-      normalizedData.bloodType,
+      medicalData.age,
+      medicalData.gender,
+      medicalData.regions ? medicalData.regions[0] : -1,
+      medicalData.cholesterol,
+      medicalData.bmi,
+      medicalData.bloodType,
       salt,
     ];
 
     const commitment2Inputs = [
-      normalizedData.systolicBP,
-      normalizedData.diastolicBP,
-      normalizedData.hba1c,
-      normalizedData.smokingStatus,
-      normalizedData.activityLevel,
-      normalizedData.diabetesStatus,
-      normalizedData.heartDiseaseHistory,
+      medicalData.systolicBP,
+      medicalData.diastolicBP,
+      medicalData.hba1c,
+      medicalData.smokingStatus,
+      medicalData.activityLevel,
+      medicalData.diabetesStatus,
+      medicalData.heartDiseaseStatus,
     ];
 
     const commitment1InputsBigInt = commitment1Inputs.map((x) => BigInt(x));
@@ -58,28 +57,4 @@ export const generateDataCommitment = (medicalData: ExtractedMedicalData, salt: 
 
 export const generateSecureSalt = (): number => {
   return crypto.getRandomValues(new Uint32Array(1))[0];
-};
-
-export const normalizeMedicalDataForCircuit = (medicalData: ExtractedMedicalData) => {
-  const age = medicalData.age;
-  const gender = medicalData.gender;
-  let bmi = medicalData.bmi;
-  const smokingStatus = medicalData.smokingStatus;
-
-  return {
-    age: age ?? -1,
-    gender: gender ?? -1,
-    bmi: bmi !== undefined ? Math.round(bmi * 10) : -1,
-    smokingStatus: smokingStatus ?? -1,
-
-    region: medicalData.regions?.[0] ?? -1,
-    cholesterol: medicalData.cholesterol ?? -1,
-    systolicBP: medicalData.systolicBP ?? -1,
-    diastolicBP: medicalData.diastolicBP ?? -1,
-    hba1c: medicalData.hba1c !== undefined ? Math.round(medicalData.hba1c * 10) : -1,
-    bloodType: medicalData.bloodType ?? -1,
-    activityLevel: medicalData.activityLevel ?? -1,
-    diabetesStatus: medicalData.diabetesStatus ?? -1,
-    heartDiseaseHistory: medicalData.heartDiseaseStatus ?? -1,
-  };
 };

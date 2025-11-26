@@ -56,7 +56,6 @@ function generateRangeBins(
   const { min, max } = extractMinMax(field, criteria);
 
   if (min === undefined || max === undefined || min >= max) {
-    console.warn(`Invalid range for ${field}: min=${min}, max=${max}`);
     return bins;
   }
 

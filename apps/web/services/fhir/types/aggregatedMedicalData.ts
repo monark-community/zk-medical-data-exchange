@@ -23,7 +23,7 @@ export interface AggregatedMedicalData {
   hba1c?: CodedValue<number>;           // % (UCUM "%"), LOINC 4548-4
   cholesterol?: CodedValue<number>;     // mg/dL or mmol/L (state unit), LOINC 2093-3
   diabetesStatus?: CodedValue<number> & { code?: string; codeSystem?: "LOINC" | "SNOMED" | "ICD10" | "ICD9" | "UCUM" | "Other" };
-  heartDiseaseStatus?: CodedValue<number> & { code?: string; codeSystem?: "LOINC" | "SNOMED" | "ICD10" | "ICD9" | "UCUM" | "Other" }; 
+  heartDiseaseStatus?: CodedValue<number> & { code?: string; codeSystem?: "LOINC" | "SNOMED" | "ICD10" | "ICD9" | "UCUM" | "Other"; description?: string }; 
 
   // Diagnoses as codes (auditable, not just booleans)
   diagnoses?: Array<{

@@ -1,6 +1,5 @@
 import { apiClient } from "@/services/core/apiClient";
-import { StudyCriteria } from "@zk-medical/shared";
-import { ExtractedMedicalData } from "@/services/fhir/types/extractedMedicalData";
+import { ExtractedMedicalData, StudyCriteria } from "@zk-medical/shared";
 import {
   checkEligibility,
   generateDataCommitment,
@@ -281,7 +280,6 @@ export class StudyApplicationService {
       const studyCriteria = studyDetails.eligibilityCriteria;
       const binConfiguration = studyDetails.binConfiguration;
 
-      console.log("Checking eligibility...");
       const isEligible = checkEligibility(medicalData, studyCriteria);
 
       if (!isEligible) {
