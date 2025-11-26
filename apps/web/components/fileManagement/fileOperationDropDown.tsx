@@ -64,7 +64,7 @@ const FileOperationDropDown = ({
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `medical_data_${cid}.json`;
+      link.download = `${data.resourceType}_${data.createdAt}.json`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
