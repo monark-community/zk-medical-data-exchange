@@ -119,7 +119,7 @@ async function runTestWithCoverage(testFile: string): Promise<TestResult> {
 
   return new Promise((resolve) => {
     const childProcess = spawn(
-      "bun",
+      process.execPath,
       ["test", testFile, "--coverage", "--coverage-reporter=lcov"],
       {
         cwd: rootDir,
