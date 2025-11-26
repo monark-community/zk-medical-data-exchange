@@ -1,0 +1,371 @@
+{
+    "resourceType": "Bundle",
+    "type": "collection",
+    "entry": [
+        {
+            "fullUrl": "urn:uuid:patient-001",
+            "resource": {
+                "resourceType": "Patient",
+                "id": "patient-001",
+                "identifier": [
+                    {
+                        "system": "http://hospital.example.org/mrn",
+                        "value": "123456"
+                    }
+                ],
+                "name": [
+                    {
+                        "use": "official",
+                        "family": "Doe",
+                        "given": [
+                            "John"
+                        ]
+                    }
+                ],
+                "gender": "male",
+                "birthDate": "1998-05-15",
+                "address": [
+                    {
+                        "use": "home",
+                        "city": "Montreal",
+                        "state": "QC",
+                        "country": "CA"
+                    }
+                ]
+            }
+        },
+        {
+            "fullUrl": "urn:uuid:obs-age",
+            "resource": {
+                "resourceType": "Observation",
+                "id": "obs-age",
+                "status": "final",
+                "category": [
+                    {
+                        "coding": [
+                            {
+                                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                                "code": "vital-signs"
+                            }
+                        ]
+                    }
+                ],
+                "code": {
+                    "coding": [
+                        {
+                            "system": "http://loinc.org",
+                            "code": "30525-0",
+                            "display": "Age"
+                        }
+                    ]
+                },
+                "subject": {
+                    "reference": "Patient/patient-001"
+                },
+                "valueQuantity": {
+                    "value": 27,
+                    "unit": "years"
+                }
+            }
+        },
+        {
+            "fullUrl": "urn:uuid:obs-bmi",
+            "resource": {
+                "resourceType": "Observation",
+                "id": "obs-bmi",
+                "status": "final",
+                "category": [
+                    {
+                        "coding": [
+                            {
+                                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                                "code": "vital-signs"
+                            }
+                        ]
+                    }
+                ],
+                "code": {
+                    "coding": [
+                        {
+                            "system": "http://loinc.org",
+                            "code": "39156-5",
+                            "display": "Body mass index (BMI)"
+                        }
+                    ]
+                },
+                "subject": {
+                    "reference": "Patient/patient-001"
+                },
+                "valueQuantity": {
+                    "value": 24.8,
+                    "unit": "kg/m2"
+                }
+            }
+        },
+        {
+            "fullUrl": "urn:uuid:obs-cholesterol",
+            "resource": {
+                "resourceType": "Observation",
+                "id": "obs-cholesterol",
+                "status": "final",
+                "code": {
+                    "coding": [
+                        {
+                            "system": "http://loinc.org",
+                            "code": "2093-3",
+                            "display": "Cholesterol [Mass/volume] in Serum or Plasma"
+                        }
+                    ]
+                },
+                "subject": {
+                    "reference": "Patient/patient-001"
+                },
+                "valueQuantity": {
+                    "value": 180,
+                    "unit": "mg/dL"
+                }
+            }
+        },
+        {
+            "fullUrl": "urn:uuid:obs-systolic",
+            "resource": {
+                "resourceType": "Observation",
+                "id": "obs-systolic",
+                "status": "final",
+                "code": {
+                    "coding": [
+                        {
+                            "system": "http://loinc.org",
+                            "code": "8480-6",
+                            "display": "Systolic blood pressure"
+                        }
+                    ]
+                },
+                "subject": {
+                    "reference": "Patient/patient-001"
+                },
+                "valueQuantity": {
+                    "value": 122,
+                    "unit": "mmHg"
+                }
+            }
+        },
+        {
+            "fullUrl": "urn:uuid:obs-diastolic",
+            "resource": {
+                "resourceType": "Observation",
+                "id": "obs-diastolic",
+                "status": "final",
+                "code": {
+                    "coding": [
+                        {
+                            "system": "http://loinc.org",
+                            "code": "8462-4",
+                            "display": "Diastolic blood pressure"
+                        }
+                    ]
+                },
+                "subject": {
+                    "reference": "Patient/patient-001"
+                },
+                "valueQuantity": {
+                    "value": 78,
+                    "unit": "mmHg"
+                }
+            }
+        },
+        {
+            "fullUrl": "urn:uuid:obs-hba1c",
+            "resource": {
+                "resourceType": "Observation",
+                "id": "obs-hba1c",
+                "status": "final",
+                "code": {
+                    "coding": [
+                        {
+                            "system": "http://loinc.org",
+                            "code": "4548-4",
+                            "display": "Hemoglobin A1c/Hemoglobin.total in Blood"
+                        }
+                    ]
+                },
+                "subject": {
+                    "reference": "Patient/patient-001"
+                },
+                "valueQuantity": {
+                    "value": 5.6,
+                    "unit": "%"
+                }
+            }
+        },
+        {
+            "fullUrl": "urn:uuid:obs-smoking",
+            "resource": {
+                "resourceType": "Observation",
+                "id": "obs-smoking",
+                "status": "final",
+                "code": {
+                    "coding": [
+                        {
+                            "system": "http://loinc.org",
+                            "code": "72166-2",
+                            "display": "Tobacco smoking status"
+                        }
+                    ]
+                },
+                "subject": {
+                    "reference": "Patient/patient-001"
+                },
+                "valueCodeableConcept": {
+                    "coding": [
+                        {
+                            "system": "http://snomed.info/sct",
+                            "code": "8517006",
+                            "display": "Former smoker"
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "fullUrl": "urn:uuid:obs-activity",
+            "resource": {
+                "resourceType": "Observation",
+                "id": "obs-activity",
+                "status": "final",
+                "category": [
+                    {
+                        "coding": [
+                            {
+                                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                                "code": "lifestyle",
+                                "display": "Lifestyle"
+                            }
+                        ]
+                    }
+                ],
+                "code": {
+                    "coding": [
+                        {
+                            "system": "http://loinc.org",
+                            "code": "41950-7",
+                            "display": "Physical activity level"
+                        }
+                    ],
+                    "text": "Typical physical activity level"
+                },
+                "subject": {
+                    "reference": "Patient/patient-001"
+                },
+                "effectiveDateTime": "2025-10-29",
+                "valueCodeableConcept": {
+                    "coding": [
+                        {
+                            "system": "http://snomed.info/sct",
+                            "code": "267124003",
+                            "display": "Moderate physical activity"
+                        }
+                    ],
+                    "text": "Moderate"
+                }
+            }
+        },
+        {
+            "fullUrl": "urn:uuid:cond-diabetes",
+            "resource": {
+                "resourceType": "Condition",
+                "id": "cond-diabetes",
+                "clinicalStatus": {
+                    "coding": [
+                        {
+                            "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+                            "code": "active"
+                        }
+                    ]
+                },
+                "code": {
+                    "coding": [
+                        {
+                            "system": "http://snomed.info/sct",
+                            "code": "44054006",
+                            "display": "Diabetes mellitus type 2"
+                        }
+                    ]
+                },
+                "subject": {
+                    "reference": "Patient/patient-001"
+                }
+            }
+        },
+        {
+            "fullUrl": "urn:uuid:cond-heart",
+            "resource": {
+                "resourceType": "Condition",
+                "id": "cond-heart",
+                "clinicalStatus": {
+                    "coding": [
+                        {
+                            "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+                            "code": "active"
+                        }
+                    ]
+                },
+                "code": {
+                    "coding": [
+                        {
+                            "system": "http://snomed.info/sct",
+                            "code": "414545008",
+                            "display": "Ischemic heart disease"
+                        }
+                    ]
+                },
+                "subject": {
+                    "reference": "Patient/patient-001"
+                }
+            }
+        },
+        {
+            "fullUrl": "urn:uuid:obs-bloodtype",
+            "resource": {
+                "resourceType": "Observation",
+                "id": "obs-bloodtype",
+                "status": "final",
+                "category": [
+                    {
+                        "coding": [
+                            {
+                                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                                "code": "laboratory",
+                                "display": "Laboratory"
+                            }
+                        ]
+                    }
+                ],
+                "code": {
+                    "coding": [
+                        {
+                            "system": "http://loinc.org",
+                            "code": "882-1",
+                            "display": "ABO and Rh group [Type] in Blood"
+                        }
+                    ],
+                    "text": "Blood group"
+                },
+                "subject": {
+                    "reference": "Patient/patient-001"
+                },
+                "effectiveDateTime": "2025-10-29",
+                "valueCodeableConcept": {
+                    "coding": [
+                        {
+                            "system": "http://snomed.info/sct",
+                            "code": "278147001",
+                            "display": "Blood group O positive"
+                        }
+                    ],
+                    "text": "O+"
+                }
+            }
+        }
+    ]
+}
