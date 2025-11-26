@@ -230,7 +230,7 @@ async function mergeLcovFiles(lcovFiles: string[]): Promise<void> {
  */
 async function findGenhtml(): Promise<string | null> {
   return new Promise((resolve) => {
-    const whichProcess = spawn("which", ["genhtml"], {
+    const whichProcess = spawn("/usr/bin/which", ["genhtml"], {
       stdio: ["ignore", "pipe", "pipe"],
     });
 
