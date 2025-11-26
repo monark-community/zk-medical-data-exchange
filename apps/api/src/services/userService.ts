@@ -24,7 +24,7 @@ export async function checkIfUserExists(
       .select("*")
       .eq(USERS!.columns.id!, walletAddress)
       .limit(1)
-      .single();
+      .maybeSingle();
 
     if (error) {
       logger.error({ error, walletAddress }, "Supabase query error in checkIfUserExists");
