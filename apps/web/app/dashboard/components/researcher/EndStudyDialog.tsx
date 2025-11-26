@@ -56,7 +56,7 @@ export default function EndStudyDialog({
   (async function fetchDataPoints() {
     try {
       const aggregatedData = await getAggregatedData(studyId, "");
-      const uniqueFields = new Set(aggregatedData.bins.map(bin => bin.criteriaField));
+      const uniqueFields = new Set(aggregatedData.bins.map((bin) => bin.criteriaField));
       const dataPoints = aggregatedData.totalParticipants * uniqueFields.size;
       setDataAccessCount(dataPoints);
     } catch (error) {
@@ -71,7 +71,14 @@ export default function EndStudyDialog({
     const { participants } = await getParticipants(studyId);
 
     if (participants.length === 0) {
-      await endStudy(studyId);
+      try {
+        await endStudy(studyId);
+      } catch (error) {
+        console.error("Failed to end study:", error);
+        setIsEnding(false);
+        useTxStatusState.getState().showError("Failed to end study. Please try again.");
+        return;
+      }
       // Emit event to refresh stats
       eventBus.emit("studyCompleted");
       setShowSuccess(true);
