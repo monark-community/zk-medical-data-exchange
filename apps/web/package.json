@@ -9,8 +9,7 @@
     "lint": "eslint .",
     "test": "bun test || true",
     "coverage": "bun test --coverage || true",
-    "coverage:per-test": "bun run runCoverage.mjs",
-    
+    "coverage:per-test": "bun scripts/runCoveragePerTest.ts",
     "test:study-flow": "ts-node scripts/testStudyFlow.ts"
   },
   "dependencies": {

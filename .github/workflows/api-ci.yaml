@@ -33,7 +33,7 @@ jobs:
         run: bun run lint:api
 
       - name: Test coverage
-        run: bun run coverage:per-test
+        run: bun run coverage:per-test --cwd apps/api
 
       - name: Build
         run: bun run --cwd apps/api build
