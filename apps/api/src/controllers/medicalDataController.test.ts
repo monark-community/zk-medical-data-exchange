@@ -1,5 +1,9 @@
-import { describe, test, expect, beforeEach, mock } from "bun:test";
+import { describe, test, expect, beforeEach, afterEach, mock } from "bun:test";
 import * as medicalDataController from "./medicalDataController";
+
+afterEach(() => {
+  mock.restore(); // resets ALL mocks
+});
 
 // Mocks
 const mockLogger = {

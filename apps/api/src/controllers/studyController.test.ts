@@ -1,5 +1,9 @@
-import { describe, it, expect, mock } from "bun:test";
+import { describe, it, expect, mock, afterEach } from "bun:test";
 import type { Request, Response } from "express";
+
+afterEach(() => {
+  mock.restore(); // resets ALL mocks
+});
 import {
   createStudy,
   deployStudy,

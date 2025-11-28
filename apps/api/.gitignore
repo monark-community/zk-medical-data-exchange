@@ -9,7 +9,8 @@ dist
 # code coverage
 coverage
 *.lcov
-
+*.gcov.html
+/packages/shared
 # logs
 logs
 _.log

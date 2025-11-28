@@ -12,7 +12,8 @@
 
 # testing
 /coverage
-
+*.gcov.html
+/packages/shared
 # next.js
 /.next/
 /out/
