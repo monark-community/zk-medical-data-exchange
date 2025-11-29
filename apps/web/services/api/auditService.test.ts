@@ -197,7 +197,12 @@ describe("AuditService - getAuditInfo", () => {
   it("should handle errors gracefully", async () => {
     mockApiClient.get.mockRejectedValue(new Error("Network error"));
 
+    const originalConsoleError = console.error;
+    console.error = () => {};
+
     const result = await getAuditInfo();
+
+    console.error = originalConsoleError;
 
     expect(result.success).toBe(false);
     expect(result.error).toBeDefined();
@@ -264,7 +269,13 @@ describe("AuditService - getAllUserActions", () => {
   it("should handle errors and return empty array", async () => {
     mockApiClient.get.mockRejectedValue(new Error("Failed to fetch"));
 
+    // Suppress error output during test
+    const originalConsoleError = console.error;
+    console.error = () => {};
+
     const result = await getAllUserActions("0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0");
+
+    console.error = originalConsoleError;
 
     expect(result.success).toBe(false);
     expect(result.data.actions).toEqual([]);
@@ -707,7 +718,14 @@ describe("AuditService - Error Message Handling", () => {
     const error = new Error("Network timeout");
 
     mockApiClient.get.mockRejectedValue(error);
+
+    // Suppress error output during test
+    const originalConsoleError = console.error;
+    console.error = () => {};
+
     const result = await getAllUserActions("0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0");
+
+    console.error = originalConsoleError;
 
     expect(result.error).toBe("Network timeout");
   });

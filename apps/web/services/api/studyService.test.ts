@@ -345,9 +345,14 @@ describe("StudyService - getEnrolledStudies", () => {
       response: { status: 500, data: { error: "Server error" } },
     });
 
-    expect(async () => {
-      await getEnrolledStudies("0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0");
-    }).toThrow();
+    const originalConsoleError = console.error;
+    console.error = () => {};
+
+    await expect(
+      getEnrolledStudies("0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0")
+    ).rejects.toThrow();
+
+    console.error = originalConsoleError;
   });
 });
 
@@ -441,7 +446,12 @@ describe("StudyService - createStudy", () => {
       maxParticipants: -1,
     };
 
-    expect(createStudy(studyData)).rejects.toThrow("Invalid study data");
+    const originalConsoleError = console.error;
+    console.error = () => {};
+
+    await expect(createStudy(studyData)).rejects.toThrow("Invalid study data");
+
+    console.error = originalConsoleError;
   });
 
   it("should handle network error", async () => {
@@ -452,7 +462,12 @@ describe("StudyService - createStudy", () => {
       maxParticipants: 50,
     };
 
+    const originalConsoleError = console.error;
+    console.error = () => {};
+
     await expect(createStudy(studyData)).rejects.toThrow("Network timeout");
+
+    console.error = originalConsoleError;
   });
 
   it("should handle error without message", async () => {
@@ -463,7 +478,12 @@ describe("StudyService - createStudy", () => {
       maxParticipants: 50,
     };
 
-    expect(createStudy(studyData)).rejects.toThrow("Network error");
+    const originalConsoleError = console.error;
+    console.error = () => {};
+
+    await expect(createStudy(studyData)).rejects.toThrow("Network error");
+
+    console.error = originalConsoleError;
   });
 });
 
@@ -590,7 +610,7 @@ describe("StudyApplicationService - applyToStudy", () => {
     mockApiClient.post.mockResolvedValueOnce({ data: { challenge: "test-challenge" } });
     mockApiClient.post.mockResolvedValueOnce({ data: { success: true } });
     mockApiClient.get.mockResolvedValueOnce({
-      data: { 
+      data: {
         study: {
           id: 1,
           title: "Test Study",
@@ -618,8 +638,8 @@ describe("StudyApplicationService - applyToStudy", () => {
           stats: {
             complexityScore: 5,
             criteriaHash: "test-hash",
-          }
-        }
+          },
+        },
       },
     });
     mockApiClient.post.mockResolvedValueOnce({ data: { success: true } }); // participants
@@ -654,7 +674,7 @@ describe("StudyApplicationService - applyToStudy", () => {
     mockApiClient.post.mockResolvedValueOnce({ data: { challenge: "test-challenge" } }); // request-challenge
     mockApiClient.post.mockResolvedValueOnce({ data: { success: true } });
     mockApiClient.get.mockResolvedValueOnce({
-      data: { 
+      data: {
         study: {
           id: 1,
           title: "Test Study",
@@ -682,8 +702,8 @@ describe("StudyApplicationService - applyToStudy", () => {
           stats: {
             complexityScore: 5,
             criteriaHash: "test-hash",
-          }
-        }
+          },
+        },
       },
     });
     mockZkFunctions.checkEligibility.mockReturnValue(false);
@@ -713,7 +733,7 @@ describe("StudyApplicationService - applyToStudy", () => {
     mockApiClient.post.mockResolvedValueOnce({ data: { challenge: "test-challenge" } }); // request-challenge
     mockApiClient.post.mockResolvedValueOnce({ data: { success: true } });
     mockApiClient.get.mockResolvedValueOnce({
-      data: { 
+      data: {
         study: {
           id: 1,
           title: "Test Study",
@@ -741,8 +761,8 @@ describe("StudyApplicationService - applyToStudy", () => {
           stats: {
             complexityScore: 5,
             criteriaHash: "test-hash",
-          }
-        }
+          },
+        },
       },
     });
 
@@ -750,11 +770,16 @@ describe("StudyApplicationService - applyToStudy", () => {
 
     mockApiClient.post.mockRejectedValueOnce(new Error("Audit service down"));
 
+    const originalConsoleError = console.error;
+    console.error = () => {};
+
     const result = await StudyApplicationService.applyToStudy(
       1,
       mockMedicalData,
       "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0"
     );
+
+    console.error = originalConsoleError;
 
     expect(result.success).toBe(false);
     expect(result.message).toContain("don't meet the eligibility criteria");
@@ -766,11 +791,16 @@ describe("StudyApplicationService - applyToStudy", () => {
     mockApiClient.get.mockRejectedValueOnce(new Error("Network error"));
     mockApiClient.post.mockResolvedValueOnce({ data: { success: true } });
 
+    const originalConsoleError = console.error;
+    console.error = () => {};
+
     const result = await StudyApplicationService.applyToStudy(
       1,
       mockMedicalData,
       "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0"
     );
+
+    console.error = originalConsoleError;
 
     expect(result.success).toBe(false);
     expect(result.message).toContain("Network error");
@@ -780,7 +810,7 @@ describe("StudyApplicationService - applyToStudy", () => {
     mockApiClient.post.mockResolvedValueOnce({ data: { challenge: "test-challenge" } });
     mockApiClient.post.mockResolvedValueOnce({ data: { success: true } });
     mockApiClient.get.mockResolvedValueOnce({
-      data: { 
+      data: {
         study: {
           id: 1,
           title: "Test Study",
@@ -808,19 +838,24 @@ describe("StudyApplicationService - applyToStudy", () => {
           stats: {
             complexityScore: 5,
             criteriaHash: "test-hash",
-          }
-        }
+          },
+        },
       },
     });
 
     mockZkFunctions.generateZKProof.mockRejectedValue(new Error("Proof generation failed"));
     mockApiClient.post.mockResolvedValueOnce({ data: { success: true } });
 
+    const originalConsoleError = console.error;
+    console.error = () => {};
+
     const result = await StudyApplicationService.applyToStudy(
       1,
       mockMedicalData,
       "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0"
     );
+
+    console.error = originalConsoleError;
 
     expect(result.success).toBe(false);
     expect(result.message).toContain("Proof generation failed");
@@ -841,7 +876,7 @@ describe("StudyApplicationService - applyToStudy", () => {
     mockApiClient.post.mockResolvedValueOnce({ data: { challenge: "test-challenge" } });
     mockApiClient.post.mockResolvedValueOnce({ data: { success: true } });
     mockApiClient.get.mockResolvedValueOnce({
-      data: { 
+      data: {
         study: {
           id: 1,
           title: "Test Study",
@@ -869,8 +904,8 @@ describe("StudyApplicationService - applyToStudy", () => {
           stats: {
             complexityScore: 5,
             criteriaHash: "test-hash",
-          }
-        }
+          },
+        },
       },
     });
 
@@ -882,11 +917,16 @@ describe("StudyApplicationService - applyToStudy", () => {
     });
     mockApiClient.post.mockResolvedValueOnce({ data: { success: true } }); // audit log
 
+    const originalConsoleError = console.error;
+    console.error = () => {};
+
     const result = await StudyApplicationService.applyToStudy(
       1,
       mockMedicalData,
       "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0"
     );
+
+    console.error = originalConsoleError;
 
     expect(result.success).toBe(false);
     expect(result.message).toContain("Invalid proof");
@@ -896,7 +936,7 @@ describe("StudyApplicationService - applyToStudy", () => {
     mockApiClient.post.mockResolvedValueOnce({ data: { challenge: "test-challenge" } });
     mockApiClient.post.mockResolvedValueOnce({ data: { success: true } });
     mockApiClient.get.mockResolvedValueOnce({
-      data: { 
+      data: {
         study: {
           id: 1,
           title: "Test Study",
@@ -924,8 +964,8 @@ describe("StudyApplicationService - applyToStudy", () => {
           stats: {
             complexityScore: 5,
             criteriaHash: "test-hash",
-          }
-        }
+          },
+        },
       },
     });
 
@@ -1103,25 +1143,40 @@ describe("StudyService - Consent Management", () => {
         },
       });
 
-      expect(revokeStudyConsent(1, "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0")).rejects.toThrow(
-        "Failed to revoke consent: Consent already revoked"
-      );
+      const originalConsoleError = console.error;
+      console.error = () => {};
+
+      await expect(
+        revokeStudyConsent(1, "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0")
+      ).rejects.toThrow("Failed to revoke consent: Consent already revoked");
+
+      console.error = originalConsoleError;
     });
 
     it("should handle network error", async () => {
       mockApiClient.post.mockRejectedValue(new Error("Network timeout"));
 
-      expect(revokeStudyConsent(1, "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0")).rejects.toThrow(
-        "Failed to revoke consent: Network timeout"
-      );
+      const originalConsoleError = console.error;
+      console.error = () => {};
+
+      await expect(
+        revokeStudyConsent(1, "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0")
+      ).rejects.toThrow("Failed to revoke consent: Network timeout");
+
+      console.error = originalConsoleError;
     });
 
     it("should handle unknown error", async () => {
       mockApiClient.post.mockRejectedValue("Unknown error");
 
-      expect(revokeStudyConsent(1, "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0")).rejects.toThrow(
-        "Failed to revoke consent: Unknown error occurred"
-      );
+      const originalConsoleError = console.error;
+      console.error = () => {};
+
+      await expect(
+        revokeStudyConsent(1, "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0")
+      ).rejects.toThrow("Failed to revoke consent: Unknown error occurred");
+
+      console.error = originalConsoleError;
     });
   });
 
@@ -1150,25 +1205,40 @@ describe("StudyService - Consent Management", () => {
         },
       });
 
-      expect(grantStudyConsent(1, "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0")).rejects.toThrow(
-        "Failed to grant consent: Consent already granted"
-      );
+      const originalConsoleError = console.error;
+      console.error = () => {};
+
+      await expect(
+        grantStudyConsent(1, "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0")
+      ).rejects.toThrow("Failed to grant consent: Consent already granted");
+
+      console.error = originalConsoleError;
     });
 
     it("should handle network error", async () => {
       mockApiClient.post.mockRejectedValue(new Error("Connection refused"));
 
-      expect(grantStudyConsent(1, "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0")).rejects.toThrow(
-        "Failed to grant consent: Connection refused"
-      );
+      const originalConsoleError = console.error;
+      console.error = () => {};
+
+      await expect(
+        grantStudyConsent(1, "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0")
+      ).rejects.toThrow("Failed to grant consent: Connection refused");
+
+      console.error = originalConsoleError;
     });
 
     it("should handle unknown error", async () => {
       mockApiClient.post.mockRejectedValue({ unknown: "error" });
 
-      expect(grantStudyConsent(1, "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0")).rejects.toThrow(
-        "Failed to grant consent: Unknown error occurred"
-      );
+      const originalConsoleError = console.error;
+      console.error = () => {};
+
+      await expect(
+        grantStudyConsent(1, "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0")
+      ).rejects.toThrow("Failed to grant consent: Unknown error occurred");
+
+      console.error = originalConsoleError;
     });
   });
 });
@@ -1242,7 +1312,7 @@ describe("StudyService - Edge Cases", () => {
     mockApiClient.post.mockResolvedValueOnce({ data: { challenge: "test-challenge" } });
     mockApiClient.post.mockResolvedValueOnce({ data: { success: true } });
     mockApiClient.get.mockResolvedValueOnce({
-      data: { 
+      data: {
         study: {
           id: 1,
           title: "Test Study",
@@ -1270,8 +1340,8 @@ describe("StudyService - Edge Cases", () => {
           stats: {
             complexityScore: 5,
             criteriaHash: "test-hash",
-          }
-        }
+          },
+        },
       },
     });
 

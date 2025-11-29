@@ -89,7 +89,6 @@ export const getAuditInfo = async (): Promise<AuditInfoResponse> => {
     const response = await apiClient.get("/audit/info");
     return response.data;
   } catch (error: any) {
-    console.error("Error in getAuditInfo:", error);
     return {
       success: false,
       data: {
@@ -111,7 +110,6 @@ export const getAllUserActions = async (
     });
     return response.data;
   } catch (error: any) {
-    console.error("Error in getAllUserActions:", error);
     return {
       success: false,
       data: {
@@ -151,17 +149,6 @@ export const getUserActionsByProfilePaginated = async (
     );
     return response.data;
   } catch (error: any) {
-    console.error("Error in getUserActionsByProfilePaginated:", {
-      userAddress,
-      profile,
-      offset,
-      limit,
-      latestFirst,
-      error: error.message,
-      response: error.response?.data,
-      status: error.response?.status,
-    });
-
     return {
       success: false,
       data: {
@@ -194,15 +181,6 @@ export const logFileAccess = async (
 ): Promise<{ success: boolean; data?: any; error?: string }> => {
   const requestId = Math.random().toString(36).substring(7);
 
-  console.log(`[AUDIT] Starting ${accessType} log request ${requestId}`, {
-    userAddress,
-    encryptedCID: encryptedCID.substring(0, 10) + "...",
-    accessType,
-    success,
-    resourceType,
-    timestamp: new Date().toISOString(),
-  });
-
   try {
     const response = await apiClient.post("/audit/log-access", {
       userAddress,
@@ -218,10 +196,8 @@ export const logFileAccess = async (
       },
     });
 
-    console.log(`[AUDIT] Successfully logged ${accessType} request ${requestId}`, response.data);
     return response.data;
   } catch (error: any) {
-    console.error(`[AUDIT] Error logging ${accessType} request ${requestId}:`, error);
     return {
       success: false,
       error: error.response?.data?.error || error.message || "Failed to log file access",

@@ -10,9 +10,8 @@ export async function isFhirCompliant(file: File): Promise<FhirResourceTypes> {
 
   try {
     json = JSON.parse(content);
-  } catch (err) {
-    console.error("Invalid JSON:", err);
-    throw new Error("The uploaded file is not a valid JSON.");
+  } catch (error) {
+    throw new Error("The uploaded file is not a valid JSON.", { cause: error });
   }
 
   if (!json || typeof json !== "object" || !("resourceType" in json)) {

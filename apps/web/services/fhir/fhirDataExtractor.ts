@@ -359,11 +359,11 @@ export const processResourceByType = (
       break;
 
     case FhirResourceType.BUNDLE:
-      console.log("Bundle should be processed at top level, not dispatched");
       break;
 
     default:
-      console.log(`No processor implemented for resource type: ${resource.resourceType}`);
+      // No processor implemented for this resource type
+      break;
   }
 };
 
@@ -398,7 +398,6 @@ const processBundle = (bundle: FHIRDatatype, aggregated: AggregatedMedicalData):
  */
 export const extractFHIRData = (fhirData: FHIRDatatype): AggregatedMedicalData => {
   if (!fhirData?.resourceType) {
-    console.error("Invalid FHIR data: missing resourceType");
     return {};
   }
 
