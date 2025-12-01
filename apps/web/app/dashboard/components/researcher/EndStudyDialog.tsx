@@ -100,7 +100,7 @@ export default function EndStudyDialog({
     } catch (error) {
       console.error("Failed to disperse ETH to participants:", error);
       setIsEnding(false);
-      useTxStatusState.getState().showError("Failed to disperse ETH. Please try again.");
+      useTxStatusState.getState().showError("Failed to disperse ETH. Please check your wallet connection and sufficient funds.");
       return;
     }
 
@@ -123,7 +123,7 @@ export default function EndStudyDialog({
     } catch (error) {
       console.error("Transaction verification failed:", error);
       setIsEnding(false);
-      useTxStatusState.getState().showError("Failed to verify transaction. Please try again.");
+      useTxStatusState.getState().showError("Failed to verify transaction. Please wait a moment and refresh the page.");
       return;
     }
   };
