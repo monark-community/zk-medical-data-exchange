@@ -38,7 +38,7 @@ export function useStudies(walletAddress?: string, fetchAll = false): UseStudies
       }
     } catch (err) {
       console.error("Error fetching studies:", err);
-      setError(err instanceof Error ? err.message : "Failed to fetch studies");
+      setError("Unable to load studies. Please refresh the page.");
       setStudies([]);
     } finally {
       setIsLoading(false);

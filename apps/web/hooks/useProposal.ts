@@ -22,7 +22,7 @@ export function useProposals() {
       setProposals(proposals);
     } catch (error) {
       console.error("Failed to fetch proposals:", error);
-      setError(error instanceof Error ? error.message : "Failed to fetch proposals");
+      setError("Unable to load proposals. Please refresh the page.");
       setProposals([]);
     } finally {
       setIsLoading(false);
@@ -62,7 +62,7 @@ export function useProposalsByWalletAddress() {
       setProposals(proposals);
     } catch (error) {
       console.error("Failed to fetch proposals:", error);
-      setError(error instanceof Error ? error.message : "Failed to fetch proposals");
+      setError("Unable to load proposals. Please refresh the page.");
       setProposals([]);
     } finally {
       setIsLoading(false);
