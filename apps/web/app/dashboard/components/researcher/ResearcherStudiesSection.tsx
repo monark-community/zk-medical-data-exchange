@@ -65,7 +65,7 @@ export default function ResearcherStudiesSection() {
       } else {
         useTxStatusState
           .getState()
-          .showError(`Failed to delete study: ${error.message || "Unknown error"}`);
+          .showError("Failed to delete study. Please check your connection and try again.");
       }
     } finally {
       setDeletingStudyId(null);
