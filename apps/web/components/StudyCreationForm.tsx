@@ -468,19 +468,12 @@ const StudyCreationForm = ({ onSuccess, isModal = false }: StudyCreationFormProp
           console.error("Failed to delete study after deployment failure:", deleteError);
         }
 
-        showError(
-          `Deployment Failed\n\n` +
-            `The study was removed from the database.\n` +
-            `Error: ${deployError instanceof Error ? deployError.message : "Unknown blockchain error"}\n\n`
-        );
+        showError("Study deployment to blockchain failed. Please verify your wallet has sufficient funds.");
         return;
       }
     } catch (error) {
       console.error("Failed to create study:", error);
-      showError(
-        `Study Creation Failed\n\n` +
-          `${error instanceof Error ? error.message : "An unexpected error occurred"}\n\n`
-      );
+      showError("Failed to create study. Please verify all required fields are filled correctly.");
     } finally {
       setIsSubmitting(false);
     }
