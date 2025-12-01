@@ -60,9 +60,7 @@ const CreateProposalField = ({ onSuccess }: CreateProposalFieldProps) => {
       }
     } catch (error) {
       console.error("Error creating proposal:", error);
-      showError(
-        error instanceof Error ? error.message : "An error occurred while creating the proposal."
-      );
+      showError("Failed to create proposal. Please check your wallet connection and try again.");
     }
   };
 
