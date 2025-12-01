@@ -143,7 +143,7 @@ export default function DataSellerStudiesSection() {
       }
     } catch (error: any) {
       console.error("Error during study application:", error);
-      showError(`Application failed: ${error.message || error}`);
+      showError("Unable to join study. Please ensure you have uploaded all required medical data categories.");
     } finally {
       setApplyingStudyId(null);
     }
@@ -182,9 +182,7 @@ export default function DataSellerStudiesSection() {
       }
     } catch (error) {
       console.error("Failed to revoke consent:", error);
-      showError(
-        `Failed to revoke consent: ${error instanceof Error ? error.message : "Unknown error"}`
-      );
+      showError("Unable to revoke consent. Please check your wallet connection and try again.");
     } finally {
       setRevokingStudyId(null);
     }
@@ -223,15 +221,7 @@ export default function DataSellerStudiesSection() {
       }
     } catch (error) {
       console.error("Failed to grant consent:", error);
-
-      const errorMessage = error instanceof Error ? error.message : "Unknown error";
-      if (errorMessage.includes("full") || errorMessage.includes("Full")) {
-        showError(
-          "Cannot grant consent: This study is now full. The maximum number of active participants has been reached."
-        );
-      } else {
-        showError(`Failed to grant consent: ${errorMessage}`);
-      }
+      showError("Unable to grant consent. Please check your wallet connection and try again.");
     } finally {
       setGrantingStudyId(null);
     }
