@@ -84,7 +84,7 @@ export function useWeb3AuthLogin() {
       router.push("/dashboard");
     } catch (err) {
       console.error("[Auth] Authentication error:", err);
-      setError(err instanceof Error ? err.message : "Authentication failed");
+      setError("Authentication failed. Please reconnect your wallet and try again.");
     } finally {
       setIsAuthenticating(false);
     }
