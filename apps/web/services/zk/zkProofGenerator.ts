@@ -205,9 +205,7 @@ export const generateZKProof = async (
     };
   } catch (error) {
     console.error("ZK proof generation failed:", error);
-    throw new Error(
-      `ZK proof generation failed: ${error instanceof Error ? error.message : "Unknown error"}`
-    );
+    throw new Error("Privacy verification system unavailable. Please ensure you have uploaded all required medical data and try again.");
   }
 };
 
