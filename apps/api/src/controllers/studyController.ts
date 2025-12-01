@@ -1454,7 +1454,7 @@ export const participateInStudy = async (req: Request, res: Response) => {
     if (participantWallet && id) {
       await auditService
         .logStudyParticipation(participantWallet, String(id), false, {
-          error: error instanceof Error ? error.message : "Unknown error",
+          error: "Failed to join study",
         })
         .catch((auditError) => {
           logger.error({ auditError }, "Failed to log failed participation attempt");
