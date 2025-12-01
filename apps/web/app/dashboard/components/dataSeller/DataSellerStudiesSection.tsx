@@ -162,11 +162,11 @@ export default function DataSellerStudiesSection() {
       console.error("Error during study application:", error);
       
       const errorMessage = error.message || error.toString();
-      const enhancedError = errorMessage.includes("not eligible") 
-        ? `Not Eligible\n\nYour medical data doesn't meet this study's requirements.\n\nError: ${errorMessage}`
+      const enhancedError = errorMessage.includes("not eligible") || errorMessage.includes("Not Eligible")
+        ? `Not Eligible.\n\nYour medical data doesn't meet this study's requirements.`
         : errorMessage.includes("No medical data")
-        ? `No Medical Data\n\nPlease upload your medical records before applying to studies.\n\nTip: Go to Profile → Upload Medical Data`
-        : `Application Failed\n\n${errorMessage}\n\n`;
+        ? `No Medical Data.\n\nPlease upload your medical records before applying to studies.\n\nTip: Go to Profile → Upload Medical Data`
+        : `Not Eligible.\n\nYou don't meet the requirements for this study.`;
       
       showError(enhancedError);
     } finally {
@@ -213,7 +213,7 @@ export default function DataSellerStudiesSection() {
     } catch (error) {
       console.error("Failed to revoke consent:", error);
       showError(
-        `Consent Revocation Failed\n\n${error instanceof Error ? error.message : "Unknown error"}\n\nTip: Check your wallet and try again`
+        `Consent Revocation Failed.\n\nUnable to revoke consent. Please try again in a moment.`
       );
     } finally {
       setRevokingStudyId(null);
@@ -259,17 +259,17 @@ export default function DataSellerStudiesSection() {
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
       if (errorMessage.includes("full") || errorMessage.includes("Full")) {
         showError(
-          "Study Full\n\n" +
-          "This study has reached its maximum number of active participants.\n\n"
+          "Study Full.\n\n" +
+          "This study has reached its maximum number of active participants."
         );
       } else if (errorMessage.includes("already active") || errorMessage.includes("already granted")) {
         showError(
-          "Already Active\n\n" +
+          "Already Active.\n\n" +
           "You have already granted consent for this study."
         );
       } else {
         showError(
-          `Consent Failed\n\n${errorMessage}\n\nTip: Check your wallet connection and try again`
+          `Consent Failed.\n\nUnable to grant consent. Please try again in a moment.`
         );
       }
     } finally {
