@@ -203,7 +203,7 @@ export default function UploadSection({
                       console.error("Upload failed:", error);
                       useTxStatusState
                         .getState()
-                        .showError("Failed to upload medical data. Please try again.");
+                        .showError("Failed to upload medical data. Please check your file format and try again.");
                     } finally {
                       setUploading(false);
                     }
