@@ -451,25 +451,27 @@ export default function DataSellerStudiesSection() {
             </div>
           </div>
 
-          <StudiesContainer
-            isLoading={isLoading}
-            error={error}
-            studies={filteredStudies}
-            onRetry={refetch}
-            emptyState={{
-              title: "No studies match your filters",
-              description:
-                "Try adjusting your search terms or filter requirements to see more studies.",
-            }}
-          >
-            <DataSellerStudiesList
+          <div className="pt-6">
+            <StudiesContainer
+              isLoading={isLoading}
+              error={error}
               studies={filteredStudies}
-              onApplyToStudy={handleApplyToStudy}
-              applyingStudyId={applyingStudyId}
-              walletAddress={walletAddress}
-              isTxProcessing={isTxProcessing}
-            />
-          </StudiesContainer>
+              onRetry={refetch}
+              emptyState={{
+                title: "No studies match your filters",
+                description:
+                  "Try adjusting your search terms or filter requirements to see more studies.",
+              }}
+            >
+              <DataSellerStudiesList
+                studies={filteredStudies}
+                onApplyToStudy={handleApplyToStudy}
+                applyingStudyId={applyingStudyId}
+                walletAddress={walletAddress}
+                isTxProcessing={isTxProcessing}
+              />
+            </StudiesContainer>
+          </div>
         </div>
       )}
 

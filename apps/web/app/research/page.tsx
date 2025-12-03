@@ -30,10 +30,10 @@ export default function ResearchPage() {
   };
 
   return (
-    <>
+    <div className="flex flex-col min-h-screen">
       <CustomNavbar />
       
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
+      <div className="flex-1 bg-gradient-to-br from-gray-50 to-white">
         <div className="relative container mx-auto px-4 py-20">
           <div className="text-center mb-16 mx-5 sm:mx-0">
             <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 mb-6">
@@ -71,6 +71,6 @@ export default function ResearchPage() {
         </div>
       </div>
       <Footer />
-    </>
+    </div>
   );
 };
