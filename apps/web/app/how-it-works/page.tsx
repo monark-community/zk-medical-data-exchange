@@ -11,9 +11,9 @@ import HowItWorksCallToAction from './components/how-it-works-call-to-action';
 
 const HowItWorks = () => {
   return (
-    <>
+    <div className="flex flex-col min-h-screen">
       <CustomNavbar />
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-teal-50">
+      <div className="flex-1 bg-gradient-to-br from-blue-50 via-white to-teal-50">
         <HowItWorksHero />
         <HowItWorksFeatures />
         <HowItWorksForResearchers />
@@ -21,7 +21,7 @@ const HowItWorks = () => {
         <HowItWorksCallToAction />
       </div>
       <Footer />
-    </>
+    </div>
   );
 };
 

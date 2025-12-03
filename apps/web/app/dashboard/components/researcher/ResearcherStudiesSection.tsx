@@ -146,7 +146,7 @@ export default function ResearcherStudiesSection() {
         }
       />
 
-      <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
+      <div className="rounded-lg border bg-card text-card-foreground shadow-sm pt-6">
         <StudiesContainer
           isLoading={isLoading}
           error={error}
