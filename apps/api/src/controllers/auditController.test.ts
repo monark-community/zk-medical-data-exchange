@@ -6,7 +6,11 @@ process.env.SEPOLIA_RPC_URL = "https://sepolia.infura.io/v3/test";
 process.env.AUDIT_TRAIL_ADDRESS = "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0";
 
 // Mock Config before any other imports
-import { mock } from "bun:test";
+import { afterEach, mock } from "bun:test";
+
+afterEach(() => {
+  mock.restore(); // resets ALL mocks
+});
 mock.module("@/config/config", () => ({
   SEPOLIA_PRIVATE_KEY: "0x1234567890123456789012345678901234567890123456789012345678901234",
   SEPOLIA_RPC_URL: "https://sepolia.infura.io/v3/test",

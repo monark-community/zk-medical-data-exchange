@@ -206,7 +206,7 @@ export async function vote(req: Request, res: Response) {
     if (choice === undefined || choice < 1 || choice > 3) {
       return res.status(400).json({
         success: false,
-        error: "Invalid vote choice (must be 1: For, 2: Against)",
+        error: "Invalid vote choice (must be 1: For, 2: Against, 3: Abstain)",
       });
     }
 
