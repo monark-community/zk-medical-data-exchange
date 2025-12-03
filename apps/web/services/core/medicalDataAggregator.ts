@@ -84,7 +84,7 @@ export const getAggregatedMedicalData = async (
     if (Object.keys(consolidatedData).length === 0) {
       if (errors.length === medicalDataCIDs.length) {
         throw new Error(
-          "Unable to access your medical records. Please check your wallet connection and try again."
+          "Unable to access your medical records at the moment. Please try again."
         );
       }
       console.warn("No valid medical data extracted after processing all FHIR resources");

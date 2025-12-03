@@ -33,7 +33,7 @@ function normalizeVoteError(err: any): string {
   if (message.includes("proposal closed")) return "This proposal is no longer open for voting.";
 
   // fallback
-  return "We couldn't process your vote. Please check your wallet connection and try again.";
+  return "We couldn't process your vote. Please try again in a moment.";
 }
 const getVoteLabel = (voteChoice: number): string => {
   switch (voteChoice) {
