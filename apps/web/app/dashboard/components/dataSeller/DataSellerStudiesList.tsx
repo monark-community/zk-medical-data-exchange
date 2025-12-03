@@ -11,6 +11,7 @@ interface DataSellerStudiesListProps {
   applyingStudyId: number | null;
   walletAddress?: string;
   isTxProcessing?: boolean;
+  eligibilityLoading?: boolean;
 }
 
 export default function DataSellerStudiesList({
@@ -19,15 +20,87 @@ export default function DataSellerStudiesList({
   applyingStudyId,
   walletAddress,
   isTxProcessing = false,
+  eligibilityLoading = false,
 }: DataSellerStudiesListProps) {
-  const canApply = (study: StudySummary) => {
-    return study.status === "active" && study.currentParticipants < study.maxParticipants;
+  const canApplyToStudy = (study: StudySummary) => {
+    const isStudyAcceptingApplications =
+      study.status === "active" && study.currentParticipants < study.maxParticipants;
+
+    if (walletAddress && study.canApply !== undefined) {
+      return isStudyAcceptingApplications && study.canApply;
+    }
+
+    return isStudyAcceptingApplications;
+  };
+
+  const getDisabledReason = (study: StudySummary): string => {
+    if (!walletAddress) {
+      return "Connect wallet to apply";
+    }
+    if (isTxProcessing) {
+      return "Transaction in progress...";
+    }
+    if (study.currentParticipants >= study.maxParticipants) {
+      return "Study is full";
+    }
+    if (study.status !== "active") {
+      return "Study not accepting applications";
+    }
+    if (study.isEnrolled) {
+      return "Already enrolled in this study";
+    }
+    if (study.canApply === false) {
+      return "You previously failed eligibility for this study";
+    }
+    return "Apply to study";
   };
 
   const renderActionButtons = (study: StudySummary) => {
     const isApplying = applyingStudyId === study.id;
+    const canApply = canApplyToStudy(study);
 
-    if (canApply(study)) {
+    if (study.isEnrolled) {
+      return (
+        <Button
+          variant="outline"
+          size="sm"
+          disabled
+          className="h-7 px-3 text-blue-600 border-blue-200 bg-blue-50"
+          title="Already enrolled in this study"
+        >
+          Enrolled
+        </Button>
+      );
+    }
+
+    if (walletAddress && study.canApply === false) {
+      return (
+        <Button
+          variant="outline"
+          size="sm"
+          disabled
+          className="h-7 px-3 text-red-600 border-red-200"
+        >
+          Ineligible
+        </Button>
+      );
+    }
+
+    if (walletAddress && eligibilityLoading && study.canApply === undefined) {
+      return (
+        <Button
+          variant="outline"
+          size="sm"
+          disabled
+          className="h-7 px-3 text-gray-500 border-gray-200"
+        >
+          <Spinner className="size-3 text-gray-500 mr-1" />
+          Loading...
+        </Button>
+      );
+    }
+
+    if (canApply) {
       return (
         <Button
           variant="outline"
@@ -38,13 +111,7 @@ export default function DataSellerStudiesList({
           }}
           disabled={!walletAddress || isApplying || isTxProcessing}
           className="h-7 px-3 text-green-600 hover:text-green-700 hover:bg-green-50 border-green-200"
-          title={
-            walletAddress
-              ? isTxProcessing
-                ? "Transaction in progress..."
-                : "Apply to study"
-              : "Connect wallet to apply"
-          }
+          title={getDisabledReason(study)}
         >
           {isApplying ? (
             <>
@@ -67,11 +134,7 @@ export default function DataSellerStudiesList({
         size="sm"
         disabled
         className="h-7 px-3 text-gray-400 border-gray-200"
-        title={
-          study.currentParticipants >= study.maxParticipants
-            ? "Study is full"
-            : "Study not accepting applications"
-        }
+        title={getDisabledReason(study)}
       >
         {study.currentParticipants >= study.maxParticipants ? "Full" : "Closed"}
       </Button>

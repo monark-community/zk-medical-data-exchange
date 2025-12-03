@@ -28,11 +28,14 @@ export function useStudies(walletAddress?: string, fetchAll = false): UseStudies
 
     try {
       if (fetchAll) {
-        const response = await getStudies({});
+        const response = await getStudies({
+          walletAddress: walletAddress, 
+        });
         setStudies(response.studies || []);
       } else {
         const response = await getStudies({
           createdBy: walletAddress,
+          walletAddress: walletAddress, 
         });
         setStudies(response.studies || []);
       }

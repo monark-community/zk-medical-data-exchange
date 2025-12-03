@@ -17,8 +17,10 @@ import {
   revokeStudyConsent,
   grantStudyConsent,
   getStudyDetails,
+  getStudiesEligibility,
 } from "@/services/api/studyService";
 import { checkEligibility } from "@/services/zk/zkProofGenerator";
+import { apiClient } from "@/services/core/apiClient";
 import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
@@ -60,7 +62,7 @@ type ViewMode = "enrolled" | "available";
 
 export default function DataSellerStudiesSection() {
   const { address: walletAddress } = useAccount();
-  const { studies, isLoading, error, refetch } = useStudies(undefined, true);
+  const { studies, isLoading, error, refetch } = useStudies(walletAddress, true);
   const [applyingStudyId, setApplyingStudyId] = useState<number | null>(null);
   const [revokingStudyId, setRevokingStudyId] = useState<number | null>(null);
   const [grantingStudyId, setGrantingStudyId] = useState<number | null>(null);
@@ -71,6 +73,9 @@ export default function DataSellerStudiesSection() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
   const [selectedStatusFilters, setSelectedStatusFilters] = useState<string[]>(["active"]);
+  const [blockedStudies, setBlockedStudies] = useState<Set<number>>(new Set());
+  const [eligibilityLoading, setEligibilityLoading] = useState(false);
+  const [studiesEligibility, setStudiesEligibility] = useState<Record<number, { canApply: boolean }>>({});
 
   useEffect(() => {
     if (walletAddress) {
@@ -83,6 +88,19 @@ export default function DataSellerStudiesSection() {
       setEnrolledStudies([]);
     }
   }, [walletAddress]);
+
+  useEffect(() => {
+    if (walletAddress && studies.length > 0) {
+      const studyIds = studies.map(s => s.id);
+      setEligibilityLoading(true);
+      getStudiesEligibility(walletAddress, studyIds)
+        .then((eligibility) => {
+          setStudiesEligibility(eligibility);
+        })
+        .catch((error) => console.error("Failed to fetch eligibility:", error))
+        .finally(() => setEligibilityLoading(false));
+    }
+  }, [walletAddress, studies]);
 
   useEffect(() => {
     eventBus.on("studyCreated", refetch);
@@ -107,9 +125,9 @@ export default function DataSellerStudiesSection() {
     setApplyingStudyId(studyId);
 
     try {
-      show("Step 1/5: Starting study application process...");
+      show("Step 1/6: Starting study application process...");
 
-      show("Step 2/5: Retrieving your encrypted medical data from IPFS...");
+      show("Step 2/6: Retrieving your encrypted medical data from IPFS...");
       const data = await getAggregatedMedicalData(walletAddress);
 
       console.log("Aggregated medical data retrieved for study application:", data);
@@ -118,7 +136,7 @@ export default function DataSellerStudiesSection() {
         throw new Error("No medical data found. Please upload your medical records first.");
       }
 
-      show("Step 3/5: Preparing zero-knowledge proof inputs...");
+      show("Step 3/6: Preparing zero-knowledge proof inputs...");
       const zkReadyMedicalData = convertToZkReady(data);
 
       const scaledData = scaleMedicalData(zkReadyMedicalData);
@@ -128,18 +146,35 @@ export default function DataSellerStudiesSection() {
         throw new Error("Invalid medical data format. Please check your uploaded records.");
       }
 
-      show("Checking your eligibility for this study...");
+      show("Step 4/6: Checking your eligibility for this study...");
       const studyDetails = await getStudyDetails(studyId);
       const isEligible = checkEligibility(scaledData, studyDetails.eligibilityCriteria);
 
       if (!isEligible) {
+        setBlockedStudies((prev) => new Set(prev).add(studyId));
+
+        apiClient.post("/audit/log-failed-join", {
+          userAddress: walletAddress,
+          studyId: studyId.toString(),
+          reason: "Eligibility criteria not met",
+          errorDetails: "User medical data does not match study requirements (pre-submission check)",
+          metadata: {
+            stage: "client_pre_check",
+            checkLocation: "DataSellerStudiesSection",
+          },
+        }).then(() => {
+          console.log("Failed eligibility check logged to audit trail");
+        }).catch((auditError) => {
+          console.error("Failed to log audit entry (non-critical):", auditError);
+        });
+
         throw new Error(
           "Not Eligible\n\n" +
           "Your medical data doesn't meet this study's requirements.\n\n"
         );
       }
 
-      show("Step 4/5: Generating ZK proof and cryptographic commitment (this may take 30-60s)...");
+      show("Step 5/6: Generating ZK proof and cryptographic commitment (this may take 30-60s)...");
       const result = await StudyApplicationService.applyToStudy(
         studyId,
         scaledData,
@@ -147,7 +182,7 @@ export default function DataSellerStudiesSection() {
       );
 
       if (result.success) {
-        show(`Step 5/5: Success! ${result.message}\n\nYou can now view this study in your "Enrolled Studies" tab.`);
+        show(`Step 6/6: Success! ${result.message}\n\nYou can now view this study in your "Enrolled Studies" tab.`);
 
         refetch();
         if (walletAddress) {
@@ -463,11 +498,22 @@ export default function DataSellerStudiesSection() {
             }}
           >
             <DataSellerStudiesList
-              studies={filteredStudies}
+              studies={filteredStudies.map(study => {
+                const eligibility = studiesEligibility[study.id];
+                const canApply = blockedStudies.has(study.id) 
+                  ? false 
+                  : eligibility?.canApply ?? study.canApply;
+                
+                return {
+                  ...study,
+                  canApply
+                };
+              })}
               onApplyToStudy={handleApplyToStudy}
               applyingStudyId={applyingStudyId}
               walletAddress={walletAddress}
               isTxProcessing={isTxProcessing}
+              eligibilityLoading={eligibilityLoading}
             />
           </StudiesContainer>
         </div>
