@@ -154,6 +154,7 @@ export default function EnrolledStudiesList({
         renderActionButtons={renderActionButtons}
         descriptionMaxLength={100}
         showCriteriaLabel={true}
+        hideTemplateBadge={true}
       />
       <CustomConfirmAlert
         open={revokeStudyId !== null}

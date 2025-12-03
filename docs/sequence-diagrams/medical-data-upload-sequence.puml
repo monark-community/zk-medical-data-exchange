@@ -1,93 +1,99 @@
 @startuml Medical_Data_Upload_Sequence
 !theme plain
 
-title Cura - Diagramme de Séquence : Upload de Fichiers Médicaux FHIR sur IPFS
+title Cura - Diagramme de Séquence : Téléversement de Données Médicales FHIR
 
-actor "Patient" as Patient
+actor "Utilisateur" as User
 participant "Interface Web\n(Next.js)" as Frontend
+participant "UploadSection\n(Component)" as UploadComponent
+participant "Pinata\n(IPFS)" as IPFS
 participant "API Backend\n(Express)" as Backend
-participant "Stockage IPFS\n(Pinata)" as IPFS
+participant "medicalDataController" as Controller
 participant "Base de Données\n(Supabase)" as Database
 
-== Phase de Sélection de Fichiers ==
-Patient -> Frontend : Accès à la section "Mes Données Médicales"
-Frontend -> Frontend : Vérification authentification (JWT)
-Patient -> Frontend : Clic "Ajouter des fichiers médicaux"
-
-Patient -> Frontend : Sélection fichier(s) JSON FHIR
-note right
-Types FHIR acceptés:
-Patient, Condition, Observation,
-MedicationStatement, DiagnosticReport
-end note
-
-Frontend -> Frontend : Validation taille et extension fichier
+== Phase de Sélection ==
+User -> Frontend : Accéder aux données médicales
+activate Frontend
+ref over Frontend
+    Vérification session locale
+    hasSessionTokens()
+end ref
+User -> UploadComponent : handleUploadMedicalData()
+activate UploadComponent
+UploadComponent -> User : input.click() - Sélecteur de fichiers
+deactivate UploadComponent
+User -> UploadComponent : Sélectionner fichier JSON
+activate UploadComponent
 
 == Phase de Validation FHIR ==
-Frontend -> Frontend : Lecture du contenu du fichier
-Frontend -> Frontend : Parsing JSON
-Frontend -> Frontend : Validation schéma FHIR R4
-note right
-Validation côté client:
-- Structure JSON valide
-- Champs obligatoires présents
-- Types de données conformes
-- Codes terminologiques valides
-- Références cohérentes
-end note
+UploadComponent -> UploadComponent : file = input.files[0]
+activate UploadComponent
+deactivate UploadComponent
+UploadComponent -> UploadComponent : checkCompliance(file)
+activate UploadComponent
+deactivate UploadComponent
 
-alt Fichier FHIR valide
-    Frontend -> Frontend : Extraction métadonnées FHIR
-    Frontend -> Patient : Indication de validation réussie
-else Erreurs de validation FHIR
-    Frontend -> Patient : Affichage des erreurs avec suggestions
-    note right
-    Types d'erreurs possibles:
-    - Champs manquants
-    - Formats de dates incorrects
-    - Codes terminologiques invalides
-    - Structure non conforme
-    end note
+alt Fichier conforme (reportType valide)
+    UploadComponent -> UploadComponent : Marquer comme valide
+    activate UploadComponent
+    deactivate UploadComponent
+    UploadComponent -> User : Afficher "FHIR Compliant"
+    deactivate UploadComponent
+else Fichier non conforme
+    UploadComponent -> UploadComponent : setIsCompliant(false), setReadyToSend(false)
+    activate UploadComponent
+    deactivate UploadComponent
+    UploadComponent -> User : Afficher "Not Compliant"
+    deactivate UploadComponent
 end
 
-== Phase de Chiffrement ==
-alt Validation réussie
-    Patient -> Frontend : Confirmation d'upload
-    Frontend -> Frontend : Signature wallet pour générer clé AES
-    Frontend -> Frontend : Chiffrement du contenu FHIR
-    Frontend -> IPFS : Upload fichier chiffré
-    note right
-    Le backend ne voit jamais:
-    - Contenu FHIR original
-    - Clé AES
-    - Données déchiffrées
-    end note
-    
-    IPFS -> Frontend : CID du fichier stocké
-    Frontend -> Frontend : Chiffrement du CID
-    Frontend -> Backend : POST /api/medical-data {encryptedCid, resourceType}
-end
+== Phase de Chiffrement et Téléversement ==
+User -> UploadComponent : Cliquer "Confirm & Send"
+activate UploadComponent
+UploadComponent -> UploadComponent : fileReader.readAsText(file)
+activate UploadComponent
+UploadComponent -> UploadComponent : JSON.parse(fileContent)
+deactivate UploadComponent
+UploadComponent -> UploadComponent : encryptWithAES(jsonData, aesKey)
+activate UploadComponent
+UploadComponent -> UploadComponent : Générer buffer chiffré
+deactivate UploadComponent
 
-== Phase de Sauvegarde ==
-Backend -> Database : INSERT INTO medical_data
-note right
-Sauvegarde métadonnées:
-encrypted_cid, resource_type,
-patient_wallet, upload_date
-end note
+UploadComponent -->> IPFS : pinata.upload(encryptedBuffer) [async]
+activate IPFS
+IPFS -->> UploadComponent : {IpfsHash: cid, PinSize, Timestamp}
+deactivate IPFS
 
-Backend -> Frontend : HTTP 201 - Upload réussi
-Frontend -> Patient : Notification de succès
+UploadComponent -> UploadComponent : encryptCID(cid, userAesKey)
+activate UploadComponent
+deactivate UploadComponent
 
-== Gestion d'Erreurs ==
-alt Erreur validation/chiffrement
-    Frontend -> Patient : "Erreur de validation ou sécurisation"
-else Erreur stockage
-    IPFS -> Frontend : Échec de stockage
-    Frontend -> Patient : "Problème de stockage, réessayez"
-else Erreur sauvegarde
-    Backend -> Frontend : HTTP 500 - Erreur serveur
-    Frontend -> Patient : "Erreur de sauvegarde, réessayez"
-end
+UploadComponent -> Backend : uploadMedicalData({encryptedCid, fileType, reportType})
+activate Backend
+Backend -> Controller : POST /medical-data/upload
+activate Controller
+
+Controller -->> Database : INSERT INTO medical_data (user_id, encrypted_cid, file_type, report_type) [async]
+activate Database
+Database -->> Controller : {id, created_at}
+deactivate Database
+
+Controller -->> Controller : auditService.logMedicalDataUpload() [async]
+activate Controller
+deactivate Controller
+
+Controller --> Backend : {success: true}
+deactivate Controller
+
+Backend --> UploadComponent : 200 OK
+deactivate Backend
+
+UploadComponent -> UploadComponent : eventBus.emit('medicalDataUploaded')
+activate UploadComponent
+deactivate UploadComponent
+
+UploadComponent -> User : useTxStatusState.show("Medical data uploaded successfully")
+deactivate UploadComponent
+deactivate Frontend
 
 @enduml

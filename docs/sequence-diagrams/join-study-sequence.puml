@@ -5,71 +5,218 @@ title Cura - Diagramme de Séquence : Rejoindre une Étude Active
 
 actor "Patient" as Patient
 participant "Interface Web\n(Next.js)" as Frontend
+participant "studyService\n(Frontend)" as StudyServiceFE
+participant "zkProofGenerator\n(WASM)" as ZKGenerator
 participant "API Backend\n(Express)" as Backend
+participant "studyController" as StudyController
 participant "Base de Données\n(Supabase)" as Database
-participant "Smart Contract\n(StudyContract)" as StudyContract
-participant "Service ZK Proof\n(Circom)" as ZKService
-participant "Stockage IPFS\n(Pinata)" as IPFS
+participant "studyService\n(Backend)" as StudyServiceBE
+participant "StudyContract\n(Blockchain)" as StudyContract
+participant "IPFS\n(Pinata)" as IPFS
 
-== Phase de Découverte des Études ==
-Patient -> Frontend : Navigation vers "Études disponibles"
-Frontend -> Backend : GET /api/studies?status=active
-Backend -> Database : Récupération études actives
-Database -> Backend : Liste des études
-Backend -> Frontend : Études disponibles
-Frontend -> Patient : Affichage des études
+== Découverte et sélection d'une étude ==
+Patient -> Frontend : Consulte la page des études disponibles
+activate Frontend
+Frontend -> Backend : GET /studies?status=active
+activate Backend
 
-== Phase de Sélection d'Étude ==
-Patient -> Frontend : Clic sur une étude spécifique
-Frontend -> Backend : GET /api/studies/:studyId/details
-Backend -> Database : Détails étude + critères
-Backend -> Frontend : Détails complets de l'étude
-Frontend -> Patient : Affichage détails + critères d'éligibilité
+ref over Backend
+    Authentification Backend
+    verifySessionToken()
+end ref
 
-== Phase de Récupération des Données Médicales ==
-Patient -> Frontend : Clic "Vérifier mon éligibilité"
-Frontend -> Backend : GET /api/medical-data/user/:walletAddress
-Backend -> Database : CIDs chiffrés des données médicales
-Backend -> Frontend : Liste des CIDs chiffrés
-Frontend -> Frontend : Déchiffrement des CIDs
+Backend -> Database : Rechercher études actives
+activate Database
+Database --> Backend : Liste des études trouvées
+deactivate Database
+Backend --> Frontend : Liste des études disponibles
+deactivate Backend
+Frontend --> Patient : Affiche les études disponibles
+deactivate Frontend
 
-loop Pour chaque CID
-    Frontend -> IPFS : Récupération fichier FHIR
-    IPFS -> Frontend : Contenu chiffré
-    Frontend -> Frontend : Déchiffrement contenu FHIR
+Patient -> Frontend : Cliquer "Apply" pour participer
+activate Frontend
+
+== Récupération des données médicales du patient ==
+Frontend -> Backend : GET /medical-data?userId={walletAddress}
+activate Backend
+
+ref over Backend
+    Authentification Backend
+    verifySessionToken()
+end ref
+
+Backend -> Database : SELECT encrypted_cid, file_type FROM medical_data WHERE user_id = ?
+activate Database
+Database --> Backend : [{encrypted_cid, file_type, uploaded_at}]
+deactivate Database
+Backend --> Frontend : 200 OK {files: [{cid, type, timestamp}]}
+deactivate Backend
+
+Frontend -> Frontend : decryptCIDs(encryptedCids, aesKey)
+
+loop Pour chaque fichier médical
+    Frontend -->> IPFS : fetch(ipfsGateway + cid) [async]
+    activate IPFS
+    IPFS -->> Frontend : Retourne le contenu chiffré (AES)
+    deactivate IPFS
+    Frontend -> Frontend : decryptWithAES(encryptedContent, aesKey)
+    Frontend -> Frontend : JSON.parse(decryptedContent)
 end
 
-Frontend -> Frontend : Consolidation des données FHIR
+Frontend -> Frontend : aggregateMedicalData(parsedFiles)
+activate Frontend
+Frontend -> Frontend : Extraire HbA1c, BMI, âge, etc.
+deactivate Frontend
 
-== Phase de Mapping et Génération ZK ==
-Frontend -> Frontend : Extraction des critères requis
-note right
-Mapping FHIR vers critères ZK
-end note
+== Vérification d'éligibilité côté client ==
+Frontend -> StudyServiceFE : StudyApplicationService.applyToStudy(studyId, medicalData)
+activate StudyServiceFE
+StudyServiceFE -> StudyServiceFE : checkEligibility(medicalData, studyCriteria)
+activate StudyServiceFE
+StudyServiceFE -> StudyServiceFE : Comparer chaque critère (age, hba1c, bmi, etc.)
+deactivate StudyServiceFE
+StudyServiceFE --> Frontend : {isEligible: boolean, matchedCriteria: []}
+deactivate StudyServiceFE
 
-alt Données manquantes
-    Frontend -> Patient : Demande de données supplémentaires
-end
-
-Frontend -> ZKService : generateEligibilityProof(fhirData, criteria)
-ZKService -> Frontend : Preuve d'éligibilité générée
-
-== Phase de Soumission ==
-Frontend -> Backend : POST /api/studies/:studyId/submit-proof
-note right
-L'API gère l'interaction blockchain
-end note
-
-Backend -> StudyContract : submitEligibilityProof(studyId, proof)
-StudyContract -> Backend : Vérification de la preuve
-
-alt Preuve valide et éligible
-    Backend -> Database : Enregistrement participation
-    Backend -> Frontend : HTTP 200 - Participation confirmée
-    Frontend -> Patient : Notification de succès
-else Preuve invalide
-    Backend -> Frontend : HTTP 400 - Preuve rejetée
-    Frontend -> Patient : Notification d'échec
+alt Le patient ne remplit pas les critères
+    Frontend -> Backend : Enregistrer échec dans l'audit
+    activate Backend
+    Backend -> Database : Logger tentative échouée
+    activate Database
+    Database --> Backend : Confirmation
+    deactivate Database
+    Backend --> Frontend : Accusé de réception
+    deactivate Backend
+    Frontend --> Patient : Critères d'éligibilité non remplis
+    deactivate Frontend
+else Le patient est éligible pour l'étude
+    
+    == Génération du challenge et du commitment ==
+    Frontend -> Backend : POST /studies/:id/data-commitment {publicInputs: [age, hba1c, ...]}
+    activate Backend
+    
+    ref over Backend
+        Authentification Backend
+        verifySessionToken()
+    end ref
+    
+    Backend -> StudyController : generateCommitment(req, res)
+    activate StudyController
+    StudyController -> StudyController : challenge = generateRandomBytes(32)
+    activate StudyController
+    StudyController -> StudyController : commitment = hash(publicInputs + challenge)
+    deactivate StudyController
+    StudyController -> Database : INSERT INTO challenges (study_id, user_id, challenge, commitment)
+    activate Database
+    Database --> StudyController : {challengeId, created_at}
+    deactivate Database
+    StudyController --> Backend : {challengeId, challenge, commitment}
+    deactivate StudyController
+    Backend --> Frontend : 200 OK {challengeId, challenge}
+    deactivate Backend
+    
+    Frontend -> Frontend : generateDataCommitment(challenge, medicalData)
+    activate Frontend
+    Frontend -> Frontend : Préparer witness = {age, hba1c, bmi, ...}
+    deactivate Frontend
+    
+    == Génération de la preuve cryptographique ==
+    Frontend -> ZKGenerator : generateZKProof(witness, publicInputs, circuit)
+    activate ZKGenerator
+    ZKGenerator -> ZKGenerator : Charger eligibility.wasm et proving_key.zkey
+    activate ZKGenerator
+    deactivate ZKGenerator
+    ZKGenerator -> ZKGenerator : Calculer preuve Groth16 (snarkjs.groth16.fullProve)
+    activate ZKGenerator
+    ZKGenerator -> ZKGenerator : Générer {proof: {pi_a, pi_b, pi_c}, publicSignals}
+    deactivate ZKGenerator
+    ZKGenerator -> ZKGenerator : Générer preuve Groth16
+    note right ZKGenerator
+    Génère une preuve zero-knowledge
+    prouvant l'éligibilité sans révéler les données
+    end note
+    ZKGenerator --> Frontend : {proof, publicSignals}
+    deactivate ZKGenerator
+    
+    == Soumission de la participation ==
+    Frontend -> Backend : POST /studies/:id/join
+    activate Backend
+    
+    ref over Backend
+        Authentification Backend
+        verifySessionToken()
+    end ref
+    
+    activate StudyController
+    StudyController -> StudyController : Extraire commitment
+    StudyController -> Database : Récupérer commitment enregistré
+    activate Database
+    Database --> StudyController : Commitment stocké
+    deactivate Database
+    
+    alt Le commitment ne correspond pas ou a expiré
+        StudyController --> Backend : Erreur : commitment invalide
+        Backend --> Frontend : Erreur de validation
+        Frontend --> Patient : Challenge expiré
+        deactivate StudyController
+        deactivate Backend
+        deactivate Frontend
+    else Le commitment est valide et actif
+        StudyController -> Database : Vérifier que l'étude existe et est active
+        activate Database
+        Database --> StudyController : Informations de l'étude
+        deactivate Database
+        
+        StudyController -> Database : Vérifier si déjà participant
+        activate Database
+        Database --> StudyController : Aucune participation trouvée
+        deactivate Database
+        
+        ref over StudyController, StudyServiceBE, StudyContract
+            Vérification de la preuve ZK sur blockchain
+            (voir ref "Blockchain Proof Verification")
+        end ref
+        
+        StudyController -> StudyServiceBE : studyService.joinBlockchainStudy()
+        activate StudyServiceBE
+        StudyServiceBE -->> StudyContract : Soumettre la preuve [async]
+        activate StudyContract
+        StudyContract -> StudyContract : zkVerifier.verifyProof()
+        note right StudyContract
+        Vérification cryptographique
+        Valide l'éligibilité du participant
+        end note
+        StudyContract -->> StudyServiceBE : Transaction confirmée
+        deactivate StudyContract
+        StudyServiceBE --> StudyController : {transactionHash}
+        deactivate StudyServiceBE
+        
+        StudyController -> Database : Enregistrer la participation
+        activate Database
+        Database --> StudyController : Participation créée
+        deactivate Database
+        
+        StudyController -> Database : Marquer commitment comme utilisé
+        activate Database
+        Database --> StudyController : Commitment marqué (anti-rejeu)
+        deactivate Database
+        
+        StudyController -> Database : Incrémenter compteur participants
+        activate Database
+        Database --> StudyController : Compteur mis à jour
+        deactivate Database
+        
+        StudyController -> StudyController : auditService.logStudyParticipation()
+        
+        StudyController --> Backend : Participation réussie
+        deactivate StudyController
+        Backend --> Frontend : Inscription confirmée
+        deactivate Backend
+        
+        Frontend --> Patient : Participation enregistrée avec succès
+        deactivate Frontend
+    end
 end
 
 @enduml

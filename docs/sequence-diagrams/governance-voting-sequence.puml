@@ -3,66 +3,132 @@
 
 title Cura - Diagramme de Séquence : Vote sur Proposition de Gouvernance
 
-actor "Votant" as Voter
+actor "Utilisateur" as User
 participant "Interface Web\n(Next.js)" as Frontend
 participant "API Backend\n(Express)" as Backend
+participant "governanceController" as Controller
+participant "governanceService" as Service
 participant "Base de Données\n(Supabase)" as Database
-participant "Smart Contract\n(GovernanceContract)" as GovernanceContract
+participant "Proposal\n(Smart Contract)" as ProposalContract
 
 == Phase de Consultation ==
-Voter -> Frontend : Accès section "Gouvernance"
-Frontend -> Frontend : Vérification authentification (JWT)
-Frontend -> Backend : GET /api/governance/proposals
-Backend -> Database : Récupération propositions actives
-Database -> Backend : Liste des propositions
-Backend -> Frontend : Propositions avec statistiques
-Frontend -> Voter : Affichage des propositions
+User -> Frontend : Accéder à la gouvernance
+activate Frontend
+ref over Frontend
+    Vérification session locale
+    hasSessionTokens()
+end ref
+Frontend -> Backend : GET /governance/proposals?status=active
+activate Backend
+Backend -> Controller : getAllProposals(userAddress)
+activate Controller
+Controller -> Service : getAllProposals(userAddress)
+activate Service
+Service -->> Database : SELECT * FROM proposals WHERE status = 'active' AND end_date > NOW() [async]
+activate Database
+Database -->> Service : [{id, title, votes_for, votes_against, creator}]
+deactivate Database
+Service --> Controller : Propositions avec statistiques de vote
+deactivate Service
+Controller --> Backend : Données des propositions
+deactivate Controller
+Backend --> Frontend : Liste des propositions
+deactivate Backend
+Frontend -> User : Afficher les propositions
+deactivate Frontend
 
 == Phase de Sélection ==
-Voter -> Frontend : Clic sur une proposition
-Frontend -> Backend : GET /api/governance/proposals/:id
-Backend -> Database : Détails proposition + compteurs votes
-Database -> Backend : Données complètes
-Backend -> Frontend : Détails de la proposition
-Frontend -> Voter : Affichage détaillé + boutons Pour/Contre
+User -> Frontend : Sélectionner une proposition
+activate Frontend
+Frontend -> Backend : Obtenir détails de la proposition
+activate Backend
+Backend -> Controller : getProposal(proposalId, userAddress)
+activate Controller
+Controller -> Service : getProposal(proposalId, userAddress)
+activate Service
+Service -->> Database : Lire détails proposition (async)
+activate Database
+Database -->> Service : Données complètes
+deactivate Database
+Service --> Controller : Détails + statut vote utilisateur
+deactivate Service
+Controller --> Backend : Proposition détaillée
+deactivate Controller
+Backend --> Frontend : Détails avec boutons vote
+deactivate Backend
+Frontend -> User : Afficher proposition complète
+deactivate Frontend
 
 == Phase de Vote ==
-Voter -> Frontend : Clic "Voter Pour" ou "Voter Contre"
-Frontend -> Backend : Vérification vote autorisé
-Backend -> Database : Vérification double vote
+User -> Frontend : Choisir Pour ou Contre
+activate Frontend
+Frontend -> Backend : Soumettre le vote
+activate Backend
+Backend -> Controller : vote(proposalId, choice, walletAddress)
+activate Controller
 
-alt Utilisateur a déjà voté
-    Backend -> Frontend : HTTP 409 - Vote déjà enregistré
-    Frontend -> Voter : "Vous avez déjà voté"
+Controller -> Controller : Valider le vote
+activate Controller
+deactivate Controller
+
+Controller -> Service : Enregistrer le vote
+activate Service
+
+Service -->> Database : SELECT * FROM votes WHERE proposal_id = ? AND voter = ? [async]
+activate Database
+Database -->> Service : {hasVoted: boolean}
+deactivate Database
+
+alt Déjà voté
+    Service --> Controller : Vote déjà enregistré
+    deactivate Service
+    Controller --> Backend : Erreur double vote
+    deactivate Controller
+    Backend --> Frontend : Vote refusé
+    deactivate Backend
+    Frontend -> User : Afficher erreur
+    deactivate Frontend
 else Vote autorisé
-    Frontend -> Backend : POST /api/governance/vote
-    note right
-    Authorization Bearer <JWT_TOKEN>
-    Body: proposalId, vote (true/false)
-    end note
+    Service -> Service : Récupérer le contrat
+    activate Service
+    deactivate Service
     
-    Backend -> Backend : Validation JWT et données
+    Service -->> ProposalContract : vote(support: boolean) [async]
+    activate ProposalContract
+    ProposalContract -> ProposalContract : require(!hasVoted[msg.sender])
+    ProposalContract -> ProposalContract : if(support) votesFor++ else votesAgainst++
+    ProposalContract -> ProposalContract : emit VoteCast(voter, support)
+    ProposalContract -->> Service : {transactionHash, votesFor, votesAgainst}
+    deactivate ProposalContract
     
-    Backend -> Database : Enregistrement du vote
-    note right
-    INSERT vote + UPDATE compteurs
-    votes_for/against++
-    end note
+    Service -->> ProposalContract : getVoteCount() [async]
+    activate ProposalContract
+    ProposalContract -->> Service : {votesFor, votesAgainst, totalVotes}
+    deactivate ProposalContract
     
-    Backend -> GovernanceContract : castVote(proposalId, voterAddress, vote)
-    GovernanceContract -> Backend : Vote enregistré blockchain
+    Service -->> Database : UPDATE proposals SET votes_for = ?, votes_against = ? WHERE id = ? [async]
+    activate Database
+    Database -->> Service : Compteurs mis à jour
+    deactivate Database
     
-    Backend -> Frontend : HTTP 201 - Vote enregistré avec succès
-    Frontend -> Voter : Confirmation + mise à jour compteurs
-end
-
-== Gestion d'Erreurs ==
-alt Proposition expirée
-    Backend -> Frontend : HTTP 410 - Période de vote terminée
-    Frontend -> Voter : "La période de vote est terminée"
-else Erreur technique
-    Backend -> Frontend : HTTP 500 - Erreur serveur
-    Frontend -> Voter : "Erreur technique, réessayez"
+    Service -->> Database : INSERT INTO votes (proposal_id, voter, choice, tx_hash) [async]
+    activate Database
+    Database -->> Service : Vote sauvegardé
+    deactivate Database
+    
+    Service --> Controller : Vote réussi
+    deactivate Service
+    
+    Controller -->> Service : Enregistrer dans l'audit (async)
+    activate Service
+    deactivate Service
+    
+    Controller --> Backend : Vote confirmé
+    deactivate Controller
+    Backend --> Frontend : Succès
+    deactivate Backend
+    Frontend -> User : Afficher confirmation
+    deactivate Frontend
 end
 
 @enduml

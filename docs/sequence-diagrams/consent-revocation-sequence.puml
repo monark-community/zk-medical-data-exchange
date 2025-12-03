@@ -6,68 +6,91 @@ title Cura - Diagramme de Séquence : Révocation de Consentement d'Étude
 actor "Patient" as Patient
 participant "Interface Web\n(Next.js)" as Frontend
 participant "API Backend\n(Express)" as Backend
+participant "studyController" as Controller
+participant "studyService" as Service
 participant "Base de Données\n(Supabase)" as Database
-participant "Smart Contract\n(StudyContract)" as StudyContract
+participant "StudyContract\n(Blockchain)" as StudyContract
 
-== Phase de Consultation ==
-Patient -> Frontend : Accès section "Mes Études"
-Frontend -> Frontend : Vérification authentification (JWT)
-Frontend -> Backend : GET /api/studies/my-participations/:walletAddress
-Backend -> Database : Études actives du patient
-Database -> Backend : Liste des études
-Backend -> Frontend : Études avec statuts
-Frontend -> Patient : Affichage des études participées
+== Consultation des participations ==
+Patient -> Frontend : Accéder à "Mes Études"
+activate Frontend
+ref over Frontend
+    Vérification session locale
+    hasSessionTokens()
+end ref
+Frontend -> Backend : GET /studies/enrolled
+activate Backend
+Backend -->> Database : Rechercher participations actives (async)
+activate Database
+Database -->> Backend : Liste des études avec statuts
+deactivate Database
+Backend --> Frontend : Études participées
+deactivate Backend
+Frontend --> Patient : Affiche les études avec option révocation
+deactivate Frontend
 
-== Phase de Sélection ==
-Patient -> Frontend : Clic sur une étude à quitter
-Frontend -> Backend : GET /api/studies/:studyId/participation-details
-Backend -> Database : Détails participation + permissions révocation
-Backend -> Frontend : Informations + options de retrait
-Frontend -> Patient : Affichage détails + bouton "Révoquer"
+== Sélection et confirmation ==
+Patient -> Frontend : Sélectionner une étude et cliquer "Révoquer"
+activate Frontend
+Frontend --> Patient : Afficher modal de confirmation
+Patient -> Frontend : Confirmer la révocation
 
-== Phase de Confirmation ==
-Patient -> Frontend : Clic "Révoquer mon consentement"
-Frontend -> Patient : Modal de confirmation avec conséquences
-note right
-Avertissements:
-Retrait définitif, données déjà
-partagées restent utilisables
-end note
+== Révocation du consentement ==
+Frontend -> Backend : POST /studies/:id/consent/revoke
+activate Backend
 
-Patient -> Frontend : Confirmation de révocation
+ref over Backend
+    Authentification Backend
+    verifySessionToken()
+end ref
 
-== Phase de Révocation ==
-Frontend -> Backend : POST /api/studies/:studyId/revoke-consent
-note right
-Authorization Bearer <JWT_TOKEN>
-Body: studyId, walletAddress
-end note
+Backend -> Controller : revokeStudyConsent(req, res)
+activate Controller
 
-Backend -> Backend : Validation JWT et droits
+Controller -->> Database : Vérifier participation existante (async)
+activate Database
+Database -->> Controller : Participation trouvée
+deactivate Database
 
-Backend -> Database : Mise à jour statut révocation
-note right
-UPDATE status='consent_revoked'
-Suppression permissions
-Historique révocation
-end note
+Controller -> Controller : canPerformConsentOperation()
 
-Backend -> StudyContract : revokeConsent(studyId, participantAddress)
-StudyContract -> Backend : Révocation enregistrée blockchain
-
-Backend -> Frontend : HTTP 200 - Consentement révoqué
-Frontend -> Patient : Confirmation de révocation
-
-== Gestion d'Erreurs ==
-alt Révocation non autorisée
-    Backend -> Frontend : HTTP 403 - Révocation non permise
-    Frontend -> Patient : "Impossible de révoquer à ce stade"
-else Erreur technique
-    Backend -> Frontend : HTTP 500 - Erreur serveur
-    Frontend -> Patient : "Erreur technique, réessayez"
-else Déjà révoqué
-    Backend -> Frontend : HTTP 409 - Consentement déjà révoqué
-    Frontend -> Patient : "Consentement déjà révoqué"
+alt Consentement déjà révoqué
+    Controller --> Backend : Erreur : déjà révoqué
+    Backend --> Frontend : Consentement déjà révoqué
+    deactivate Backend
+    Frontend --> Patient : Afficher erreur
+    deactivate Controller
+    deactivate Frontend
+else Consentement actif
+    Controller -> Service : studyService.revokeStudyConsent(studyId, walletAddress)
+    activate Service
+    Service -->> StudyContract : studyContract.revokeConsent(userAddress) [async]
+    activate StudyContract
+    StudyContract -> StudyContract : Vérifier participant actif
+    StudyContract -> StudyContract : Émettre ConsentRevoked event
+    StudyContract -->> Service : {transactionHash, blockNumber}
+    deactivate StudyContract
+    Service --> Controller : {transactionHash, gasUsed}
+    deactivate Service
+    
+    Controller -->> Database : Mettre à jour statut consentement [async]
+    activate Database
+    Database -->> Controller : Statut mis à jour
+    deactivate Database
+    
+    Controller -->> Database : Décrémenter compteur participants [async]
+    activate Database
+    Database -->> Controller : Compteur mis à jour
+    deactivate Database
+    
+    Controller -->> Controller : auditService.logConsentRevocation() [async]
+    
+    Controller --> Backend : Révocation réussie
+    deactivate Controller
+    Backend --> Frontend : Consentement révoqué
+    deactivate Backend
+    Frontend --> Patient : Révocation confirmée
+    deactivate Frontend
 end
 
 @enduml

@@ -84,6 +84,7 @@ export default function DataSellerStudiesList({
       renderActionButtons={renderActionButtons}
       descriptionMaxLength={100}
       showCriteriaLabel={true}
+      hideTemplateBadge={true}
     />
   );
 }

@@ -23,6 +23,7 @@ interface StudyCardProps {
   actionButtons?: React.ReactNode;
   descriptionMaxLength?: number;
   showCriteriaLabel?: boolean;
+  hideTemplateBadge?: boolean;
 }
 
 export default function StudyCard({
@@ -32,6 +33,7 @@ export default function StudyCard({
   actionButtons,
   descriptionMaxLength = 80,
   showCriteriaLabel = false,
+  hideTemplateBadge = false,
 }: StudyCardProps) {
   const participantPercentage = (study.currentParticipants / study.maxParticipants) * 100;
   const isAlmostFull = participantPercentage >= 80;
@@ -189,7 +191,7 @@ export default function StudyCard({
         </div>
 
         {/* Template badge - compact */}
-        {study.templateName && (
+        {!hideTemplateBadge && study.templateName && (
           <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-100 self-start sm:self-center">
             {study.templateName}
           </span>
