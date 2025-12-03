@@ -9,14 +9,16 @@ participant "API Backend\n(Express)" as Backend
 participant "governanceController" as Controller
 participant "governanceService" as Service
 participant "Base de Données\n(Supabase)" as Database
-participant "Blockchain\n(Sepolia)" as Blockchain
-participant "GovernanceFactory\n(Smart Contract)" as Factory
+participant "GovernanceFactory\n(Blockchain)" as Factory
 participant "Proposal\n(Smart Contract)" as ProposalContract
 
 == Phase de Saisie ==
 User -> Frontend : Accéder à la page gouvernance
 activate Frontend
-ref over Frontend : Vérifier session utilisateur
+ref over Frontend
+    Vérification session locale
+    hasSessionTokens()
+end ref
 User -> Frontend : Cliquer sur "Créer proposition"
 User -> Frontend : Remplir le formulaire
 Frontend -> Frontend : Valider les champs saisis
@@ -37,25 +39,22 @@ deactivate Controller
 Controller -> Service : Lancer la création
 activate Service
 
-Service -->> Blockchain : Soumettre sur la blockchain (async)
-activate Blockchain
-Blockchain -> Factory : Créer la proposition
+Service -->> Factory : createProposal(title, description, votingPeriod) [async]
 activate Factory
 
-Factory -> ProposalContract : Déployer le contrat
+Factory -> ProposalContract : new Proposal(params)
 activate ProposalContract
-ProposalContract --> Factory : Adresse du contrat
+ProposalContract -> ProposalContract : Initialiser votes (for: 0, against: 0)
+ProposalContract --> Factory : deployedAddress
 deactivate ProposalContract
 
-Factory -> Factory : Enregistrer dans le registre
+Factory -> Factory : proposals.push(proposalAddress)
 activate Factory
+Factory -> Factory : emit ProposalCreated(id, creator, address)
 deactivate Factory
 
-Factory -->> Blockchain : Émettre événement ProposalCreated
+Factory -->> Service : {proposalId, contractAddress, txHash}
 deactivate Factory
-
-Blockchain -->> Service : Reçu de transaction
-deactivate Blockchain
 
 Service -->> ProposalContract : Récupérer les détails (async)
 activate ProposalContract
@@ -82,26 +81,5 @@ deactivate Backend
 
 Frontend -> User : Afficher la proposition
 deactivate Frontend
-
-== Gestion d'Erreurs ==
-alt Données invalides
-    Controller -> Controller : Valider les données
-    activate Controller
-    Controller --> Backend : Validation échouée
-    deactivate Controller
-    Backend --> Frontend : Données incorrectes
-    Frontend -> User : Afficher les erreurs du formulaire
-else Erreur blockchain
-    Service -->> Blockchain : Soumettre sur la blockchain (async)
-    activate Service
-    activate Blockchain
-    Blockchain -->> Service : Erreur de transaction
-    deactivate Blockchain
-    Service --> Controller : Échec de la création
-    deactivate Service
-    Controller --> Backend : Erreur serveur
-    Backend --> Frontend : Transaction échouée
-    Frontend -> User : Afficher l'erreur
-end
 
 @enduml

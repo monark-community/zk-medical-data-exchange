@@ -14,30 +14,33 @@ participant "Base de Données\n(Supabase)" as Database
 == Phase de Sélection ==
 User -> Frontend : Accéder aux données médicales
 activate Frontend
-ref over Frontend : Vérifier session utilisateur
-User -> UploadComponent : Cliquer sur "Upload Medical Data"
+ref over Frontend
+    Vérification session locale
+    hasSessionTokens()
+end ref
+User -> UploadComponent : handleUploadMedicalData()
 activate UploadComponent
-UploadComponent -> User : Ouvrir sélecteur de fichiers
+UploadComponent -> User : input.click() - Sélecteur de fichiers
 deactivate UploadComponent
 User -> UploadComponent : Sélectionner fichier JSON
 activate UploadComponent
 
 == Phase de Validation FHIR ==
-UploadComponent -> UploadComponent : Lire le fichier
+UploadComponent -> UploadComponent : file = input.files[0]
 activate UploadComponent
 deactivate UploadComponent
-UploadComponent -> UploadComponent : Vérifier la conformité FHIR
+UploadComponent -> UploadComponent : checkCompliance(file)
 activate UploadComponent
 deactivate UploadComponent
 
-alt Fichier conforme
+alt Fichier conforme (reportType valide)
     UploadComponent -> UploadComponent : Marquer comme valide
     activate UploadComponent
     deactivate UploadComponent
     UploadComponent -> User : Afficher "FHIR Compliant"
     deactivate UploadComponent
 else Fichier non conforme
-    UploadComponent -> UploadComponent : Marquer comme invalide
+    UploadComponent -> UploadComponent : setIsCompliant(false), setReadyToSend(false)
     activate UploadComponent
     deactivate UploadComponent
     UploadComponent -> User : Afficher "Not Compliant"
@@ -45,77 +48,52 @@ else Fichier non conforme
 end
 
 == Phase de Chiffrement et Téléversement ==
-User -> UploadComponent : Confirmer l'envoi
+User -> UploadComponent : Cliquer "Confirm & Send"
 activate UploadComponent
-UploadComponent -> UploadComponent : Lire le contenu
+UploadComponent -> UploadComponent : fileReader.readAsText(file)
 activate UploadComponent
+UploadComponent -> UploadComponent : JSON.parse(fileContent)
 deactivate UploadComponent
-UploadComponent -> UploadComponent : Chiffrer les données
+UploadComponent -> UploadComponent : encryptWithAES(jsonData, aesKey)
 activate UploadComponent
+UploadComponent -> UploadComponent : Générer buffer chiffré
 deactivate UploadComponent
 
-UploadComponent -->> IPFS : Téléverser sur IPFS (async)
+UploadComponent -->> IPFS : pinata.upload(encryptedBuffer) [async]
 activate IPFS
-IPFS -->> UploadComponent : Identifiant du fichier
+IPFS -->> UploadComponent : {IpfsHash: cid, PinSize, Timestamp}
 deactivate IPFS
 
-UploadComponent -> UploadComponent : Chiffrer l'identifiant
+UploadComponent -> UploadComponent : encryptCID(cid, userAesKey)
 activate UploadComponent
 deactivate UploadComponent
 
-UploadComponent -> Backend : Enregistrer les métadonnées
+UploadComponent -> Backend : uploadMedicalData({encryptedCid, fileType, reportType})
 activate Backend
-Backend -> Controller : Traiter la requête
+Backend -> Controller : POST /medical-data/upload
 activate Controller
 
-Controller -->> Database : Sauvegarder dans la base (async)
+Controller -->> Database : INSERT INTO medical_data (user_id, encrypted_cid, file_type, report_type) [async]
 activate Database
-Database -->> Controller : Enregistrement réussi
+Database -->> Controller : {id, created_at}
 deactivate Database
 
-Controller -->> Controller : Enregistrer dans l'audit (async)
+Controller -->> Controller : auditService.logMedicalDataUpload() [async]
 activate Controller
 deactivate Controller
 
-Controller --> Backend : Données enregistrées
+Controller --> Backend : {success: true}
 deactivate Controller
 
-Backend --> UploadComponent : Succès
+Backend --> UploadComponent : 200 OK
 deactivate Backend
 
-UploadComponent -> UploadComponent : Notifier le système
+UploadComponent -> UploadComponent : eventBus.emit('medicalDataUploaded')
 activate UploadComponent
 deactivate UploadComponent
 
-UploadComponent -> User : Afficher confirmation
+UploadComponent -> User : useTxStatusState.show("Medical data uploaded successfully")
 deactivate UploadComponent
 deactivate Frontend
-
-== Gestion d'Erreurs ==
-alt Validation échouée
-    UploadComponent -> UploadComponent : Vérifier la conformité
-    activate UploadComponent
-    UploadComponent -> UploadComponent : Bloquer l'envoi
-    deactivate UploadComponent
-    UploadComponent -> User : Fichier non conforme
-else Erreur téléversement IPFS
-    UploadComponent -->> IPFS : Téléverser sur IPFS (async)
-    activate UploadComponent
-    activate IPFS
-    IPFS -->> UploadComponent : Erreur de stockage
-    deactivate IPFS
-    UploadComponent -> User : Échec du téléversement
-    deactivate UploadComponent
-else Erreur sauvegarde
-    Controller -->> Database : Sauvegarder dans la base (async)
-    activate Controller
-    activate Database
-    Database -->> Controller : Erreur d'enregistrement
-    deactivate Database
-    Controller --> Backend : Erreur serveur
-    deactivate Controller
-    Backend --> UploadComponent : Sauvegarde échouée
-    UploadComponent -> User : Afficher l'erreur
-end
 
 @enduml

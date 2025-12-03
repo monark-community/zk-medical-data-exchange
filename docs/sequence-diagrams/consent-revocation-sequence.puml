@@ -14,8 +14,11 @@ participant "StudyContract\n(Blockchain)" as StudyContract
 == Consultation des participations ==
 Patient -> Frontend : Accéder à "Mes Études"
 activate Frontend
-ref over Frontend : Vérification session utilisateur
-Frontend -> Backend : Récupérer les études du participant
+ref over Frontend
+    Vérification session locale
+    hasSessionTokens()
+end ref
+Frontend -> Backend : GET /studies/enrolled
 activate Backend
 Backend -->> Database : Rechercher participations actives (async)
 activate Database
@@ -33,15 +36,15 @@ Frontend --> Patient : Afficher modal de confirmation
 Patient -> Frontend : Confirmer la révocation
 
 == Révocation du consentement ==
-Frontend -> Backend : Soumettre la révocation
+Frontend -> Backend : POST /studies/:id/consent/revoke
 activate Backend
 
 ref over Backend
-    Validation de la session utilisateur
-    (voir ref "Session Validation")
+    Authentification Backend
+    verifySessionToken()
 end ref
 
-Backend -> Controller : revokeStudyConsent(studyId, participantWallet)
+Backend -> Controller : revokeStudyConsent(req, res)
 activate Controller
 
 Controller -->> Database : Vérifier participation existante (async)
@@ -49,31 +52,33 @@ activate Database
 Database -->> Controller : Participation trouvée
 deactivate Database
 
-Controller -> Controller : canPerformConsentOperation(currentConsent, isRevoke)
+Controller -> Controller : canPerformConsentOperation()
 
 alt Consentement déjà révoqué
     Controller --> Backend : Erreur : déjà révoqué
     Backend --> Frontend : Consentement déjà révoqué
     deactivate Backend
-    Frontend --> Patient : Consentement déjà révoqué
+    Frontend --> Patient : Afficher erreur
     deactivate Controller
     deactivate Frontend
 else Consentement actif
-    Controller -> Service : Révoquer sur la blockchain
+    Controller -> Service : studyService.revokeStudyConsent(studyId, walletAddress)
     activate Service
-    Service -->> StudyContract : revokeConsent(participantWallet) [async]
+    Service -->> StudyContract : studyContract.revokeConsent(userAddress) [async]
     activate StudyContract
-    StudyContract -->> Service : Transaction blockchain
+    StudyContract -> StudyContract : Vérifier participant actif
+    StudyContract -> StudyContract : Émettre ConsentRevoked event
+    StudyContract -->> Service : {transactionHash, blockNumber}
     deactivate StudyContract
-    Service --> Controller : Transaction confirmée
+    Service --> Controller : {transactionHash, gasUsed}
     deactivate Service
     
-    Controller -->> Database : Mettre à jour has_consented=false (async)
+    Controller -->> Database : Mettre à jour statut consentement [async]
     activate Database
     Database -->> Controller : Statut mis à jour
     deactivate Database
     
-    Controller -->> Database : Décrémenter compteur participants (async)
+    Controller -->> Database : Décrémenter compteur participants [async]
     activate Database
     Database -->> Controller : Compteur mis à jour
     deactivate Database

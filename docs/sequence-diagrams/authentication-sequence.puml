@@ -16,55 +16,56 @@ participant "Base de Données\n(Supabase)" as Database
 == Phase d'Initialisation ==
 User -> Frontend : Accéder à l'application
 activate Frontend
-Frontend -> Frontend : Vérifier session existante
+Frontend -> Frontend : hasSessionTokens()
 activate Frontend
 deactivate Frontend
 
 alt Aucune session active
-    Frontend -->> Web3Auth : Demander connexion (async)
+    Frontend -->> Web3Auth : web3Auth.connect({loginProvider: 'metamask'}) [async]
     activate Web3Auth
-    Web3Auth -->> Frontend : Connexion établie
+    Web3Auth -->> Frontend : {provider, userInfo}
     deactivate Web3Auth
     
-    Frontend -->> Web3Auth : Récupérer jeton d'identité (async)
+    Frontend -->> Web3Auth : web3Auth.authenticateUser() [async]
     activate Web3Auth
-    Web3Auth -->> Frontend : Jeton JWT
+    Web3Auth -->> Frontend : Jeton JWT (idToken + walletAddress)
     deactivate Web3Auth
 end
 
 == Phase de Vérification Backend ==
-Frontend -> Backend : Envoyer jeton pour vérification
+Frontend -> Backend : POST /auth/verify + Bearer token
 activate Backend
-Backend -> Middleware : Vérifier jeton Web3Auth
+Backend -> Middleware : verifyWeb3AuthToken(req, res, next)
 activate Middleware
 
-Middleware -->> AuthJS : Obtenir clé de signature (async)
+Middleware -->> AuthJS : client.getSigningKey(kid) [async]
 activate AuthJS
-AuthJS -->> Middleware : Clé publique
+AuthJS -->> Middleware : Clé publique JWKS
 deactivate AuthJS
 
-Middleware -> Middleware : Valider jeton JWT
+Middleware -> Middleware : jwt.verify(token, publicKey, {algorithms: ['RS256']})
 activate Middleware
+Middleware -> Middleware : Extraire walletAddress du payload
 deactivate Middleware
 
 alt Jeton valide
-    Middleware -> AuthController : Continuer
+    Middleware -> AuthController : verifyAuthentication(req, res)
     deactivate Middleware
     
     activate AuthController
-    AuthController -> UserService : Vérifier existence utilisateur
+    AuthController -> UserService : checkIfUserExists(walletAddress)
     activate UserService
     UserService -->> Database : Rechercher utilisateur (async)
     activate Database
     Database -->> UserService : Résultat
     deactivate Database
-    UserService --> AuthController : Utilisateur existant
+    UserService --> AuthController : boolean (isUserCreated)
     deactivate UserService
     
-    alt Nouvel utilisateur
-        AuthController -> UserService : Créer utilisateur
+    alt Nouvel utilisateur (!isUserCreated)
+        AuthController -> UserService : createUser(walletAddress)
         activate UserService
-        UserService -->> Database : Insérer nouvel utilisateur (async)
+        UserService -->> Database : Créer utilisateur (async)
         activate Database
         Database -->> UserService : Utilisateur créé
         deactivate Database
@@ -72,17 +73,20 @@ alt Jeton valide
         deactivate UserService
     end
     
-    AuthController -> AuthController : Générer jeton de session
+    AuthController -> AuthController : generateSessionToken({walletAddress, expiresIn: '24h'})
     activate AuthController
+    AuthController -> AuthController : jwt.sign(payload, SECRET_KEY)
     deactivate AuthController
     
-    AuthController --> Backend : Jeton de session
+    AuthController -->> AuthController : auditService.logAuthentication({walletAddress, timestamp}) [async]
+    
+    AuthController --> Backend : {sessionToken, walletAddress}
     deactivate AuthController
     
-    Backend --> Frontend : Authentification réussie
+    Backend --> Frontend : 200 OK {success, sessionToken, walletAddress}
     deactivate Backend
     
-    Frontend -> Frontend : Enregistrer session
+    Frontend -> Frontend : Enregistrer session (localStorage)
     activate Frontend
     deactivate Frontend
     
@@ -101,9 +105,12 @@ end
 
 == Phase de Validation Continue ==
 loop Requêtes authentifiées
-    Frontend -> Backend : Requête avec jeton de session
+    Frontend -> Backend : Requête avec Authorization: Bearer <session_token>
     activate Backend
-    ref over Backend : Valider jeton de session
+    ref over Backend
+        Authentification Backend
+        verifySessionToken()
+    end ref
     
     alt Jeton valide
         Backend --> Frontend : Données demandées
@@ -118,13 +125,13 @@ end
 == Phase de Déconnexion ==
 User -> Frontend : Cliquer sur déconnexion
 activate Frontend
-Frontend -->> Web3Auth : Déconnecter le portefeuille (async)
+Frontend -->> Web3Auth : web3Auth.logout() [async]
 activate Web3Auth
 deactivate Web3Auth
 Frontend -> Frontend : Supprimer session locale
 activate Frontend
 deactivate Frontend
-Frontend -> User : Retour à la page d'accueil
+Frontend -> User : Redirection vers page d'accueil
 deactivate Frontend
 
 @enduml

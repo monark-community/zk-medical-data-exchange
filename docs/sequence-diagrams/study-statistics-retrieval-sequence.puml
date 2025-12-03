@@ -14,8 +14,8 @@ User -> Frontend : Consulter les études disponibles
 activate Frontend
 
 ref over Frontend
-    Vérification session utilisateur
-    (voir ref "Session Validation")
+    Vérification session locale
+    hasSessionTokens()
 end ref
 
 Frontend -> Backend : Récupérer la liste des études

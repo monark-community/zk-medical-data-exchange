@@ -9,24 +9,26 @@ participant "API Backend\n(Express)" as Backend
 participant "governanceController" as Controller
 participant "governanceService" as Service
 participant "Base de Données\n(Supabase)" as Database
-participant "Blockchain\n(Sepolia)" as Blockchain
 participant "Proposal\n(Smart Contract)" as ProposalContract
 
 == Phase de Consultation ==
 User -> Frontend : Accéder à la gouvernance
 activate Frontend
-ref over Frontend : Vérifier session utilisateur
-Frontend -> Backend : Récupérer les propositions
+ref over Frontend
+    Vérification session locale
+    hasSessionTokens()
+end ref
+Frontend -> Backend : GET /governance/proposals?status=active
 activate Backend
 Backend -> Controller : getAllProposals(userAddress)
 activate Controller
 Controller -> Service : getAllProposals(userAddress)
 activate Service
-Service -->> Database : Lire propositions actives (async)
+Service -->> Database : SELECT * FROM proposals WHERE status = 'active' AND end_date > NOW() [async]
 activate Database
-Database -->> Service : Liste des propositions
+Database -->> Service : [{id, title, votes_for, votes_against, creator}]
 deactivate Database
-Service --> Controller : Propositions avec votes
+Service --> Controller : Propositions avec statistiques de vote
 deactivate Service
 Controller --> Backend : Données des propositions
 deactivate Controller
@@ -72,9 +74,9 @@ deactivate Controller
 Controller -> Service : Enregistrer le vote
 activate Service
 
-Service -->> Database : Vérifier si déjà voté (async)
+Service -->> Database : SELECT * FROM votes WHERE proposal_id = ? AND voter = ? [async]
 activate Database
-Database -->> Service : Résultat de vérification
+Database -->> Service : {hasVoted: boolean}
 deactivate Database
 
 alt Déjà voté
@@ -91,26 +93,25 @@ else Vote autorisé
     activate Service
     deactivate Service
     
-    Service -->> Blockchain : Soumettre le vote (async)
-    activate Blockchain
-    Blockchain -> ProposalContract : Enregistrer le vote
+    Service -->> ProposalContract : vote(support: boolean) [async]
     activate ProposalContract
-    ProposalContract --> Blockchain : Vote enregistré
-    deactivate ProposalContract
-    Blockchain -->> Service : Confirmation transaction
-    deactivate Blockchain
-    
-    Service -->> ProposalContract : Obtenir résultats actuels (async)
-    activate ProposalContract
-    ProposalContract -->> Service : Compteurs de votes
+    ProposalContract -> ProposalContract : require(!hasVoted[msg.sender])
+    ProposalContract -> ProposalContract : if(support) votesFor++ else votesAgainst++
+    ProposalContract -> ProposalContract : emit VoteCast(voter, support)
+    ProposalContract -->> Service : {transactionHash, votesFor, votesAgainst}
     deactivate ProposalContract
     
-    Service -->> Database : Mettre à jour les compteurs (async)
+    Service -->> ProposalContract : getVoteCount() [async]
+    activate ProposalContract
+    ProposalContract -->> Service : {votesFor, votesAgainst, totalVotes}
+    deactivate ProposalContract
+    
+    Service -->> Database : UPDATE proposals SET votes_for = ?, votes_against = ? WHERE id = ? [async]
     activate Database
     Database -->> Service : Compteurs mis à jour
     deactivate Database
     
-    Service -->> Database : Sauvegarder le vote (async)
+    Service -->> Database : INSERT INTO votes (proposal_id, voter, choice, tx_hash) [async]
     activate Database
     Database -->> Service : Vote sauvegardé
     deactivate Database
@@ -128,27 +129,6 @@ else Vote autorisé
     deactivate Backend
     Frontend -> User : Afficher confirmation
     deactivate Frontend
-end
-
-== Gestion d'Erreurs ==
-alt Données invalides
-    Controller -> Controller : Valider le vote
-    activate Controller
-    Controller --> Backend : Vote invalide
-    deactivate Controller
-    Backend --> Frontend : Validation échouée
-    Frontend -> User : Afficher erreur
-else Erreur blockchain
-    Service -->> Blockchain : Soumettre le vote (async)
-    activate Service
-    activate Blockchain
-    Blockchain -->> Service : Erreur de transaction
-    deactivate Blockchain
-    Service --> Controller : Échec de l'enregistrement
-    deactivate Service
-    Controller --> Backend : Erreur serveur
-    Backend --> Frontend : Transaction échouée
-    Frontend -> User : Afficher l'erreur
 end
 
 @enduml
