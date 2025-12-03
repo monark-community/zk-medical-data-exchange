@@ -1,16 +1,3 @@
-/**
- * Shared Medical Data Value Constants
- * Centralized definitions for all medical data value mappings
- * Used across: Study criteria, ZK proofs, Binning, FHIR parsing
- */
-
-// ========================================
-// CORE VALUE MAPPINGS
-// ========================================
-
-/**
- * Gender value mappings
- */
 export const GENDER_VALUES = {
   MALE: 1,
   FEMALE: 2,
@@ -19,9 +6,6 @@ export const GENDER_VALUES = {
   ANY: 0,
 } as const;
 
-/**
- * Smoking status value mappings
- */
 export const SMOKING_VALUES = {
   NEVER_SMOKED: 0,
   CURRENT_SMOKER: 1,
@@ -29,9 +13,6 @@ export const SMOKING_VALUES = {
   ANY: 3,
 } as const;
 
-/**
- * Geographic region value mappings
- */
 export const REGION_VALUES = {
   NORTH_AMERICA: 1,
   EUROPE: 2,
@@ -43,9 +24,6 @@ export const REGION_VALUES = {
   CENTRAL_AMERICA: 8,
 } as const;
 
-/**
- * Blood type value mappings
- */
 export const BLOOD_TYPE_VALUES = {
   O_POSITIVE: 1,
   O_NEGATIVE: 2,
@@ -57,9 +35,6 @@ export const BLOOD_TYPE_VALUES = {
   AB_NEGATIVE: 8,
 } as const;
 
-/**
- * Physical activity level value mappings
- */
 export const ACTIVITY_LEVEL_VALUES = {
   SEDENTARY: 1,
   LIGHTLY_ACTIVE: 2,
@@ -68,9 +43,6 @@ export const ACTIVITY_LEVEL_VALUES = {
   EXTREMELY_ACTIVE: 5,
 } as const;
 
-/**
- * Diabetes status value mappings
- */
 export const DIABETES_VALUES = {
   NO_DIABETES: 0,
   TYPE_1: 1,
@@ -80,9 +52,6 @@ export const DIABETES_VALUES = {
   ANY_TYPE: 5,
 } as const;
 
-/**
- * Heart disease status value mappings
- */
 export const HEART_DISEASE_VALUES = {
   NO_HISTORY: 0,
   PREVIOUS_HEART_ATTACK: 1,
@@ -91,10 +60,6 @@ export const HEART_DISEASE_VALUES = {
   CURRENT_CONDITION: 4,
   ANY: 5,
 } as const;
-
-// ========================================
-// TYPE EXPORTS
-// ========================================
 
 export type GenderValue = (typeof GENDER_VALUES)[keyof typeof GENDER_VALUES];
 export type SmokingValue = (typeof SMOKING_VALUES)[keyof typeof SMOKING_VALUES];
