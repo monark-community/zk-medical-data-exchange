@@ -143,7 +143,15 @@ export default function DataSellerStudiesSection() {
       }
     } catch (error: any) {
       console.error("Error during study application:", error);
-      showError("Unable to join study. Please ensure you have uploaded all required medical data categories.");
+      
+      const errorMessage = error.message || error.toString();
+      const enhancedError = errorMessage.includes("not eligible") || errorMessage.includes("Not Eligible")
+        ? `Not Eligible.\n\nYour medical data doesn't meet this study's requirements.`
+        : errorMessage.includes("No medical data")
+        ? `No Medical Data.\n\nPlease upload your medical records before applying to studies.\n\nTip: Go to Profile → Upload Medical Data`
+        : `Not Eligible.\n\nYou don't meet the requirements for this study.`;
+      
+      showError(enhancedError);
     } finally {
       setApplyingStudyId(null);
     }
@@ -182,7 +190,9 @@ export default function DataSellerStudiesSection() {
       }
     } catch (error) {
       console.error("Failed to revoke consent:", error);
-      showError("Unable to revoke consent. Please try again in a moment.");
+      showError(
+        `Consent Revocation Failed.\n\nUnable to revoke consent. Please try again in a moment.`
+      );
     } finally {
       setRevokingStudyId(null);
     }
@@ -221,7 +231,23 @@ export default function DataSellerStudiesSection() {
       }
     } catch (error) {
       console.error("Failed to grant consent:", error);
-      showError("Unable to grant consent. Please try again in a moment.");
+
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      if (errorMessage.includes("full") || errorMessage.includes("Full")) {
+        showError(
+          "Study Full.\n\n" +
+          "This study has reached its maximum number of active participants."
+        );
+      } else if (errorMessage.includes("already active") || errorMessage.includes("already granted")) {
+        showError(
+          "Already Active.\n\n" +
+          "You have already granted consent for this study."
+        );
+      } else {
+        showError(
+          `Consent Failed.\n\nUnable to grant consent. Please try again in a moment.`
+        );
+      }
     } finally {
       setGrantingStudyId(null);
     }
