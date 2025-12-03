@@ -55,6 +55,8 @@ const statusOptions = [
 import eventBus from "@/lib/eventBus";
 import { useTxStatusState } from "@/hooks/useTxStatus";
 import { scaleMedicalData } from "@zk-medical/shared";
+import { CustomConfirmAlert } from "@/components/alert/CustomConfirmAlert";
+import { CheckCircle, Info } from "lucide-react";
 
 type ViewMode = "enrolled" | "available";
 
@@ -71,6 +73,8 @@ export default function DataSellerStudiesSection() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
   const [selectedStatusFilters, setSelectedStatusFilters] = useState<string[]>(["active"]);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [pendingStudyId, setPendingStudyId] = useState<number | null>(null);
 
   useEffect(() => {
     if (walletAddress) {
@@ -104,6 +108,16 @@ export default function DataSellerStudiesSection() {
       return;
     }
 
+    setPendingStudyId(studyId);
+    setShowConfirmDialog(true);
+  };
+
+  const handleConfirmApply = async () => {
+    const studyId = pendingStudyId;
+    if (!studyId || !walletAddress) return;
+
+    setShowConfirmDialog(false);
+    setPendingStudyId(null);
     setApplyingStudyId(studyId);
 
     try {
@@ -512,6 +526,59 @@ export default function DataSellerStudiesSection() {
           </StudiesContainer>
         </div>
       )}
+
+      {/* Confirmation Dialog */}
+      <CustomConfirmAlert
+        open={showConfirmDialog}
+        onOpenChange={setShowConfirmDialog}
+        alertTitle="Application Confirmation"
+        description={
+          <div className="space-y-4 text-left">
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+              <div className="flex items-start gap-2">
+                <Info className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                <div className="space-y-2">
+                  <p className="font-semibold text-amber-900">
+                    Important: You can only apply once
+                  </p>
+                  <p className="text-sm text-amber-800">
+                    Once you apply to this study, you will not be able to submit a new application.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex items-start gap-2">
+                <CheckCircle className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                <div className="space-y-2">
+                  <p className="font-semibold text-blue-900">
+                    Verify your medical information
+                  </p>
+                  <p className="text-sm text-blue-800">
+                    Please ensure all required medical information for this study is available in your profile:
+                  </p>
+                  <ul className="text-sm text-blue-800 list-disc list-inside space-y-1 ml-2">
+                    <li>Demographics (age, gender)</li>
+                    <li>Relevant medical history</li>
+                    <li>Required medical test results</li>
+                    <li>Any other study-specific information</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <p className="text-sm text-gray-600">
+              Are you sure you want to proceed with your application?
+            </p>
+          </div>
+        }
+        onConfirm={handleConfirmApply}
+        onCancel={() => {
+          setPendingStudyId(null);
+          setShowConfirmDialog(false);
+        }}
+      />
     </div>
   );
 }
