@@ -84,8 +84,7 @@ export const getAggregatedMedicalData = async (
     if (Object.keys(consolidatedData).length === 0) {
       if (errors.length === medicalDataCIDs.length) {
         throw new Error(
-          `Failed to decrypt all medical data records (${errors.length} total). ` +
-            `First error: ${errors[0].error.message}`
+          "Unable to access your medical records at the moment. Please try again."
         );
       }
       console.warn("No valid medical data extracted after processing all FHIR resources");

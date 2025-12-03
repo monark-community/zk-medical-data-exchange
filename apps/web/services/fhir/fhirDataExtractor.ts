@@ -465,10 +465,8 @@ export const validateFHIRData = (fhirData: any): { isValid: boolean; errors: str
         "FHIR data must contain at least Patient demographics or medical Observations/Conditions"
       );
     }
-  } catch (error) {
-    errors.push(
-      `FHIR validation error: ${error instanceof Error ? error.message : "Unknown error"}`
-    );
+  } catch {
+    errors.push("Invalid medical data format. Please ensure you're uploading a valid medical record.");
   }
 
   return {

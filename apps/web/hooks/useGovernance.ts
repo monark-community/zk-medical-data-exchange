@@ -17,7 +17,7 @@ export function useGovernance() {
       setStats(governanceStats);
     } catch (error) {
       console.error("Failed to fetch governance stats:", error);
-      setError(error instanceof Error ? error.message : "Failed to fetch governance stats");
+      setError("Unable to load governance information. Please refresh the page.");
       setStats(null);
     } finally {
       setIsLoading(false);
