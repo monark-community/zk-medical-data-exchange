@@ -89,6 +89,7 @@ export const HEART_DISEASE_VALUES = {
   CARDIOVASCULAR_CONDITION: 2,
   FAMILY_HISTORY: 3,
   CURRENT_CONDITION: 4,
+  ANY: 5,
 } as const;
 
 // ========================================

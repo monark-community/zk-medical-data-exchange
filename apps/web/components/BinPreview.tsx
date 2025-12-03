@@ -1,9 +1,9 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { BinConfiguration, BinType, DataBin } from "@zk-medical/shared";
 import { Card } from "@/components/ui/card";
-import { BarChart3, Users, Shield, AlertCircle } from "lucide-react";
+import { BarChart3, Users, Shield, AlertCircle, ChevronDown, ChevronRight } from "lucide-react";
 
 interface BinPreviewProps {
   binConfig: BinConfiguration | null;
@@ -11,6 +11,20 @@ interface BinPreviewProps {
 }
 
 export function BinPreview({ binConfig, isGenerating }: BinPreviewProps) {
+  const [expandedFields, setExpandedFields] = useState<Set<string>>(new Set());
+
+  const toggleField = (field: string) => {
+    setExpandedFields((prev) => {
+      const next = new Set(prev);
+      if (next.has(field)) {
+        next.delete(field);
+      } else {
+        next.add(field);
+      }
+      return next;
+    });
+  };
+
   if (isGenerating) {
     return (
       <Card className="p-6 border-2 border-blue-200 bg-blue-50">
@@ -74,7 +88,7 @@ export function BinPreview({ binConfig, isGenerating }: BinPreviewProps) {
           </div>
         </div>
 
-        <div className="mt-4 pt-4 border-t border-green-200 grid grid-cols-3 gap-4">
+        <div className="mt-4 pt-4 border-t border-green-200 grid grid-cols-2 gap-4">
           <div className="text-center">
             <div className="text-2xl font-bold text-green-600">{totalBins}</div>
             <div className="text-xs text-gray-600 mt-1">Total Bins</div>
@@ -82,10 +96,6 @@ export function BinPreview({ binConfig, isGenerating }: BinPreviewProps) {
           <div className="text-center">
             <div className="text-2xl font-bold text-green-600">{fieldCount}</div>
             <div className="text-xs text-gray-600 mt-1">Data Fields</div>
-          </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-green-600">5</div>
-            <div className="text-xs text-gray-600 mt-1">K-Anonymity</div>
           </div>
         </div>
       </Card>
@@ -116,12 +126,6 @@ export function BinPreview({ binConfig, isGenerating }: BinPreviewProps) {
                   researchers
                 </span>
               </li>
-              <li className="flex items-start">
-                <span className="mr-2">•</span>
-                <span>
-                  Bins with less than 5 participants will be hidden for <strong>k-anonymity</strong>
-                </span>
-              </li>
             </ul>
           </div>
         </div>
@@ -133,40 +137,57 @@ export function BinPreview({ binConfig, isGenerating }: BinPreviewProps) {
           Bin Configuration Preview
         </h4>
 
-        <div className="space-y-6">
-          {Object.entries(binsByField).map(([field, bins]) => (
-            <div key={field} className="space-y-2">
-              <div className="flex items-center justify-between">
-                <h5 className="font-medium text-gray-700 capitalize">
-                  {field.replace(/([A-Z])/g, " $1").trim()}
-                </h5>
-                <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                  {bins.length} bins
-                </span>
-              </div>
+        <div className="space-y-2">
+          {Object.entries(binsByField).map(([field, bins]) => {
+            const isExpanded = expandedFields.has(field);
+            return (
+              <div key={field} className="border border-gray-200 rounded-lg overflow-hidden">
+                <button
+                  onClick={() => toggleField(field)}
+                  className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors"
+                >
+                  <div className="flex items-center space-x-3">
+                    {isExpanded ? (
+                      <ChevronDown className="h-4 w-4 text-gray-500" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4 text-gray-500" />
+                    )}
+                    <span className="font-medium text-gray-700 capitalize">
+                      {field.replace(/([A-Z])/g, " $1").trim()}
+                    </span>
+                  </div>
+                  <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                    {bins.length} {bins.length === 1 ? "bin" : "bins"}
+                  </span>
+                </button>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-                {bins.map((bin, idx) => (
-                  <div
-                    key={bin.id}
-                    className="p-3 bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-lg hover:border-blue-300 transition-colors"
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="text-xs font-medium text-gray-500 mb-1">
-                          {bin.type === BinType.RANGE ? "Range" : "Category"}
+                {isExpanded && (
+                  <div className="px-4 pb-4 pt-2 bg-gray-50 border-t border-gray-200">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                      {bins.map((bin, idx) => (
+                        <div
+                          key={bin.id}
+                          className="p-3 bg-white border border-gray-200 rounded-lg hover:border-blue-300 transition-colors"
+                        >
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="text-xs font-medium text-gray-500 mb-1">
+                                {bin.type === BinType.RANGE ? "Range" : "Category"}
+                              </div>
+                              <div className="text-sm font-semibold text-gray-900 leading-tight">
+                                {bin.label}
+                              </div>
+                            </div>
+                            <div className="text-xs text-gray-400 font-mono">#{idx + 1}</div>
+                          </div>
                         </div>
-                        <div className="text-sm font-semibold text-gray-900 leading-tight">
-                          {bin.label}
-                        </div>
-                      </div>
-                      <div className="text-xs text-gray-400 font-mono">#{idx + 1}</div>
+                      ))}
                     </div>
                   </div>
-                ))}
+                )}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </Card>
     </div>

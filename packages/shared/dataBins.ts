@@ -214,14 +214,17 @@ export const CATEGORICAL_LABELS: Record<string, Record<number, string>> = {
     [DIABETES_VALUES.NO_DIABETES]: "No diabetes",
     [DIABETES_VALUES.TYPE_1]: "Type 1",
     [DIABETES_VALUES.TYPE_2]: "Type 2",
+    [DIABETES_VALUES.UNSPECIFIED]: "Unspecified",
+    [DIABETES_VALUES.PRE_DIABETES]: "Pre-diabetes",
     [DIABETES_VALUES.ANY_TYPE]: "Any",
   },
   heartDisease: {
     [HEART_DISEASE_VALUES.NO_HISTORY]: "No history",
-    [HEART_DISEASE_VALUES.PREVIOUS_HEART_ATTACK]: "Has history",
-    [HEART_DISEASE_VALUES.CURRENT_CONDITION]: "Has history",
-    [HEART_DISEASE_VALUES.FAMILY_HISTORY]: "Has history",
-    [HEART_DISEASE_VALUES.CARDIOVASCULAR_CONDITION]: "Has history",
+    [HEART_DISEASE_VALUES.PREVIOUS_HEART_ATTACK]: "Previous heart attack",
+    [HEART_DISEASE_VALUES.CARDIOVASCULAR_CONDITION]: "Cardiovascular condition",
+    [HEART_DISEASE_VALUES.FAMILY_HISTORY]: "Family history",
+    [HEART_DISEASE_VALUES.CURRENT_CONDITION]: "Current condition",
+    [HEART_DISEASE_VALUES.ANY]: "Any",
   },
 };
 
