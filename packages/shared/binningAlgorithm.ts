@@ -14,6 +14,14 @@ import type {
 } from "./dataBins";
 import type { StudyCriteria } from "./studyCriteria";
 
+import {
+  BLOOD_TYPE_VALUES,
+  GENDER_VALUES,
+  SMOKING_VALUES,
+  DIABETES_VALUES,
+  HEART_DISEASE_VALUES,
+} from "./constants/valueConstants";
+
 export function generateBinsFromCriteria(
   criteria: StudyCriteria,
   config: Partial<BinGenerationConfig> = {}
@@ -251,17 +259,22 @@ function getCategoryLabelMap(field: BinnableField): Record<number, string> {
 function getAllPossibleCategories(field: BinnableField): number[] {
   switch (field) {
     case BinnableField.BLOOD_TYPE:
-      return [1, 2, 3, 4, 5, 6, 7, 8];
+      return Object.values(BLOOD_TYPE_VALUES).filter(v => typeof v === 'number') as number[];
     case BinnableField.GENDER:
-      return [1, 2];
+      return [GENDER_VALUES.MALE, GENDER_VALUES.FEMALE];
     case BinnableField.REGION:
-      return [1, 2, 3, 4, 5, 6];
+      return Object.keys(REGION_LABELS).map(Number);
     case BinnableField.SMOKING_STATUS:
-      return [0, 1, 2];
+      return [SMOKING_VALUES.NEVER_SMOKED, SMOKING_VALUES.CURRENT_SMOKER, SMOKING_VALUES.FORMER_SMOKER];
     case BinnableField.DIABETES_STATUS:
-      return [0, 1, 2];
+      return [DIABETES_VALUES.NO_DIABETES, DIABETES_VALUES.TYPE_1, DIABETES_VALUES.TYPE_2, DIABETES_VALUES.PRE_DIABETES];
     case BinnableField.HEART_DISEASE:
-      return [0, 1];
+      return [
+        HEART_DISEASE_VALUES.NO_HISTORY,
+        HEART_DISEASE_VALUES.PREVIOUS_HEART_ATTACK,
+        HEART_DISEASE_VALUES.CARDIOVASCULAR_CONDITION,
+        HEART_DISEASE_VALUES.FAMILY_HISTORY,
+      ];
     default:
       return [];
   }
