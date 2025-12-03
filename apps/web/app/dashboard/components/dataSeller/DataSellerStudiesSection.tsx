@@ -17,8 +17,10 @@ import {
   revokeStudyConsent,
   grantStudyConsent,
   getStudyDetails,
+  getStudiesEligibility,
 } from "@/services/api/studyService";
 import { checkEligibility } from "@/services/zk/zkProofGenerator";
+import { apiClient } from "@/services/core/apiClient";
 import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
@@ -62,7 +64,7 @@ type ViewMode = "enrolled" | "available";
 
 export default function DataSellerStudiesSection() {
   const { address: walletAddress } = useAccount();
-  const { studies, isLoading, error, refetch } = useStudies(undefined, true);
+  const { studies, isLoading, error, refetch } = useStudies(walletAddress, true);
   const [applyingStudyId, setApplyingStudyId] = useState<number | null>(null);
   const [revokingStudyId, setRevokingStudyId] = useState<number | null>(null);
   const [grantingStudyId, setGrantingStudyId] = useState<number | null>(null);
@@ -75,6 +77,11 @@ export default function DataSellerStudiesSection() {
   const [selectedStatusFilters, setSelectedStatusFilters] = useState<string[]>(["active"]);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [pendingStudyId, setPendingStudyId] = useState<number | null>(null);
+  const [blockedStudies, setBlockedStudies] = useState<Set<number>>(new Set());
+  const [eligibilityLoading, setEligibilityLoading] = useState(false);
+  const [studiesEligibility, setStudiesEligibility] = useState<
+    Record<number, { canApply: boolean }>
+  >({});
 
   useEffect(() => {
     if (walletAddress) {
@@ -87,6 +94,19 @@ export default function DataSellerStudiesSection() {
       setEnrolledStudies([]);
     }
   }, [walletAddress]);
+
+  useEffect(() => {
+    if (walletAddress && studies.length > 0) {
+      const studyIds = studies.map((s) => s.id);
+      setEligibilityLoading(true);
+      getStudiesEligibility(walletAddress, studyIds)
+        .then((eligibility) => {
+          setStudiesEligibility(eligibility);
+        })
+        .catch((error) => console.error("Failed to fetch eligibility:", error))
+        .finally(() => setEligibilityLoading(false));
+    }
+  }, [walletAddress, studies]);
 
   useEffect(() => {
     eventBus.on("studyCreated", refetch);
@@ -121,9 +141,9 @@ export default function DataSellerStudiesSection() {
     setApplyingStudyId(studyId);
 
     try {
-      show("Step 1/5: Starting study application process...");
+      show("Step 1/6: Starting study application process...");
 
-      show("Step 2/5: Retrieving your encrypted medical data from IPFS...");
+      show("Step 2/6: Retrieving your encrypted medical data from IPFS...");
       const data = await getAggregatedMedicalData(walletAddress);
 
       console.log("Aggregated medical data retrieved for study application:", data);
@@ -132,7 +152,7 @@ export default function DataSellerStudiesSection() {
         throw new Error("No medical data found. Please upload your medical records first.");
       }
 
-      show("Step 3/5: Preparing zero-knowledge proof inputs...");
+      show("Step 3/6: Preparing zero-knowledge proof inputs...");
       const zkReadyMedicalData = convertToZkReady(data);
 
       const scaledData = scaleMedicalData(zkReadyMedicalData);
@@ -142,26 +162,44 @@ export default function DataSellerStudiesSection() {
         throw new Error("Invalid medical data format. Please check your uploaded records.");
       }
 
-      show("Checking your eligibility for this study...");
+      show("Step 4/6: Checking your eligibility for this study...");
       const studyDetails = await getStudyDetails(studyId);
       const isEligible = checkEligibility(scaledData, studyDetails.eligibilityCriteria);
 
       if (!isEligible) {
+        setBlockedStudies((prev) => new Set(prev).add(studyId));
+
+        apiClient
+          .post("/audit/log-failed-join", {
+            userAddress: walletAddress,
+            studyId: studyId.toString(),
+            reason: "Eligibility criteria not met",
+            errorDetails:
+              "User medical data does not match study requirements (pre-submission check)",
+            metadata: {
+              stage: "client_pre_check",
+              checkLocation: "DataSellerStudiesSection",
+            },
+          })
+          .then(() => {
+            console.log("Failed eligibility check logged to audit trail");
+          })
+          .catch((auditError) => {
+            console.error("Failed to log audit entry (non-critical):", auditError);
+          });
+
         throw new Error(
-          "Not Eligible\n\n" +
-          "Your medical data doesn't meet this study's requirements.\n\n"
+          "Not Eligible\n\n" + "Your medical data doesn't meet this study's requirements.\n\n"
         );
       }
 
-      show("Step 4/5: Generating ZK proof and cryptographic commitment (this may take 30-60s)...");
-      const result = await StudyApplicationService.applyToStudy(
-        studyId,
-        scaledData,
-        walletAddress
-      );
+      show("Step 5/6: Generating ZK proof and cryptographic commitment (this may take 30-60s)...");
+      const result = await StudyApplicationService.applyToStudy(studyId, scaledData, walletAddress);
 
       if (result.success) {
-        show(`Step 5/5: Success! ${result.message}\n\nYou can now view this study in your "Enrolled Studies" tab.`);
+        show(
+          `Step 6/6: Success! ${result.message}\n\nYou can now view this study in your "Enrolled Studies" tab.`
+        );
 
         refetch();
         if (walletAddress) {
@@ -174,14 +212,15 @@ export default function DataSellerStudiesSection() {
       }
     } catch (error: any) {
       console.error("Error during study application:", error);
-      
+
       const errorMessage = error.message || error.toString();
-      const enhancedError = errorMessage.includes("not eligible") || errorMessage.includes("Not Eligible")
-        ? `Not Eligible.\n\nYour medical data doesn't meet this study's requirements.`
-        : errorMessage.includes("No medical data")
-        ? `No Medical Data.\n\nPlease upload your medical records before applying to studies.\n\nTip: Go to Profile → Upload Medical Data`
-        : `Not Eligible.\n\nYou don't meet the requirements for this study.`;
-      
+      const enhancedError =
+        errorMessage.includes("not eligible") || errorMessage.includes("Not Eligible")
+          ? `Not Eligible.\n\nYour medical data doesn't meet this study's requirements.`
+          : errorMessage.includes("No medical data")
+          ? `No Medical Data.\n\nPlease upload your medical records before applying to studies.\n\nTip: Go to Profile → Upload Medical Data`
+          : `Not Eligible.\n\nYou don't meet the requirements for this study.`;
+
       showError(enhancedError);
     } finally {
       setApplyingStudyId(null);
@@ -211,7 +250,7 @@ export default function DataSellerStudiesSection() {
         if (result.blockchainTxHash) {
           console.log("Blockchain transaction:", result.blockchainTxHash);
         }
-        
+
         show("Step 2/3: Updating database records...");
         eventBus.emit("consentChanged");
         setEnrolledLoading(true);
@@ -221,7 +260,7 @@ export default function DataSellerStudiesSection() {
 
         show(
           "Step 3/3: Consent Revoked!\n\n" +
-          (result.blockchainTxHash ? `\n Tx: ${result.blockchainTxHash.slice(0, 10)}...` : "")
+            (result.blockchainTxHash ? `\n Tx: ${result.blockchainTxHash.slice(0, 10)}...` : "")
         );
       }
     } catch (error) {
@@ -257,7 +296,7 @@ export default function DataSellerStudiesSection() {
         if (result.blockchainTxHash) {
           console.log("Blockchain transaction:", result.blockchainTxHash);
         }
-        
+
         show("Step 2/3: Updating your study records...");
         eventBus.emit("consentChanged");
         setEnrolledLoading(true);
@@ -273,18 +312,15 @@ export default function DataSellerStudiesSection() {
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
       if (errorMessage.includes("full") || errorMessage.includes("Full")) {
         showError(
-          "Study Full.\n\n" +
-          "This study has reached its maximum number of active participants."
+          "Study Full.\n\n" + "This study has reached its maximum number of active participants."
         );
-      } else if (errorMessage.includes("already active") || errorMessage.includes("already granted")) {
-        showError(
-          "Already Active.\n\n" +
-          "You have already granted consent for this study."
-        );
+      } else if (
+        errorMessage.includes("already active") ||
+        errorMessage.includes("already granted")
+      ) {
+        showError("Already Active.\n\n" + "You have already granted consent for this study.");
       } else {
-        showError(
-          `Consent Failed.\n\nUnable to grant consent. Please try again in a moment.`
-        );
+        showError(`Consent Failed.\n\nUnable to grant consent. Please try again in a moment.`);
       }
     } finally {
       setGrantingStudyId(null);
@@ -465,27 +501,36 @@ export default function DataSellerStudiesSection() {
             </div>
           </div>
 
-          <div className="pt-6">
-            <StudiesContainer
-              isLoading={isLoading}
-              error={error}
-              studies={filteredStudies}
-              onRetry={refetch}
-              emptyState={{
-                title: "No studies match your filters",
-                description:
-                  "Try adjusting your search terms or filter requirements to see more studies.",
-              }}
-            >
-              <DataSellerStudiesList
-                studies={filteredStudies}
-                onApplyToStudy={handleApplyToStudy}
-                applyingStudyId={applyingStudyId}
-                walletAddress={walletAddress}
-                isTxProcessing={isTxProcessing}
-              />
-            </StudiesContainer>
-          </div>
+          <StudiesContainer
+            isLoading={isLoading}
+            error={error}
+            studies={filteredStudies}
+            onRetry={refetch}
+            emptyState={{
+              title: "No studies match your filters",
+              description:
+                "Try adjusting your search terms or filter requirements to see more studies.",
+            }}
+          >
+            <DataSellerStudiesList
+              studies={filteredStudies.map((study) => {
+                const eligibility = studiesEligibility[study.id];
+                const canApply = blockedStudies.has(study.id)
+                  ? false
+                  : eligibility?.canApply ?? study.canApply;
+
+                return {
+                  ...study,
+                  canApply,
+                };
+              })}
+              onApplyToStudy={handleApplyToStudy}
+              applyingStudyId={applyingStudyId}
+              walletAddress={walletAddress}
+              isTxProcessing={isTxProcessing}
+              eligibilityLoading={eligibilityLoading}
+            />
+          </StudiesContainer>
         </div>
       )}
 
@@ -540,9 +585,7 @@ export default function DataSellerStudiesSection() {
               <div className="flex items-start gap-2">
                 <Info className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
                 <div className="space-y-2">
-                  <p className="font-semibold text-amber-900">
-                    Important: You can only apply once
-                  </p>
+                  <p className="font-semibold text-amber-900">Important: You can only apply once</p>
                   <p className="text-sm text-amber-800">
                     Once you apply to this study, you will not be able to submit a new application.
                   </p>
@@ -554,11 +597,10 @@ export default function DataSellerStudiesSection() {
               <div className="flex items-start gap-2">
                 <CheckCircle className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
                 <div className="space-y-2">
-                  <p className="font-semibold text-blue-900">
-                    Verify your medical information
-                  </p>
+                  <p className="font-semibold text-blue-900">Verify your medical information</p>
                   <p className="text-sm text-blue-800">
-                    Please ensure all required medical information for this study is available in your profile:
+                    Please ensure all required medical information for this study is available in
+                    your profile:
                   </p>
                   <ul className="text-sm text-blue-800 list-disc list-inside space-y-1 ml-2">
                     <li>Demographics (age, gender)</li>
