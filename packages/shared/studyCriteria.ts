@@ -159,20 +159,19 @@ export function validateCriteria(criteria: StudyCriteria): { valid: boolean; err
     const effectiveMinSystolic =
       criteria.minSystolic === 0
         ? CRITERIA_DEFAULTS.bloodPressure.systolic.min
-        : criteria.minSystolic / 10;
+        : criteria.minSystolic;
     const effectiveMaxSystolic =
       criteria.maxSystolic === 0
         ? CRITERIA_DEFAULTS.bloodPressure.systolic.max
-        : criteria.maxSystolic / 10;
+        : criteria.maxSystolic;
     const effectiveMinDiastolic =
       criteria.minDiastolic === 0
         ? CRITERIA_DEFAULTS.bloodPressure.diastolic.min
-        : criteria.minDiastolic / 10;
+        : criteria.minDiastolic;
     const effectiveMaxDiastolic =
       criteria.maxDiastolic === 0
         ? CRITERIA_DEFAULTS.bloodPressure.diastolic.max
-        : criteria.maxDiastolic / 10;
-
+        : criteria.maxDiastolic;
     if (effectiveMinSystolic >= effectiveMaxSystolic) {
       errors.push("Blood Pressure: minSystolic must be less than maxSystolic");
     }

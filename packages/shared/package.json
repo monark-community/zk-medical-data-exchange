@@ -10,7 +10,9 @@
     "./studyCriteria": "./studyCriteria.ts",
     "./userProfile": "./userProfile.ts",
     "./dataBins": "./dataBins.ts",
-    "./binningAlgorithm": "./binningAlgorithm.ts"
+    "./binningAlgorithm": "./binningAlgorithm.ts",
+    "./scaleUtils": "./scaleUtils.ts",
+    "./medicalData": "./medicalData.ts"
   },
   "scripts": {
     "build": "tsc"

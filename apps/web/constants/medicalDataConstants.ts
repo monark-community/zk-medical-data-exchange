@@ -86,7 +86,7 @@ export const FHIR_ACTIVITY_LEVEL_SNOMED = {
   "160646008": ACTIVITY_LEVEL_VALUES.SEDENTARY, // Level 0 - No moderate/vigorous activity
   "267124003": ACTIVITY_LEVEL_VALUES.LIGHTLY_ACTIVE, // Level 1 - 1–4 mixed activity sessions in 4 weeks
   "160647004": ACTIVITY_LEVEL_VALUES.LIGHTLY_ACTIVE, // Level 1 - 1–4 mixed activity sessions in 4 weeks
-  "160648009": ACTIVITY_LEVEL_VALUES.LIGHTLY_ACTIVE, // Level 2 - 5–11 mixed activity sessions
+  "160648009": ACTIVITY_LEVEL_VALUES.MODERATELY_ACTIVE, // Level 2 - 5–11 mixed activity sessions
   "160649001": ACTIVITY_LEVEL_VALUES.MODERATELY_ACTIVE, // Level 3 - ≥12 moderate activity sessions
   "160650001": ACTIVITY_LEVEL_VALUES.VERY_ACTIVE, // Level 4 - ≥12 moderate/vigorous mixed sessions
   "267126001": ACTIVITY_LEVEL_VALUES.VERY_ACTIVE, // Level 4 - ≥12 moderate/vigorous mixed sessions
@@ -104,7 +104,7 @@ export const DIABETES_VALUES = {
   TYPE_2: 2,
   UNSPECIFIED: 3,
   PRE_DIABETES: 4,
-  ANY_TYPE: 5, // For study criteria only
+  ANY_TYPE: 5, 
 } as const;
 
 /**

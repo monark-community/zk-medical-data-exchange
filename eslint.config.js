@@ -21,6 +21,7 @@ export default [
       "**/*.test.tsx",
       "**/*.spec.ts",
       "**/*.spec.tsx",
+      "packages/smart-contracts/artifacts/**/*",
     ],
   },
   {
