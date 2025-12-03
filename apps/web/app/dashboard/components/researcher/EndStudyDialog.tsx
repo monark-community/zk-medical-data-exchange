@@ -100,7 +100,7 @@ export default function EndStudyDialog({
     } catch (error) {
       console.error("Failed to disperse ETH to participants:", error);
       setIsEnding(false);
-      useTxStatusState.getState().showError("Failed to disperse ETH. Please check your wallet connection and sufficient funds.");
+      useTxStatusState.getState().showError("Failed to disperse ETH. Please ensure you have sufficient balance and try again.");
       return;
     }
 

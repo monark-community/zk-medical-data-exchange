@@ -182,7 +182,7 @@ export default function DataSellerStudiesSection() {
       }
     } catch (error) {
       console.error("Failed to revoke consent:", error);
-      showError("Unable to revoke consent. Please check your wallet connection and try again.");
+      showError("Unable to revoke consent. Please try again in a moment.");
     } finally {
       setRevokingStudyId(null);
     }
@@ -221,7 +221,7 @@ export default function DataSellerStudiesSection() {
       }
     } catch (error) {
       console.error("Failed to grant consent:", error);
-      showError("Unable to grant consent. Please check your wallet connection and try again.");
+      showError("Unable to grant consent. Please try again in a moment.");
     } finally {
       setGrantingStudyId(null);
     }

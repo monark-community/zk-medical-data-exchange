@@ -67,7 +67,7 @@ export default function UploadSection({
         console.log("Uploading file:", file.name);
       } catch (error) {
         console.error("Failed to upload medical data:", error);
-        useTxStatusState.getState().showError("Failed to upload medical data.");
+        useTxStatusState.getState().showError("Failed to upload medical data. Please check your file format and try again.");
       }
     }
   };
@@ -203,7 +203,7 @@ export default function UploadSection({
                       console.error("Upload failed:", error);
                       useTxStatusState
                         .getState()
-                        .showError("Failed to upload medical data. Please check your file format and try again.");
+                        .showError("Failed to upload medical data. Please try again in a moment.");
                     } finally {
                       setUploading(false);
                     }
