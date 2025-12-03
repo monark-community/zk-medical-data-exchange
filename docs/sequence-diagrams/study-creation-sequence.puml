@@ -4,70 +4,100 @@
 title Cura - Diagramme de Séquence : Création d'Étude
 
 actor "Chercheur" as Researcher
-participant "Interface Web\n(StudyCreationForm)" as Frontend
+participant "Interface Web\n(Next.js)" as Frontend
 participant "API Backend\n(Express)" as Backend
-participant "Middleware JWT\n(Validation)" as JWTMiddleware
+participant "studyController" as Controller
+participant "studyService" as Service
 participant "Base de Données\n(Supabase)" as Database
-participant "Service Blockchain\n(BlockchainService)" as Blockchain
-participant "Smart Contract\n(StudyFactory)" as Factory
-participant "Contrat Study\n(Déployé)" as StudyContract
+participant "GovernanceFactory\n(Blockchain)" as Factory
+participant "Study\n(Smart Contract)" as StudyContract
 
-== Phase de Saisie ==
-Researcher -> Frontend : Clic "Créer une étude"
-Researcher -> Frontend : Saisie titre, description, critères
-Frontend -> Frontend : Validation côté client
-Researcher -> Frontend : Soumission formulaire
+== Création de l'étude ==
+Researcher -> Frontend : Créer une nouvelle étude
+activate Frontend
+Frontend -> Frontend : Valider les champs du formulaire
+Researcher -> Frontend : Soumettre les informations
 
-== Phase de sauvegarde en Base de données ==
-Frontend -> Backend : POST /api/studies
-note right
-Authorization: Bearer <JWT_TOKEN>
-Body: { title, description, 
-maxParticipants, criteria,
-walletAddress }
-end note
+Frontend -> Backend : Créer l'étude (statut brouillon)
+activate Backend
 
-Backend -> JWTMiddleware : Validation JWT token
-JWTMiddleware -> Backend : Token valide + user info
-Backend -> Backend : Validation critères + autorisation
-Backend -> Database : INSERT studies (status='draft')
-Database -> Backend : Retour study_id
-Backend -> Frontend : Réponse { study: {...} }
+ref over Backend
+    Validation de la session utilisateur
+    (voir ref "Session Validation")
+end ref
 
-== Phase de déploiement Blockchain ==
-Frontend -> Backend : POST /api/studies/{id}/deployment
-note right
-Authorization: Bearer <JWT_TOKEN>
-end note
-Backend -> JWTMiddleware : Validation JWT token
-JWTMiddleware -> Backend : Token valide + user info
-Backend -> Blockchain : deployStudy(studyParams)
-Blockchain -> Factory : createStudy(title, criteria, zkVerifier, ...)
-Factory -> StudyContract : new Study(title, maxParticipants, criteria, zkVerifier)
-note right
-Déploie un contrat Study individuel
-avec les critères d'éligibilité ZK
-end note
-StudyContract -> Factory : Retour address(Study)
-Factory -> Blockchain : event StudyCreated(studyId, studyAddress)
-Blockchain -> Backend : { studyId, studyAddress, txHash }
-Backend -> Database : UPDATE (status='active', contract_address, tx_hash)
-Backend -> Frontend : Réponse déploiement
-Frontend -> Researcher : Confirmation avec lien Etherscan
+Backend -> Controller : createStudy(title, criteria, maxParticipants, ...)
+activate Controller
 
-== Gestion d'Erreurs ==
-alt Token JWT invalide/expiré
-    JWTMiddleware -> Backend : Erreur 401 - Non autorisé
-    Backend -> Frontend : HTTP 401 - Token invalide
-    Frontend -> Researcher : "Session expirée, reconnectez-vous"
-else Échec déploiement blockchain
-    Blockchain -> Backend : Erreur déploiement
-    Backend -> Database : DELETE study (rollback)
-    Backend -> Frontend : Erreur 500
-    Frontend -> Researcher : "Déploiement échoué, réessayez"
-else Erreur validation
-    Backend -> Frontend : HTTP 400 - Critères invalides
-    Frontend -> Researcher : Message d'erreur
+Controller -> Controller : validateCriteria(eligibilityCriteria)
+
+alt Critères invalides
+    Controller --> Backend : Erreur validation
+    Backend --> Frontend : Critères invalides
+    deactivate Backend
+    Frontend --> Researcher : Erreur de validation
+    deactivate Controller
+    deactivate Frontend
+else Critères valides
+    Controller -->> Database : Enregistrer l'étude (status='draft') [async]
+    activate Database
+    Database -->> Controller : Étude créée avec ID
+    deactivate Database
+    
+    Controller -->> Controller : auditService.logStudyCreation() [async]
+    
+    Controller --> Backend : Étude créée
+    deactivate Controller
+    Backend --> Frontend : Étude en brouillon
+    deactivate Backend
+    Frontend --> Researcher : Étude sauvegardée
+    deactivate Frontend
 end
+
+== Déploiement sur la blockchain ==
+Researcher -> Frontend : Déployer l'étude sur la blockchain
+activate Frontend
+Frontend -> Backend : Déployer l'étude
+activate Backend
+
+ref over Backend
+    Validation de la session utilisateur
+    (voir ref "Session Validation")
+end ref
+
+Backend -> Controller : deployStudy(studyId)
+activate Controller
+
+Controller -->> Database : Récupérer les détails de l'étude [async]
+activate Database
+Database -->> Controller : Informations de l'étude
+deactivate Database
+
+Controller -> Service : deployStudy(studyParams)
+activate Service
+
+Service -> Service : formatCriteriaForContract(criteria)
+Service -->> Factory : createStudy(title, criteria, zkVerifier) [async]
+activate Factory
+Factory -> StudyContract : Déployer nouveau contrat Study
+activate StudyContract
+StudyContract --> Factory : Adresse du contrat
+deactivate StudyContract
+Factory -->> Service : StudyCreated event + adresse
+deactivate Factory
+Service --> Controller : Déploiement réussi
+deactivate Service
+
+Controller -->> Database : Mettre à jour (status='active', contract_address) [async]
+activate Database
+Database -->> Controller : Étude mise à jour
+deactivate Database
+
+Controller --> Backend : Déploiement confirmé
+deactivate Controller
+Backend --> Frontend : Étude déployée
+deactivate Backend
+Frontend --> Researcher : Étude active sur la blockchain
+deactivate Frontend
 
 @enduml

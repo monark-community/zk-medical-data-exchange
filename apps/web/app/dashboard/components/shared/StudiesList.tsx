@@ -9,6 +9,7 @@ interface StudiesListProps {
   descriptionMaxLength?: number;
   showCriteriaLabel?: boolean;
   header?: React.ReactNode;
+  hideTemplateBadge?: boolean;
 }
 
 /**
@@ -22,6 +23,7 @@ export default function StudiesList({
   descriptionMaxLength = 80,
   showCriteriaLabel = false,
   header,
+  hideTemplateBadge = false,
 }: StudiesListProps) {
   return (
     <div className="p-2 sm:p-4">
@@ -44,6 +46,7 @@ export default function StudiesList({
             actionButtons={renderActionButtons(study)}
             descriptionMaxLength={descriptionMaxLength}
             showCriteriaLabel={showCriteriaLabel}
+            hideTemplateBadge={hideTemplateBadge}
           />
         ))}
       </div>

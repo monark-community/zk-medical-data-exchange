@@ -1,93 +1,121 @@
 @startuml Medical_Data_Upload_Sequence
 !theme plain
 
-title Cura - Diagramme de Séquence : Upload de Fichiers Médicaux FHIR sur IPFS
+title Cura - Diagramme de Séquence : Téléversement de Données Médicales FHIR
 
-actor "Patient" as Patient
+actor "Utilisateur" as User
 participant "Interface Web\n(Next.js)" as Frontend
+participant "UploadSection\n(Component)" as UploadComponent
+participant "Pinata\n(IPFS)" as IPFS
 participant "API Backend\n(Express)" as Backend
-participant "Stockage IPFS\n(Pinata)" as IPFS
+participant "medicalDataController" as Controller
 participant "Base de Données\n(Supabase)" as Database
 
-== Phase de Sélection de Fichiers ==
-Patient -> Frontend : Accès à la section "Mes Données Médicales"
-Frontend -> Frontend : Vérification authentification (JWT)
-Patient -> Frontend : Clic "Ajouter des fichiers médicaux"
-
-Patient -> Frontend : Sélection fichier(s) JSON FHIR
-note right
-Types FHIR acceptés:
-Patient, Condition, Observation,
-MedicationStatement, DiagnosticReport
-end note
-
-Frontend -> Frontend : Validation taille et extension fichier
+== Phase de Sélection ==
+User -> Frontend : Accéder aux données médicales
+activate Frontend
+ref over Frontend : Vérifier session utilisateur
+User -> UploadComponent : Cliquer sur "Upload Medical Data"
+activate UploadComponent
+UploadComponent -> User : Ouvrir sélecteur de fichiers
+deactivate UploadComponent
+User -> UploadComponent : Sélectionner fichier JSON
+activate UploadComponent
 
 == Phase de Validation FHIR ==
-Frontend -> Frontend : Lecture du contenu du fichier
-Frontend -> Frontend : Parsing JSON
-Frontend -> Frontend : Validation schéma FHIR R4
-note right
-Validation côté client:
-- Structure JSON valide
-- Champs obligatoires présents
-- Types de données conformes
-- Codes terminologiques valides
-- Références cohérentes
-end note
+UploadComponent -> UploadComponent : Lire le fichier
+activate UploadComponent
+deactivate UploadComponent
+UploadComponent -> UploadComponent : Vérifier la conformité FHIR
+activate UploadComponent
+deactivate UploadComponent
 
-alt Fichier FHIR valide
-    Frontend -> Frontend : Extraction métadonnées FHIR
-    Frontend -> Patient : Indication de validation réussie
-else Erreurs de validation FHIR
-    Frontend -> Patient : Affichage des erreurs avec suggestions
-    note right
-    Types d'erreurs possibles:
-    - Champs manquants
-    - Formats de dates incorrects
-    - Codes terminologiques invalides
-    - Structure non conforme
-    end note
+alt Fichier conforme
+    UploadComponent -> UploadComponent : Marquer comme valide
+    activate UploadComponent
+    deactivate UploadComponent
+    UploadComponent -> User : Afficher "FHIR Compliant"
+    deactivate UploadComponent
+else Fichier non conforme
+    UploadComponent -> UploadComponent : Marquer comme invalide
+    activate UploadComponent
+    deactivate UploadComponent
+    UploadComponent -> User : Afficher "Not Compliant"
+    deactivate UploadComponent
 end
 
-== Phase de Chiffrement ==
-alt Validation réussie
-    Patient -> Frontend : Confirmation d'upload
-    Frontend -> Frontend : Signature wallet pour générer clé AES
-    Frontend -> Frontend : Chiffrement du contenu FHIR
-    Frontend -> IPFS : Upload fichier chiffré
-    note right
-    Le backend ne voit jamais:
-    - Contenu FHIR original
-    - Clé AES
-    - Données déchiffrées
-    end note
-    
-    IPFS -> Frontend : CID du fichier stocké
-    Frontend -> Frontend : Chiffrement du CID
-    Frontend -> Backend : POST /api/medical-data {encryptedCid, resourceType}
-end
+== Phase de Chiffrement et Téléversement ==
+User -> UploadComponent : Confirmer l'envoi
+activate UploadComponent
+UploadComponent -> UploadComponent : Lire le contenu
+activate UploadComponent
+deactivate UploadComponent
+UploadComponent -> UploadComponent : Chiffrer les données
+activate UploadComponent
+deactivate UploadComponent
 
-== Phase de Sauvegarde ==
-Backend -> Database : INSERT INTO medical_data
-note right
-Sauvegarde métadonnées:
-encrypted_cid, resource_type,
-patient_wallet, upload_date
-end note
+UploadComponent -->> IPFS : Téléverser sur IPFS (async)
+activate IPFS
+IPFS -->> UploadComponent : Identifiant du fichier
+deactivate IPFS
 
-Backend -> Frontend : HTTP 201 - Upload réussi
-Frontend -> Patient : Notification de succès
+UploadComponent -> UploadComponent : Chiffrer l'identifiant
+activate UploadComponent
+deactivate UploadComponent
+
+UploadComponent -> Backend : Enregistrer les métadonnées
+activate Backend
+Backend -> Controller : Traiter la requête
+activate Controller
+
+Controller -->> Database : Sauvegarder dans la base (async)
+activate Database
+Database -->> Controller : Enregistrement réussi
+deactivate Database
+
+Controller -->> Controller : Enregistrer dans l'audit (async)
+activate Controller
+deactivate Controller
+
+Controller --> Backend : Données enregistrées
+deactivate Controller
+
+Backend --> UploadComponent : Succès
+deactivate Backend
+
+UploadComponent -> UploadComponent : Notifier le système
+activate UploadComponent
+deactivate UploadComponent
+
+UploadComponent -> User : Afficher confirmation
+deactivate UploadComponent
+deactivate Frontend
 
 == Gestion d'Erreurs ==
-alt Erreur validation/chiffrement
-    Frontend -> Patient : "Erreur de validation ou sécurisation"
-else Erreur stockage
-    IPFS -> Frontend : Échec de stockage
-    Frontend -> Patient : "Problème de stockage, réessayez"
+alt Validation échouée
+    UploadComponent -> UploadComponent : Vérifier la conformité
+    activate UploadComponent
+    UploadComponent -> UploadComponent : Bloquer l'envoi
+    deactivate UploadComponent
+    UploadComponent -> User : Fichier non conforme
+else Erreur téléversement IPFS
+    UploadComponent -->> IPFS : Téléverser sur IPFS (async)
+    activate UploadComponent
+    activate IPFS
+    IPFS -->> UploadComponent : Erreur de stockage
+    deactivate IPFS
+    UploadComponent -> User : Échec du téléversement
+    deactivate UploadComponent
 else Erreur sauvegarde
-    Backend -> Frontend : HTTP 500 - Erreur serveur
-    Frontend -> Patient : "Erreur de sauvegarde, réessayez"
+    Controller -->> Database : Sauvegarder dans la base (async)
+    activate Controller
+    activate Database
+    Database -->> Controller : Erreur d'enregistrement
+    deactivate Database
+    Controller --> Backend : Erreur serveur
+    deactivate Controller
+    Backend --> UploadComponent : Sauvegarde échouée
+    UploadComponent -> User : Afficher l'erreur
 end
 
 @enduml

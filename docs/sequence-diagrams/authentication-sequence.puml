@@ -1,78 +1,130 @@
 @startuml Authentication_Sequence
 !theme plain
 
-title Cura - Diagramme de Séquence : Authentification Web3Auth + MetaMask
+title Cura - Diagramme de Séquence : Authentification Web3Auth
 
 actor "Utilisateur" as User
 participant "Interface Web\n(Next.js)" as Frontend
-participant "Web3Auth SDK" as Web3Auth
-participant "MetaMask" as MetaMask
+participant "Web3Auth Modal" as Web3Auth
+participant "AuthJS JWKS\n(Web3Auth)" as AuthJS
 participant "API Backend\n(Express)" as Backend
+participant "web3AuthMiddleware" as Middleware
+participant "authController" as AuthController
+participant "userService" as UserService
 participant "Base de Données\n(Supabase)" as Database
-participant "JWT Service" as JWTService
 
 == Phase d'Initialisation ==
-User -> Frontend : Accès à la plateforme
-Frontend -> Frontend : Vérification état d'authentification
-Frontend -> Web3Auth : Initialisation Web3Auth SDK
+User -> Frontend : Accéder à l'application
+activate Frontend
+Frontend -> Frontend : Vérifier session existante
+activate Frontend
+deactivate Frontend
 
-== Phase de Connexion ==
-User -> Frontend : Clic "Se connecter"
-
-alt Connexion via Web3Auth Social Login
-    User -> Web3Auth : Sélection fournisseur (metamask disponible seulement)
-    Web3Auth -> Frontend : Wallet connecté + adresse
-else Connexion via MetaMask
-    User -> MetaMask : Demande connexion
-    MetaMask -> Frontend : Adresse wallet connectée
-end
-
-== Phase de Signature de Message ==
-Frontend -> Frontend : Génération message de signature unique
-note right
-Message unique avec timestamp
-et adresse wallet
-end note
-
-alt Via Web3Auth
-    Frontend -> Web3Auth : Demande signature du message
-    Web3Auth -> Frontend : Message signé
-else Via MetaMask
-    Frontend -> MetaMask : Demande signature
-    MetaMask -> Frontend : Message signé
+alt Aucune session active
+    Frontend -->> Web3Auth : Demander connexion (async)
+    activate Web3Auth
+    Web3Auth -->> Frontend : Connexion établie
+    deactivate Web3Auth
+    
+    Frontend -->> Web3Auth : Récupérer jeton d'identité (async)
+    activate Web3Auth
+    Web3Auth -->> Frontend : Jeton JWT
+    deactivate Web3Auth
 end
 
 == Phase de Vérification Backend ==
-Frontend -> Backend : POST /api/auth/verify {walletAddress, message, signature}
-Backend -> Backend : Vérification de la signature
+Frontend -> Backend : Envoyer jeton pour vérification
+activate Backend
+Backend -> Middleware : Vérifier jeton Web3Auth
+activate Middleware
 
-alt Signature valide
-    Backend -> Database : Vérification/création utilisateur
-    Database -> Backend : Données utilisateur
-    Backend -> JWTService : Génération JWT token
-    JWTService -> Backend : Token JWT signé
-    Backend -> Frontend : HTTP 200 {token, user}
-    Frontend -> User : Redirection vers dashboard
-else Signature invalide
-    Backend -> Frontend : HTTP 401 - Signature invalide
-    Frontend -> User : Message d'erreur
+Middleware -->> AuthJS : Obtenir clé de signature (async)
+activate AuthJS
+AuthJS -->> Middleware : Clé publique
+deactivate AuthJS
+
+Middleware -> Middleware : Valider jeton JWT
+activate Middleware
+deactivate Middleware
+
+alt Jeton valide
+    Middleware -> AuthController : Continuer
+    deactivate Middleware
+    
+    activate AuthController
+    AuthController -> UserService : Vérifier existence utilisateur
+    activate UserService
+    UserService -->> Database : Rechercher utilisateur (async)
+    activate Database
+    Database -->> UserService : Résultat
+    deactivate Database
+    UserService --> AuthController : Utilisateur existant
+    deactivate UserService
+    
+    alt Nouvel utilisateur
+        AuthController -> UserService : Créer utilisateur
+        activate UserService
+        UserService -->> Database : Insérer nouvel utilisateur (async)
+        activate Database
+        Database -->> UserService : Utilisateur créé
+        deactivate Database
+        UserService --> AuthController : Confirmation
+        deactivate UserService
+    end
+    
+    AuthController -> AuthController : Générer jeton de session
+    activate AuthController
+    deactivate AuthController
+    
+    AuthController --> Backend : Jeton de session
+    deactivate AuthController
+    
+    Backend --> Frontend : Authentification réussie
+    deactivate Backend
+    
+    Frontend -> Frontend : Enregistrer session
+    activate Frontend
+    deactivate Frontend
+    
+    Frontend -> User : Rediriger vers tableau de bord
+    deactivate Frontend
+    
+else Jeton invalide ou expiré
+    Middleware --> Backend : Échec validation
+    deactivate Middleware
+    Backend --> Frontend : Non autorisé
+    deactivate Backend
+    
+    Frontend -> User : Afficher erreur
+    deactivate Frontend
 end
 
 == Phase de Validation Continue ==
 loop Requêtes authentifiées
-    Frontend -> Backend : Requête API avec Authorization: Bearer <token>
-    Backend -> Backend : Validation du token JWT
-    alt Token valide
-        Backend -> Frontend : Réponse API
-    else Token invalidé
-        Backend -> Frontend : HTTP 401 - Token invalide
-        Frontend -> User : Redirection vers connexion
+    Frontend -> Backend : Requête avec jeton de session
+    activate Backend
+    ref over Backend : Valider jeton de session
+    
+    alt Jeton valide
+        Backend --> Frontend : Données demandées
+        deactivate Backend
+    else Jeton expiré ou invalide
+        Backend --> Frontend : Session expirée
+        deactivate Backend
+        Frontend -> User : Retour à l'accueil
     end
 end
 
 == Phase de Déconnexion ==
-User -> Frontend : Clic "Se déconnecter"
-Frontend -> Frontend : Suppression token local
-Frontend -> User : Redirection vers page d'accueil
+User -> Frontend : Cliquer sur déconnexion
+activate Frontend
+Frontend -->> Web3Auth : Déconnecter le portefeuille (async)
+activate Web3Auth
+deactivate Web3Auth
+Frontend -> Frontend : Supprimer session locale
+activate Frontend
+deactivate Frontend
+Frontend -> User : Retour à la page d'accueil
+deactivate Frontend
 
 @enduml
