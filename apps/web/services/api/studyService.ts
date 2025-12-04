@@ -316,7 +316,7 @@ export class StudyApplicationService {
         return {
           success: false,
           message:
-            "You don't meet the eligibility criteria for this study. Check console for details.",
+            "You don't meet the eligibility criteria for this study.",
         };
       }
 
