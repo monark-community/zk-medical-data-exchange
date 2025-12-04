@@ -4,6 +4,8 @@ import logger from "@/utils/logger";
 
 const GWEI = 1_000_000_000n;
 const DEFAULT_MAX_FEE = 40n * GWEI;
+const ABSOLUTE_MAX_FEE_CAP = 200n * GWEI;
+const ABSOLUTE_MAX_PRIORITY_CAP = 50n * GWEI;
 const MAX_MEMORY_SAMPLES = 10;
 const SLOW_CONFIRMATION_MS = 60_000;
 const VERY_SLOW_CONFIRMATION_MS = 90_000;
@@ -205,9 +207,31 @@ export async function buildPriorityFeeOverrides(
     maxFeePerGas = maxPriorityFeePerGas + minBuffer;
   }
 
+  // 🔒 Apply absolute caps to prevent excessive gas costs
+  const cappedMaxPriorityFee =
+    maxPriorityFeePerGas > ABSOLUTE_MAX_PRIORITY_CAP
+      ? ABSOLUTE_MAX_PRIORITY_CAP
+      : maxPriorityFeePerGas;
+
+  const cappedMaxFee = maxFeePerGas > ABSOLUTE_MAX_FEE_CAP ? ABSOLUTE_MAX_FEE_CAP : maxFeePerGas;
+
+  // Log warning if we hit the caps
+  if (maxPriorityFeePerGas > ABSOLUTE_MAX_PRIORITY_CAP || maxFeePerGas > ABSOLUTE_MAX_FEE_CAP) {
+    logger.warn(
+      {
+        calculatedMaxFeeGwei: convertToGwei(maxFeePerGas),
+        calculatedPriorityGwei: convertToGwei(maxPriorityFeePerGas),
+        cappedMaxFeeGwei: convertToGwei(cappedMaxFee),
+        cappedPriorityGwei: convertToGwei(cappedMaxPriorityFee),
+        multiplier: Number(multiplier),
+      },
+      "Gas fee calculation exceeded absolute caps - fees have been capped for safety"
+    );
+  }
+
   return {
-    maxFeePerGas,
-    maxPriorityFeePerGas,
+    maxFeePerGas: cappedMaxFee,
+    maxPriorityFeePerGas: cappedMaxPriorityFee,
   };
 }
 
