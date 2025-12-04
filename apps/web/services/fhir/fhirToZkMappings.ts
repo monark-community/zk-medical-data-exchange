@@ -260,7 +260,6 @@ export const fhirObservationToActivityZK = (
 ): number => {
   if (snomedCode) {
     const snomedMapped = fhirSnomedActivityLevelToZK(snomedCode);
-    console.log("Mapping activity level SNOMED code:", snomedCode, "to ZK value:", snomedMapped);
     if (snomedMapped !== undefined) return snomedMapped;
   }
 

@@ -10,11 +10,6 @@ async function main() {
   const publicClient = await viem.getPublicClient();
   const [deployer] = await viem.getWalletClients();
 
-  // Display deployment info
-  console.log(`   Network: Sepolia Testnet`);
-  console.log(`   Chain ID: ${await publicClient.getChainId()}`);
-  console.log(`   Deployer: ${deployer.account.address}`);
-
   // Check balance
   const balance = await publicClient.getBalance({ address: deployer.account.address });
   const balanceEth = Number(balance) / 1e18;

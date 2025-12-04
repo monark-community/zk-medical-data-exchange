@@ -18,7 +18,6 @@ export function useProposals() {
 
     try {
       const proposals = await getProposals(walletAddress);
-      console.log("Fetched proposals:", proposals);
       setProposals(proposals);
     } catch (error) {
       console.error("Failed to fetch proposals:", error);
@@ -58,7 +57,6 @@ export function useProposalsByWalletAddress() {
 
     try {
       const proposals = await getProposalsByWalletAddress(address);
-      console.log("Fetched proposals:", proposals);
       setProposals(proposals);
     } catch (error) {
       console.error("Failed to fetch proposals:", error);

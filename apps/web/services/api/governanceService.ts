@@ -60,6 +60,5 @@ export interface GovernanceStats {
 
 export const getStats = async (): Promise<GovernanceStats> => {
   const { data } = await apiClient.get(`/governance/stats`);
-  console.log("Governance stats response data:", data);
   return data.data;
 };

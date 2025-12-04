@@ -408,8 +408,6 @@ const StudyCreationForm = ({ onSuccess, isModal = false }: StudyCreationFormProp
         return;
       }
 
-      console.log("Creating study via API...");
-
       if (!isConnected || !walletAddress) {
         showError("Wallet not connected - Please connect your wallet to create a study");
         return;
@@ -432,14 +430,10 @@ const StudyCreationForm = ({ onSuccess, isModal = false }: StudyCreationFormProp
         binConfig
       );
 
-      console.log("Study created in database:", result);
-
       show(`Step 2/3: Deploying study to blockchain (ID: ${result.study.id})...`);
 
       try {
         const deployResult = await deployStudy(result.study.id);
-
-        console.log("Blockchain deployment successful:", deployResult);
 
         show(`Step 3/3: Finalizing deployment and configuring bins...`);
 
@@ -462,7 +456,6 @@ const StudyCreationForm = ({ onSuccess, isModal = false }: StudyCreationFormProp
 
         try {
           await deleteStudy(result.study.id, walletAddress!);
-          console.log("Study deleted from database due to deployment failure");
           eventBus.emit("studyDeleted");
         } catch (deleteError) {
           console.error("Failed to delete study after deployment failure:", deleteError);

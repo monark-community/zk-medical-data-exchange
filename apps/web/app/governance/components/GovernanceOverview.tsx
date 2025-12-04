@@ -8,7 +8,6 @@ import { useGovernance } from "@/hooks/useGovernance";
 const ui = GOVERNANCE_OVERVIEW_UI;
 const GovernanceOverview = () => {
   const { stats, isLoading } = useGovernance();
-  console.log("Governance stats in component:", stats);
   const governanceStats = {
     totalProposals: stats?.totalProposals ?? 0,
     nbActiveVoters: stats?.uniqueVoters ?? 0,

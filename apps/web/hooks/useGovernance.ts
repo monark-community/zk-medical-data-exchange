@@ -13,7 +13,6 @@ export function useGovernance() {
 
     try {
       const governanceStats = await getStats();
-      console.log("Fetched governance stats:", governanceStats);
       setStats(governanceStats);
     } catch (error) {
       console.error("Failed to fetch governance stats:", error);

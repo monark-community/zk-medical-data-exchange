@@ -60,7 +60,6 @@ export default function UploadSection({
         setChecking(false);
         setReadyToSend(isCompliant);
 
-        console.log("Uploading file:", file.name);
       } catch (error) {
         console.error("Failed to upload medical data:", error);
         useTxStatusState.getState().showError("Failed to upload medical data. Please check your file format and try again.");

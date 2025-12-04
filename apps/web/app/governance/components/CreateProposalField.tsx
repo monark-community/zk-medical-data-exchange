@@ -73,7 +73,6 @@ const CreateProposalField = ({ onSuccess }: CreateProposalFieldProps) => {
           const description = (
             document.getElementById("proposal-description") as HTMLTextAreaElement
           ).value;
-          console.log(`Creating proposal:`, { title, description, category, duration });
           if (!walletAddress) {
             showError("Wallet address not found. Please log in again.");
             return;
