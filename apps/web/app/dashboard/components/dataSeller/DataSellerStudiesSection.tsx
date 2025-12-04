@@ -185,7 +185,7 @@ export default function DataSellerStudiesSection() {
           ? `Not Eligible.\n\nYour medical data doesn't meet this study's requirements.`
           : errorMessage.includes("No medical data")
           ? `No Medical Data.\n\nPlease upload your medical records before applying to studies.\n\nTip: Go to Profile → Upload Medical Data`
-          : `Not Eligible.\n\nYou don't meet the requirements for this study.`;
+          : `Blockchain Error.\n\nPlease try again later.`;
 
       showError(enhancedError);
       refetch();
