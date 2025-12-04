@@ -1036,6 +1036,10 @@ class AuditService {
     });
   }
 
+
+  private static failedApplicationCache = new Map<string, { timestamp: number; reason: string }>();
+
+
   private convertBigIntToNumber(data: any): any {
     if (typeof data === "bigint") {
       return Number(data);

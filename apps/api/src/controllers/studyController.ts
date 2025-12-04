@@ -861,7 +861,9 @@ export const deployStudy = async (req: Request, res: Response) => {
 
 export const getStudies = async (req: Request, res: Response) => {
   try {
-    const { status, template, createdBy, page = 1, limit } = req.query;
+     logger.info({ walletAddress: req.query.walletAddress }, "GET /api/studies/ called");
+
+    const { status, template, createdBy, page = 1, limit, walletAddress } = req.query;
 
     let query = req.supabase
       .from(TABLES.STUDIES!.name)
@@ -895,6 +897,11 @@ export const getStudies = async (req: Request, res: Response) => {
       return res.status(500).json({ error: "Failed to fetch studies" });
     }
 
+    logger.info(
+      { studyCount: studies?.length || 0, walletAddress },
+      "Fetched studies from database"
+    );
+
     const transformedStudies = await Promise.all(
       (studies || []).map(async (study) => {
         study.current_participants = await updateStudyParticipantCount(
@@ -902,6 +909,7 @@ export const getStudies = async (req: Request, res: Response) => {
           study.id,
           study
         );
+        
         return transformStudyForResponse(study);
       })
     );
@@ -1927,6 +1935,63 @@ export const logStudyDataAccess = async (req: Request, res: Response) => {
         });
     }
 
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+export const getStudiesEligibility = async (req: Request, res: Response) => {
+  try {
+    const { walletAddress, studyIds } = req.query;
+
+    if (!walletAddress || typeof walletAddress !== "string") {
+      return res.status(400).json({ error: "walletAddress is required" });
+    }
+
+    if (!studyIds || typeof studyIds !== "string") {
+      return res.status(400).json({ error: "studyIds is required" });
+    }
+
+    const studyIdArray = studyIds.split(",").map(Number);
+    const normalizedWalletAddress = walletAddress.toLowerCase();
+
+    const { data: participations } = await req.supabase
+      .from(TABLES.STUDY_PARTICIPATIONS!.name)
+      .select(`${TABLES.STUDY_PARTICIPATIONS!.columns.studyId!}`)
+      .eq(TABLES.STUDY_PARTICIPATIONS!.columns.participantWallet!, normalizedWalletAddress)
+      .in(TABLES.STUDY_PARTICIPATIONS!.columns.studyId!, studyIdArray);
+
+    const enrolledStudyIds = new Set(participations?.map((p: any) => p.study_id) || []);
+
+    const nonEnrolledStudyIds = studyIdArray.filter(id => !enrolledStudyIds.has(id));
+
+    let blockedMap = new Map<number, { blocked: boolean; reason?: string }>();
+    const eligibility: Record<number, { canApply: boolean }> = {};
+
+    studyIdArray.forEach(studyId => {
+      blockedMap.set(studyId, { blocked: false });
+    });
+
+    const { data: dataCommitments } = await req.supabase
+            .from(TABLES.DATA_COMMITMENTS!.name)
+            .select(`${TABLES.DATA_COMMITMENTS!.columns.studyId!}`)
+            .eq(TABLES.DATA_COMMITMENTS!.columns.walletAddress!, normalizedWalletAddress)
+            .in(TABLES.DATA_COMMITMENTS!.columns.studyId!, nonEnrolledStudyIds);
+
+    dataCommitments?.forEach((dc: any) => {
+      if (blockedMap.has(dc.study_id)) {
+        blockedMap.set(dc.study_id, { blocked: true });
+      }
+    });
+    
+    studyIdArray.forEach(studyId => {
+      const isEnrolled = enrolledStudyIds.has(studyId);
+      const isBlocked = blockedMap.get(studyId)?.blocked ?? false;
+      eligibility[studyId] = { canApply: !isEnrolled && !isBlocked };
+    });
+
+    res.json({ eligibility });
+  } catch (error) {
+    logger.error({ error }, "Failed to get studies eligibility");
     res.status(500).json({ error: "Internal server error" });
   }
 };

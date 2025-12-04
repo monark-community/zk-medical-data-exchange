@@ -44,15 +44,6 @@ export const generateDataCommitment = (medicalData: ExtractedMedicalData, salt: 
     const challengeBigInt = BigInt(`0x${challengeHex}`);
 
     let finalCommitmentHash = poseidon4([commitment1, commitment2, BigInt(salt), challengeBigInt]);
-    console.log("Data commitment generated (with challenge):");
-    console.log("├─ Commitment 1 inputs:", commitment1Inputs);
-    console.log("├─ Commitment 1 hash:", commitment1.toString());
-    console.log("├─ Commitment 2 inputs:", commitment2Inputs);
-    console.log("├─ Commitment 2 hash:", commitment2.toString());
-    console.log("├─ Challenge (hex):", challenge);
-    console.log("├─ Challenge (bigint):", challengeBigInt.toString());
-    console.log("├─ Final inputs:", [commitment1.toString(), commitment2.toString(), salt.toString(), challengeBigInt.toString()]);
-    console.log("└─ Final commitment:", finalCommitmentHash.toString());
 
     return finalCommitmentHash;
   } catch (error) {

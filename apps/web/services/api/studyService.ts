@@ -26,6 +26,7 @@ export interface StudySummary {
   contractAddress?: string;
   isEnrolled?: boolean;
   hasConsented?: boolean;
+  canApply?: boolean;
   transactionHash?: string;
   criteriaSummary: {
     requiresAge: boolean;
@@ -106,12 +107,14 @@ export const getStudies = async (params?: {
   page?: number;
   limit?: number;
   createdBy?: string;
+  walletAddress?: string;
 }): Promise<StudyListResponse> => {
   const queryParams = new URLSearchParams();
   if (params?.status) queryParams.append("status", params.status);
   if (params?.page) queryParams.append("page", params.page.toString());
   if (params?.limit) queryParams.append("limit", params.limit.toString());
   if (params?.createdBy) queryParams.append("createdBy", params.createdBy);
+  if (params?.walletAddress) queryParams.append("walletAddress", params.walletAddress);
 
   const { data } = await apiClient.get(`/studies?${queryParams.toString()}`);
   return data;
@@ -127,6 +130,18 @@ export const getEnrolledStudies = async (walletAddress: string): Promise<StudySu
     }
     throw error;
   }
+};
+
+export const getStudiesEligibility = async (
+  walletAddress: string,
+  studyIds: number[]
+): Promise<Record<number, { canApply: boolean }>> => {
+  const queryParams = new URLSearchParams();
+  queryParams.append("walletAddress", walletAddress);
+  queryParams.append("studyIds", studyIds.join(","));
+
+  const { data } = await apiClient.get(`/studies/eligibility?${queryParams.toString()}`);
+  return data.eligibility;
 };
 
 export const getStudyDetails = async (studyId: number): Promise<StudyDetails> => {
@@ -254,7 +269,6 @@ export class StudyApplicationService {
         salt,
         challengeData.challenge
       );
-      console.log("Final data commitment (with challenge):", finalDataCommitment.toString());
 
       if (!window.ethereum) {
         throw new Error("MetaMask not found. Please install MetaMask to continue.");
@@ -302,7 +316,7 @@ export class StudyApplicationService {
         return {
           success: false,
           message:
-            "You don't meet the eligibility criteria for this study. Check console for details.",
+            "You don't meet the eligibility criteria for this study.",
         };
       }
 

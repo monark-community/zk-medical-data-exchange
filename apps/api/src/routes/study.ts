@@ -2,6 +2,7 @@ import { Router } from "express";
 import {
   createStudy,
   getStudies,
+  getStudiesEligibility,
   getStudyById,
   getStudyCriteria,
   updateStudy,
@@ -57,6 +58,50 @@ const router = Router();
  *         description: List of studies
  */
 router.get("/", getStudies);
+
+/**
+ * @swagger
+ * /studies/eligibility:
+ *   get:
+ *     summary: Check eligibility for multiple studies
+ *     description: Asynchronous endpoint to check if a user can apply to studies based on enrollment and blockchain audit trail
+ *     parameters:
+ *       - name: walletAddress
+ *         in: query
+ *         required: true
+ *         schema:
+ *           type: string
+ *           pattern: "^0x[a-fA-F0-9]{40}$"
+ *         description: User's wallet address
+ *         example: "0x742d35Cc6635C0532925a3b8D97C6b009af2af9f"
+ *       - name: studyIds
+ *         in: query
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Comma-separated study IDs
+ *         example: "1,2,3,4,5"
+ *     responses:
+ *       200:
+ *         description: Eligibility results for requested studies
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 eligibility:
+ *                   type: object
+ *                   additionalProperties:
+ *                     type: object
+ *                     properties:
+ *                       canApply:
+ *                         type: boolean
+ *       400:
+ *         description: Missing required parameters
+ *       500:
+ *         description: Internal server error
+ */
+router.get("/eligibility", getStudiesEligibility);
 
 /**
  * @swagger
