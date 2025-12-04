@@ -122,11 +122,6 @@ export const generateZKProof = async (
   binConfiguration?: BinConfiguration
 ): Promise<ZKProofResult> => {
   try {
-    console.log("Data commitment:", dataCommitment?.toString() || 'UNDEFINED');
-    console.log("Salt:", salt);
-    console.log("Challenge:", challenge);
-    console.log("Bin configuration:", binConfiguration);
-
     if (!dataCommitment) {
       throw new Error("dataCommitment is required but was undefined");
     }
@@ -141,23 +136,9 @@ export const generateZKProof = async (
       challenge,
       binConfiguration
     );
-    console.log("Circuit input prepared with commitment verification");
 
-    console.log("Loading circuit files...");
     const circuitWasm = await loadCircuitWasm();
     const provingKey = await loadProvingKey();
-    console.log(
-      "Both files loaded. circuitWasm type:",
-      typeof circuitWasm,
-      "| provingKey type:",
-      typeof provingKey
-    );
-
-    console.log("Generating ZK proof");
-    console.log("Calling snarkjs.groth16.fullProve with inputs");
-    console.log("├─ circuitInput:", circuitInput);
-    console.log("├─ circuitWasm type:", typeof circuitWasm);
-    console.log("└─ provingKey type:", typeof provingKey);
 
     const { proof, publicSignals } = await snarkjs.groth16.fullProve(
       circuitInput,
@@ -185,9 +166,6 @@ export const generateZKProof = async (
         proof.pi_c[1].toString(),
       ],
     };
-
-    console.log("ZK proof generated successfully!");
-    console.log("Public signals:", publicSignals);
 
     let binMembershipInfo;
     if (binConfiguration?.bins && binConfiguration.bins.length > 0) {
@@ -223,12 +201,6 @@ function prepareCircuitInput(
   challenge: string,
   binConfiguration?: BinConfiguration
 ): CircuitInput {
-    console.log("Preparing circuit input...");
-    console.log("├─ dataCommitment:", dataCommitment?.toString() || 'UNDEFINED');
-    console.log("├─ salt:", salt);
-    console.log("├─ medicalData (raw):", medicalData);
-    console.log("├─ challenge:", challenge);
-    console.log("└─ studyCriteria:", studyCriteria);
 
   return {
     age: medicalData.age.toString(),
@@ -666,13 +638,11 @@ export function checkEligibility(
     if (validation.enabled) {
       const result = validation.check();
       if (!result.isValid) {
-        console.log(`${result.fieldName} check failed:`, result.reason);
         return false;
       }
     }
   }
 
-  console.log("All eligibility checks passed!");
   return true;
 }
 
@@ -681,11 +651,9 @@ export function checkEligibility(
  * The WASM file contains the compiled circuit logic
  */
 async function loadCircuitWasm(): Promise<Uint8Array> {
-  console.log("Loading circuit.wasm...");
 
   try {
     const response = await fetch("/circuits/medical_eligibility.wasm");
-    console.log("Response status:", response.status, response.statusText);
 
     if (!response.ok) {
       throw new Error(`Failed to load circuit WASM: ${response.status} ${response.statusText}`);
@@ -693,17 +661,6 @@ async function loadCircuitWasm(): Promise<Uint8Array> {
 
     const arrayBuffer = await response.arrayBuffer();
     const uint8Array = new Uint8Array(arrayBuffer);
-    console.log(
-      "Circuit WASM loaded successfully:",
-      (uint8Array.byteLength / 1024).toFixed(2),
-      "KB"
-    );
-    console.log(
-      "Circuit WASM type:",
-      uint8Array.constructor.name,
-      "| Is Uint8Array:",
-      uint8Array instanceof Uint8Array
-    );
 
     return uint8Array;
   } catch (error) {
@@ -720,8 +677,6 @@ async function loadCircuitWasm(): Promise<Uint8Array> {
  * The proving key is used to generate the ZK proof
  */
 async function loadProvingKey(): Promise<Uint8Array> {
-  console.log("Loading proving key...");
-
   try {
     const response = await fetch("/circuits/medical_eligibility_0001.zkey");
 
@@ -731,17 +686,6 @@ async function loadProvingKey(): Promise<Uint8Array> {
 
     const arrayBuffer = await response.arrayBuffer();
     const uint8Array = new Uint8Array(arrayBuffer);
-    console.log(
-      "Proving key loaded successfully:",
-      (uint8Array.byteLength / 1024 / 1024).toFixed(2),
-      "MB"
-    );
-    console.log(
-      "Proving key type:",
-      uint8Array.constructor.name,
-      "| Is Uint8Array:",
-      uint8Array instanceof Uint8Array
-    );
 
     return uint8Array;
   } catch (error) {

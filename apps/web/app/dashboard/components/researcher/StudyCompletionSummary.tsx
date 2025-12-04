@@ -133,14 +133,9 @@ export default function StudyCompletionSummary({
   const handleAccessData = async () => {
     try {
       setLoadingData(true);
-      console.log("Accessing study data...");
-
-      // Log data access for audit trail
       await apiClient.post(`/studies/${studyId}/data-access`, {
         creatorWallet: creatorWallet,
       });
-
-      console.log("Data access logged successfully");
 
       onAccessData();
     } catch (error) {

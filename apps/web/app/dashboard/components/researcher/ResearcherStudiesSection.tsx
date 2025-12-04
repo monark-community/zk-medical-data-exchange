@@ -27,7 +27,6 @@ export default function ResearcherStudiesSection() {
   const { isVisible: isTxProcessing } = useTxStatusState();
 
   const handleStudyCreated = () => {
-    console.log("Study created successfully!");
     refetch();
   };
 
@@ -43,12 +42,9 @@ export default function ResearcherStudiesSection() {
 
   const performDeleteStudy = async (studyId: number) => {
     const study = studies.find((s) => s.id === studyId);
-    console.log(`Attempting to delete study ${studyId}: "${study?.title}"`);
-    console.log("Current studies count:", studies.length);
     setDeletingStudyId(studyId);
     try {
       await deleteStudy(studyId, walletAddress!);
-      console.log("Study deleted successfully from API!");
       refetch();
       eventBus.emit("studyDeleted");
     } catch (error: any) {

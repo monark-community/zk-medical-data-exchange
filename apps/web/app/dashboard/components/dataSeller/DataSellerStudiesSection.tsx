@@ -142,8 +142,6 @@ export default function DataSellerStudiesSection() {
       show("Step 2/6: Retrieving your encrypted medical data from IPFS...");
       const data = await getAggregatedMedicalData(walletAddress);
 
-      console.log("Aggregated medical data retrieved for study application:", data);
-
       if (!data || Object.keys(data).length === 0) {
         throw new Error("No medical data found. Please upload your medical records first.");
       }
@@ -153,7 +151,6 @@ export default function DataSellerStudiesSection() {
 
       const scaledData = scaleMedicalData(zkReadyMedicalData);
 
-      console.log("Converted medical data to scaled ZK-ready format:", scaledData);
       if (!scaledData) {
         throw new Error("Invalid medical data format. Please check your uploaded records.");
       }
@@ -211,16 +208,10 @@ export default function DataSellerStudiesSection() {
 
     try {
       show("Step 1/3: Revoking consent on blockchain...");
-      console.log("Revoking consent for study:", studyId);
 
       const result = await revokeStudyConsent(studyId, walletAddress);
 
       if (result.success) {
-        console.log("Consent revoked successfully!");
-        if (result.blockchainTxHash) {
-          console.log("Blockchain transaction:", result.blockchainTxHash);
-        }
-
         show("Step 2/3: Updating database records...");
         eventBus.emit("consentChanged");
         setEnrolledLoading(true);
@@ -257,16 +248,10 @@ export default function DataSellerStudiesSection() {
 
     try {
       show("Step 1/3: Granting consent on blockchain...");
-      console.log("Granting consent for study:", studyId);
 
       const result = await grantStudyConsent(studyId, walletAddress);
 
       if (result.success) {
-        console.log("Consent granted successfully!");
-        if (result.blockchainTxHash) {
-          console.log("Blockchain transaction:", result.blockchainTxHash);
-        }
-
         show("Step 2/3: Updating your study records...");
         eventBus.emit("consentChanged");
         setEnrolledLoading(true);

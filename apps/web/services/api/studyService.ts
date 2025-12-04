@@ -262,8 +262,6 @@ export class StudyApplicationService {
         throw new Error("Challenge generation failed.");
       }
 
-      console.log("Challenge received:", challengeData.challenge);
-
       const finalDataCommitment = generateDataCommitment(
         medicalData,
         salt,
@@ -297,7 +295,6 @@ export class StudyApplicationService {
       const isEligible = checkEligibility(medicalData, studyCriteria);
 
       if (!isEligible) {
-        console.log("Eligibility criteria not met. Logging failed attempt...");
         try {
           await apiClient.post("/audit/log-failed-join", {
             userAddress: walletAddress,
@@ -308,7 +305,6 @@ export class StudyApplicationService {
               stage: "client_eligibility_check",
             },
           });
-          console.log("Failed join attempt logged to audit trail");
         } catch (auditError) {
           console.error("Failed to log audit entry (non-critical):", auditError);
         }
@@ -319,8 +315,6 @@ export class StudyApplicationService {
             "You don't meet the eligibility criteria for this study.",
         };
       }
-
-      console.log("Eligibility confirmed! Proceeding with commitment and proof generation...");
 
       const proofResult = await generateZKProof(
         medicalData,
@@ -344,8 +338,6 @@ export class StudyApplicationService {
 
       await this.submitApplication(applicationRequest);
 
-      console.log("Study application completed successfully!");
-
       const eventBus = (await import("@/lib/eventBus")).default;
       eventBus.emit("studyJoinedSuccess");
 
@@ -367,7 +359,6 @@ export class StudyApplicationService {
             errorType: error instanceof Error ? error.constructor.name : "unknown",
           },
         });
-        console.log("Failed join attempt logged to audit trail");
       } catch (auditError) {
         console.error("Failed to log audit entry (non-critical):", auditError);
       }
@@ -380,10 +371,8 @@ export class StudyApplicationService {
   }
 
   private static async getStudyCriteria(studyId: number): Promise<StudyCriteria> {
-    console.log("Fetching criteria for study ID:", studyId);
     try {
       const response = await apiClient.get(`/studies/${studyId}/criteria`);
-      console.log("Study criteria fetched:", response.data);
       return response.data.studyCriteria;
     } catch (error) {
       console.error("Failed to fetch study criteria:", error);
@@ -395,8 +384,6 @@ export class StudyApplicationService {
     try {
       const response = await apiClient.post(`/studies/${request.studyId}/participants`, request);
 
-      console.log("Application submitted successfully! Status:", response.status);
-      console.log("Response data:", response.data);
     } catch (error) {
       console.error("Failed to submit application:", error);
 

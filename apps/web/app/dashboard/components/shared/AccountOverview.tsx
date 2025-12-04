@@ -20,7 +20,6 @@ const AccountOverview: React.FC<AccountOverviewProps> = ({ walletAddress }) => {
 
   useEffect(() => {
     const fetchStats = async () => {
-      console.log("Fetching user stats for wallet:", walletAddress, "and profile:", currentProfile);
       try {
         setLoading(true);
         const data = await getUserStats(walletAddress, currentProfile);

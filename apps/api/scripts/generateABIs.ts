@@ -89,14 +89,11 @@ function findContractFiles(dir: string): string[] {
 }
 
 function generateABIs(): void {
-  console.log("Generating contract ABIs...");
-
   if (!fs.existsSync(OUTPUT_DIR)) {
     fs.mkdirSync(OUTPUT_DIR, { recursive: true });
   }
 
   const contractFiles = findContractFiles(CONTRACTS_DIR);
-  console.log(`Found ${contractFiles.length} contract artifacts`);
 
   const abis: ABICollection = {};
   const contracts: ContractConfig[] = [
@@ -140,7 +137,6 @@ function generateABIs(): void {
     );
 
     if (contractFile) {
-      console.log(`Processing ${contract.name}...`);
       const abi = extractABI(contractFile);
 
       if (abi) {
@@ -171,8 +167,6 @@ function generateABIs(): void {
 
   fs.writeFileSync(OUTPUT_FILE, output);
 
-  console.log(`Contract ABIs generated successfully at ${OUTPUT_FILE}`);
-  console.log(`Generated ${Object.keys(abis).length} contract ABIs`);
 }
 
 try {

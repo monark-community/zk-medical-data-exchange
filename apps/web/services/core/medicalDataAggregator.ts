@@ -24,7 +24,6 @@ export const getAggregatedMedicalData = async (
   }
 
   try {
-    console.log("Retrieving medical data CIDs for wallet:", walletAddress);
     const medicalDataCIDs = await fetchCIDs(walletAddress);
 
     if (medicalDataCIDs.length === 0) {
@@ -34,15 +33,10 @@ export const getAggregatedMedicalData = async (
 
     let aesKey = getAESKey(walletAddress);
     if (!aesKey) {
-      console.log("AES key not found in cache for wallet:", walletAddress);
-      console.log("Deriving new key from wallet...");
       const walletKey = await deriveKeyFromWallet();
       aesKey = generateAESKey(walletKey);
       addAESKeyToStore(aesKey, walletAddress);
-      console.log("New AES key stored for wallet:", walletAddress);
-    } else {
-      console.log("Using cached AES key for wallet:", walletAddress);
-    }
+    } 
 
     const consolidatedData: AggregatedMedicalData = {};
     const errors: Array<{ cid: string; error: Error }> = [];
@@ -56,7 +50,6 @@ export const getAggregatedMedicalData = async (
         validateFHIR(parsed);
         const fhirResource: FHIRDatatype = parsed as FHIRDatatype;
         const aggregatedData: AggregatedMedicalData = extractFHIRData(fhirResource);
-        console.log(`Aggregated ressource`, aggregatedData);
 
         mergeAggregatedData(consolidatedData, aggregatedData);
         successCount++;
@@ -69,10 +62,6 @@ export const getAggregatedMedicalData = async (
         );
       }
     }
-
-    console.log(
-      `Processed ${medicalDataCIDs.length} CIDs: ${successCount} succeeded, ${errors.length} failed`
-    );
 
     if (errors.length > 0) {
       console.warn(

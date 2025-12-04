@@ -102,14 +102,7 @@ export default function AggregatedDataView({
     setLoading(true);
     setError(null);
     try {
-      console.log('[AGGREGATED_DATA] Fetching data for study:', studyId);
       const result = await getAggregatedData(studyId, creatorWallet);
-      console.log('[AGGREGATED_DATA] Received data:', {
-        totalParticipants: result.totalParticipants,
-        binsCount: result.bins.length,
-        uniqueFields: [...new Set(result.bins.map(b => b.criteriaField))],
-        binsPreview: result.bins.slice(0, 3)
-      });
       setData(result);
       processAggregatedData(result);
     } catch (err: any) {
@@ -181,11 +174,6 @@ export default function AggregatedDataView({
   };
 
   const processAggregatedData = (aggregatedData: AggregatedStudyData) => {
-    console.log('[AGGREGATED_DATA] Processing data:', {
-      binsCount: aggregatedData.bins.length,
-      totalParticipants: aggregatedData.totalParticipants
-    });
-    
     const grouped = new Map<string, ProcessedBinData[]>();
 
     aggregatedData.bins.forEach((bin) => {
@@ -207,11 +195,6 @@ export default function AggregatedDataView({
       grouped.set(bin.criteriaField, existing);
     });
     
-    console.log('[AGGREGATED_DATA] Grouped bins by field:', {
-      fields: Array.from(grouped.keys()),
-      fieldCounts: Array.from(grouped.entries()).map(([field, bins]) => ({ field, count: bins.length }))
-    });
-
     grouped.forEach((bins) => {
       bins.sort((a, b) => {
         if (a.binType === "RANGE" && a.minValue !== undefined && b.minValue !== undefined) {
