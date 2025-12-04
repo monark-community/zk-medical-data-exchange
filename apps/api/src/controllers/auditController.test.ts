@@ -1174,7 +1174,6 @@ describe("logFailedJoinStudy", () => {
     mock.module("@/services/auditService", () => ({
       auditService: {
         logStudyParticipation: mock(() => Promise.resolve(mockResult)),
-        markApplicationAsFailed: mock(() => {}),
       },
       ActionType: ActionType,
     }));
@@ -1207,7 +1206,6 @@ describe("logFailedJoinStudy", () => {
     mock.module("@/services/auditService", () => ({
       auditService: {
         logStudyParticipation: mock(() => Promise.resolve(mockResult)),
-        markApplicationAsFailed: mock(() => {}),
       },
       ActionType: ActionType,
     }));
@@ -1237,7 +1235,6 @@ describe("logFailedJoinStudy", () => {
     mock.module("@/services/auditService", () => ({
       auditService: {
         logStudyParticipation: mock(() => Promise.resolve(mockResult)),
-        markApplicationAsFailed: mock(() => {}),
       },
       ActionType: ActionType,
     }));

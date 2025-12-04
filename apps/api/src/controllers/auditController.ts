@@ -461,12 +461,6 @@ export const logFailedJoinStudy = async (req: Request, res: Response): Promise<v
       enrichedMetadata
     );
 
-    auditService.markApplicationAsFailed(
-      userAddress,
-      studyIdNum.toString(),
-      reason || "Eligibility criteria not met"
-    );
-
     if (result.success) {
       logger.info(
         {
