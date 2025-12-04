@@ -385,8 +385,6 @@ const processBundle = (bundle: FHIRDatatype, aggregated: AggregatedMedicalData):
       }
     }
   }
-
-  console.log("Aggregated data from bundle:", aggregated);
 };
 
 /**
