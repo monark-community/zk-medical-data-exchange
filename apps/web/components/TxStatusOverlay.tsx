@@ -5,7 +5,6 @@ import { XCircle, X, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTxStatusState } from "@/hooks/useTxStatus";
 import { Spinner } from "@/components/ui/spinner";
-// Popup component to show blockchain transaction status
 export const TxStatusOverlay: React.FC = () => {
   const { message, error, isVisible, hide } = useTxStatusState();
 
@@ -18,13 +17,12 @@ export const TxStatusOverlay: React.FC = () => {
     (message.toLowerCase().includes("success") ||
       message.includes("✓") ||
       message.includes("✔") ||
-      message.toLowerCase().includes("completed"));
+      message.toLowerCase().includes("completed") ||
+      message.toLowerCase().includes("successfully"));
 
-  // Auto-hide after a certain duration based on message type
   useEffect(() => {
     if (!isVisible) return;
 
-    // Only auto-hide for error and success messages
     if (!isError && !isSuccess) return;
 
     const duration = isError ? 10000 : 6000;
@@ -35,7 +33,6 @@ export const TxStatusOverlay: React.FC = () => {
     return () => clearTimeout(timeoutId);
   }, [isVisible, isError, isSuccess, hide]);
 
-  // Don't render popup if not visible
   if (!isVisible) {
     return null;
   }

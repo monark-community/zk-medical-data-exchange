@@ -220,7 +220,7 @@ export default function DataSellerStudiesSection() {
         setEnrolledLoading(false);
 
         show(
-          "Step 3/3: Consent Revoked!\n\n" +
+          "Step 3/3: Consent Revoked Successfully!\n\n" +
             (result.blockchainTxHash ? `\n Tx: ${result.blockchainTxHash.slice(0, 10)}...` : "")
         );
       }
