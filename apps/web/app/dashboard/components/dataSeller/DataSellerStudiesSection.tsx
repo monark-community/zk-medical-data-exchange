@@ -146,35 +146,7 @@ export default function DataSellerStudiesSection() {
         throw new Error("Invalid medical data format. Please check your uploaded records.");
       }
 
-      show("Step 4/6: Checking your eligibility for this study...");
-      const studyDetails = await getStudyDetails(studyId);
-      const isEligible = checkEligibility(scaledData, studyDetails.eligibilityCriteria);
-
-      if (!isEligible) {
-        setBlockedStudies((prev) => new Set(prev).add(studyId));
-
-        apiClient.post("/audit/log-failed-join", {
-          userAddress: walletAddress,
-          studyId: studyId.toString(),
-          reason: "Eligibility criteria not met",
-          errorDetails: "User medical data does not match study requirements (pre-submission check)",
-          metadata: {
-            stage: "client_pre_check",
-            checkLocation: "DataSellerStudiesSection",
-          },
-        }).then(() => {
-          console.log("Failed eligibility check logged to audit trail");
-        }).catch((auditError) => {
-          console.error("Failed to log audit entry (non-critical):", auditError);
-        });
-
-        throw new Error(
-          "Not Eligible\n\n" +
-          "Your medical data doesn't meet this study's requirements.\n\n"
-        );
-      }
-
-      show("Step 5/6: Generating ZK proof and cryptographic commitment (this may take 30-60s)...");
+      show("Step 4/5: Generating ZK proof and cryptographic commitment (this may take 30-60s)...");
       const result = await StudyApplicationService.applyToStudy(
         studyId,
         scaledData,
@@ -182,7 +154,7 @@ export default function DataSellerStudiesSection() {
       );
 
       if (result.success) {
-        show(`Step 6/6: Success! ${result.message}\n\nYou can now view this study in your "Enrolled Studies" tab.`);
+        show(`Step 5/5: Success! ${result.message}\n\nYou can now view this study in your "Enrolled Studies" tab.`);
 
         refetch();
         if (walletAddress) {
@@ -204,6 +176,7 @@ export default function DataSellerStudiesSection() {
         : `Application Failed\n\n${errorMessage}\n\n`;
       
       showError(enhancedError);
+      refetch();
     } finally {
       setApplyingStudyId(null);
     }

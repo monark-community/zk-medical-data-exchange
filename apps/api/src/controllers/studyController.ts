@@ -897,36 +897,6 @@ export const getStudies = async (req: Request, res: Response) => {
       return res.status(500).json({ error: "Failed to fetch studies" });
     }
 
-    let enrollmentMap = new Map<number, boolean>();
-    let consentMap = new Map<number, boolean>();
-    let blockedMap = new Map<number, { blocked: boolean; reason?: string }>();
-
-    if (walletAddress && typeof walletAddress === "string") {
-      const studyIds = studies?.map((s) => s.id) || [];
-      
-      if (studyIds.length > 0) {
-        const { data: participations } = await req.supabase
-          .from(TABLES.STUDY_PARTICIPATIONS!.name)
-          .select(`${TABLES.STUDY_PARTICIPATIONS!.columns.studyId!}, ${TABLES.STUDY_PARTICIPATIONS!.columns.hasConsented!}`)
-          .eq(TABLES.STUDY_PARTICIPATIONS!.columns.participantWallet!, walletAddress)
-          .in(TABLES.STUDY_PARTICIPATIONS!.columns.studyId!, studyIds);
-
-        participations?.forEach((p: any) => {
-          enrollmentMap.set(p.study_id, true);
-          consentMap.set(p.study_id, p.has_consented ?? true);
-        });
-
-        const nonEnrolledStudyIds = studyIds.filter(id => !enrollmentMap.has(id));
-        if (nonEnrolledStudyIds.length > 0) {
-          blockedMap = await auditService.getBlockedStudiesForUser(
-            walletAddress,
-            nonEnrolledStudyIds
-          );
-       
-        }
-      }
-    }
-
     logger.info(
       { studyCount: studies?.length || 0, walletAddress },
       "Fetched studies from database"
@@ -940,18 +910,7 @@ export const getStudies = async (req: Request, res: Response) => {
           study
         );
         
-        const isEnrolled = enrollmentMap.get(study.id);
-        const hasConsented = consentMap.get(study.id);
-        const blockStatus = blockedMap.get(study.id);
-        
-        const transformed = transformStudyForResponse(study, isEnrolled, hasConsented);
-        
-        if (walletAddress) {
-          const isBlocked = blockStatus?.blocked ?? false;
-          transformed.canApply = !isEnrolled && !isBlocked;
-        }
-        
-        return transformed;
+        return transformStudyForResponse(study);
       })
     );
 
@@ -1993,22 +1952,36 @@ export const getStudiesEligibility = async (req: Request, res: Response) => {
     }
 
     const studyIdArray = studyIds.split(",").map(Number);
+    const normalizedWalletAddress = walletAddress.toLowerCase();
 
     const { data: participations } = await req.supabase
       .from(TABLES.STUDY_PARTICIPATIONS!.name)
       .select(`${TABLES.STUDY_PARTICIPATIONS!.columns.studyId!}`)
-      .eq(TABLES.STUDY_PARTICIPATIONS!.columns.participantWallet!, walletAddress)
+      .eq(TABLES.STUDY_PARTICIPATIONS!.columns.participantWallet!, normalizedWalletAddress)
       .in(TABLES.STUDY_PARTICIPATIONS!.columns.studyId!, studyIdArray);
 
     const enrolledStudyIds = new Set(participations?.map((p: any) => p.study_id) || []);
 
     const nonEnrolledStudyIds = studyIdArray.filter(id => !enrolledStudyIds.has(id));
-    const blockedMap = await auditService.getBlockedStudiesForUser(
-      walletAddress,
-      nonEnrolledStudyIds
-    );
 
+    let blockedMap = new Map<number, { blocked: boolean; reason?: string }>();
     const eligibility: Record<number, { canApply: boolean }> = {};
+
+    studyIdArray.forEach(studyId => {
+      blockedMap.set(studyId, { blocked: false });
+    });
+
+    const { data: dataCommitments } = await req.supabase
+            .from(TABLES.DATA_COMMITMENTS!.name)
+            .select(`${TABLES.DATA_COMMITMENTS!.columns.studyId!}`)
+            .eq(TABLES.DATA_COMMITMENTS!.columns.walletAddress!, normalizedWalletAddress)
+            .in(TABLES.DATA_COMMITMENTS!.columns.studyId!, nonEnrolledStudyIds);
+
+    dataCommitments?.forEach((dc: any) => {
+      if (blockedMap.has(dc.study_id)) {
+        blockedMap.set(dc.study_id, { blocked: true });
+      }
+    });
     
     studyIdArray.forEach(studyId => {
       const isEnrolled = enrolledStudyIds.has(studyId);

@@ -269,7 +269,6 @@ export class StudyApplicationService {
         salt,
         challengeData.challenge
       );
-      console.log("Final data commitment (with challenge):", finalDataCommitment.toString());
 
       if (!window.ethereum) {
         throw new Error("MetaMask not found. Please install MetaMask to continue.");
