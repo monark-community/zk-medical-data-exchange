@@ -93,7 +93,7 @@ export default function DataSellerStudiesSection() {
 
   useEffect(() => {
     if (walletAddress && studies.length > 0) {
-      const studyIds = studies.map(s => s.id);
+      const studyIds = studies.map((s) => s.id);
       setEligibilityLoading(true);
       getStudiesEligibility(walletAddress, studyIds)
         .then((eligibility) => {
@@ -156,11 +156,7 @@ export default function DataSellerStudiesSection() {
       }
 
       show("Step 4/5: Generating ZK proof and cryptographic commitment (this may take 30-60s)...");
-      const result = await StudyApplicationService.applyToStudy(
-        studyId,
-        scaledData,
-        walletAddress
-      );
+      const result = await StudyApplicationService.applyToStudy(studyId, scaledData, walletAddress);
 
       if (result.success) {
         show(
@@ -181,7 +177,9 @@ export default function DataSellerStudiesSection() {
 
       const errorMessage = error.message || error.toString();
       const enhancedError =
-        errorMessage.includes("not eligible") || errorMessage.includes("Not Eligible")
+        errorMessage.includes("not eligible") ||
+        errorMessage.includes("Not Eligible") ||
+        errorMessage.includes("Eligibility criteria not met")
           ? `Not Eligible.\n\nYour medical data doesn't meet this study's requirements.`
           : errorMessage.includes("No medical data")
           ? `No Medical Data.\n\nPlease upload your medical records before applying to studies.\n\nTip: Go to Profile → Upload Medical Data`
@@ -468,14 +466,14 @@ export default function DataSellerStudiesSection() {
             }}
           >
             <DataSellerStudiesList
-              studies={filteredStudies.map(study => {
+              studies={filteredStudies.map((study) => {
                 const eligibility = studiesEligibility[study.id];
 
                 const canApply = eligibility?.canApply ?? study.canApply;
-                
+
                 return {
                   ...study,
-                  canApply
+                  canApply,
                 };
               })}
               onApplyToStudy={handleApplyToStudy}

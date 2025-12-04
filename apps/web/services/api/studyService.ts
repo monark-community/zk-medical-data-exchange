@@ -311,8 +311,7 @@ export class StudyApplicationService {
 
         return {
           success: false,
-          message:
-            "You don't meet the eligibility criteria for this study.",
+          message: "You don't meet the eligibility criteria for this study.",
         };
       }
 
@@ -383,7 +382,6 @@ export class StudyApplicationService {
   private static async submitApplication(request: StudyApplicationRequest): Promise<void> {
     try {
       const response = await apiClient.post(`/studies/${request.studyId}/participants`, request);
-
     } catch (error) {
       console.error("Failed to submit application:", error);
 
