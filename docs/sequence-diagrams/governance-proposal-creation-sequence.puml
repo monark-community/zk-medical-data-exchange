@@ -4,79 +4,82 @@
 title Cura - Diagramme de Séquence : Création de Proposition de Gouvernance
 
 actor "Utilisateur" as User
-participant "Interface Web\n(GovernanceForm)" as Frontend
+participant "Interface Web\n(Next.js)" as Frontend
 participant "API Backend\n(Express)" as Backend
-participant "Middleware JWT\n(Validation)" as JWTMiddleware
+participant "governanceController" as Controller
+participant "governanceService" as Service
 participant "Base de Données\n(Supabase)" as Database
-participant "Service Blockchain\n(GovernanceService)" as Blockchain
-participant "Smart Contract\n(GovernanceFactory)" as Factory
-participant "Contrat Proposal\n(Déployé)" as ProposalContract
+participant "GovernanceFactory\n(Blockchain)" as Factory
+participant "Proposal\n(Smart Contract)" as ProposalContract
 
 == Phase de Saisie ==
-User -> Frontend : Accès section "Gouvernance"
-Frontend -> Frontend : Vérification authentification
-User -> Frontend : Clic "Créer une proposition"
-User -> Frontend : Saisie des informations
-note right
-Titre, description, type,
-durée de vote, critères
-end note
-Frontend -> Frontend : Validation côté client
-User -> Frontend : Soumission du formulaire
+User -> Frontend : Accéder à la page gouvernance
+activate Frontend
+ref over Frontend
+    Vérification session locale
+    hasSessionTokens()
+end ref
+User -> Frontend : Cliquer sur "Créer proposition"
+User -> Frontend : Remplir le formulaire
+Frontend -> Frontend : Valider les champs saisis
+activate Frontend
+deactivate Frontend
+User -> Frontend : Soumettre la proposition
 
-== Phase de sauvegarde en base de données ==
-Frontend -> Backend : POST /api/governance/proposals
-note right
-Authorization: Bearer <JWT_TOKEN>
-Body: { title, description, 
-proposalType, votingDuration,
-criteria, walletAddress }
-end note
+== Phase de Création ==
+Frontend -> Backend : Envoyer la proposition
+activate Backend
+Backend -> Controller : Créer la proposition
+activate Controller
 
-Backend -> JWTMiddleware : Validation JWT token
-JWTMiddleware -> Backend : Token valide + user info
-Backend -> Backend : Validation données + autorisation gouvernance
-Backend -> Database : INSERT governance_proposals (status='draft')
-Database -> Backend : Retour proposal_id
-Backend -> Frontend : Réponse { proposal: {...} }
+Controller -> Controller : Valider les données
+activate Controller
+deactivate Controller
 
-== Phase de déploiement Blockchain ==
-Frontend -> Backend : POST /api/governance/{id}/deployment
-note right
-Authorization: Bearer <JWT_TOKEN>
-end note
-Backend -> JWTMiddleware : Validation JWT token
-JWTMiddleware -> Backend : Token valide + autorisation
-Backend -> Blockchain : deployProposal(proposalParams)
-Blockchain -> Factory : createProposal(title, description, votingPeriod, ...)
-Factory -> ProposalContract : new Proposal(title, criteria, votingLogic, token)
-note right
-Déploie un contrat Proposal individuel
-avec logique de vote et critères
-end note
-ProposalContract -> Factory : Retour address(Proposal)
-Factory -> Blockchain : event ProposalCreated(proposalId, proposalAddress)
-Blockchain -> Backend : { proposalId, proposalAddress, txHash }
-Backend -> Database : UPDATE (status='active', contract_address, tx_hash)
-Backend -> Frontend : Réponse déploiement
-Frontend -> User : Confirmation avec lien Etherscan
+Controller -> Service : Lancer la création
+activate Service
 
-== Gestion d'Erreurs ==
-alt Token JWT invalide/expiré
-    JWTMiddleware -> Backend : Erreur 401 - Non autorisé
-    Backend -> Frontend : HTTP 401 - Token invalide
-    Frontend -> User : "Session expirée, reconnectez-vous"
-else Permissions gouvernance insuffisantes
-    Backend -> Frontend : HTTP 403 - Non autorisé
-    Frontend -> User : "Droits de gouvernance requis"
-else Échec déploiement blockchain
-    Blockchain -> Backend : Erreur déploiement
-    Backend -> Database : DELETE proposal (rollback)
-    Backend -> Frontend : Erreur 500
-    Frontend -> User : "Déploiement échoué, réessayez"
-else Erreur validation
-    Backend -> Frontend : HTTP 400 - Données invalides
-    Frontend -> User : Message d'erreur
-end
+Service -->> Factory : createProposal(title, description, votingPeriod) [async]
+activate Factory
+
+Factory -> ProposalContract : new Proposal(params)
+activate ProposalContract
+ProposalContract -> ProposalContract : Initialiser votes (for: 0, against: 0)
+ProposalContract --> Factory : deployedAddress
+deactivate ProposalContract
+
+Factory -> Factory : proposals.push(proposalAddress)
+activate Factory
+Factory -> Factory : emit ProposalCreated(id, creator, address)
+deactivate Factory
+
+Factory -->> Service : {proposalId, contractAddress, txHash}
+deactivate Factory
+
+Service -->> ProposalContract : Récupérer les détails (async)
+activate ProposalContract
+ProposalContract -->> Service : Détails de la proposition
+deactivate ProposalContract
+
+Service -->> Database : Sauvegarder en base de données (async)
+activate Database
+Database -->> Service : Proposition enregistrée
+deactivate Database
+
+Service --> Controller : Proposition créée avec succès
+deactivate Service
+
+Controller -->> Service : Enregistrer dans l'audit (async)
+activate Service
+deactivate Service
+
+Controller --> Backend : Création réussie
+deactivate Controller
+
+Backend --> Frontend : Proposition créée
+deactivate Backend
+
+Frontend -> User : Afficher la proposition
+deactivate Frontend
 
 @enduml

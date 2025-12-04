@@ -1,39 +1,72 @@
 @startuml Study_Statistics_Retrieval_Sequence
 !theme plain
 
-title Cura - Diagramme de Séquence : Récupération de Statistiques d'Étude
+title Cura - Diagramme de Séquence : Récupération des Études et Statistiques
 
-actor "Chercheur" as Researcher
-participant "Interface Web\n(Dashboard)" as Frontend
+actor "Utilisateur" as User
+participant "Interface Web\n(Next.js)" as Frontend
 participant "API Backend\n(Express)" as Backend
+participant "studyController" as Controller
 participant "Base de Données\n(Supabase)" as Database
-participant "Smart Contract\n(Study)" as StudyContract
 
-== Phase d'Accès ==
-Researcher -> Frontend : Accès "Mes Études"
-Frontend -> Backend : GET /api/studies/my-studies
-Backend -> Database : Récupération études du chercheur
-Database -> Backend : Liste des études
-Backend -> Frontend : Études avec métadonnées
-Frontend -> Researcher : Affichage études
+== Récupération des études ==
+User -> Frontend : Consulter les études disponibles
+activate Frontend
 
-== Phase de Sélection ==
-Researcher -> Frontend : Clic étude pour statistiques
-Frontend -> Backend : GET /api/studies/{id}/statistics
-Backend -> Backend : Validation propriétaire
-Backend -> Database : Récupération stats participation
-Backend -> StudyContract : getStudyStats()
-StudyContract -> Backend : Stats blockchain ZK
-Backend -> Frontend : Statistiques complètes
-Frontend -> Researcher : Dashboard graphiques
+ref over Frontend
+    Vérification session locale
+    hasSessionTokens()
+end ref
 
-== Gestion d'Erreurs ==
-alt Accès non autorisé
-    Backend -> Frontend : HTTP 403 - Non autorisé
-    Frontend -> Researcher : "Étude non accessible"
-else Erreur technique
-    Backend -> Frontend : HTTP 500 - Erreur serveur
-    Frontend -> Researcher : "Erreur technique, réessayez"
+Frontend -> Backend : Récupérer la liste des études
+activate Backend
+Backend -> Controller : getStudies(status, createdBy, page, limit)
+activate Controller
+
+Controller -->> Database : Rechercher les études avec filtres [async]
+activate Database
+Database -->> Controller : Liste des études
+deactivate Database
+
+loop Pour chaque étude
+    Controller -->> Database : Calculer le nombre de participants actifs [async]
+    activate Database
+    Database -->> Controller : Nombre de participants
+    deactivate Database
 end
+
+Controller -> Controller : transformStudyForResponse(studies)
+
+Controller --> Backend : Études avec statistiques
+deactivate Controller
+Backend --> Frontend : Liste des études
+deactivate Backend
+Frontend --> User : Affiche les études avec leurs statistiques
+deactivate Frontend
+
+== Consultation des détails d'une étude ==
+User -> Frontend : Sélectionner une étude spécifique
+activate Frontend
+Frontend -> Backend : Récupérer les détails de l'étude
+activate Backend
+Backend -> Controller : getStudyById(studyId)
+activate Controller
+
+Controller -->> Database : Rechercher l'étude par ID [async]
+activate Database
+Database -->> Controller : Détails de l'étude
+deactivate Database
+
+Controller -->> Database : Compter les participants actifs [async]
+activate Database
+Database -->> Controller : Statistiques de participation
+deactivate Database
+
+Controller --> Backend : Détails complets avec statistiques
+deactivate Controller
+Backend --> Frontend : Informations détaillées
+deactivate Backend
+Frontend --> User : Affiche les détails de l'étude
+deactivate Frontend
 
 @enduml

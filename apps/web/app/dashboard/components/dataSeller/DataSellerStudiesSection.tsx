@@ -57,6 +57,8 @@ const statusOptions = [
 import eventBus from "@/lib/eventBus";
 import { useTxStatusState } from "@/hooks/useTxStatus";
 import { scaleMedicalData } from "@zk-medical/shared";
+import { CustomConfirmAlert } from "@/components/alert/CustomConfirmAlert";
+import { CheckCircle, Info } from "lucide-react";
 
 type ViewMode = "enrolled" | "available";
 
@@ -73,9 +75,13 @@ export default function DataSellerStudiesSection() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
   const [selectedStatusFilters, setSelectedStatusFilters] = useState<string[]>(["active"]);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [pendingStudyId, setPendingStudyId] = useState<number | null>(null);
   const [blockedStudies, setBlockedStudies] = useState<Set<number>>(new Set());
   const [eligibilityLoading, setEligibilityLoading] = useState(false);
-  const [studiesEligibility, setStudiesEligibility] = useState<Record<number, { canApply: boolean }>>({});
+  const [studiesEligibility, setStudiesEligibility] = useState<
+    Record<number, { canApply: boolean }>
+  >({});
 
   useEffect(() => {
     if (walletAddress) {
@@ -122,6 +128,16 @@ export default function DataSellerStudiesSection() {
       return;
     }
 
+    setPendingStudyId(studyId);
+    setShowConfirmDialog(true);
+  };
+
+  const handleConfirmApply = async () => {
+    const studyId = pendingStudyId;
+    if (!studyId || !walletAddress) return;
+
+    setShowConfirmDialog(false);
+    setPendingStudyId(null);
     setApplyingStudyId(studyId);
 
     try {
@@ -154,7 +170,9 @@ export default function DataSellerStudiesSection() {
       );
 
       if (result.success) {
-        show(`Step 5/5: Success! ${result.message}\n\nYou can now view this study in your "Enrolled Studies" tab.`);
+        show(
+          `Step 6/6: Success! ${result.message}\n\nYou can now view this study in your "Enrolled Studies" tab.`
+        );
 
         refetch();
         if (walletAddress) {
@@ -167,14 +185,15 @@ export default function DataSellerStudiesSection() {
       }
     } catch (error: any) {
       console.error("Error during study application:", error);
-      
+
       const errorMessage = error.message || error.toString();
-      const enhancedError = errorMessage.includes("not eligible") 
-        ? `Not Eligible\n\nYour medical data doesn't meet this study's requirements.\n\nError: ${errorMessage}`
-        : errorMessage.includes("No medical data")
-        ? `No Medical Data\n\nPlease upload your medical records before applying to studies.\n\nTip: Go to Profile → Upload Medical Data`
-        : `Application Failed\n\n${errorMessage}\n\n`;
-      
+      const enhancedError =
+        errorMessage.includes("not eligible") || errorMessage.includes("Not Eligible")
+          ? `Not Eligible.\n\nYour medical data doesn't meet this study's requirements.`
+          : errorMessage.includes("No medical data")
+          ? `No Medical Data.\n\nPlease upload your medical records before applying to studies.\n\nTip: Go to Profile → Upload Medical Data`
+          : `Not Eligible.\n\nYou don't meet the requirements for this study.`;
+
       showError(enhancedError);
       refetch();
     } finally {
@@ -205,7 +224,7 @@ export default function DataSellerStudiesSection() {
         if (result.blockchainTxHash) {
           console.log("Blockchain transaction:", result.blockchainTxHash);
         }
-        
+
         show("Step 2/3: Updating database records...");
         eventBus.emit("consentChanged");
         setEnrolledLoading(true);
@@ -215,13 +234,13 @@ export default function DataSellerStudiesSection() {
 
         show(
           "Step 3/3: Consent Revoked!\n\n" +
-          (result.blockchainTxHash ? `\n Tx: ${result.blockchainTxHash.slice(0, 10)}...` : "")
+            (result.blockchainTxHash ? `\n Tx: ${result.blockchainTxHash.slice(0, 10)}...` : "")
         );
       }
     } catch (error) {
       console.error("Failed to revoke consent:", error);
       showError(
-        `Consent Revocation Failed\n\n${error instanceof Error ? error.message : "Unknown error"}\n\nTip: Check your wallet and try again`
+        `Consent Revocation Failed.\n\nUnable to revoke consent. Please try again in a moment.`
       );
     } finally {
       setRevokingStudyId(null);
@@ -251,7 +270,7 @@ export default function DataSellerStudiesSection() {
         if (result.blockchainTxHash) {
           console.log("Blockchain transaction:", result.blockchainTxHash);
         }
-        
+
         show("Step 2/3: Updating your study records...");
         eventBus.emit("consentChanged");
         setEnrolledLoading(true);
@@ -267,18 +286,15 @@ export default function DataSellerStudiesSection() {
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
       if (errorMessage.includes("full") || errorMessage.includes("Full")) {
         showError(
-          "Study Full\n\n" +
-          "This study has reached its maximum number of active participants.\n\n"
+          "Study Full.\n\n" + "This study has reached its maximum number of active participants."
         );
-      } else if (errorMessage.includes("already active") || errorMessage.includes("already granted")) {
-        showError(
-          "Already Active\n\n" +
-          "You have already granted consent for this study."
-        );
+      } else if (
+        errorMessage.includes("already active") ||
+        errorMessage.includes("already granted")
+      ) {
+        showError("Already Active.\n\n" + "You have already granted consent for this study.");
       } else {
-        showError(
-          `Consent Failed\n\n${errorMessage}\n\nTip: Check your wallet connection and try again`
-        );
+        showError(`Consent Failed.\n\nUnable to grant consent. Please try again in a moment.`);
       }
     } finally {
       setGrantingStudyId(null);
@@ -531,6 +547,56 @@ export default function DataSellerStudiesSection() {
           </StudiesContainer>
         </div>
       )}
+
+      {/* Confirmation Dialog */}
+      <CustomConfirmAlert
+        open={showConfirmDialog}
+        onOpenChange={setShowConfirmDialog}
+        alertTitle="Application Confirmation"
+        description={
+          <div className="space-y-4 text-left">
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+              <div className="flex items-start gap-2">
+                <Info className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                <div className="space-y-2">
+                  <p className="font-semibold text-amber-900">Important: You can only apply once</p>
+                  <p className="text-sm text-amber-800">
+                    Once you apply to this study, you will not be able to submit a new application.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex items-start gap-2">
+                <CheckCircle className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                <div className="space-y-2">
+                  <p className="font-semibold text-blue-900">Verify your medical information</p>
+                  <p className="text-sm text-blue-800">
+                    Please ensure all required medical information for this study is available in
+                    your profile:
+                  </p>
+                  <ul className="text-sm text-blue-800 list-disc list-inside space-y-1 ml-2">
+                    <li>Demographics (age, gender)</li>
+                    <li>Relevant medical history</li>
+                    <li>Required medical test results</li>
+                    <li>Any other study-specific information</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <p className="text-sm text-gray-600">
+              Are you sure you want to proceed with your application?
+            </p>
+          </div>
+        }
+        onConfirm={handleConfirmApply}
+        onCancel={() => {
+          setPendingStudyId(null);
+          setShowConfirmDialog(false);
+        }}
+      />
     </div>
   );
 }

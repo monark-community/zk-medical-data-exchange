@@ -4,3 +4,4 @@ export * from "./dataBins";
 export * from "./binningAlgorithm";
 export * from "./scaleUtils";
 export * from "./medicalData";
+export * from "./constants/valueConstants";

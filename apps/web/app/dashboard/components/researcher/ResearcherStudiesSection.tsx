@@ -65,7 +65,7 @@ export default function ResearcherStudiesSection() {
       } else {
         useTxStatusState
           .getState()
-          .showError(`Failed to delete study: ${error.message || "Unknown error"}`);
+          .showError("Failed to delete study. Please check your connection and try again.");
       }
     } finally {
       setDeletingStudyId(null);
@@ -146,7 +146,7 @@ export default function ResearcherStudiesSection() {
         }
       />
 
-      <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
+      <div className="rounded-lg border bg-card text-card-foreground shadow-sm pt-6">
         <StudiesContainer
           isLoading={isLoading}
           error={error}
