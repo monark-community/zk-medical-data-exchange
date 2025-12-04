@@ -461,7 +461,7 @@ const StudyCreationForm = ({ onSuccess, isModal = false }: StudyCreationFormProp
           console.error("Failed to delete study after deployment failure:", deleteError);
         }
 
-        showError("Study deployment to blockchain failed. Please verify your wallet has sufficient funds.");
+        showError("Study deployment to blockchain failed. Please try again later.");
         return;
       }
     } catch (error) {
