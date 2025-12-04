@@ -19,8 +19,6 @@ import {
   getStudyDetails,
   getStudiesEligibility,
 } from "@/services/api/studyService";
-import { checkEligibility } from "@/services/zk/zkProofGenerator";
-import { apiClient } from "@/services/core/apiClient";
 import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
