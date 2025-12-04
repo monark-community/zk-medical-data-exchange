@@ -179,7 +179,7 @@ export default function DataSellerStudiesSection() {
       const enhancedError =
         errorMessage.includes("not eligible") ||
         errorMessage.includes("Not Eligible") ||
-        errorMessage.includes("Eligibility criteria not met")
+        errorMessage.includes("You don't meet the eligibility criteria for this study.")
           ? `Not Eligible.\n\nYour medical data doesn't meet this study's requirements.`
           : errorMessage.includes("No medical data")
           ? `No Medical Data.\n\nPlease upload your medical records before applying to studies.\n\nTip: Go to Profile → Upload Medical Data`
