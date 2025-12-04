@@ -75,7 +75,6 @@ export default function DataSellerStudiesSection() {
   const [selectedStatusFilters, setSelectedStatusFilters] = useState<string[]>(["active"]);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [pendingStudyId, setPendingStudyId] = useState<number | null>(null);
-  const [blockedStudies, setBlockedStudies] = useState<Set<number>>(new Set());
   const [eligibilityLoading, setEligibilityLoading] = useState(false);
   const [studiesEligibility, setStudiesEligibility] = useState<
     Record<number, { canApply: boolean }>
